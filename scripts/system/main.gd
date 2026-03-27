@@ -3,6 +3,7 @@ extends Node2D
 const GameBossController = preload("res://scripts/system/game_boss_controller.gd")
 const GameRenderer = preload("res://scripts/system/game_renderer.gd")
 const GameStateFactory = preload("res://scripts/system/game_state_factory.gd")
+const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
 
 enum CombatMode {
@@ -34,7 +35,6 @@ const SWORD_MELEE_ARC := PI * 1.2
 const SWORD_MELEE_DAMAGE := 100.0
 const SWORD_RANGED_DAMAGE := 100.0
 const SWORD_TAP_THRESHOLD := 0.15
-const SWORD_ARRAY_HOLD_THRESHOLD := 0.06
 const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
 const SWORD_ORBIT_DISTANCE := 25.0
@@ -58,31 +58,6 @@ const ENERGY_GAIN_MELEE_DEFLECT := 8.0
 
 const FROZEN_DECEL_TIME := 0.3
 const FROZEN_LIFETIME := 3.0
-const MARBLE_ABSORB_RANGE := 250.0
-const MARBLE_ENERGY_COST_HOLD := 10.0
-const MARBLE_MAX_ABSORBED := 12
-const MARBLE_FIRED_SPEED := 45.0 * 60.0
-const MARBLE_FIRED_DAMAGE := 100.0
-const SWORD_ARRAY_RING_THRESHOLD := 160.0
-const SWORD_ARRAY_FAN_THRESHOLD := 420.0
-const SWORD_ARRAY_FAN_ARC := 1.0
-const SWORD_ARRAY_RING_RADIUS := 68.0
-const SWORD_ARRAY_FAN_PREVIEW_RADIUS := 110.0
-const SWORD_ARRAY_PIERCE_SPREAD := 0.08
-const SWORD_ARRAY_PIERCE_START_OFFSET := 52.0
-const SWORD_ARRAY_PIERCE_SLOT_STEP := 28.0
-const SWORD_ARRAY_PIERCE_PREVIEW_LENGTH := 180.0
-const SWORD_ARRAY_PIERCE_PREVIEW_HALF_WIDTH := 6.0
-const SWORD_ARRAY_RING_SLOT_COUNT := 10
-const SWORD_ARRAY_FAN_SLOT_COUNT := 7
-const SWORD_ARRAY_PIERCE_SLOT_COUNT := 5
-const SWORD_ARRAY_RING_FIRE_RATE := 0.32
-const SWORD_ARRAY_FAN_FIRE_RATE := 0.16
-const SWORD_ARRAY_PIERCE_FIRE_RATE := 0.08
-
-const SWORD_ARRAY_RING := "ring"
-const SWORD_ARRAY_FAN := "fan"
-const SWORD_ARRAY_PIERCE := "pierce"
 
 const WAVE_BASE_ENEMIES := 3
 const BOSS_WAVE_INTERVAL := 5
@@ -223,8 +198,8 @@ func _process(delta: float) -> void:
 		if player["absorbed_ids"].size() > 0:
 			player["array_mode"] = _get_sword_array_mode()
 			if not player["array_is_firing"]:
-				player["array_hold_ratio"] = clampf(player["array_hold_timer"] / SWORD_ARRAY_HOLD_THRESHOLD, 0.0, 1.0)
-				if player["array_hold_timer"] >= SWORD_ARRAY_HOLD_THRESHOLD:
+				player["array_hold_ratio"] = clampf(player["array_hold_timer"] / SwordArrayConfig.HOLD_THRESHOLD, 0.0, 1.0)
+				if player["array_hold_timer"] >= SwordArrayConfig.HOLD_THRESHOLD:
 					player["array_is_firing"] = true
 					_fire_absorbed_marbles()
 					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
@@ -335,17 +310,25 @@ func _update_absorption(delta: float) -> void:
 		return
 
 	player["is_charging"] = true
-	player["energy"] = max(player["energy"] - MARBLE_ENERGY_COST_HOLD * delta, 0.0)
+	player["energy"] = max(player["energy"] - SwordArrayConfig.ABSORB_ENERGY_COST * delta, 0.0)
 	for bullet in bullets:
 		if bullet["state"] != "frozen":
 			continue
 		if player["absorbed_ids"].has(bullet["id"]):
 			continue
-		if player["absorbed_ids"].size() >= MARBLE_MAX_ABSORBED:
+		if player["absorbed_ids"].size() >= SwordArrayConfig.MAX_ABSORBED:
 			break
-		if player["pos"].distance_to(bullet["pos"]) <= MARBLE_ABSORB_RANGE:
+		if player["pos"].distance_to(bullet["pos"]) <= SwordArrayConfig.ABSORB_RANGE:
 			player["absorbed_ids"].append(bullet["id"])
 			player["array_mode"] = _get_sword_array_mode()
+
+
+func _get_sword_array_formation_ratio() -> float:
+	if player["array_is_firing"]:
+		return 1.0
+	if left_mouse_held and player["absorbed_ids"].size() > 0:
+		return clampf(player["array_hold_ratio"], 0.0, 1.0)
+	return 0.0
 
 
 func _update_sword(delta: float) -> void:
@@ -514,7 +497,8 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 						self,
 						player["array_mode"],
 						slot_index,
-						player["absorbed_ids"].size()
+						player["absorbed_ids"].size(),
+						_get_sword_array_formation_ratio()
 					)
 					bullet["pos"] = bullet["pos"].lerp(target_pos, min(delta * 12.0, 1.0))
 				else:
@@ -552,12 +536,12 @@ func _bullet_hits_enemy(bullet: Dictionary) -> bool:
 			continue
 		if enemy["pos"].distance_to(bullet["pos"]) > enemy["radius"] + bullet["radius"]:
 			continue
-		enemy["health"] -= MARBLE_FIRED_DAMAGE
+		enemy["health"] -= SwordArrayConfig.FIRED_DAMAGE
 		_create_particles(bullet["pos"], COLORS["frozen"], 10)
 		return true
 	if _has_boss():
 		if boss["pos"].distance_to(bullet["pos"]) <= boss["radius"] + bullet["radius"] and (boss["is_vulnerable"] or boss["phase"] == 1):
-			boss["health"] -= MARBLE_FIRED_DAMAGE * 2.0
+			boss["health"] -= SwordArrayConfig.FIRED_DAMAGE * 2.0
 			_create_particles(bullet["pos"], COLORS["frozen"], 15)
 			return true
 	return false
@@ -708,8 +692,10 @@ func _fire_absorbed_marbles() -> void:
 		_fire_single_absorbed_marble()
 		fired_count += 1
 
+	_emit_sword_array_fire_effect(current_mode, fire_count)
+
 	match current_mode:
-		SWORD_ARRAY_FAN:
+		SwordArrayConfig.MODE_FAN:
 			player["array_burst_step"] = (player["array_burst_step"] + 1) % 3
 		_:
 			player["array_burst_step"] = 0
@@ -724,11 +710,17 @@ func _fire_single_absorbed_marble() -> void:
 			continue
 		var direction: Vector2 = _get_sword_array_direction(player["array_fire_index"])
 		bullet["state"] = "fired"
-		bullet["vel"] = direction.normalized() * MARBLE_FIRED_SPEED
+		bullet["vel"] = direction.normalized() * SwordArrayConfig.FIRED_SPEED
 		player["array_fire_index"] += 1
 		_create_particles(bullet["pos"], COLORS["frozen"], 5)
 		screen_shake = max(screen_shake, 2.0)
 		return
+
+
+func _emit_sword_array_fire_effect(mode: String, fire_count: int) -> void:
+	var effect: Dictionary = SwordArrayController.get_fire_effect(self, mode, fire_count)
+	_create_particles(effect["position"], effect["color"], effect["particles"])
+	screen_shake = max(screen_shake, effect["shake"])
 
 
 func _spawn_enemy(enemy_type: String) -> Dictionary:

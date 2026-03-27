@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GameStateFactory
 
+const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
+
 
 static func reset_runtime(main: Node) -> void:
 	main.left_mouse_held = false
@@ -31,7 +33,7 @@ static func reset_runtime(main: Node) -> void:
 		"array_fire_index": 0,
 		"array_burst_step": 0,
 		"array_burst_mode": "",
-		"array_mode": main.SWORD_ARRAY_RING,
+		"array_mode": SwordArrayConfig.MODE_RING,
 		"is_charging": false,
 		"absorbed_ids": [],
 	}

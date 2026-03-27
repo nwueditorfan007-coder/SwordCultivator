@@ -9,9 +9,9 @@ script = ExtResource("1_82ptl")
 
 [node name="HealthLabel" type="Label" parent="CanvasLayer" unique_id=577133190]
 offset_left = 28.0
-offset_top = 74.0
+offset_top = 55.0
 offset_right = 260.0
-offset_bottom = 102.0
+offset_bottom = 86.0
 theme_override_font_sizes/font_size = 22
 text = "生命 100 / 100"
 
@@ -25,9 +25,9 @@ text = "剑意 0 / 100"
 
 [node name="WaveLabel" type="Label" parent="CanvasLayer" unique_id=1611764704]
 offset_left = 28.0
-offset_top = 126.0
+offset_top = 121.0
 offset_right = 180.0
-offset_bottom = 154.0
+offset_bottom = 149.0
 theme_override_font_sizes/font_size = 20
 text = "波次 1"
 

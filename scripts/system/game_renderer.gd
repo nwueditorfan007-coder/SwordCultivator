@@ -1,6 +1,7 @@
 extends RefCounted
 class_name GameRenderer
 
+const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
 
 
@@ -43,6 +44,11 @@ static func draw_game(main: Node2D) -> void:
 		if bullet["state"] == "freezing" or bullet["state"] == "frozen" or bullet["state"] == "fired":
 			bullet_color = main.COLORS["frozen"]
 			bullet_radius *= 1.1 if bullet["state"] != "fired" else 1.0
+		if main.player["absorbed_ids"].has(bullet["id"]):
+			var mode: String = main.player["array_mode"]
+			var hold_ratio: float = main._get_sword_array_formation_ratio()
+			bullet_radius *= lerpf(1.0, 1.28, hold_ratio)
+			bullet_color = SwordArrayController.get_accent_color(mode)
 		main.draw_circle(bullet_pos, bullet_radius, bullet_color)
 
 	for enemy in main.enemies:
@@ -63,7 +69,7 @@ static func draw_game(main: Node2D) -> void:
 	main.draw_arc(player_pos, main.PLAYER_RADIUS + 5.0, 0.0, TAU, 28, aura_color, 2.0)
 
 	if main.player["is_charging"]:
-		main.draw_arc(player_pos, main.MARBLE_ABSORB_RANGE, 0.0, TAU, 48, main.COLORS["frozen"], 1.0)
+		main.draw_arc(player_pos, SwordArrayConfig.ABSORB_RANGE, 0.0, TAU, 48, main.COLORS["frozen"], 1.0)
 
 	if main.player["absorbed_ids"].size() > 0:
 		_draw_sword_array_preview(main, player_pos)
@@ -134,24 +140,50 @@ static func draw_hud_bars(main: Node2D) -> void:
 
 static func _draw_sword_array_preview(main: Node2D, player_pos: Vector2) -> void:
 	var mode: String = main.player["array_mode"]
-	var preview: Dictionary = SwordArrayController.get_preview_data(main, mode)
+	var formation_ratio: float = main._get_sword_array_formation_ratio()
+	var preview: Dictionary = SwordArrayController.get_preview_data(main, mode, formation_ratio)
 	var hold_ratio: float = main.player.get("array_hold_ratio", 0.0)
-	var preview_alpha: float = 0.3 + hold_ratio * 0.35
+	var preview_alpha: float = 0.18 + formation_ratio * 0.28 + hold_ratio * 0.18
 	var preview_color := Color(0.0, 1.0, 1.0, preview_alpha)
 
 	match preview["type"]:
-		main.SWORD_ARRAY_RING:
+		SwordArrayConfig.MODE_RING:
+			var ring_color: Color = SwordArrayController.get_accent_color(mode)
+			ring_color.a = preview_alpha
 			main.draw_arc(player_pos, preview["radius"], 0.0, TAU, 40, preview_color, 3.0)
-			main.draw_arc(player_pos, preview["outer_radius"], 0.0, TAU, 40, Color(0.0, 1.0, 1.0, 0.12), 1.0)
-		main.SWORD_ARRAY_FAN:
-			main.draw_arc(player_pos, preview["radius"], preview["angle"] - preview["arc"] * 0.5, preview["angle"] + preview["arc"] * 0.5, 32, preview_color, 3.0)
-			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] - preview["arc"] * 0.5) * preview["radius"], Color(0.0, 1.0, 1.0, 0.18), 1.0)
-			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] + preview["arc"] * 0.5) * preview["radius"], Color(0.0, 1.0, 1.0, 0.18), 1.0)
+			var ring_soft_color: Color = SwordArrayController.get_soft_accent_color(mode)
+			ring_soft_color.a = 0.14 + formation_ratio * 0.1
+			main.draw_arc(player_pos, preview["outer_radius"], 0.0, TAU, 40, ring_soft_color, 1.5)
+			var spoke_index: int = 0
+			while spoke_index < 6:
+				var spoke_angle: float = (TAU / 6.0) * float(spoke_index)
+				main.draw_line(
+					player_pos + Vector2.RIGHT.rotated(spoke_angle) * max(preview["radius"] - 10.0, 8.0),
+					player_pos + Vector2.RIGHT.rotated(spoke_angle) * preview["outer_radius"],
+					ring_color,
+					1.2
+				)
+				spoke_index += 1
+		SwordArrayConfig.MODE_FAN:
+			var fan_color: Color = SwordArrayController.get_accent_color(mode)
+			fan_color.a = preview_alpha + 0.08
+			var fan_edge_color := Color(fan_color.r, fan_color.g, fan_color.b, 0.24)
+			var fan_soft_color: Color = SwordArrayController.get_soft_accent_color(mode)
+			fan_soft_color.a = 0.22 + formation_ratio * 0.16
+			main.draw_arc(player_pos, preview["radius"], preview["angle"] - preview["arc"] * 0.5, preview["angle"] + preview["arc"] * 0.5, 32, fan_color, 3.0)
+			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] - preview["arc"] * 0.5) * preview["radius"], fan_edge_color, 1.2)
+			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] + preview["arc"] * 0.5) * preview["radius"], fan_edge_color, 1.2)
+			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"]) * preview["radius"], fan_soft_color, 1.0)
 		_:
 			var start_pos: Vector2 = main._to_screen(preview["start"])
 			var end_pos: Vector2 = main._to_screen(preview["end"])
 			var line_dir: Vector2 = (end_pos - start_pos).normalized()
 			var side_offset: Vector2 = line_dir.rotated(PI * 0.5) * preview["half_width"]
-			main.draw_line(start_pos, end_pos, preview_color, 4.0)
-			main.draw_line(start_pos + side_offset, end_pos + side_offset, Color(0.0, 1.0, 1.0, 0.15), 1.0)
-			main.draw_line(start_pos - side_offset, end_pos - side_offset, Color(0.0, 1.0, 1.0, 0.15), 1.0)
+			var pierce_color: Color = SwordArrayController.get_accent_color(mode)
+			pierce_color.a = preview_alpha + 0.1
+			var pierce_soft_color: Color = SwordArrayController.get_soft_accent_color(mode)
+			pierce_soft_color.a = 0.18 + formation_ratio * 0.08
+			main.draw_line(start_pos, end_pos, pierce_color, 4.0 + formation_ratio)
+			main.draw_line(start_pos + side_offset, end_pos + side_offset, pierce_soft_color, 1.2)
+			main.draw_line(start_pos - side_offset, end_pos - side_offset, pierce_soft_color, 1.2)
+			main.draw_circle(end_pos, 3.0 + formation_ratio * 2.0, Color(1.0, 1.0, 1.0, 0.24 + formation_ratio * 0.18))
