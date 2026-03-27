@@ -26,6 +26,8 @@ static func reset_runtime(main: Node) -> void:
 		"attack_flash_timer": 0.0,
 		"left_click_timer": 0.0,
 		"fire_timer": 0.0,
+		"array_fire_index": 0,
+		"array_mode": main.SWORD_ARRAY_RING,
 		"is_charging": false,
 		"absorbed_ids": [],
 	}

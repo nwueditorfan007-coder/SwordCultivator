@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GameRenderer
 
+const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
+
 
 static func draw_game(main: Node2D) -> void:
 	main.draw_rect(Rect2(Vector2.ZERO, main.get_viewport_rect().size), main.COLORS["background"], true)
@@ -62,6 +64,9 @@ static func draw_game(main: Node2D) -> void:
 
 	if main.player["is_charging"]:
 		main.draw_arc(player_pos, main.MARBLE_ABSORB_RANGE, 0.0, TAU, 48, main.COLORS["frozen"], 1.0)
+
+	if main.player["absorbed_ids"].size() > 0:
+		_draw_sword_array_preview(main, player_pos)
 
 	var sword_pos: Vector2 = main._to_screen(main.sword["pos"])
 	var sword_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
@@ -125,3 +130,26 @@ static func draw_hud_bars(main: Node2D) -> void:
 	main.draw_rect(Rect2(health_bar_rect.position, Vector2(health_bar_rect.size.x * (main.player["health"] / main.PLAYER_MAX_HEALTH), health_bar_rect.size.y)), main.COLORS["health"], true)
 	main.draw_rect(energy_bar_rect, Color("1d1d1d"), true)
 	main.draw_rect(Rect2(energy_bar_rect.position, Vector2(energy_bar_rect.size.x * (main.player["energy"] / main.PLAYER_MAX_ENERGY), energy_bar_rect.size.y)), main.COLORS["energy"], true)
+
+
+static func _draw_sword_array_preview(main: Node2D, player_pos: Vector2) -> void:
+	var mode: String = main.player["array_mode"]
+	var preview: Dictionary = SwordArrayController.get_preview_data(main, mode)
+	var preview_color := Color(0.0, 1.0, 1.0, 0.3)
+
+	match preview["type"]:
+		main.SWORD_ARRAY_RING:
+			main.draw_arc(player_pos, preview["radius"], 0.0, TAU, 40, preview_color, 3.0)
+			main.draw_arc(player_pos, preview["outer_radius"], 0.0, TAU, 40, Color(0.0, 1.0, 1.0, 0.12), 1.0)
+		main.SWORD_ARRAY_FAN:
+			main.draw_arc(player_pos, preview["radius"], preview["angle"] - preview["arc"] * 0.5, preview["angle"] + preview["arc"] * 0.5, 32, preview_color, 3.0)
+			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] - preview["arc"] * 0.5) * preview["radius"], Color(0.0, 1.0, 1.0, 0.18), 1.0)
+			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] + preview["arc"] * 0.5) * preview["radius"], Color(0.0, 1.0, 1.0, 0.18), 1.0)
+		_:
+			var start_pos: Vector2 = main._to_screen(preview["start"])
+			var end_pos: Vector2 = main._to_screen(preview["end"])
+			var line_dir: Vector2 = (end_pos - start_pos).normalized()
+			var side_offset: Vector2 = line_dir.rotated(PI * 0.5) * preview["half_width"]
+			main.draw_line(start_pos, end_pos, preview_color, 4.0)
+			main.draw_line(start_pos + side_offset, end_pos + side_offset, Color(0.0, 1.0, 1.0, 0.15), 1.0)
+			main.draw_line(start_pos - side_offset, end_pos - side_offset, Color(0.0, 1.0, 1.0, 0.15), 1.0)

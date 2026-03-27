@@ -3,6 +3,7 @@ extends Node2D
 const GameBossController = preload("res://scripts/system/game_boss_controller.gd")
 const GameRenderer = preload("res://scripts/system/game_renderer.gd")
 const GameStateFactory = preload("res://scripts/system/game_state_factory.gd")
+const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
 
 enum CombatMode {
 	MELEE,
@@ -62,6 +63,23 @@ const MARBLE_ENERGY_COST_HOLD := 10.0
 const MARBLE_FIRED_SPEED := 45.0 * 60.0
 const MARBLE_FIRED_DAMAGE := 100.0
 const MARBLE_FIRE_RATE := 0.15
+const SWORD_ARRAY_RING_THRESHOLD := 160.0
+const SWORD_ARRAY_FAN_THRESHOLD := 420.0
+const SWORD_ARRAY_FAN_ARC := 1.0
+const SWORD_ARRAY_RING_RADIUS := 68.0
+const SWORD_ARRAY_FAN_PREVIEW_RADIUS := 110.0
+const SWORD_ARRAY_PIERCE_SPREAD := 0.08
+const SWORD_ARRAY_PIERCE_START_OFFSET := 52.0
+const SWORD_ARRAY_PIERCE_SLOT_STEP := 28.0
+const SWORD_ARRAY_PIERCE_PREVIEW_LENGTH := 180.0
+const SWORD_ARRAY_PIERCE_PREVIEW_HALF_WIDTH := 6.0
+const SWORD_ARRAY_RING_SLOT_COUNT := 10
+const SWORD_ARRAY_FAN_SLOT_COUNT := 7
+const SWORD_ARRAY_PIERCE_SLOT_COUNT := 5
+
+const SWORD_ARRAY_RING := "ring"
+const SWORD_ARRAY_FAN := "fan"
+const SWORD_ARRAY_PIERCE := "pierce"
 
 const WAVE_BASE_ENEMIES := 3
 const BOSS_WAVE_INTERVAL := 5
@@ -199,6 +217,7 @@ func _process(delta: float) -> void:
 	if left_mouse_held:
 		player["left_click_timer"] += delta
 		if player["left_click_timer"] > SWORD_TAP_THRESHOLD and player["absorbed_ids"].size() > 0:
+			player["array_mode"] = _get_sword_array_mode()
 			player["fire_timer"] -= delta
 			if player["fire_timer"] <= 0.0:
 				player["fire_timer"] = MARBLE_FIRE_RATE
@@ -236,11 +255,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				left_mouse_held = true
 				player["left_click_timer"] = 0.0
 				player["fire_timer"] = 0.0
+				player["array_fire_index"] = 0
 				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
 					_perform_melee_attack()
 			else:
 				left_mouse_held = false
 				player["left_click_timer"] = 0.0
+				player["array_fire_index"] = 0
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if is_game_over:
 				return
@@ -285,6 +306,7 @@ func _update_player(delta: float, player_delta: float) -> void:
 
 func _update_absorption(delta: float) -> void:
 	player["is_charging"] = false
+	player["array_mode"] = _get_sword_array_mode()
 	if not Input.is_action_pressed("absorb"):
 		return
 	if player["energy"] <= 0.0:
@@ -301,6 +323,7 @@ func _update_absorption(delta: float) -> void:
 			break
 		if player["pos"].distance_to(bullet["pos"]) <= MARBLE_ABSORB_RANGE:
 			player["absorbed_ids"].append(bullet["id"])
+			player["array_mode"] = _get_sword_array_mode()
 
 
 func _update_sword(delta: float) -> void:
@@ -464,13 +487,14 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 					bullet["pos"] += bullet["vel"] * bullet_time_delta
 			"frozen":
 				if player["absorbed_ids"].has(bullet["id"]):
-					var to_player: Vector2 = player["pos"] - bullet["pos"]
-					if to_player.length() > 40.0:
-						bullet["pos"] += to_player.normalized() * 900.0 * delta
-					else:
-						var orbit_index: int = player["absorbed_ids"].find(bullet["id"])
-						var orbit_angle: float = elapsed_time * 3.5 + float(orbit_index) * (TAU / max(player["absorbed_ids"].size(), 1))
-						bullet["pos"] = player["pos"] + Vector2.RIGHT.rotated(orbit_angle) * 40.0
+					var slot_index: int = player["absorbed_ids"].find(bullet["id"])
+					var target_pos: Vector2 = SwordArrayController.get_slot_position(
+						self,
+						player["array_mode"],
+						slot_index,
+						player["absorbed_ids"].size()
+					)
+					bullet["pos"] = bullet["pos"].lerp(target_pos, min(delta * 12.0, 1.0))
 				else:
 					bullet["life_timer"] -= delta
 					if bullet["life_timer"] <= 0.0:
@@ -649,11 +673,10 @@ func _fire_single_absorbed_marble() -> void:
 	for bullet in bullets:
 		if bullet["id"] != bullet_id:
 			continue
-		var direction: Vector2 = mouse_world - player["pos"]
-		if direction.is_zero_approx():
-			direction = Vector2.RIGHT
+		var direction: Vector2 = _get_sword_array_direction(player["array_fire_index"])
 		bullet["state"] = "fired"
 		bullet["vel"] = direction.normalized() * MARBLE_FIRED_SPEED
+		player["array_fire_index"] += 1
 		_create_particles(bullet["pos"], COLORS["frozen"], 5)
 		screen_shake = max(screen_shake, 2.0)
 		return
@@ -775,6 +798,14 @@ func _update_ui() -> void:
 	mode_label.text = "%s%s" % [sword_mode_text, bullet_time_text]
 	hint_label.text = "WASD 移动 | 左键 挥剑/连发 | 右键 点刺或连斩 | Space 吸收 | Q 必杀"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
+
+
+func _get_sword_array_mode() -> String:
+	return SwordArrayController.get_mode(self)
+
+
+func _get_sword_array_direction(fire_index: int) -> Vector2:
+	return SwordArrayController.get_fire_direction(self, player["array_mode"], fire_index)
 
 
 func _update_boss(delta: float, bullet_time_delta: float) -> void:
