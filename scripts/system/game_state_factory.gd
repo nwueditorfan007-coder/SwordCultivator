@@ -3,6 +3,7 @@ class_name GameStateFactory
 
 
 static func reset_runtime(main: Node) -> void:
+	main.left_mouse_held = false
 	main.right_mouse_held = false
 	main.elapsed_time = 0.0
 	main.wave = 1
@@ -23,6 +24,9 @@ static func reset_runtime(main: Node) -> void:
 		"mode": main.CombatMode.MELEE,
 		"attack_cooldown": 0.0,
 		"attack_flash_timer": 0.0,
+		"array_hold_timer": 0.0,
+		"array_hold_ratio": 0.0,
+		"array_is_firing": false,
 		"fire_timer": 0.0,
 		"array_fire_index": 0,
 		"array_burst_step": 0,

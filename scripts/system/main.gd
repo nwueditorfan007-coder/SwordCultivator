@@ -34,6 +34,7 @@ const SWORD_MELEE_ARC := PI * 1.2
 const SWORD_MELEE_DAMAGE := 100.0
 const SWORD_RANGED_DAMAGE := 100.0
 const SWORD_TAP_THRESHOLD := 0.15
+const SWORD_ARRAY_HOLD_THRESHOLD := 0.06
 const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
 const SWORD_ORBIT_DISTANCE := 25.0
@@ -58,6 +59,7 @@ const ENERGY_GAIN_MELEE_DEFLECT := 8.0
 const FROZEN_DECEL_TIME := 0.3
 const FROZEN_LIFETIME := 3.0
 const MARBLE_ABSORB_RANGE := 250.0
+const MARBLE_ENERGY_COST_HOLD := 10.0
 const MARBLE_MAX_ABSORBED := 12
 const MARBLE_FIRED_SPEED := 45.0 * 60.0
 const MARBLE_FIRED_DAMAGE := 100.0
@@ -169,6 +171,7 @@ var elapsed_time: float = 0.0
 var id_counter: int = 0
 
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
+var left_mouse_held: bool = false
 var right_mouse_held: bool = false
 
 @onready var health_label: Label = $CanvasLayer/HealthLabel
@@ -214,26 +217,26 @@ func _process(delta: float) -> void:
 			sword["state"] = SwordState.SLICING
 			player["mode"] = CombatMode.RANGED
 
-	if Input.is_action_just_pressed("absorb"):
-		player["fire_timer"] = 0.0
-		player["array_fire_index"] = 0
-		player["array_burst_step"] = 0
-		player["array_burst_mode"] = _get_sword_array_mode()
+	player["array_hold_ratio"] = 0.0
+	if left_mouse_held:
+		player["array_hold_timer"] += delta
+		if player["absorbed_ids"].size() > 0:
+			player["array_mode"] = _get_sword_array_mode()
+			if not player["array_is_firing"]:
+				player["array_hold_ratio"] = clampf(player["array_hold_timer"] / SWORD_ARRAY_HOLD_THRESHOLD, 0.0, 1.0)
+				if player["array_hold_timer"] >= SWORD_ARRAY_HOLD_THRESHOLD:
+					player["array_is_firing"] = true
+					_fire_absorbed_marbles()
+					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
+			else:
+				player["fire_timer"] -= delta
+				if player["fire_timer"] <= 0.0:
+					_fire_absorbed_marbles()
+					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
+		else:
+			player["array_is_firing"] = false
 
-	if Input.is_action_just_released("absorb"):
-		player["fire_timer"] = 0.0
-		player["array_fire_index"] = 0
-		player["array_burst_step"] = 0
-		player["array_burst_mode"] = ""
-
-	if Input.is_action_pressed("absorb") and player["absorbed_ids"].size() > 0:
-		player["array_mode"] = _get_sword_array_mode()
-		player["fire_timer"] -= delta
-		if player["fire_timer"] <= 0.0:
-			_fire_absorbed_marbles()
-			player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
-
-	_update_auto_absorption()
+	_update_absorption(delta)
 	_update_player(delta, player_delta)
 	_update_sword(delta)
 	_update_boss(delta, bullet_time_delta)
@@ -262,8 +265,25 @@ func _unhandled_input(event: InputEvent) -> void:
 				if is_game_over:
 					_reset_game()
 					return
+				left_mouse_held = true
+				player["array_hold_timer"] = 0.0
+				player["array_hold_ratio"] = 0.0
+				player["array_is_firing"] = false
+				player["fire_timer"] = 0.0
+				player["array_fire_index"] = 0
+				player["array_burst_step"] = 0
+				player["array_burst_mode"] = _get_sword_array_mode()
 				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
 					_perform_melee_attack()
+			else:
+				left_mouse_held = false
+				player["array_hold_timer"] = 0.0
+				player["array_hold_ratio"] = 0.0
+				player["array_is_firing"] = false
+				player["fire_timer"] = 0.0
+				player["array_fire_index"] = 0
+				player["array_burst_step"] = 0
+				player["array_burst_mode"] = ""
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if is_game_over:
 				return
@@ -306,9 +326,16 @@ func _update_player(delta: float, player_delta: float) -> void:
 	player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
 
 
-func _update_auto_absorption() -> void:
+func _update_absorption(delta: float) -> void:
 	player["is_charging"] = false
 	player["array_mode"] = _get_sword_array_mode()
+	if not Input.is_action_pressed("absorb"):
+		return
+	if player["energy"] <= 0.0:
+		return
+
+	player["is_charging"] = true
+	player["energy"] = max(player["energy"] - MARBLE_ENERGY_COST_HOLD * delta, 0.0)
 	for bullet in bullets:
 		if bullet["state"] != "frozen":
 			continue
@@ -316,8 +343,9 @@ func _update_auto_absorption() -> void:
 			continue
 		if player["absorbed_ids"].size() >= MARBLE_MAX_ABSORBED:
 			break
-		player["absorbed_ids"].append(bullet["id"])
-		player["array_mode"] = _get_sword_array_mode()
+		if player["pos"].distance_to(bullet["pos"]) <= MARBLE_ABSORB_RANGE:
+			player["absorbed_ids"].append(bullet["id"])
+			player["array_mode"] = _get_sword_array_mode()
 
 
 func _update_sword(delta: float) -> void:
@@ -804,6 +832,7 @@ func _cleanup_absorbed_ids() -> void:
 
 func _set_game_over() -> void:
 	is_game_over = true
+	left_mouse_held = false
 	right_mouse_held = false
 	game_over_label.visible = true
 
@@ -816,7 +845,7 @@ func _update_ui() -> void:
 	var sword_mode_text: String = "近战" if sword["state"] == SwordState.ORBITING else "御剑"
 	var bullet_time_text: String = " | 子弹时间" if sword["state"] != SwordState.ORBITING else ""
 	mode_label.text = "%s%s" % [sword_mode_text, bullet_time_text]
-	hint_label.text = "WASD 移动 | 左键 挥剑 | 右键 点刺或连斩 | Space 剑阵发射 | Q 必杀"
+	hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 

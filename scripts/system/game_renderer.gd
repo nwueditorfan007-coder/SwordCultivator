@@ -135,7 +135,9 @@ static func draw_hud_bars(main: Node2D) -> void:
 static func _draw_sword_array_preview(main: Node2D, player_pos: Vector2) -> void:
 	var mode: String = main.player["array_mode"]
 	var preview: Dictionary = SwordArrayController.get_preview_data(main, mode)
-	var preview_color := Color(0.0, 1.0, 1.0, 0.3)
+	var hold_ratio: float = main.player.get("array_hold_ratio", 0.0)
+	var preview_alpha: float = 0.3 + hold_ratio * 0.35
+	var preview_color := Color(0.0, 1.0, 1.0, preview_alpha)
 
 	match preview["type"]:
 		main.SWORD_ARRAY_RING:
