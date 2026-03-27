@@ -58,7 +58,6 @@ const ENERGY_GAIN_MELEE_DEFLECT := 8.0
 const FROZEN_DECEL_TIME := 0.3
 const FROZEN_LIFETIME := 3.0
 const MARBLE_ABSORB_RANGE := 250.0
-const MARBLE_AUTO_ABSORB_RANGE := 110.0
 const MARBLE_MAX_ABSORBED := 12
 const MARBLE_FIRED_SPEED := 45.0 * 60.0
 const MARBLE_FIRED_DAMAGE := 100.0
@@ -317,9 +316,8 @@ func _update_auto_absorption() -> void:
 			continue
 		if player["absorbed_ids"].size() >= MARBLE_MAX_ABSORBED:
 			break
-		if player["pos"].distance_to(bullet["pos"]) <= MARBLE_AUTO_ABSORB_RANGE:
-			player["absorbed_ids"].append(bullet["id"])
-			player["array_mode"] = _get_sword_array_mode()
+		player["absorbed_ids"].append(bullet["id"])
+		player["array_mode"] = _get_sword_array_mode()
 
 
 func _update_sword(delta: float) -> void:
