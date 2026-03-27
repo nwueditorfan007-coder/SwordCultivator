@@ -81,6 +81,27 @@ static func get_preview_data(main: Node, mode: String) -> Dictionary:
 			}
 
 
+static func get_fire_interval(main: Node, mode: String) -> float:
+	match mode:
+		main.SWORD_ARRAY_RING:
+			return main.SWORD_ARRAY_RING_FIRE_RATE
+		main.SWORD_ARRAY_FAN:
+			return main.SWORD_ARRAY_FAN_FIRE_RATE
+		_:
+			return main.SWORD_ARRAY_PIERCE_FIRE_RATE
+
+
+static func get_fire_batch_size(main: Node, mode: String, remaining_count: int, burst_step: int) -> int:
+	match mode:
+		main.SWORD_ARRAY_RING:
+			return remaining_count
+		main.SWORD_ARRAY_FAN:
+			var remaining_volleys: int = maxi(1, 3 - burst_step)
+			return ceili(float(remaining_count) / float(remaining_volleys))
+		_:
+			return 1
+
+
 static func _get_aim_vector(main: Node) -> Vector2:
 	var aim_vector: Vector2 = main.mouse_world - main.player["pos"]
 	if aim_vector.is_zero_approx():
