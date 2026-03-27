@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3 uid="uid://b4yx4bkvny50g"]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_p0i0d"]
+[ext_resource type="Script" path="res://scripts/player/flying_sword.gd" id="2_oh7v4"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_t0f3m"]
+radius = 18.0
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_p0i0d")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_t0f3m")
+
+[node name="FlyingSword" type="Node2D" parent="."]
+script = ExtResource("2_oh7v4")
