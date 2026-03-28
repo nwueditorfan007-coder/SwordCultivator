@@ -148,6 +148,27 @@ var id_counter: int = 0
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
+var debug_calibration_mode: bool = false
+var debug_dragging_player: bool = false
+
+const DEBUG_ARRAY_BULLET_COUNT := 9
+const DEBUG_ENEMY_LAYOUT := [
+	Vector2(120.0, 110.0),
+	Vector2(260.0, 110.0),
+	Vector2(400.0, 110.0),
+	Vector2(540.0, 110.0),
+	Vector2(680.0, 110.0),
+	Vector2(120.0, 280.0),
+	Vector2(260.0, 280.0),
+	Vector2(400.0, 280.0),
+	Vector2(540.0, 280.0),
+	Vector2(680.0, 280.0),
+	Vector2(120.0, 450.0),
+	Vector2(260.0, 450.0),
+	Vector2(400.0, 450.0),
+	Vector2(540.0, 450.0),
+	Vector2(680.0, 450.0),
+]
 
 @onready var health_label: Label = $CanvasLayer/HealthLabel
 @onready var energy_label: Label = $CanvasLayer/EnergyLabel
@@ -160,6 +181,7 @@ var right_mouse_held: bool = false
 
 func _ready() -> void:
 	randomize()
+	SwordArrayConfig.load_morph_distances_from_project()
 	_reset_game()
 
 
@@ -192,14 +214,20 @@ func _process(delta: float) -> void:
 			sword["state"] = SwordState.SLICING
 			player["mode"] = CombatMode.RANGED
 
+	if not player["array_is_firing"]:
+		_refresh_sword_array_live_state()
+
+	if debug_calibration_mode:
+		_ensure_debug_calibration_state()
+
 	player["array_hold_ratio"] = 0.0
 	if left_mouse_held:
 		player["array_hold_timer"] += delta
 		if player["absorbed_ids"].size() > 0:
-			player["array_mode"] = _get_sword_array_mode()
 			if not player["array_is_firing"]:
 				player["array_hold_ratio"] = clampf(player["array_hold_timer"] / SwordArrayConfig.HOLD_THRESHOLD, 0.0, 1.0)
 				if player["array_hold_timer"] >= SwordArrayConfig.HOLD_THRESHOLD:
+					_lock_sword_array_morph_state()
 					player["array_is_firing"] = true
 					_fire_absorbed_marbles()
 					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
@@ -210,6 +238,8 @@ func _process(delta: float) -> void:
 					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
 		else:
 			player["array_is_firing"] = false
+			player["array_burst_mode"] = ""
+			_refresh_sword_array_live_state()
 
 	_update_absorption(delta)
 	_update_player(delta, player_delta)
@@ -231,10 +261,20 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if _handle_debug_key_input(event):
+			return
 	if event is InputEventMouseMotion:
 		mouse_world = _screen_to_world(event.position)
+		if debug_calibration_mode and debug_dragging_player:
+			_set_debug_player_position(mouse_world)
 	elif event is InputEventMouseButton:
 		mouse_world = _screen_to_world(event.position)
+		if debug_calibration_mode and event.button_index == MOUSE_BUTTON_MIDDLE:
+			debug_dragging_player = event.pressed
+			if event.pressed:
+				_set_debug_player_position(mouse_world)
+			return
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				if is_game_over:
@@ -247,18 +287,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				player["fire_timer"] = 0.0
 				player["array_fire_index"] = 0
 				player["array_burst_step"] = 0
-				player["array_burst_mode"] = _get_sword_array_mode()
+				_refresh_sword_array_live_state()
+				player["array_burst_mode"] = player["array_mode"]
 				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
 					_perform_melee_attack()
 			else:
 				left_mouse_held = false
-				player["array_hold_timer"] = 0.0
-				player["array_hold_ratio"] = 0.0
-				player["array_is_firing"] = false
-				player["fire_timer"] = 0.0
-				player["array_fire_index"] = 0
-				player["array_burst_step"] = 0
-				player["array_burst_mode"] = ""
+				_reset_sword_array_hold_state()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if is_game_over:
 				return
@@ -288,6 +323,11 @@ func _reset_game() -> void:
 
 
 func _update_player(delta: float, player_delta: float) -> void:
+	if debug_calibration_mode and debug_dragging_player:
+		player["vel"] = Vector2.ZERO
+		player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
+		player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
+		return
 	var move_input: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if not move_input.is_zero_approx():
 		player["vel"] = move_input.normalized() * PLAYER_SPEED
@@ -303,7 +343,8 @@ func _update_player(delta: float, player_delta: float) -> void:
 
 func _update_absorption(delta: float) -> void:
 	player["is_charging"] = false
-	player["array_mode"] = _get_sword_array_mode()
+	if not player["array_is_firing"]:
+		_refresh_sword_array_live_state()
 	if not Input.is_action_pressed("absorb"):
 		return
 	if player["energy"] <= 0.0:
@@ -320,7 +361,8 @@ func _update_absorption(delta: float) -> void:
 			break
 		if player["pos"].distance_to(bullet["pos"]) <= SwordArrayConfig.ABSORB_RANGE:
 			player["absorbed_ids"].append(bullet["id"])
-			player["array_mode"] = _get_sword_array_mode()
+			if not player["array_is_firing"]:
+				_refresh_sword_array_live_state()
 
 
 func _get_sword_array_formation_ratio() -> float:
@@ -329,6 +371,31 @@ func _get_sword_array_formation_ratio() -> float:
 	if left_mouse_held and player["absorbed_ids"].size() > 0:
 		return clampf(player["array_hold_ratio"], 0.0, 1.0)
 	return 0.0
+
+
+func _refresh_sword_array_live_state() -> void:
+	var morph_state: Dictionary = SwordArrayController.get_morph_state(self)
+	player["array_morph_state"] = morph_state
+	player["array_mode"] = morph_state["dominant_mode"]
+
+
+func _lock_sword_array_morph_state() -> void:
+	_refresh_sword_array_live_state()
+
+
+func _get_sword_array_morph_state() -> Dictionary:
+	return SwordArrayConfig.complete_morph_state(player.get("array_morph_state", {}))
+
+
+func _reset_sword_array_hold_state() -> void:
+	player["array_hold_timer"] = 0.0
+	player["array_hold_ratio"] = 0.0
+	player["array_is_firing"] = false
+	player["fire_timer"] = 0.0
+	player["array_fire_index"] = 0
+	player["array_burst_step"] = 0
+	player["array_burst_mode"] = ""
+	_refresh_sword_array_live_state()
 
 
 func _update_sword(delta: float) -> void:
@@ -411,6 +478,12 @@ func _update_enemies(delta: float) -> void:
 	var index: int = enemies.size() - 1
 	while index >= 0:
 		var enemy: Dictionary = enemies[index]
+		if enemy.get("is_debug_static", false):
+			enemy["hit_cooldown"] = max(enemy["hit_cooldown"] - delta, 0.0)
+			if enemy["health"] <= 0.0 and debug_calibration_mode:
+				enemy["health"] = enemy["max_health"]
+			index -= 1
+			continue
 		var to_player: Vector2 = player["pos"] - enemy["pos"]
 		var distance: float = max(to_player.length(), 0.001)
 		match enemy["type"]:
@@ -495,7 +568,7 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 					var slot_index: int = player["absorbed_ids"].find(bullet["id"])
 					var target_pos: Vector2 = SwordArrayController.get_slot_position(
 						self,
-						player["array_mode"],
+						_get_sword_array_morph_state(),
 						slot_index,
 						player["absorbed_ids"].size(),
 						_get_sword_array_formation_ratio()
@@ -568,6 +641,8 @@ func _update_particles(delta: float) -> void:
 
 
 func _update_wave(delta: float) -> void:
+	if debug_calibration_mode:
+		return
 	if _has_boss() and boss["health"] <= 0.0:
 		_create_particles(boss["pos"], COLORS["boss_body"], 40)
 		boss.clear()
@@ -675,6 +750,7 @@ func _start_point_strike() -> void:
 func _fire_absorbed_marbles() -> void:
 	if player["absorbed_ids"].is_empty():
 		return
+	var morph_state: Dictionary = _get_sword_array_morph_state()
 	var current_mode: String = player["array_mode"]
 	if player["array_burst_mode"] != current_mode:
 		player["array_burst_mode"] = current_mode
@@ -694,7 +770,7 @@ func _fire_absorbed_marbles() -> void:
 		_fire_single_absorbed_marble(fired_count, fire_count, burst_step, total_count_before_fire)
 		fired_count += 1
 
-	_emit_sword_array_fire_effect(current_mode, fire_count)
+	_emit_sword_array_fire_effect(morph_state, fire_count)
 
 	var burst_cycle_length: int = SwordArrayController.get_burst_cycle_length(current_mode)
 	if burst_cycle_length > 1:
@@ -706,7 +782,19 @@ func _fire_absorbed_marbles() -> void:
 func _fire_single_absorbed_marble(volley_fire_index: int, volley_fire_count: int, burst_step: int, total_count_before_fire: int) -> void:
 	if player["absorbed_ids"].is_empty():
 		return
-	var bullet_id: String = player["absorbed_ids"].pop_front()
+	var source_slot_index: int = SwordArrayController.get_fire_source_slot_index(
+		self,
+		_get_sword_array_morph_state(),
+		player["absorbed_ids"].size(),
+		volley_fire_index,
+		volley_fire_count,
+		burst_step,
+		total_count_before_fire
+	)
+	if source_slot_index < 0 or source_slot_index >= player["absorbed_ids"].size():
+		source_slot_index = 0
+	var bullet_id: String = player["absorbed_ids"][source_slot_index]
+	player["absorbed_ids"].remove_at(source_slot_index)
 	for bullet in bullets:
 		if bullet["id"] != bullet_id:
 			continue
@@ -724,8 +812,8 @@ func _fire_single_absorbed_marble(volley_fire_index: int, volley_fire_count: int
 		return
 
 
-func _emit_sword_array_fire_effect(mode: String, fire_count: int) -> void:
-	var effect: Dictionary = SwordArrayController.get_fire_effect(self, mode, fire_count)
+func _emit_sword_array_fire_effect(state_source, fire_count: int) -> void:
+	var effect: Dictionary = SwordArrayController.get_fire_effect(self, state_source, fire_count)
 	_create_particles(effect["position"], effect["color"], effect["particles"])
 	screen_shake = max(screen_shake, effect["shake"])
 
@@ -839,13 +927,48 @@ func _set_game_over() -> void:
 func _update_ui() -> void:
 	health_label.text = "生命 %.0f / %.0f" % [player["health"], PLAYER_MAX_HEALTH]
 	energy_label.text = "剑意 %.0f / %.0f" % [player["energy"], PLAYER_MAX_ENERGY]
-	wave_label.text = "波次 %d" % wave
-	score_label.text = "得分 %d" % score
+	if debug_calibration_mode:
+		var aim_distance: float = player["pos"].distance_to(mouse_world)
+		var morph_state: Dictionary = _get_sword_array_morph_state()
+		var default_distances: Dictionary = SwordArrayConfig.get_default_morph_distances()
+		var distances: Dictionary = SwordArrayConfig.get_morph_distances()
+		wave_label.text = "校准模式 | 距离 %.1f | %s -> %s (%.2f)" % [
+			aim_distance,
+			morph_state["visual_from_mode"],
+			morph_state["visual_to_mode"],
+			morph_state["visual_blend"]
+		]
+		score_label.text = "默认 | 1 %.0f | 2 %.0f | 3 %.0f | 4 %.0f\n当前 | 1 %.0f | 2 %.0f | 3 %.0f | 4 %.0f\n差值 | 1 %s | 2 %s | 3 %s | 4 %s" % [
+			default_distances["ring_stable_end"],
+			default_distances["ring_to_fan_end"],
+			default_distances["fan_stable_end"],
+			default_distances["fan_to_pierce_end"],
+			distances["ring_stable_end"],
+			distances["ring_to_fan_end"],
+			distances["fan_stable_end"],
+			distances["fan_to_pierce_end"],
+			_format_distance_delta(distances["ring_stable_end"] - default_distances["ring_stable_end"]),
+			_format_distance_delta(distances["ring_to_fan_end"] - default_distances["ring_to_fan_end"]),
+			_format_distance_delta(distances["fan_stable_end"] - default_distances["fan_stable_end"]),
+			_format_distance_delta(distances["fan_to_pierce_end"] - default_distances["fan_to_pierce_end"])
+		]
+	else:
+		wave_label.text = "波次 %d" % wave
+		score_label.text = "得分 %d" % score
 	var sword_mode_text: String = "近战" if sword["state"] == SwordState.ORBITING else "御剑"
 	var bullet_time_text: String = " | 子弹时间" if sword["state"] != SwordState.ORBITING else ""
 	mode_label.text = "%s%s" % [sword_mode_text, bullet_time_text]
-	hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀"
+	if debug_calibration_mode:
+		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
+	else:
+		hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
+
+
+func _format_distance_delta(delta: float) -> String:
+	if is_zero_approx(delta):
+		return "0"
+	return "%+.0f" % delta
 
 
 func _get_sword_array_mode() -> String:
@@ -853,11 +976,11 @@ func _get_sword_array_mode() -> String:
 
 
 func _get_sword_array_direction(fire_index: int, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
-	return SwordArrayController.get_fire_direction(self, player["array_mode"], fire_index, volley_count, burst_step, total_count)
+	return SwordArrayController.get_fire_direction(self, _get_sword_array_morph_state(), fire_index, volley_count, burst_step, total_count)
 
 
 func _get_sword_array_target(fire_index: int, bullet_pos: Vector2, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
-	return SwordArrayController.get_fire_target(self, player["array_mode"], fire_index, bullet_pos, volley_count, burst_step, total_count)
+	return SwordArrayController.get_fire_target(self, _get_sword_array_morph_state(), fire_index, bullet_pos, volley_count, burst_step, total_count)
 
 
 func _update_boss(delta: float, bullet_time_delta: float) -> void:
@@ -943,6 +1066,130 @@ func _is_inside_extended_bounds(position: Vector2) -> bool:
 func _next_id(prefix: String) -> String:
 	id_counter += 1
 	return "%s_%d" % [prefix, id_counter]
+
+
+func _handle_debug_key_input(event: InputEventKey) -> bool:
+	if event.keycode == KEY_F6:
+		_toggle_debug_calibration_mode()
+		return true
+	if not debug_calibration_mode:
+		return false
+
+	var aim_distance: float = player["pos"].distance_to(mouse_world)
+	match event.keycode:
+		KEY_1:
+			SwordArrayConfig.set_morph_distance("ring_stable_end", aim_distance)
+			_refresh_sword_array_live_state()
+			return true
+		KEY_2:
+			SwordArrayConfig.set_morph_distance("ring_to_fan_end", aim_distance)
+			_refresh_sword_array_live_state()
+			return true
+		KEY_3:
+			SwordArrayConfig.set_morph_distance("fan_stable_end", aim_distance)
+			_refresh_sword_array_live_state()
+			return true
+		KEY_4:
+			SwordArrayConfig.set_morph_distance("fan_to_pierce_end", aim_distance)
+			_refresh_sword_array_live_state()
+			return true
+		KEY_R:
+			SwordArrayConfig.reset_morph_distances()
+			_refresh_sword_array_live_state()
+			return true
+		KEY_P:
+			SwordArrayConfig.save_morph_distances_to_project()
+			_refresh_sword_array_live_state()
+			return true
+		KEY_L:
+			SwordArrayConfig.load_morph_distances_from_project()
+			_refresh_sword_array_live_state()
+			return true
+		_:
+			return false
+
+
+func _toggle_debug_calibration_mode() -> void:
+	debug_calibration_mode = not debug_calibration_mode
+	debug_dragging_player = false
+	if debug_calibration_mode:
+		_enter_debug_calibration_mode()
+	else:
+		_reset_game()
+
+
+func _enter_debug_calibration_mode() -> void:
+	_reset_game()
+	debug_calibration_mode = true
+	debug_dragging_player = false
+	player["health"] = PLAYER_MAX_HEALTH
+	player["energy"] = PLAYER_MAX_ENERGY
+	player["pos"] = ARENA_SIZE * 0.5
+	sword["pos"] = player["pos"]
+	sword["prev_pos"] = player["pos"]
+	bullets.clear()
+	enemies.clear()
+	particles.clear()
+	boss.clear()
+	wave = 0
+	score = 0
+	enemies_to_spawn = 0
+	spawn_timer = 9999.0
+	_spawn_debug_calibration_enemies()
+	_spawn_debug_array_bullets(DEBUG_ARRAY_BULLET_COUNT)
+	_refresh_sword_array_live_state()
+	_update_ui()
+	queue_redraw()
+
+
+func _ensure_debug_calibration_state() -> void:
+	player["health"] = PLAYER_MAX_HEALTH
+	player["energy"] = PLAYER_MAX_ENERGY
+	enemies_to_spawn = 0
+	spawn_timer = 9999.0
+	if enemies.size() < DEBUG_ENEMY_LAYOUT.size():
+		_spawn_debug_calibration_enemies()
+	if player["absorbed_ids"].size() < DEBUG_ARRAY_BULLET_COUNT:
+		_spawn_debug_array_bullets(DEBUG_ARRAY_BULLET_COUNT - player["absorbed_ids"].size())
+
+
+func _spawn_debug_calibration_enemies() -> void:
+	enemies.clear()
+	for enemy_pos in DEBUG_ENEMY_LAYOUT:
+		var enemy: Dictionary = _spawn_enemy(SHOOTER)
+		enemy["pos"] = enemy_pos
+		enemy["vel"] = Vector2.ZERO
+		enemy["shoot_cooldown"] = 9999.0
+		enemy["is_debug_static"] = true
+		enemy["health"] = enemy["max_health"]
+
+
+func _spawn_debug_array_bullets(count: int) -> void:
+	var bullet_index: int = 0
+	while bullet_index < count and player["absorbed_ids"].size() < SwordArrayConfig.MAX_ABSORBED:
+		var bullet_id: String = _next_id("debug_bullet")
+		bullets.append({
+			"id": bullet_id,
+			"pos": player["pos"],
+			"vel": Vector2.ZERO,
+			"radius": BULLET_RADIUS,
+			"damage": BULLET_DAMAGE,
+			"type": "small",
+			"owner_id": "debug",
+			"color": COLORS["frozen"],
+			"state": "frozen",
+			"freeze_timer": 0.0,
+			"life_timer": 9999.0,
+		})
+		player["absorbed_ids"].append(bullet_id)
+		bullet_index += 1
+
+
+func _set_debug_player_position(target_pos: Vector2) -> void:
+	player["pos"] = target_pos.clamp(Vector2(PLAYER_RADIUS, PLAYER_RADIUS), ARENA_SIZE - Vector2(PLAYER_RADIUS, PLAYER_RADIUS))
+	sword["pos"] = player["pos"] if sword["state"] == SwordState.ORBITING else sword["pos"]
+	sword["prev_pos"] = sword["pos"]
+	_refresh_sword_array_live_state()
 
 
 func _dist_to_segment(point: Vector2, segment_a: Vector2, segment_b: Vector2) -> float:

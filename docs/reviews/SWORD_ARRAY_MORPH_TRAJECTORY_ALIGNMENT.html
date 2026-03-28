@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>剑阵形变系统 V2 轨迹对齐说明</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f7f6f1;
+      --paper: #fffdf7;
+      --ink: #1a1d21;
+      --muted: #5c6670;
+      --line: #d7d1c4;
+      --accent: #155e75;
+      --accent-soft: #e6f2f5;
+      --table-head: #edf3f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eeece4 0%, var(--bg) 100%);
+      line-height: 1.65;
+    }
+    .page {
+      width: 980px;
+      margin: 24px auto 40px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 40px rgba(34, 39, 46, 0.08);
+      padding: 40px 48px 56px;
+    }
+    h1, h2, h3 {
+      margin: 0 0 12px;
+      line-height: 1.25;
+    }
+    h1 {
+      font-size: 30px;
+      letter-spacing: 1px;
+      color: #0f3d4d;
+      margin-bottom: 8px;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 21px;
+      color: #183844;
+      border-bottom: 2px solid #d9e6ea;
+      padding-bottom: 6px;
+    }
+    p, ul { margin: 10px 0; }
+    .lead {
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+    .note {
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      padding: 12px 14px;
+      margin: 12px 0 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 18px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: var(--table-head);
+      font-weight: 700;
+    }
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #eef1f3;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.95em;
+    }
+    .mermaid {
+      margin: 12px 0 22px;
+      padding: 12px;
+      border: 1px solid #dde5e8;
+      background: #fbfcfc;
+      border-radius: 10px;
+    }
+    .footer {
+      margin-top: 32px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+    @media print {
+      body {
+        background: white;
+      }
+      .page {
+        width: auto;
+        margin: 0;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      h2 {
+        page-break-after: avoid;
+      }
+      .mermaid, table {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>剑阵形变系统 V2 轨迹对齐说明</h1>
+    <p class="lead">本文档用于说明剑阵系统在 V2 阶段中，预览图形、发射目标点与实际弹道之间的关系，以及为什么过渡区必须使用独立阵图而不是旧模式混合。</p>
+
+    <h2>1. 文档目的</h2>
+    <ul>
+      <li>说明预览图形如何定义。</li>
+      <li>说明发射目标点如何采样。</li>
+      <li>说明实际弹道如何由目标点生成。</li>
+      <li>说明过渡区为什么会出现“预览与轨迹不一致”。</li>
+      <li>说明当前统一后的最终规则。</li>
+    </ul>
+
+    <h2>2. 三层概念</h2>
+    <table>
+      <thead>
+        <tr><th>层级</th><th>含义</th><th>作用</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>预览图形</td><td>玩家看到的阵图轮廓</td><td>传达当前剑势覆盖范围与方向</td></tr>
+        <tr><td>发射目标点</td><td>系统为每颗剑丸求出的远端目标</td><td>决定每颗剑丸应该飞向哪里</td></tr>
+        <tr><td>实际弹道</td><td><code>目标点 - 剑丸当前位置</code> 形成的速度方向</td><td>最终屏幕上看到的飞行轨迹</td></tr>
+      </tbody>
+    </table>
+    <div class="note">结论：预览图形不直接等于弹道，目标点是预览与弹道之间的桥梁。如果预览、排布、目标点不是同一套几何，玩家就会感觉“不对齐”。</div>
+
+    <h2>3. 整体流程</h2>
+    <pre class="mermaid">
+flowchart TD
+    A["准星距离"] --> B["Morph State"]
+    B --> C["稳定态: ring / fan / pierce"]
+    B --> D["过渡态: crescent / diamond"]
+
+    C --> C1["生成稳定预览"]
+    C --> C2["按稳定态规则采样目标点"]
+    C2 --> C3["剑丸朝目标点飞行"]
+
+    D --> D1["生成独立过渡阵图预览"]
+    D --> D2["按过渡阵图规则采样目标点"]
+    D2 --> D3["剑丸朝目标点飞行"]
+
+    C1 --> E["玩家看到的图形"]
+    D1 --> E
+    C3 --> F["实际轨迹"]
+    D3 --> F
+    </pre>
+
+    <h2>4. 稳定态规则</h2>
+    <p>稳定态沿用 V1/V1.5 已经调过手感的规则。</p>
+    <pre class="mermaid">
+flowchart LR
+    R["ring 预览: 圆环"] --> R2["按圆周槽位取角度"]
+    R2 --> R3["目标点放在圆环外一圈"]
+    R3 --> R4["形成环向爆散轨迹"]
+
+    F["fan 预览: 扇面"] --> F2["按扇面角度采样"]
+    F2 --> F3["目标点放在扇面外缘前方"]
+    F3 --> F4["形成扇面压制轨迹"]
+
+    P["pierce 预览: 中轴细线"] --> P2["沿 start 到 tip 中轴取向"]
+    P2 --> P3["目标点沿中轴继续前推"]
+    P3 --> P4["形成直线穿刺轨迹"]
+    </pre>
+    <table>
+      <thead>
+        <tr><th>状态</th><th>预览轮廓</th><th>目标点采样基准</th><th>轨迹观感</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>ring</code></td><td>圆环</td><td>圆周槽位角度</td><td>环向外散</td></tr>
+        <tr><td><code>fan</code></td><td>扇面</td><td>扇面角度分布</td><td>扇面压制</td></tr>
+        <tr><td><code>pierce</code></td><td>中轴细线</td><td><code>start -&gt; tip</code> 中轴</td><td>直线穿刺</td></tr>
+      </tbody>
+    </table>
+
+    <h2>5. 过渡态规则</h2>
+    <p>V2 不再把过渡区当作三种基础阵型的简单混合，而是定义为独立阵图。</p>
+    <pre class="mermaid">
+flowchart LR
+    C["crescent 预览: 弧月阵"] --> C2["按弧月外弧采样发射角"]
+    C2 --> C3["目标点沿外弧法向前推"]
+    C3 --> C4["形成前开口弧形喷射"]
+
+    D["diamond 预览: 箭簇菱阵"] --> D2["按菱阵中轴与边线采样"]
+    D2 --> D3["目标点沿前锋方向前推"]
+    D3 --> D4["形成前锋收束推进轨迹"]
+    </pre>
+    <table>
+      <thead>
+        <tr><th>状态</th><th>预览轮廓</th><th>目标点采样基准</th><th>轨迹观感</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>crescent</code></td><td>弧月阵</td><td>外弧采样</td><td>前开口弧形喷射</td></tr>
+        <tr><td><code>diamond</code></td><td>箭簇菱阵</td><td>中轴与边线采样</td><td>前锋收束推进</td></tr>
+      </tbody>
+    </table>
+
+    <h2>6. 五种状态统一表</h2>
+    <table>
+      <thead>
+        <tr><th>状态</th><th>预览图形</th><th>站位逻辑</th><th>目标点逻辑</th><th>玩家感知</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>ring</code></td><td>圆环</td><td>环绕均分</td><td>圆周外推</td><td>护体爆散</td></tr>
+        <tr><td><code>crescent</code></td><td>弧月阵</td><td>前向弧月排布</td><td>外弧采样外推</td><td>护体被向前牵开</td></tr>
+        <tr><td><code>fan</code></td><td>扇面</td><td>分层扇面</td><td>扇面角度前推</td><td>中距压制</td></tr>
+        <tr><td><code>diamond</code></td><td>箭簇菱阵</td><td>中轴 + 肩线 + 尾点</td><td>菱阵中轴/边线前推</td><td>压制面收束成锋</td></tr>
+        <tr><td><code>pierce</code></td><td>贯穿细线</td><td>窄线/楔列</td><td>中轴前推</td><td>直线穿刺</td></tr>
+      </tbody>
+    </table>
+
+    <h2>7. 单颗剑丸几何关系</h2>
+    <pre class="mermaid">
+flowchart TD
+    A["当前剑丸位置"] --> B["读取当前预览阵图"]
+    B --> C1["ring: 圆周外推点"]
+    B --> C2["fan: 扇面角采样点"]
+    B --> C3["pierce: 中轴延长点"]
+    B --> C4["crescent: 外弧采样点"]
+    B --> C5["diamond: 中轴/边线采样点"]
+
+    C1 --> D["得到目标点"]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    C5 --> D
+
+    D --> E["目标点 - 当前剑丸位置"]
+    E --> F["实际飞行方向"]
+    </pre>
+
+    <h2>8. 之前不一致的根因</h2>
+    <ul>
+      <li>吸附站位已经切到 <code>crescent / diamond</code>。</li>
+      <li>预览图形已经切到 <code>crescent / diamond</code>。</li>
+      <li>发射目标却仍使用旧的 <code>ring / fan / pierce</code> 混合结果。</li>
+    </ul>
+    <p>因此玩家看到的是一套新阵图，打出去却是另一套旧逻辑的混合轨迹。</p>
+
+    <h2>9. 当前定案</h2>
+    <pre class="mermaid">
+flowchart TD
+    A["Morph State"] --> B["当前预览类型"]
+    B --> B1["ring"]
+    B --> B2["fan"]
+    B --> B3["pierce"]
+    B --> B4["crescent"]
+    B --> B5["diamond"]
+
+    B1 --> C1["ring 目标采样"]
+    B2 --> C2["fan 目标采样"]
+    B3 --> C3["pierce 目标采样"]
+    B4 --> C4["crescent 目标采样"]
+    B5 --> C5["diamond 目标采样"]
+
+    C1 --> D["实际弹道"]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    C5 --> D
+    </pre>
+    <div class="note">
+      稳定态继续沿用成熟的稳定采样规则；过渡态直接按独立阵图采样。预览、待发排布、目标点、实际弹道必须共享同一套阵图语言。
+    </div>
+
+    <h2>10. 当前实现结论</h2>
+    <ul>
+      <li>稳定态 <code>ring / fan / pierce</code> 保持原有手感。</li>
+      <li>过渡态 <code>crescent / diamond</code> 不再混用旧模式目标。</li>
+      <li>过渡区轨迹与预览的偏差应显著缩小。</li>
+      <li>后续调优应主要集中在阵图参数，而不是继续变动结构。</li>
+    </ul>
+
+    <p class="footer">生成路径：docs/reviews/SWORD_ARRAY_MORPH_TRAJECTORY_ALIGNMENT.*</p>
+  </main>
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: "loose",
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#edf3f5",
+        primaryTextColor: "#1a1d21",
+        primaryBorderColor: "#6e8791",
+        lineColor: "#4e6771",
+        secondaryColor: "#f6f7f2",
+        tertiaryColor: "#fffdf7",
+        fontFamily: "Microsoft YaHei UI, Segoe UI, sans-serif"
+      },
+      flowchart: {
+        curve: "basis",
+        htmlLabels: true
+      }
+    });
+  </script>
+</body>
+</html>
