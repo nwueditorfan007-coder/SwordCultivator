@@ -8,8 +8,11 @@ const MODE_PIERCE := "pierce"
 const MORPH_CALIBRATION_PATH := "res://resources/debug/sword_array_morph_calibration.json"
 
 const HOLD_THRESHOLD := 0.10
-const ABSORB_RANGE := 250.0
-const ABSORB_ENERGY_COST := 10.0
+const ABSORB_RANGE := 375.0
+const ABSORB_TAP_ENERGY_COST := 15.0
+const ABSORB_HOLD_ENERGY_COST := 10.0
+const ABSORB_DURATION := 1.0
+const ABSORB_RETURN_LERP_SPEED := 16.0
 const MAX_ABSORBED := 12
 const FIRED_SPEED := 45.0 * 60.0
 const FIRED_DAMAGE := 100.0

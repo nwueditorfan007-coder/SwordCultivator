@@ -51,13 +51,20 @@ const BULLET_TIME_RECOVERY_DURATION := 2.0
 const PLAYER_BULLET_TIME_SPEED_MULTIPLIER := 0.85
 const ENEMY_HIT_COOLDOWN := 0.05
 
+const ENERGY_INITIAL_RANGED_COST := 10.0
 const ENERGY_CONSUMPTION_RANGED := 0.25 * 60.0
-const ENERGY_RECOVERY_MELEE_NATURAL := 0.05 * 60.0
+const ENERGY_RECOVERY_MELEE_NATURAL := 4.0
 const ENERGY_GAIN_MELEE_HIT := 2.0
 const ENERGY_GAIN_MELEE_DEFLECT := 8.0
 
 const FROZEN_DECEL_TIME := 0.3
 const FROZEN_LIFETIME := 3.0
+const DAMAGE_SOURCE_NONE := ""
+const DAMAGE_SOURCE_MELEE := "melee"
+const DAMAGE_SOURCE_FLYING_SWORD := "flying_sword"
+const DAMAGE_SOURCE_FIRED_MARBLE := "fired_marble"
+const DAMAGE_SOURCE_ULTIMATE := "ultimate"
+const DAMAGE_SOURCE_SYSTEM := "system"
 
 const WAVE_BASE_ENEMIES := 3
 const BOSS_WAVE_INTERVAL := 5
@@ -209,10 +216,10 @@ func _process(delta: float) -> void:
 	var player_delta: float = delta * player_time_ratio
 
 	if right_mouse_held:
+		var previous_press_timer: float = sword["press_timer"]
 		sword["press_timer"] += delta
-		if sword["press_timer"] > SWORD_TAP_THRESHOLD and sword["state"] == SwordState.ORBITING:
-			sword["state"] = SwordState.SLICING
-			player["mode"] = CombatMode.RANGED
+		if previous_press_timer <= SWORD_TAP_THRESHOLD and sword["press_timer"] > SWORD_TAP_THRESHOLD and sword["state"] == SwordState.ORBITING:
+			_start_slicing()
 
 	_refresh_sword_array_live_state()
 
@@ -226,18 +233,13 @@ func _process(delta: float) -> void:
 			if not player["array_is_firing"]:
 				player["array_hold_ratio"] = clampf(player["array_hold_timer"] / SwordArrayConfig.HOLD_THRESHOLD, 0.0, 1.0)
 				if player["array_hold_timer"] >= SwordArrayConfig.HOLD_THRESHOLD:
-					_lock_sword_array_fire_mode()
-					player["array_is_firing"] = true
-					_fire_absorbed_marbles()
-					player["fire_timer"] = SwordArrayController.get_fire_interval(self, _get_sword_array_fire_mode())
+					_begin_sword_array_firing()
 			else:
-				player["fire_timer"] -= delta
-				if player["fire_timer"] <= 0.0:
-					_fire_absorbed_marbles()
-					player["fire_timer"] = SwordArrayController.get_fire_interval(self, _get_sword_array_fire_mode())
+				_update_sword_array_continuous_firing(delta)
 		else:
 			player["array_is_firing"] = false
-			player["array_burst_mode"] = ""
+			player["array_release_progress"] = 0.0
+			player["array_packet_remainder"] = 0.0
 			_refresh_sword_array_live_state()
 
 	_update_absorption(delta)
@@ -283,12 +285,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				player["array_hold_timer"] = 0.0
 				player["array_hold_ratio"] = 0.0
 				player["array_is_firing"] = false
-				player["fire_timer"] = 0.0
+				player["array_release_progress"] = 0.0
+				player["array_packet_remainder"] = 0.0
 				player["array_fire_index"] = 0
-				player["array_burst_step"] = 0
 				_refresh_sword_array_live_state()
-				player["array_fire_mode"] = ""
-				player["array_burst_mode"] = player["array_mode"]
 				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
 					_perform_melee_attack()
 			else:
@@ -345,13 +345,20 @@ func _update_absorption(delta: float) -> void:
 	player["is_charging"] = false
 	if not player["array_is_firing"]:
 		_refresh_sword_array_live_state()
-	if not Input.is_action_pressed("absorb"):
-		return
-	if player["energy"] <= 0.0:
+
+	var absorb_timer: float = float(player.get("absorb_timer", 0.0))
+	if Input.is_action_just_pressed("absorb") and _try_consume_energy(SwordArrayConfig.ABSORB_TAP_ENERGY_COST):
+		absorb_timer = SwordArrayConfig.ABSORB_DURATION
+	var auto_absorbing: bool = absorb_timer > 0.0
+	var hold_absorbing: bool = Input.is_action_pressed("absorb") and player["energy"] > 0.0
+	if hold_absorbing and not auto_absorbing:
+		player["energy"] = max(player["energy"] - SwordArrayConfig.ABSORB_HOLD_ENERGY_COST * delta, 0.0)
+		hold_absorbing = player["energy"] > 0.0
+	if not auto_absorbing and not hold_absorbing:
+		player["absorb_timer"] = maxf(absorb_timer - delta, 0.0)
 		return
 
 	player["is_charging"] = true
-	player["energy"] = max(player["energy"] - SwordArrayConfig.ABSORB_ENERGY_COST * delta, 0.0)
 	for bullet in bullets:
 		if bullet["state"] != "frozen":
 			continue
@@ -363,6 +370,7 @@ func _update_absorption(delta: float) -> void:
 			player["absorbed_ids"].append(bullet["id"])
 			if not player["array_is_firing"]:
 				_refresh_sword_array_live_state()
+	player["absorb_timer"] = maxf(absorb_timer - delta, 0.0)
 
 
 func _get_sword_array_formation_ratio() -> float:
@@ -379,9 +387,38 @@ func _refresh_sword_array_live_state() -> void:
 	player["array_mode"] = morph_state["dominant_mode"]
 
 
-func _lock_sword_array_fire_mode() -> void:
+func _begin_sword_array_firing() -> void:
 	_refresh_sword_array_live_state()
-	player["array_fire_mode"] = player["array_mode"]
+	player["array_is_firing"] = true
+	player["array_release_progress"] = 0.0
+	player["array_packet_remainder"] = 0.0
+	_fire_absorbed_marbles()
+
+
+func _update_sword_array_continuous_firing(delta: float) -> void:
+	if player["absorbed_ids"].is_empty():
+		player["array_is_firing"] = false
+		player["array_release_progress"] = 0.0
+		player["array_packet_remainder"] = 0.0
+		return
+	var release_count: int = 0
+	var morph_state: Dictionary = _get_sword_array_morph_state()
+	var release_profile: Dictionary = SwordArrayController.get_fire_release_profile(
+		self,
+		morph_state,
+		player["absorbed_ids"].size()
+	)
+	player["array_release_progress"] = float(player.get("array_release_progress", 0.0)) + delta * float(release_profile.get("release_rate", 0.0))
+	while player["array_release_progress"] >= 1.0 and not player["absorbed_ids"].is_empty() and release_count < 12:
+		_fire_absorbed_marbles()
+		player["array_release_progress"] -= 1.0
+		release_count += 1
+		morph_state = _get_sword_array_morph_state()
+		release_profile = SwordArrayController.get_fire_release_profile(
+			self,
+			morph_state,
+			player["absorbed_ids"].size()
+		)
 
 
 func _get_sword_array_morph_state() -> Dictionary:
@@ -392,11 +429,9 @@ func _reset_sword_array_hold_state() -> void:
 	player["array_hold_timer"] = 0.0
 	player["array_hold_ratio"] = 0.0
 	player["array_is_firing"] = false
-	player["fire_timer"] = 0.0
+	player["array_release_progress"] = 0.0
+	player["array_packet_remainder"] = 0.0
 	player["array_fire_index"] = 0
-	player["array_burst_step"] = 0
-	player["array_fire_mode"] = ""
-	player["array_burst_mode"] = ""
 	_refresh_sword_array_live_state()
 
 
@@ -460,7 +495,7 @@ func _damage_enemies_with_sword(delta: float) -> void:
 		if sword["prev_pos"].distance_to(enemy["pos"]) <= hit_radius:
 			continue
 		var damage: float = SWORD_RANGED_DAMAGE * (1.5 if sword["state"] == SwordState.POINT_STRIKE else 0.5)
-		enemy["health"] -= damage
+		_damage_enemy(enemy, damage, DAMAGE_SOURCE_FLYING_SWORD)
 		enemy["hit_cooldown"] = ENEMY_HIT_COOLDOWN
 		_create_particles(sword["pos"], COLORS["ranged_sword"], 4)
 		if sword["state"] == SwordState.POINT_STRIKE:
@@ -476,6 +511,46 @@ func _damage_enemies_with_sword(delta: float) -> void:
 				_create_particles(sword["pos"], COLORS["boss_body"], 2)
 
 
+func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> void:
+	if damage <= 0.0:
+		return
+	enemy["health"] -= damage
+	enemy["last_damage_source"] = damage_source
+
+
+func _start_freezing_bullet(bullet: Dictionary, particle_count := 0) -> void:
+	if bullet["state"] != "normal":
+		return
+	bullet["state"] = "freezing"
+	bullet["freeze_timer"] = FROZEN_DECEL_TIME
+	bullet["life_timer"] = FROZEN_LIFETIME
+	bullet["guidance_active"] = false
+	if particle_count > 0:
+		_create_particles(bullet["pos"], COLORS["frozen"], particle_count)
+
+
+func _freeze_enemy_bullets(owner_id: String) -> void:
+	for bullet in bullets:
+		if bullet["owner_id"] != owner_id:
+			continue
+		_start_freezing_bullet(bullet, 4)
+
+
+func _should_freeze_enemy_bullets_on_death(enemy: Dictionary) -> bool:
+	var damage_source: String = str(enemy.get("last_damage_source", DAMAGE_SOURCE_NONE))
+	return damage_source == DAMAGE_SOURCE_MELEE or damage_source == DAMAGE_SOURCE_FLYING_SWORD
+
+
+func _handle_enemy_death(enemy: Dictionary, index: int) -> void:
+	if _should_freeze_enemy_bullets_on_death(enemy):
+		_freeze_enemy_bullets(str(enemy["id"]))
+	_create_particles(enemy["pos"], COLORS[enemy["type"]], 14)
+	if enemy["type"] != PUPPET:
+		score += enemy["score"]
+		player["energy"] = min(player["energy"] + ENERGY_GAIN_MELEE_HIT * 2.0, PLAYER_MAX_ENERGY)
+	enemies.remove_at(index)
+
+
 func _update_enemies(delta: float) -> void:
 	var index: int = enemies.size() - 1
 	while index >= 0:
@@ -484,6 +559,10 @@ func _update_enemies(delta: float) -> void:
 			enemy["hit_cooldown"] = max(enemy["hit_cooldown"] - delta, 0.0)
 			if enemy["health"] <= 0.0 and debug_calibration_mode:
 				enemy["health"] = enemy["max_health"]
+			index -= 1
+			continue
+		if enemy["health"] <= 0.0:
+			_handle_enemy_death(enemy, index)
 			index -= 1
 			continue
 		var to_player: Vector2 = player["pos"] - enemy["pos"]
@@ -526,6 +605,7 @@ func _update_enemies(delta: float) -> void:
 					_spawn_bullet(enemy["pos"], to_player.normalized() * BULLET_LARGE_SPEED, "large", enemy["id"], COLORS["heavy"])
 			PUPPET:
 				if not _has_boss() or not _is_silk_active(enemy["id"]):
+					enemy["last_damage_source"] = DAMAGE_SOURCE_SYSTEM
 					enemy["health"] = 0.0
 				elif enemy["melee_timer"] <= 0.0:
 					if distance > PUPPET_MELEE_RANGE * 0.8:
@@ -544,11 +624,7 @@ func _update_enemies(delta: float) -> void:
 							_create_particles(player["pos"], COLORS["puppet"], 10)
 
 		if enemy["health"] <= 0.0:
-			_create_particles(enemy["pos"], COLORS[enemy["type"]], 14)
-			if enemy["type"] != PUPPET:
-				score += enemy["score"]
-				player["energy"] = min(player["energy"] + ENERGY_GAIN_MELEE_HIT * 2.0, PLAYER_MAX_ENERGY)
-			enemies.remove_at(index)
+			_handle_enemy_death(enemy, index)
 		index -= 1
 
 
@@ -575,7 +651,7 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 						player["absorbed_ids"].size(),
 						_get_sword_array_formation_ratio()
 					)
-					bullet["pos"] = bullet["pos"].lerp(target_pos, min(delta * 12.0, 1.0))
+					bullet["pos"] = bullet["pos"].lerp(target_pos, min(delta * SwordArrayConfig.ABSORB_RETURN_LERP_SPEED, 1.0))
 				else:
 					bullet["life_timer"] -= delta
 					if bullet["life_timer"] <= 0.0:
@@ -613,7 +689,7 @@ func _bullet_hits_enemy(bullet: Dictionary) -> bool:
 			continue
 		if enemy["pos"].distance_to(bullet["pos"]) > enemy["radius"] + bullet["radius"]:
 			continue
-		enemy["health"] -= SwordArrayConfig.FIRED_DAMAGE
+		_damage_enemy(enemy, SwordArrayConfig.FIRED_DAMAGE, DAMAGE_SOURCE_FIRED_MARBLE)
 		_create_particles(bullet["pos"], COLORS["frozen"], 10)
 		return true
 	if _has_boss():
@@ -650,6 +726,15 @@ func _update_guided_fired_bullet(bullet: Dictionary, delta: float) -> void:
 		desired_direction = mouse_world - player["pos"]
 	if desired_direction.is_zero_approx():
 		desired_direction = Vector2.RIGHT
+	var current_forward: Vector2 = bullet["vel"].normalized()
+	if not current_forward.is_zero_approx():
+		var forward_component: float = desired_direction.dot(current_forward)
+		var min_forward_component: float = desired_direction.length() * 0.18
+		if forward_component < min_forward_component:
+			var lateral_component: Vector2 = desired_direction - current_forward * forward_component
+			desired_direction = lateral_component + current_forward * min_forward_component
+			if desired_direction.is_zero_approx():
+				desired_direction = current_forward
 	var desired_velocity: Vector2 = desired_direction.normalized() * SwordArrayConfig.FIRED_SPEED
 	bullet["vel"] = bullet["vel"].lerp(desired_velocity, min(delta * SwordArrayConfig.FIRED_GUIDANCE_TURN_RATE, 1.0))
 
@@ -721,7 +806,7 @@ func _try_cast_ultimate() -> void:
 	for enemy in enemies:
 		if enemy["type"] == PUPPET:
 			continue
-		enemy["health"] -= 50.0
+		_damage_enemy(enemy, 50.0, DAMAGE_SOURCE_ULTIMATE)
 		_create_particles(enemy["pos"], COLORS["energy"], 12)
 	if _has_boss():
 		boss["health"] -= 250.0
@@ -745,11 +830,8 @@ func _perform_melee_attack() -> void:
 			continue
 		if absf(wrapf(offset.angle() - attack_angle, -PI, PI)) > SWORD_MELEE_ARC * 0.5:
 			continue
-		bullet["state"] = "freezing"
-		bullet["freeze_timer"] = FROZEN_DECEL_TIME
-		bullet["life_timer"] = FROZEN_LIFETIME
+		_start_freezing_bullet(bullet, 6)
 		player["energy"] = min(player["energy"] + (ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0)), PLAYER_MAX_ENERGY)
-		_create_particles(bullet["pos"], COLORS["frozen"], 6)
 		screen_shake = max(screen_shake, 3.0)
 
 	for enemy in enemies:
@@ -760,7 +842,7 @@ func _perform_melee_attack() -> void:
 			continue
 		if enemy["type"] == PUPPET:
 			continue
-		enemy["health"] -= SWORD_MELEE_DAMAGE
+		_damage_enemy(enemy, SWORD_MELEE_DAMAGE, DAMAGE_SOURCE_MELEE)
 		player["energy"] = min(player["energy"] + ENERGY_GAIN_MELEE_HIT, PLAYER_MAX_ENERGY)
 		_create_particles(enemy["pos"], COLORS[enemy["type"]], 5)
 		screen_shake = max(screen_shake, 4.0)
@@ -776,58 +858,90 @@ func _perform_melee_attack() -> void:
 
 
 func _start_point_strike() -> void:
+	if not _try_consume_energy(ENERGY_INITIAL_RANGED_COST):
+		return
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
 	player["mode"] = CombatMode.RANGED
+
+
+func _start_slicing() -> void:
+	if not _try_consume_energy(ENERGY_INITIAL_RANGED_COST):
+		return
+	sword["state"] = SwordState.SLICING
+	player["mode"] = CombatMode.RANGED
+
+
+func _try_consume_energy(amount: float) -> bool:
+	if player["energy"] < amount:
+		return false
+	player["energy"] -= amount
+	return true
 
 
 func _fire_absorbed_marbles() -> void:
 	if player["absorbed_ids"].is_empty():
 		return
 	var morph_state: Dictionary = _get_sword_array_morph_state()
-	var current_mode: String = _get_sword_array_fire_mode()
-	if player["array_burst_mode"] != current_mode:
-		player["array_burst_mode"] = current_mode
-		player["array_burst_step"] = 0
-
-	var burst_step: int = player["array_burst_step"]
 	var total_count_before_fire: int = player["absorbed_ids"].size()
-	var batch_size: int = SwordArrayController.get_fire_batch_size(
+	var release_profile: Dictionary = SwordArrayController.get_fire_release_profile(
 		self,
-		current_mode,
-		total_count_before_fire,
-		burst_step
+		morph_state,
+		total_count_before_fire
 	)
-	var fire_count: int = mini(batch_size, total_count_before_fire)
+	var packet_target: float = clampf(float(release_profile.get("packet_size_target", 1.0)), 1.0, float(total_count_before_fire))
+	var packet_budget: float = float(player.get("array_packet_remainder", 0.0)) + packet_target
+	var fire_count: int = clampi(int(round(packet_budget)), 1, total_count_before_fire)
+	player["array_packet_remainder"] = clampf(packet_budget - float(fire_count), -0.49, 0.49)
+	var source_snapshot: Array = _build_absorbed_marble_source_snapshot()
+	fire_count = mini(fire_count, source_snapshot.size())
+	if fire_count <= 0:
+		return
+	var burst_step: int = 0
 	var fired_count: int = 0
 	while fired_count < fire_count:
-		_fire_single_absorbed_marble(fired_count, fire_count, burst_step, total_count_before_fire)
+		var snapshot_positions: Array = []
+		for source in source_snapshot:
+			snapshot_positions.append(source["pos"])
+		var source_snapshot_index: int = SwordArrayController.get_fire_source_snapshot_index(
+			self,
+			morph_state,
+			snapshot_positions,
+			fired_count,
+			fire_count,
+			burst_step,
+			total_count_before_fire
+		)
+		if source_snapshot_index < 0 or source_snapshot_index >= source_snapshot.size():
+			source_snapshot_index = 0
+		var bullet_id: String = str(source_snapshot[source_snapshot_index]["id"])
+		_fire_single_absorbed_marble(bullet_id, fired_count, fire_count, burst_step, total_count_before_fire)
+		source_snapshot.remove_at(source_snapshot_index)
 		fired_count += 1
 
 	_emit_sword_array_fire_effect(morph_state, fire_count)
 
-	var burst_cycle_length: int = SwordArrayController.get_burst_cycle_length(current_mode)
-	if burst_cycle_length > 1:
-		player["array_burst_step"] = (player["array_burst_step"] + 1) % burst_cycle_length
-	else:
-		player["array_burst_step"] = 0
+
+func _build_absorbed_marble_source_snapshot() -> Array:
+	var source_snapshot: Array = []
+	for bullet_id in player["absorbed_ids"]:
+		for bullet in bullets:
+			if bullet["id"] != bullet_id:
+				continue
+			source_snapshot.append({
+				"id": bullet_id,
+				"pos": bullet["pos"],
+			})
+			break
+	return source_snapshot
 
 
-func _fire_single_absorbed_marble(volley_fire_index: int, volley_fire_count: int, burst_step: int, total_count_before_fire: int) -> void:
-	if player["absorbed_ids"].is_empty():
+func _fire_single_absorbed_marble(bullet_id: String, volley_fire_index: int, volley_fire_count: int, burst_step: int, total_count_before_fire: int) -> void:
+	if bullet_id == "":
 		return
-	var source_slot_index: int = SwordArrayController.get_fire_source_slot_index(
-		self,
-		_get_sword_array_morph_state(),
-		player["absorbed_ids"].size(),
-		volley_fire_index,
-		volley_fire_count,
-		burst_step,
-		total_count_before_fire
-	)
-	if source_slot_index < 0 or source_slot_index >= player["absorbed_ids"].size():
-		source_slot_index = 0
-	var bullet_id: String = player["absorbed_ids"][source_slot_index]
+	var source_slot_index: int = player["absorbed_ids"].find(bullet_id)
+	if source_slot_index < 0:
+		return
 	player["absorbed_ids"].remove_at(source_slot_index)
 	for bullet in bullets:
 		if bullet["id"] != bullet_id:
@@ -882,6 +996,7 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 		"radius": SHOOTER_RADIUS,
 		"health": SHOOTER_HEALTH,
 		"max_health": SHOOTER_HEALTH,
+		"last_damage_source": DAMAGE_SOURCE_NONE,
 		"score": 20,
 	}
 	match enemy_type:
@@ -1031,13 +1146,6 @@ func _format_distance_delta(delta: float) -> String:
 
 func _get_sword_array_mode() -> String:
 	return SwordArrayController.get_mode(self)
-
-
-func _get_sword_array_fire_mode() -> String:
-	var fire_mode: String = player.get("array_fire_mode", "")
-	if fire_mode != "":
-		return fire_mode
-	return player["array_mode"]
 
 
 func _get_sword_array_direction(fire_index: int, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:

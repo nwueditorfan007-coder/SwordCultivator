@@ -29,14 +29,13 @@ static func reset_runtime(main: Node) -> void:
 		"array_hold_timer": 0.0,
 		"array_hold_ratio": 0.0,
 		"array_is_firing": false,
-		"fire_timer": 0.0,
+		"array_release_progress": 0.0,
+		"array_packet_remainder": 0.0,
 		"array_fire_index": 0,
-		"array_burst_step": 0,
-		"array_burst_mode": "",
-		"array_fire_mode": "",
 		"array_mode": SwordArrayConfig.MODE_RING,
 		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"is_charging": false,
+		"absorb_timer": 0.0,
 		"absorbed_ids": [],
 	}
 	main.debug_calibration_mode = false

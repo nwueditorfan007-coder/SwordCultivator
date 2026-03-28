@@ -180,8 +180,6 @@ static func _draw_sword_array_preview(main: Node2D, player_pos: Vector2) -> void
 			_draw_pierce_preview(main, preview, 1.0, preview_alpha, formation_ratio)
 		"crescent":
 			_draw_crescent_preview(main, preview, morph_state, preview_alpha, formation_ratio)
-		"spear":
-			_draw_spear_preview(main, preview, morph_state, preview_alpha, formation_ratio)
 
 
 static func _draw_ring_preview(main: Node2D, player_pos: Vector2, preview: Dictionary, weight: float, preview_alpha: float, formation_ratio: float) -> void:
@@ -214,7 +212,6 @@ static func _draw_fan_preview(main: Node2D, player_pos: Vector2, preview: Dictio
 	fan_soft_color.a = (0.16 + formation_ratio * 0.14) * weight
 	if preview.get("has_profile_sections", false):
 		var curve_strength: float = clampf(float(preview.get("edge_curve_strength", 1.0)), 0.0, 1.0)
-		var section_line_strength: float = clampf(float(preview.get("section_line_strength", 1.0)), 0.0, 1.0)
 		var left_outline: PackedVector2Array = _smooth_open_outline(
 			_to_screen_outline(main, preview["left_outline"]),
 			_get_outline_smoothing_passes(curve_strength)
@@ -253,33 +250,13 @@ static func _draw_fan_preview(main: Node2D, player_pos: Vector2, preview: Dictio
 			_draw_outline_path(main, right_outline, fan_color, 2.6)
 			_draw_outline_path(main, outer_curve, fan_color, 2.6)
 			_draw_outline_path(main, inner_curve, fan_edge_color, 1.4)
-			var sections: Array = preview["sections"]
-			var section_index: int = 0
-			while section_index < sections.size():
-				var section: Dictionary = sections[section_index]
-				if section_index > 0 and section_index < sections.size() - 1 and section_line_strength > 0.0:
-					main.draw_line(
-						main._to_screen(section["left"]),
-						main._to_screen(section["right"]),
-						Color(
-							fan_soft_color.r,
-							fan_soft_color.g,
-							fan_soft_color.b,
-							(0.18 + formation_ratio * 0.08) * section_line_strength
-						),
-						0.9
-					)
-				section_index += 1
-			var preview_phase: String = str(preview.get("phase", ""))
-			var minimum_spine_focus: float = 0.35
-			if preview_phase == "continuous_band" or preview_phase == "ring_fan_blend":
-				minimum_spine_focus = 0.0
-			main.draw_line(
-				main._to_screen(preview["tail"]),
-				main._to_screen(preview["tip"]),
-				Color(1.0, 1.0, 1.0, (0.08 + formation_ratio * 0.1) * maxf(minimum_spine_focus, spine_focus)),
-				1.1
-			)
+			if spine_focus > 0.0:
+				main.draw_line(
+					main._to_screen(preview["tail"]),
+					main._to_screen(preview["tip"]),
+					Color(1.0, 1.0, 1.0, (0.08 + formation_ratio * 0.1) * spine_focus),
+					1.1
+				)
 			if preview.get("tip_radius", 0.0) > 0.05:
 				main.draw_circle(
 					main._to_screen(preview["tip"]),
@@ -379,57 +356,6 @@ static func _draw_crescent_preview(main: Node2D, preview: Dictionary, state_sour
 		Color(1.0, 1.0, 1.0, 0.22 + formation_ratio * 0.12),
 		1.0
 	)
-
-
-static func _draw_spear_preview(main: Node2D, preview: Dictionary, state_source, preview_alpha: float, formation_ratio: float) -> void:
-	var curve_strength: float = clampf(float(preview.get("edge_curve_strength", 0.0)), 0.0, 1.0)
-	var smoothing_passes: int = _get_outline_smoothing_passes(curve_strength)
-	var left_outline: PackedVector2Array = _smooth_open_outline(
-		_to_screen_outline(main, preview["left_outline"]),
-		smoothing_passes
-	)
-	var right_outline: PackedVector2Array = _smooth_open_outline(
-		_to_screen_outline(main, preview["right_outline"]),
-		smoothing_passes
-	)
-	if left_outline.size() < 2 or right_outline.size() < 2:
-		return
-	var outline := PackedVector2Array()
-	for point in left_outline:
-		outline.append(point)
-	var right_index: int = right_outline.size() - 1
-	while right_index >= 0:
-		outline.append(right_outline[right_index])
-		right_index -= 1
-	var accent_color: Color = SwordArrayController.get_accent_color(state_source)
-	accent_color.a = preview_alpha + 0.08
-	var soft_color: Color = SwordArrayController.get_soft_accent_color(state_source)
-	soft_color.a = 0.16 + formation_ratio * 0.12
-	_try_draw_colored_polygon(
-		main,
-		outline,
-		Color(soft_color.r, soft_color.g, soft_color.b, 0.12 + formation_ratio * 0.08)
-	)
-	_draw_outline_path(main, left_outline, accent_color, 2.2)
-	_draw_outline_path(main, right_outline, accent_color, 2.2)
-	var sections: Array = preview["sections"]
-	if sections.is_empty():
-		return
-	var tip_focus: float = clampf(float(preview.get("tip_focus", 1.0)), 0.0, 1.0)
-	var spine_focus: float = clampf(float(preview.get("spine_focus", tip_focus)), 0.0, 1.0)
-	var section_index: int = 0
-	while section_index < sections.size():
-		var section: Dictionary = sections[section_index]
-		var screen_left: Vector2 = main._to_screen(section["left"])
-		var screen_right: Vector2 = main._to_screen(section["right"])
-		if section_index > 0 and section_index < sections.size() - 1:
-			main.draw_line(screen_left, screen_right, Color(soft_color.r, soft_color.g, soft_color.b, 0.22 + formation_ratio * 0.08), 1.0)
-		section_index += 1
-	var tail: Vector2 = main._to_screen(preview["tail"])
-	var tip: Vector2 = main._to_screen(preview["tip"])
-	main.draw_line(tail, tip, Color(1.0, 1.0, 1.0, (0.12 + formation_ratio * 0.12) * spine_focus), 1.2)
-	if preview["tip_radius"] > 0.05:
-		main.draw_circle(tip, preview["tip_radius"], Color(1.0, 1.0, 1.0, (0.18 + formation_ratio * 0.18) * tip_focus))
 
 
 static func _build_fan_band_polygon(center: Vector2, angle: float, arc: float, inner_radius: float, outer_radius: float, segments: int) -> PackedVector2Array:
