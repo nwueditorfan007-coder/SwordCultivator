@@ -169,21 +169,77 @@ static func _draw_sword_array_preview(main: Node2D, player_pos: Vector2) -> void
 			fan_color.a = preview_alpha + 0.08
 			var fan_edge_color := Color(fan_color.r, fan_color.g, fan_color.b, 0.24)
 			var fan_soft_color: Color = SwordArrayController.get_soft_accent_color(mode)
-			fan_soft_color.a = 0.22 + formation_ratio * 0.16
-			main.draw_arc(player_pos, preview["radius"], preview["angle"] - preview["arc"] * 0.5, preview["angle"] + preview["arc"] * 0.5, 32, fan_color, 3.0)
-			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] - preview["arc"] * 0.5) * preview["radius"], fan_edge_color, 1.2)
-			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"] + preview["arc"] * 0.5) * preview["radius"], fan_edge_color, 1.2)
-			main.draw_line(player_pos, player_pos + Vector2.RIGHT.rotated(preview["angle"]) * preview["radius"], fan_soft_color, 1.0)
+			fan_soft_color.a = 0.16 + formation_ratio * 0.14
+			var fan_mid_radius: float = lerpf(preview["inner_radius"], preview["outer_radius"], 0.56)
+			var fan_mid_arc: float = preview["arc"] * 0.78
+			var fan_fill: PackedVector2Array = _build_fan_band_polygon(
+				player_pos,
+				preview["angle"],
+				preview["arc"],
+				preview["inner_radius"],
+				preview["outer_radius"],
+				16
+			)
+			main.draw_colored_polygon(
+				fan_fill,
+				Color(fan_soft_color.r, fan_soft_color.g, fan_soft_color.b, 0.08 + formation_ratio * 0.08)
+			)
+			main.draw_arc(player_pos, preview["outer_radius"], preview["angle"] - preview["arc"] * 0.5, preview["angle"] + preview["arc"] * 0.5, 32, fan_color, 3.0)
+			main.draw_arc(player_pos, fan_mid_radius, preview["angle"] - fan_mid_arc * 0.5, preview["angle"] + fan_mid_arc * 0.5, 24, fan_soft_color, 1.6)
+			main.draw_arc(player_pos, preview["inner_radius"], preview["angle"] - fan_mid_arc * 0.32, preview["angle"] + fan_mid_arc * 0.32, 18, fan_edge_color, 1.1)
+			main.draw_line(
+				player_pos + Vector2.RIGHT.rotated(preview["angle"] - preview["arc"] * 0.5) * preview["inner_radius"],
+				player_pos + Vector2.RIGHT.rotated(preview["angle"] - preview["arc"] * 0.5) * preview["outer_radius"],
+				fan_edge_color,
+				1.2
+			)
+			main.draw_line(
+				player_pos + Vector2.RIGHT.rotated(preview["angle"] + preview["arc"] * 0.5) * preview["inner_radius"],
+				player_pos + Vector2.RIGHT.rotated(preview["angle"] + preview["arc"] * 0.5) * preview["outer_radius"],
+				fan_edge_color,
+				1.2
+			)
+			main.draw_line(
+				player_pos + Vector2.RIGHT.rotated(preview["angle"]) * preview["inner_radius"],
+				player_pos + Vector2.RIGHT.rotated(preview["angle"]) * preview["outer_radius"],
+				fan_soft_color,
+				1.0
+			)
 		_:
 			var start_pos: Vector2 = main._to_screen(preview["start"])
 			var end_pos: Vector2 = main._to_screen(preview["end"])
+			var tip_pos: Vector2 = main._to_screen(preview["tip"])
 			var line_dir: Vector2 = (end_pos - start_pos).normalized()
 			var side_offset: Vector2 = line_dir.rotated(PI * 0.5) * preview["half_width"]
 			var pierce_color: Color = SwordArrayController.get_accent_color(mode)
 			pierce_color.a = preview_alpha + 0.1
 			var pierce_soft_color: Color = SwordArrayController.get_soft_accent_color(mode)
 			pierce_soft_color.a = 0.18 + formation_ratio * 0.08
-			main.draw_line(start_pos, end_pos, pierce_color, 4.0 + formation_ratio)
-			main.draw_line(start_pos + side_offset, end_pos + side_offset, pierce_soft_color, 1.2)
-			main.draw_line(start_pos - side_offset, end_pos - side_offset, pierce_soft_color, 1.2)
-			main.draw_circle(end_pos, 3.0 + formation_ratio * 2.0, Color(1.0, 1.0, 1.0, 0.24 + formation_ratio * 0.18))
+			var wedge_back: Vector2 = start_pos + line_dir * preview["wedge_length"]
+			var wedge_side: Vector2 = line_dir.rotated(PI * 0.5) * preview["wedge_width"]
+			main.draw_colored_polygon(
+				PackedVector2Array([start_pos + wedge_side, start_pos - wedge_side, wedge_back]),
+				Color(pierce_soft_color.r, pierce_soft_color.g, pierce_soft_color.b, 0.12 + formation_ratio * 0.1)
+			)
+			main.draw_line(start_pos, end_pos, pierce_color, 3.2 + formation_ratio * 1.4)
+			main.draw_line(start_pos + side_offset, end_pos + side_offset * 0.35, pierce_soft_color, 1.0)
+			main.draw_line(start_pos - side_offset, end_pos - side_offset * 0.35, pierce_soft_color, 1.0)
+			main.draw_line(end_pos, tip_pos, Color(1.0, 1.0, 1.0, 0.34 + formation_ratio * 0.18), 2.2)
+			main.draw_circle(tip_pos, preview["tip_radius"], Color(1.0, 1.0, 1.0, 0.28 + formation_ratio * 0.22))
+
+
+static func _build_fan_band_polygon(center: Vector2, angle: float, arc: float, inner_radius: float, outer_radius: float, segments: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var segment_count: int = maxi(segments, 3)
+	var step: float = arc / float(segment_count)
+	var segment_index: int = 0
+	while segment_index <= segment_count:
+		var sample_angle: float = angle - arc * 0.5 + step * float(segment_index)
+		points.append(center + Vector2.RIGHT.rotated(sample_angle) * outer_radius)
+		segment_index += 1
+	segment_index = segment_count
+	while segment_index >= 0:
+		var inner_sample_angle: float = angle - arc * 0.5 + step * float(segment_index)
+		points.append(center + Vector2.RIGHT.rotated(inner_sample_angle) * inner_radius)
+		segment_index -= 1
+	return points

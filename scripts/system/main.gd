@@ -680,35 +680,42 @@ func _fire_absorbed_marbles() -> void:
 		player["array_burst_mode"] = current_mode
 		player["array_burst_step"] = 0
 
+	var burst_step: int = player["array_burst_step"]
+	var total_count_before_fire: int = player["absorbed_ids"].size()
 	var batch_size: int = SwordArrayController.get_fire_batch_size(
 		self,
 		current_mode,
-		player["absorbed_ids"].size(),
-		player["array_burst_step"]
+		total_count_before_fire,
+		burst_step
 	)
-	var fire_count: int = mini(batch_size, player["absorbed_ids"].size())
+	var fire_count: int = mini(batch_size, total_count_before_fire)
 	var fired_count: int = 0
 	while fired_count < fire_count:
-		_fire_single_absorbed_marble()
+		_fire_single_absorbed_marble(fired_count, fire_count, burst_step, total_count_before_fire)
 		fired_count += 1
 
 	_emit_sword_array_fire_effect(current_mode, fire_count)
 
-	match current_mode:
-		SwordArrayConfig.MODE_FAN:
-			player["array_burst_step"] = (player["array_burst_step"] + 1) % 3
-		_:
-			player["array_burst_step"] = 0
+	var burst_cycle_length: int = SwordArrayController.get_burst_cycle_length(current_mode)
+	if burst_cycle_length > 1:
+		player["array_burst_step"] = (player["array_burst_step"] + 1) % burst_cycle_length
+	else:
+		player["array_burst_step"] = 0
 
 
-func _fire_single_absorbed_marble() -> void:
+func _fire_single_absorbed_marble(volley_fire_index: int, volley_fire_count: int, burst_step: int, total_count_before_fire: int) -> void:
 	if player["absorbed_ids"].is_empty():
 		return
 	var bullet_id: String = player["absorbed_ids"].pop_front()
 	for bullet in bullets:
 		if bullet["id"] != bullet_id:
 			continue
-		var direction: Vector2 = _get_sword_array_direction(player["array_fire_index"])
+		var target_point: Vector2 = _get_sword_array_target(volley_fire_index, bullet["pos"], volley_fire_count, burst_step, total_count_before_fire)
+		var direction: Vector2 = target_point - bullet["pos"]
+		if direction.is_zero_approx():
+			direction = mouse_world - player["pos"]
+		if direction.is_zero_approx():
+			direction = Vector2.RIGHT
 		bullet["state"] = "fired"
 		bullet["vel"] = direction.normalized() * SwordArrayConfig.FIRED_SPEED
 		player["array_fire_index"] += 1
@@ -845,8 +852,12 @@ func _get_sword_array_mode() -> String:
 	return SwordArrayController.get_mode(self)
 
 
-func _get_sword_array_direction(fire_index: int) -> Vector2:
-	return SwordArrayController.get_fire_direction(self, player["array_mode"], fire_index)
+func _get_sword_array_direction(fire_index: int, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
+	return SwordArrayController.get_fire_direction(self, player["array_mode"], fire_index, volley_count, burst_step, total_count)
+
+
+func _get_sword_array_target(fire_index: int, bullet_pos: Vector2, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
+	return SwordArrayController.get_fire_target(self, player["array_mode"], fire_index, bullet_pos, volley_count, burst_step, total_count)
 
 
 func _update_boss(delta: float, bullet_time_delta: float) -> void:
