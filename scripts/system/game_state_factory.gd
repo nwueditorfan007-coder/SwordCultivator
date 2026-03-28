@@ -34,9 +34,12 @@ static func reset_runtime(main: Node) -> void:
 		"array_burst_step": 0,
 		"array_burst_mode": "",
 		"array_mode": SwordArrayConfig.MODE_RING,
+		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"is_charging": false,
 		"absorbed_ids": [],
 	}
+	main.debug_calibration_mode = false
+	main.debug_dragging_player = false
 	main.sword = {
 		"pos": main.ARENA_SIZE * 0.5,
 		"prev_pos": main.ARENA_SIZE * 0.5,
