@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 430">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <polygon points="0,0 10,5 0,10" fill="#607789"/>
+    </marker>
+    <style>
+      .bg { fill: #080b12; }
+      .title { fill: #eef8ff; font: 700 22px 'Segoe UI', sans-serif; text-anchor: middle; }
+      .caption { fill: #92a9b7; font: 14px 'Segoe UI', sans-serif; text-anchor: middle; }
+      .label { fill: #d9ebf4; font: 16px 'Segoe UI', sans-serif; text-anchor: middle; }
+      .sub { fill: #7f95a4; font: 13px 'Segoe UI', sans-serif; text-anchor: middle; }
+      .axis { stroke: #223543; stroke-width: 1.5; stroke-dasharray: 4 7; }
+      .flow { stroke: #607789; stroke-width: 2; marker-end: url(#arrowhead); }
+      .band {
+        fill: #79efff26;
+        stroke: #79efff;
+        stroke-width: 4;
+        stroke-linejoin: round;
+      }
+      .spine {
+        stroke: #edfaff;
+        stroke-width: 4;
+        stroke-linecap: round;
+      }
+      .tip {
+        fill: #edfaff;
+      }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1380" height="430" rx="18"/>
+
+  <text class="title" x="690" y="42">Proposed Fan -&gt; Pierce Morph</text>
+  <text class="caption" x="690" y="68">Arc first, spine later, tip last.</text>
+
+  <line class="flow" x1="176" y1="210" x2="284" y2="210"/>
+  <line class="flow" x1="406" y1="210" x2="514" y2="210"/>
+  <line class="flow" x1="636" y1="210" x2="744" y2="210"/>
+  <line class="flow" x1="866" y1="210" x2="974" y2="210"/>
+  <line class="flow" x1="1096" y1="210" x2="1204" y2="210"/>
+
+  <g>
+    <line class="axis" x1="120" y1="110" x2="120" y2="322"/>
+    <path class="band" d="M 39.4 209.7 A 95 95 0 0 1 200.6 209.7 L 155.6 237.7 A 42 42 0 0 0 84.4 237.7 Z"/>
+    <text class="label" x="120" y="352">1. Fan</text>
+    <text class="sub" x="120" y="374">Stable pressure arc</text>
+  </g>
+
+  <g>
+    <line class="axis" x1="350" y1="110" x2="350" y2="322"/>
+    <path class="band" d="M 290.0 195.7 A 88 88 0 0 1 410.0 195.7 L 380.0 227.8 A 44 44 0 0 0 320.0 227.8 Z"/>
+    <text class="label" x="350" y="352">2. Closing Fan</text>
+    <text class="sub" x="350" y="374">Angle drops, arc stays</text>
+  </g>
+
+  <g>
+    <line class="axis" x1="580" y1="110" x2="580" y2="322"/>
+    <path class="band" d="M 543.4 191.1 A 78 78 0 0 1 616.6 191.1 L 602.5 217.6 A 48 48 0 0 0 557.5 217.6 Z"/>
+    <text class="label" x="580" y="352">3. Arc Band</text>
+    <text class="sub" x="580" y="374">Thickness fades first</text>
+  </g>
+
+  <g>
+    <line class="axis" x1="810" y1="110" x2="810" y2="322"/>
+    <path
+      class="band"
+      fill-rule="evenodd"
+      d="M 790 226
+         C 780 208 778 186 784 168
+         C 792 144 806 128 810 121
+         C 814 128 828 144 836 168
+         C 842 186 840 208 830 226
+         L 821 222
+         C 828 207 829 190 824 174
+         C 819 158 813 146 810 141
+         C 807 146 801 158 796 174
+         C 791 190 792 207 799 222 Z"/>
+    <path class="band" d="M 792 225 L 828 225 L 824 244 L 796 244 Z"/>
+    <line class="spine" x1="810" y1="228" x2="810" y2="140"/>
+    <circle class="tip" cx="810" cy="130" r="4"/>
+    <text class="label" x="810" y="352">4. Bulb Spine</text>
+    <text class="sub" x="810" y="374">Arc mass lifts around the spine</text>
+  </g>
+
+  <g>
+    <line class="axis" x1="1040" y1="110" x2="1040" y2="322"/>
+    <path class="band" d="M 1021 224 L 1059 224 L 1048 180 L 1040 142 L 1032 180 Z"/>
+    <line class="spine" x1="1040" y1="224" x2="1040" y2="268"/>
+    <text class="label" x="1040" y="352">5. Short Arrow</text>
+    <text class="sub" x="1040" y="374">Readable thrust silhouette</text>
+  </g>
+
+  <g>
+    <line class="axis" x1="1270" y1="110" x2="1270" y2="322"/>
+    <line class="spine" x1="1270" y1="142" x2="1270" y2="276"/>
+    <circle class="tip" cx="1270" cy="136" r="4.5"/>
+    <text class="label" x="1270" y="352">6. Pierce</text>
+    <text class="sub" x="1270" y="374">Final line and tip</text>
+  </g>
+</svg>
