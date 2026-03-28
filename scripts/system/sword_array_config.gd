@@ -13,13 +13,16 @@ const ABSORB_ENERGY_COST := 10.0
 const MAX_ABSORBED := 12
 const FIRED_SPEED := 45.0 * 60.0
 const FIRED_DAMAGE := 100.0
+const FIRED_GUIDANCE_DURATION := 0.24
+const FIRED_GUIDANCE_TURN_RATE := 9.5
+const FIRED_GUIDANCE_MAX_DISTANCE := 240.0
 
 const RING_THRESHOLD := 160.0
 const FAN_THRESHOLD := 420.0
 const RING_STABLE_END := 85.0
-const RING_TO_FAN_END := 146.0
-const FAN_STABLE_END := 246.0
-const FAN_TO_PIERCE_END := 398.0
+const RING_TO_FAN_END := 145.0
+const FAN_STABLE_END := 295.0
+const FAN_TO_PIERCE_END := 400.0
 
 static var _morph_distance_overrides := {
 	"ring_stable_end": RING_STABLE_END,

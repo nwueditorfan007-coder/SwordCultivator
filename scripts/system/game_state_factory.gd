@@ -33,6 +33,7 @@ static func reset_runtime(main: Node) -> void:
 		"array_fire_index": 0,
 		"array_burst_step": 0,
 		"array_burst_mode": "",
+		"array_fire_mode": "",
 		"array_mode": SwordArrayConfig.MODE_RING,
 		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"is_charging": false,

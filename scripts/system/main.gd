@@ -214,8 +214,7 @@ func _process(delta: float) -> void:
 			sword["state"] = SwordState.SLICING
 			player["mode"] = CombatMode.RANGED
 
-	if not player["array_is_firing"]:
-		_refresh_sword_array_live_state()
+	_refresh_sword_array_live_state()
 
 	if debug_calibration_mode:
 		_ensure_debug_calibration_state()
@@ -227,15 +226,15 @@ func _process(delta: float) -> void:
 			if not player["array_is_firing"]:
 				player["array_hold_ratio"] = clampf(player["array_hold_timer"] / SwordArrayConfig.HOLD_THRESHOLD, 0.0, 1.0)
 				if player["array_hold_timer"] >= SwordArrayConfig.HOLD_THRESHOLD:
-					_lock_sword_array_morph_state()
+					_lock_sword_array_fire_mode()
 					player["array_is_firing"] = true
 					_fire_absorbed_marbles()
-					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
+					player["fire_timer"] = SwordArrayController.get_fire_interval(self, _get_sword_array_fire_mode())
 			else:
 				player["fire_timer"] -= delta
 				if player["fire_timer"] <= 0.0:
 					_fire_absorbed_marbles()
-					player["fire_timer"] = SwordArrayController.get_fire_interval(self, player["array_mode"])
+					player["fire_timer"] = SwordArrayController.get_fire_interval(self, _get_sword_array_fire_mode())
 		else:
 			player["array_is_firing"] = false
 			player["array_burst_mode"] = ""
@@ -288,6 +287,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				player["array_fire_index"] = 0
 				player["array_burst_step"] = 0
 				_refresh_sword_array_live_state()
+				player["array_fire_mode"] = ""
 				player["array_burst_mode"] = player["array_mode"]
 				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
 					_perform_melee_attack()
@@ -379,8 +379,9 @@ func _refresh_sword_array_live_state() -> void:
 	player["array_mode"] = morph_state["dominant_mode"]
 
 
-func _lock_sword_array_morph_state() -> void:
+func _lock_sword_array_fire_mode() -> void:
 	_refresh_sword_array_live_state()
+	player["array_fire_mode"] = player["array_mode"]
 
 
 func _get_sword_array_morph_state() -> Dictionary:
@@ -394,6 +395,7 @@ func _reset_sword_array_hold_state() -> void:
 	player["fire_timer"] = 0.0
 	player["array_fire_index"] = 0
 	player["array_burst_step"] = 0
+	player["array_fire_mode"] = ""
 	player["array_burst_mode"] = ""
 	_refresh_sword_array_live_state()
 
@@ -581,7 +583,9 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 						index -= 1
 						continue
 			"fired":
+				_update_guided_fired_bullet(bullet, delta)
 				bullet["pos"] += bullet["vel"] * delta
+				bullet["guidance_distance"] = float(bullet.get("guidance_distance", 0.0)) + bullet["vel"].length() * delta
 				if _bullet_hits_enemy(bullet):
 					_remove_bullet(index)
 					index -= 1
@@ -618,6 +622,36 @@ func _bullet_hits_enemy(bullet: Dictionary) -> bool:
 			_create_particles(bullet["pos"], COLORS["frozen"], 15)
 			return true
 	return false
+
+
+func _update_guided_fired_bullet(bullet: Dictionary, delta: float) -> void:
+	if not bullet.get("guidance_active", false):
+		return
+	bullet["guidance_elapsed"] = float(bullet.get("guidance_elapsed", 0.0)) + delta
+	var should_keep_guiding: bool = left_mouse_held and player["array_is_firing"]
+	should_keep_guiding = should_keep_guiding and float(bullet.get("guidance_elapsed", 0.0)) <= SwordArrayConfig.FIRED_GUIDANCE_DURATION
+	should_keep_guiding = should_keep_guiding and float(bullet.get("guidance_distance", 0.0)) <= SwordArrayConfig.FIRED_GUIDANCE_MAX_DISTANCE
+	if not should_keep_guiding:
+		bullet["guidance_active"] = false
+		return
+	var target_point: Vector2 = SwordArrayController.get_fire_target(
+		self,
+		_get_sword_array_morph_state(),
+		int(bullet.get("guidance_fire_index", 0)),
+		bullet["pos"],
+		int(bullet.get("guidance_volley_count", -1)),
+		int(bullet.get("guidance_burst_step", 0)),
+		int(bullet.get("guidance_total_count", -1))
+	)
+	var desired_direction: Vector2 = target_point - bullet["pos"]
+	if desired_direction.is_zero_approx():
+		desired_direction = bullet["vel"]
+	if desired_direction.is_zero_approx():
+		desired_direction = mouse_world - player["pos"]
+	if desired_direction.is_zero_approx():
+		desired_direction = Vector2.RIGHT
+	var desired_velocity: Vector2 = desired_direction.normalized() * SwordArrayConfig.FIRED_SPEED
+	bullet["vel"] = bullet["vel"].lerp(desired_velocity, min(delta * SwordArrayConfig.FIRED_GUIDANCE_TURN_RATE, 1.0))
 
 
 func _player_hit_by_bullet(bullet: Dictionary) -> bool:
@@ -751,7 +785,7 @@ func _fire_absorbed_marbles() -> void:
 	if player["absorbed_ids"].is_empty():
 		return
 	var morph_state: Dictionary = _get_sword_array_morph_state()
-	var current_mode: String = player["array_mode"]
+	var current_mode: String = _get_sword_array_fire_mode()
 	if player["array_burst_mode"] != current_mode:
 		player["array_burst_mode"] = current_mode
 		player["array_burst_step"] = 0
@@ -798,14 +832,31 @@ func _fire_single_absorbed_marble(volley_fire_index: int, volley_fire_count: int
 	for bullet in bullets:
 		if bullet["id"] != bullet_id:
 			continue
-		var target_point: Vector2 = _get_sword_array_target(volley_fire_index, bullet["pos"], volley_fire_count, burst_step, total_count_before_fire)
-		var direction: Vector2 = target_point - bullet["pos"]
+		var launch_origin: Vector2 = SwordArrayController.get_fire_launch_origin(
+			self,
+			_get_sword_array_morph_state(),
+			volley_fire_index,
+			bullet["pos"],
+			volley_fire_count,
+			burst_step,
+			total_count_before_fire
+		)
+		var target_point: Vector2 = _get_sword_array_target(volley_fire_index, launch_origin, volley_fire_count, burst_step, total_count_before_fire)
+		var direction: Vector2 = target_point - launch_origin
 		if direction.is_zero_approx():
 			direction = mouse_world - player["pos"]
 		if direction.is_zero_approx():
 			direction = Vector2.RIGHT
+		bullet["pos"] = launch_origin
 		bullet["state"] = "fired"
 		bullet["vel"] = direction.normalized() * SwordArrayConfig.FIRED_SPEED
+		bullet["guidance_active"] = true
+		bullet["guidance_elapsed"] = 0.0
+		bullet["guidance_distance"] = 0.0
+		bullet["guidance_fire_index"] = volley_fire_index
+		bullet["guidance_volley_count"] = volley_fire_count
+		bullet["guidance_burst_step"] = burst_step
+		bullet["guidance_total_count"] = total_count_before_fire
 		player["array_fire_index"] += 1
 		_create_particles(bullet["pos"], COLORS["frozen"], 5)
 		screen_shake = max(screen_shake, 2.0)
@@ -876,6 +927,13 @@ func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, ow
 		"state": "normal",
 		"freeze_timer": 0.0,
 		"life_timer": 0.0,
+		"guidance_active": false,
+		"guidance_elapsed": 0.0,
+		"guidance_distance": 0.0,
+		"guidance_fire_index": -1,
+		"guidance_volley_count": -1,
+		"guidance_burst_step": 0,
+		"guidance_total_count": -1,
 	})
 
 
@@ -973,6 +1031,13 @@ func _format_distance_delta(delta: float) -> String:
 
 func _get_sword_array_mode() -> String:
 	return SwordArrayController.get_mode(self)
+
+
+func _get_sword_array_fire_mode() -> String:
+	var fire_mode: String = player.get("array_fire_mode", "")
+	if fire_mode != "":
+		return fire_mode
+	return player["array_mode"]
 
 
 func _get_sword_array_direction(fire_index: int, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
