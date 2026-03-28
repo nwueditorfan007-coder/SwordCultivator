@@ -6,6 +6,12 @@ const CONVERGE_SAMPLE_RADIUS_RATIOS := [0.0, 0.18, 0.36, 0.58, 0.78, 0.92, 1.0]
 const CONVERGE_SAMPLE_ANGLE_RATIOS := [1.0, 0.88, 0.68, 0.42, 0.2, 0.06, 0.0]
 const SPEAR_SAMPLE_FORWARD_RATIOS := [0.0, 0.12, 0.28, 0.48, 0.7, 0.88, 1.0]
 const SPEAR_BONUS_WIDTH_SCALES := [0.0, 0.42, 0.9, 1.0, 0.48, 0.12, 0.0]
+const FAN_DOMINANT_SPEAR_PROGRESS_AT_FAN_END := 0.22
+const FAN_PRECONVERGE_ARC_SCALE := 0.9
+const FAN_PRECONVERGE_OUTER_SCALE := 1.03
+const FAN_PRECONVERGE_INNER_SCALE := 0.96
+const FAN_SPEAR_BLEND_BEFORE := 18.0
+const FAN_SPEAR_BLEND_AFTER := 24.0
 
 
 static func get_mode(main: Node) -> String:
@@ -19,14 +25,13 @@ static func get_morph_state(main: Node) -> Dictionary:
 
 static func get_slot_position(main: Node, state_source, slot_index: int, slot_count: int, formation_ratio := 1.0) -> Vector2:
 	var morph_state: Dictionary = _resolve_morph_state(main, state_source)
-	if _should_use_converging_pierce_geometry(morph_state):
-		return _get_fan_to_pierce_slot_position(
-			main,
-			slot_index,
-			slot_count,
-			formation_ratio,
-			_get_continuous_pierce_progress(morph_state)
-		)
+	var converging_preview: Dictionary = _get_active_fan_pierce_preview(main, morph_state, formation_ratio)
+	if not converging_preview.is_empty():
+		match converging_preview["type"]:
+			SwordArrayConfig.MODE_FAN:
+				return _get_fan_slot_position_from_preview(main, converging_preview, slot_index, slot_count)
+			"spear":
+				return _get_spear_slot_position_from_preview(main, converging_preview, slot_index, slot_count)
 	var from_mode: String = morph_state["visual_from_mode"]
 	var to_mode: String = morph_state["visual_to_mode"]
 	if from_mode == to_mode:
@@ -151,8 +156,32 @@ static func _get_ring_to_fan_slot_position(main: Node, slot_index: int, slot_cou
 	return preview["center"] + Vector2.RIGHT.rotated(preview["angle"] + angle_factor * layer_arc * 0.5) * layer_radius
 
 
+static func _get_fan_preconverge_slot_position(main: Node, slot_index: int, slot_count: int, formation_ratio: float, progress: float) -> Vector2:
+	var preview: Dictionary = _get_fan_preconverge_preview(main, formation_ratio, progress)
+	return _get_fan_slot_position_from_preview(main, preview, slot_index, slot_count)
+
+
+static func _get_fan_slot_position_from_preview(main: Node, preview: Dictionary, slot_index: int, slot_count: int) -> Vector2:
+	var clamped_count: int = maxi(slot_count, 1)
+	var fan_profile: Dictionary = SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN)
+	var fan_layer_count: int = mini(int(fan_profile.get("depth_layers", 3)), clamped_count)
+	var fan_layer_counts: Array = _build_fan_layer_counts(clamped_count, fan_layer_count)
+	var fan_slot: Dictionary = _locate_fan_slot(slot_index, fan_layer_counts)
+	var layer_ratio: float = 1.0
+	if fan_layer_count > 1:
+		layer_ratio = float(fan_slot["layer"]) / float(fan_layer_count - 1)
+	var layer_radius: float = lerpf(preview["inner_radius"], preview["outer_radius"], layer_ratio)
+	var layer_arc: float = preview["arc"] * lerpf(0.52, 1.0, layer_ratio)
+	var angle_factor: float = _get_fan_layout_angle_factor(fan_slot["index"], fan_slot["count"])
+	return main.player["pos"] + Vector2.RIGHT.rotated(preview["angle"] + angle_factor * layer_arc * 0.5) * layer_radius
+
+
 static func _get_fan_to_pierce_slot_position(main: Node, slot_index: int, slot_count: int, formation_ratio: float, blend: float) -> Vector2:
 	var preview: Dictionary = _get_fan_to_pierce_preview(main, formation_ratio, blend)
+	return _get_spear_slot_position_from_preview(main, preview, slot_index, slot_count)
+
+
+static func _get_spear_slot_position_from_preview(main: Node, preview: Dictionary, slot_index: int, slot_count: int) -> Vector2:
 	var clamped_count: int = maxi(slot_count, 1)
 	var row_weights: Array = _get_diamond_row_weights(mini(clamped_count, 5))
 	var row_counts: Array = _build_weighted_counts(clamped_count, row_weights)
@@ -178,6 +207,10 @@ static func get_fire_target(main: Node, state_source, fire_index: int, bullet_po
 	match preview["type"]:
 		"crescent":
 			return _get_crescent_fire_target(main, preview, fire_index, bullet_pos, volley_count, burst_step)
+		SwordArrayConfig.MODE_FAN:
+			if preview.get("is_preconverge", false):
+				return _get_fan_fire_target_from_preview(main, preview, fire_index, bullet_pos, volley_count, burst_step)
+			return _get_mode_fire_target(main, preview["type"], fire_index, bullet_pos, volley_count, burst_step, total_count)
 		"spear":
 			return _get_spear_fire_target(main, preview, fire_index, bullet_pos, volley_count, burst_step)
 		_:
@@ -228,6 +261,16 @@ static func _get_crescent_fire_target(main: Node, preview: Dictionary, fire_inde
 	return preview["center"] + fire_dir.normalized() * (preview["outer_radius"] + 180.0)
 
 
+static func _get_fan_fire_target_from_preview(main: Node, preview: Dictionary, fire_index: int, bullet_pos: Vector2, volley_count := -1, burst_step := 0) -> Vector2:
+	var fire_count: int = maxi(volley_count if volley_count > 0 else SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN)["slot_count"], 1)
+	var angle_factor: float = _get_fan_fire_angle_factor(SwordArrayConfig.MODE_FAN, fire_index, fire_count, burst_step)
+	var fire_angle: float = preview["angle"] + angle_factor * preview["arc"] * 0.5
+	var fire_dir: Vector2 = bullet_pos - main.player["pos"]
+	if fire_dir.is_zero_approx():
+		fire_dir = Vector2.RIGHT.rotated(fire_angle)
+	return main.player["pos"] + fire_dir.normalized() * (preview["outer_radius"] + 180.0)
+
+
 static func _get_spear_fire_target(main: Node, preview: Dictionary, fire_index: int, bullet_pos: Vector2, volley_count := -1, burst_step := 0) -> Vector2:
 	var fire_count: int = maxi(volley_count if volley_count > 0 else SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN)["slot_count"], 1)
 	var lateral_factor: float = _get_fan_fire_angle_factor(SwordArrayConfig.MODE_FAN, fire_index, fire_count, burst_step)
@@ -244,8 +287,9 @@ static func _get_spear_fire_target(main: Node, preview: Dictionary, fire_index: 
 
 static func get_preview_data(main: Node, state_source, formation_ratio := 1.0) -> Dictionary:
 	var morph_state: Dictionary = _resolve_morph_state(main, state_source)
-	if _should_use_converging_pierce_geometry(morph_state):
-		return _get_fan_to_pierce_preview(main, formation_ratio, _get_continuous_pierce_progress(morph_state))
+	var converging_preview: Dictionary = _get_active_fan_pierce_preview(main, morph_state, formation_ratio)
+	if not converging_preview.is_empty():
+		return converging_preview
 	match [morph_state["visual_from_mode"], morph_state["visual_to_mode"]]:
 		[SwordArrayConfig.MODE_RING, SwordArrayConfig.MODE_FAN]:
 			return _get_ring_to_fan_preview(main, formation_ratio, morph_state["visual_blend"])
@@ -295,6 +339,31 @@ static func _get_mode_preview_data(main: Node, mode: String, formation_ratio := 
 			}
 
 
+static func _get_fan_preconverge_preview(main: Node, formation_ratio: float, progress: float) -> Dictionary:
+	var base_preview: Dictionary = _get_mode_preview_data(main, SwordArrayConfig.MODE_FAN, formation_ratio)
+	var shaped_progress: float = _smoothstep_local(progress)
+	return {
+		"type": SwordArrayConfig.MODE_FAN,
+		"is_preconverge": true,
+		"angle": base_preview["angle"],
+		"arc": lerpf(base_preview["arc"], base_preview["arc"] * FAN_PRECONVERGE_ARC_SCALE, shaped_progress),
+		"inner_radius": lerpf(base_preview["inner_radius"], base_preview["inner_radius"] * FAN_PRECONVERGE_INNER_SCALE, shaped_progress),
+		"outer_radius": lerpf(base_preview["outer_radius"], base_preview["outer_radius"] * FAN_PRECONVERGE_OUTER_SCALE, shaped_progress),
+	}
+
+
+static func _get_active_fan_pierce_preview(main: Node, morph_state: Dictionary, formation_ratio: float) -> Dictionary:
+	var fan_blend_weight: float = _get_fan_spear_blend_weight(morph_state)
+	if fan_blend_weight >= 0.0:
+		return _get_fan_spear_blend_preview(main, morph_state, formation_ratio, fan_blend_weight)
+	var fan_preconverge_progress: float = _get_fan_preconverge_progress(morph_state)
+	if fan_preconverge_progress >= 0.0:
+		return _get_fan_preconverge_preview(main, formation_ratio, fan_preconverge_progress)
+	if _should_use_converging_pierce_geometry(morph_state):
+		return _get_fan_to_pierce_preview(main, formation_ratio, _get_continuous_pierce_progress(morph_state))
+	return {}
+
+
 static func _get_ring_to_fan_preview(main: Node, formation_ratio: float, blend: float) -> Dictionary:
 	var aim_vector: Vector2 = _get_aim_vector(main)
 	var ring_preview: Dictionary = _get_mode_preview_data(main, SwordArrayConfig.MODE_RING, formation_ratio)
@@ -319,11 +388,14 @@ static func _get_ring_to_fan_preview(main: Node, formation_ratio: float, blend: 
 static func _get_fan_to_pierce_preview(main: Node, formation_ratio: float, blend: float) -> Dictionary:
 	var aim_vector: Vector2 = _get_aim_vector(main)
 	var side_vector: Vector2 = aim_vector.rotated(PI * 0.5)
-	var fan_preview: Dictionary = _get_mode_preview_data(main, SwordArrayConfig.MODE_FAN, formation_ratio)
+	var fan_preview: Dictionary = _get_fan_preconverge_preview(main, formation_ratio, 1.0)
 	var pierce_preview: Dictionary = _get_mode_preview_data(main, SwordArrayConfig.MODE_PIERCE, formation_ratio)
 	var section_count: int = CONVERGE_SAMPLE_RADIUS_RATIOS.size()
-	var shape_progress: float = _smoothstep_local(blend)
-	var bonus_strength: float = get_transition_shape_weight(blend)
+	var shape_progress: float = blend
+	var shoulder_progress: float = _smoothstep_local(
+		inverse_lerp(FAN_DOMINANT_SPEAR_PROGRESS_AT_FAN_END, 0.82, blend)
+	)
+	var bonus_strength: float = get_transition_shape_weight(shoulder_progress)
 	var pierce_start_offset: float = main.player["pos"].distance_to(pierce_preview["start"])
 	var pierce_tip_offset: float = main.player["pos"].distance_to(pierce_preview["tip"])
 	var pierce_tail_width: float = maxf(pierce_preview["wedge_width"], pierce_preview["half_width"] * 1.35)
@@ -387,6 +459,88 @@ static func _get_fan_to_pierce_preview(main: Node, formation_ratio: float, blend
 		"end": sections[maxi(sections.size() - 2, 0)]["center"],
 		"tip_radius": lerpf(5.0, pierce_preview["tip_radius"], shape_progress),
 	}
+
+
+static func _get_fan_spear_blend_preview(main: Node, morph_state: Dictionary, formation_ratio: float, blend_weight: float) -> Dictionary:
+	var fan_preview: Dictionary = _get_fan_preconverge_preview(
+		main,
+		formation_ratio,
+		clampf(_get_fan_preconverge_progress(morph_state), 0.0, 1.0)
+	)
+	var spear_preview: Dictionary = _get_fan_to_pierce_preview(
+		main,
+		formation_ratio,
+		clampf(_get_continuous_pierce_progress(morph_state), 0.0, 1.0)
+	)
+	var fan_sections: Array = _build_fan_sections(main, fan_preview)
+	var section_count: int = mini(fan_sections.size(), spear_preview["sections"].size())
+	var left_outline: Array = []
+	var right_outline: Array = []
+	var sections: Array = []
+	var section_index: int = 0
+	while section_index < section_count:
+		var fan_section: Dictionary = fan_sections[section_index]
+		var spear_section: Dictionary = spear_preview["sections"][section_index]
+		var left_point: Vector2 = fan_section["left"].lerp(spear_section["left"], blend_weight)
+		var right_point: Vector2 = fan_section["right"].lerp(spear_section["right"], blend_weight)
+		var center: Vector2 = (left_point + right_point) * 0.5
+		var half_width: float = left_point.distance_to(right_point) * 0.5
+		var forward_offset: float = (center - main.player["pos"]).dot(spear_preview["aim_vector"])
+		sections.append({
+			"ratio": float(section_index) / float(maxi(section_count - 1, 1)),
+			"forward_offset": forward_offset,
+			"half_width": half_width,
+			"center": center,
+			"left": left_point,
+			"right": right_point,
+		})
+		left_outline.append(left_point)
+		right_outline.append(right_point)
+		section_index += 1
+
+	return {
+		"type": "spear",
+		"blend": blend_weight,
+		"aim_vector": spear_preview["aim_vector"],
+		"side_vector": spear_preview["side_vector"],
+		"sections": sections,
+		"left_outline": left_outline,
+		"right_outline": right_outline,
+		"tail": sections.front()["center"],
+		"tip": sections.back()["center"],
+		"start": sections.front()["center"],
+		"end": sections[maxi(sections.size() - 2, 0)]["center"],
+		"tip_radius": lerpf(5.0, spear_preview["tip_radius"], blend_weight),
+	}
+
+
+static func _build_fan_sections(main: Node, preview: Dictionary) -> Array:
+	var aim_vector: Vector2 = Vector2.RIGHT.rotated(preview["angle"])
+	var side_vector: Vector2 = aim_vector.rotated(PI * 0.5)
+	var sections: Array = []
+	var sample_index: int = 0
+	while sample_index < CONVERGE_SAMPLE_RADIUS_RATIOS.size():
+		var radius: float = lerpf(
+			preview["inner_radius"],
+			preview["outer_radius"],
+			CONVERGE_SAMPLE_RADIUS_RATIOS[sample_index]
+		)
+		var half_angle: float = preview["arc"] * 0.5 * CONVERGE_SAMPLE_ANGLE_RATIOS[sample_index]
+		var left_point: Vector2 = main.player["pos"] + Vector2.RIGHT.rotated(preview["angle"] - half_angle) * radius
+		var right_point: Vector2 = main.player["pos"] + Vector2.RIGHT.rotated(preview["angle"] + half_angle) * radius
+		var center: Vector2 = (left_point + right_point) * 0.5
+		var half_width: float = left_point.distance_to(right_point) * 0.5
+		var forward_offset: float = (center - main.player["pos"]).dot(aim_vector)
+		sections.append({
+			"ratio": float(sample_index) / float(maxi(CONVERGE_SAMPLE_RADIUS_RATIOS.size() - 1, 1)),
+			"forward_offset": forward_offset,
+			"half_width": half_width,
+			"center": center,
+			"left": left_point,
+			"right": right_point,
+		})
+		sample_index += 1
+	return sections
 
 
 static func get_fire_interval(main: Node, mode: String) -> float:
@@ -587,6 +741,23 @@ static func _should_use_converging_pierce_geometry(morph_state: Dictionary) -> b
 	return _get_continuous_pierce_progress(morph_state) >= 0.0
 
 
+static func _get_fan_preconverge_progress(morph_state: Dictionary) -> float:
+	var distances: Dictionary = SwordArrayConfig.get_morph_distances()
+	var actual_distance: float = clampf(
+		float(morph_state.get("distance_ratio", 0.0)) * distances["fan_to_pierce_end"],
+		0.0,
+		distances["fan_to_pierce_end"]
+	)
+	var fan_end: float = distances["fan_stable_end"] + FAN_SPEAR_BLEND_AFTER
+	if actual_distance < distances["ring_to_fan_end"] or actual_distance > fan_end:
+		return -1.0
+	return clampf(
+		inverse_lerp(distances["ring_to_fan_end"], fan_end, actual_distance),
+		0.0,
+		1.0
+	)
+
+
 static func _get_continuous_pierce_progress(morph_state: Dictionary) -> float:
 	var distances: Dictionary = SwordArrayConfig.get_morph_distances()
 	var actual_distance: float = clampf(
@@ -594,13 +765,30 @@ static func _get_continuous_pierce_progress(morph_state: Dictionary) -> float:
 		0.0,
 		distances["fan_to_pierce_end"]
 	)
-	if actual_distance < distances["ring_to_fan_end"]:
+	var spear_start: float = distances["fan_stable_end"] - FAN_SPEAR_BLEND_BEFORE
+	if actual_distance < spear_start:
 		return -1.0
-	return clampf(
-		inverse_lerp(distances["ring_to_fan_end"], distances["fan_to_pierce_end"], actual_distance),
+	return lerpf(
 		0.0,
-		1.0
+		1.0,
+		_smoothstep_local(
+			inverse_lerp(spear_start, distances["fan_to_pierce_end"], actual_distance)
+		)
 	)
+
+
+static func _get_fan_spear_blend_weight(morph_state: Dictionary) -> float:
+	var distances: Dictionary = SwordArrayConfig.get_morph_distances()
+	var actual_distance: float = clampf(
+		float(morph_state.get("distance_ratio", 0.0)) * distances["fan_to_pierce_end"],
+		0.0,
+		distances["fan_to_pierce_end"]
+	)
+	var blend_start: float = distances["fan_stable_end"] - FAN_SPEAR_BLEND_BEFORE
+	var blend_end: float = distances["fan_stable_end"] + FAN_SPEAR_BLEND_AFTER
+	if actual_distance < blend_start or actual_distance > blend_end:
+		return -1.0
+	return _smoothstep_local(inverse_lerp(blend_start, blend_end, actual_distance))
 
 
 static func _sample_spear_preview(preview: Dictionary, ratio: float) -> Dictionary:
