@@ -1,5 +1,11 @@
 # 剑阵形变系统 V2 设计方案
 
+## 实现索引
+
+- 设计方案：本文
+- 当前实现说明：[`docs/systems/SWORD_ARRAY_MORPH_SYSTEM_V2_IMPLEMENTATION.md`](SWORD_ARRAY_MORPH_SYSTEM_V2_IMPLEMENTATION.md)
+- 轨迹对齐说明：[`docs/reviews/SWORD_ARRAY_MORPH_TRAJECTORY_ALIGNMENT.md`](../reviews/SWORD_ARRAY_MORPH_TRAJECTORY_ALIGNMENT.md)
+
 ## 1. 定位
 
 V1 已完成三段剑阵、实时预览、发射前成阵与基础手感修正。  
