@@ -38,6 +38,14 @@ static func reset_runtime(main: Node) -> void:
 		"absorb_timer": 0.0,
 		"absorbed_ids": [],
 	}
+	main.debug_battle_mode = false
+	main.debug_flags = {
+		"infinite_health": false,
+		"infinite_energy": false,
+		"one_hit_kill": false,
+		"no_spawn": false,
+		"infinite_absorbed_bullets": false,
+	}
 	main.debug_calibration_mode = false
 	main.debug_dragging_player = false
 	main.sword = {

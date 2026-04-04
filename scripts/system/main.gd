@@ -155,6 +155,8 @@ var id_counter: int = 0
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
+var debug_battle_mode: bool = false
+var debug_flags: Dictionary = {}
 var debug_calibration_mode: bool = false
 var debug_dragging_player: bool = false
 
@@ -252,6 +254,7 @@ func _process(delta: float) -> void:
 	_update_wave(delta)
 	_try_cast_ultimate()
 	_cleanup_absorbed_ids()
+	_apply_debug_runtime_overrides()
 
 	if player["health"] <= 0.0:
 		_set_game_over()
@@ -352,7 +355,7 @@ func _update_absorption(delta: float) -> void:
 	var auto_absorbing: bool = absorb_timer > 0.0
 	var hold_absorbing: bool = Input.is_action_pressed("absorb") and player["energy"] > 0.0
 	if hold_absorbing and not auto_absorbing:
-		player["energy"] = max(player["energy"] - SwordArrayConfig.ABSORB_HOLD_ENERGY_COST * delta, 0.0)
+		_drain_player_energy(SwordArrayConfig.ABSORB_HOLD_ENERGY_COST * delta)
 		hold_absorbing = player["energy"] > 0.0
 	if not auto_absorbing and not hold_absorbing:
 		player["absorb_timer"] = maxf(absorb_timer - delta, 0.0)
@@ -439,14 +442,14 @@ func _update_sword(delta: float) -> void:
 	sword["prev_pos"] = sword["pos"]
 
 	if sword["state"] == SwordState.ORBITING:
-		player["energy"] = min(player["energy"] + ENERGY_RECOVERY_MELEE_NATURAL * delta, PLAYER_MAX_ENERGY)
+		_add_player_energy(ENERGY_RECOVERY_MELEE_NATURAL * delta)
 		sword["angle"] += SWORD_ROTATION_SPEED * delta
 		var target: Vector2 = player["pos"] + Vector2.RIGHT.rotated(sword["angle"]) * SWORD_ORBIT_DISTANCE
 		sword["pos"] = sword["pos"].lerp(target, min(delta * 18.0, 1.0))
 		return
 
 	if sword["state"] == SwordState.SLICING:
-		player["energy"] = max(player["energy"] - ENERGY_CONSUMPTION_RANGED * delta, 0.0)
+		_drain_player_energy(ENERGY_CONSUMPTION_RANGED * delta)
 		if player["energy"] <= 0.0:
 			sword["state"] = SwordState.RECALLING
 		sword["pos"] = sword["pos"].lerp(mouse_world, min(delta * 18.0, 1.0))
@@ -507,14 +510,17 @@ func _damage_enemies_with_sword(delta: float) -> void:
 			var boss_hit_radius: float = boss["radius"] + sword["radius"]
 			if _segment_hits_circle(sword["prev_pos"], sword["pos"], boss["pos"], boss_hit_radius) and sword["prev_pos"].distance_to(boss["pos"]) > boss_hit_radius:
 				var boss_damage: float = SWORD_RANGED_DAMAGE * (1.5 if sword["state"] == SwordState.POINT_STRIKE else 0.5) * delta * 15.0
-				boss["health"] -= boss_damage
+				_damage_boss(boss_damage)
 				_create_particles(sword["pos"], COLORS["boss_body"], 2)
 
 
 func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> void:
 	if damage <= 0.0:
 		return
-	enemy["health"] -= damage
+	if _has_debug_flag("one_hit_kill"):
+		enemy["health"] = 0.0
+	else:
+		enemy["health"] = max(enemy["health"] - damage, 0.0)
 	enemy["last_damage_source"] = damage_source
 
 
@@ -547,7 +553,7 @@ func _handle_enemy_death(enemy: Dictionary, index: int) -> void:
 	_create_particles(enemy["pos"], COLORS[enemy["type"]], 14)
 	if enemy["type"] != PUPPET:
 		score += enemy["score"]
-		player["energy"] = min(player["energy"] + ENERGY_GAIN_MELEE_HIT * 2.0, PLAYER_MAX_ENERGY)
+		_add_player_energy(ENERGY_GAIN_MELEE_HIT * 2.0)
 	enemies.remove_at(index)
 
 
@@ -580,8 +586,8 @@ func _update_enemies(delta: float) -> void:
 			TANK:
 				enemy["pos"] += to_player.normalized() * TANK_SPEED * delta
 				if distance < enemy["radius"] + PLAYER_RADIUS:
-					player["health"] -= 30.0 * delta
-					screen_shake = max(screen_shake, 2.0)
+					if _apply_player_damage(30.0 * delta, TANK):
+						screen_shake = max(screen_shake, 2.0)
 			CASTER:
 				enemy["move_timer"] -= delta
 				if enemy["move_timer"] <= 0.0:
@@ -619,9 +625,9 @@ func _update_enemies(delta: float) -> void:
 					var previous_progress: float = PUPPET_MELEE_COOLDOWN - previous_timer
 					if previous_progress < PUPPET_MELEE_PREP_TIME and attack_progress >= PUPPET_MELEE_PREP_TIME:
 						if distance < PUPPET_MELEE_RANGE + 10.0:
-							player["health"] -= PUPPET_MELEE_DAMAGE
-							screen_shake = max(screen_shake, 5.0)
-							_create_particles(player["pos"], COLORS["puppet"], 10)
+							if _apply_player_damage(PUPPET_MELEE_DAMAGE, PUPPET):
+								screen_shake = max(screen_shake, 5.0)
+								_create_particles(player["pos"], COLORS["puppet"], 10)
 
 		if enemy["health"] <= 0.0:
 			_handle_enemy_death(enemy, index)
@@ -694,7 +700,7 @@ func _bullet_hits_enemy(bullet: Dictionary) -> bool:
 		return true
 	if _has_boss():
 		if boss["pos"].distance_to(bullet["pos"]) <= boss["radius"] + bullet["radius"] and (boss["is_vulnerable"] or boss["phase"] == 1):
-			boss["health"] -= SwordArrayConfig.FIRED_DAMAGE * 2.0
+			_damage_boss(SwordArrayConfig.FIRED_DAMAGE * 2.0)
 			_create_particles(bullet["pos"], COLORS["frozen"], 15)
 			return true
 	return false
@@ -742,9 +748,9 @@ func _update_guided_fired_bullet(bullet: Dictionary, delta: float) -> void:
 func _player_hit_by_bullet(bullet: Dictionary) -> bool:
 	if player["pos"].distance_to(bullet["pos"]) > PLAYER_RADIUS + bullet["radius"]:
 		return false
-	player["health"] -= bullet["damage"]
-	screen_shake = max(screen_shake, 5.0)
-	_create_particles(bullet["pos"], bullet["color"], 6)
+	if _apply_player_damage(bullet["damage"], str(bullet.get("owner_id", DAMAGE_SOURCE_NONE))):
+		screen_shake = max(screen_shake, 5.0)
+		_create_particles(bullet["pos"], bullet["color"], 6)
 	return true
 
 
@@ -781,6 +787,8 @@ func _update_wave(delta: float) -> void:
 
 	if enemies_to_spawn <= 0 or _has_boss():
 		return
+	if _has_debug_flag("no_spawn"):
+		return
 
 	spawn_timer -= delta
 	if spawn_timer > 0.0:
@@ -794,10 +802,13 @@ func _update_wave(delta: float) -> void:
 func _try_cast_ultimate() -> void:
 	if not Input.is_action_just_pressed("ultimate"):
 		return
-	if player["energy"] < PLAYER_MAX_ENERGY:
+	if not _has_debug_flag("infinite_energy") and player["energy"] < PLAYER_MAX_ENERGY:
 		return
 
-	player["energy"] = 0.0
+	if _has_debug_flag("infinite_energy"):
+		player["energy"] = PLAYER_MAX_ENERGY
+	else:
+		player["energy"] = 0.0
 	screen_shake = max(screen_shake, 14.0)
 	var index: int = bullets.size() - 1
 	while index >= 0:
@@ -809,7 +820,7 @@ func _try_cast_ultimate() -> void:
 		_damage_enemy(enemy, 50.0, DAMAGE_SOURCE_ULTIMATE)
 		_create_particles(enemy["pos"], COLORS["energy"], 12)
 	if _has_boss():
-		boss["health"] -= 250.0
+		_damage_boss(250.0)
 		_create_particles(boss["pos"], COLORS["energy"], 18)
 	_create_particles(player["pos"], COLORS["energy"], 24)
 
@@ -831,7 +842,7 @@ func _perform_melee_attack() -> void:
 		if absf(wrapf(offset.angle() - attack_angle, -PI, PI)) > SWORD_MELEE_ARC * 0.5:
 			continue
 		_start_freezing_bullet(bullet, 6)
-		player["energy"] = min(player["energy"] + (ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0)), PLAYER_MAX_ENERGY)
+		_add_player_energy(ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0))
 		screen_shake = max(screen_shake, 3.0)
 
 	for enemy in enemies:
@@ -843,7 +854,7 @@ func _perform_melee_attack() -> void:
 		if enemy["type"] == PUPPET:
 			continue
 		_damage_enemy(enemy, SWORD_MELEE_DAMAGE, DAMAGE_SOURCE_MELEE)
-		player["energy"] = min(player["energy"] + ENERGY_GAIN_MELEE_HIT, PLAYER_MAX_ENERGY)
+		_add_player_energy(ENERGY_GAIN_MELEE_HIT)
 		_create_particles(enemy["pos"], COLORS[enemy["type"]], 5)
 		screen_shake = max(screen_shake, 4.0)
 
@@ -851,8 +862,8 @@ func _perform_melee_attack() -> void:
 		var boss_offset: Vector2 = boss["pos"] - player["pos"]
 		if boss_offset.length() <= SWORD_MELEE_RANGE + boss["radius"]:
 			if absf(wrapf(boss_offset.angle() - attack_angle, -PI, PI)) <= SWORD_MELEE_ARC * 0.5:
-				boss["health"] -= SWORD_MELEE_DAMAGE
-				player["energy"] = min(player["energy"] + ENERGY_GAIN_MELEE_HIT, PLAYER_MAX_ENERGY)
+				_damage_boss(SWORD_MELEE_DAMAGE)
+				_add_player_energy(ENERGY_GAIN_MELEE_HIT)
 				_create_particles(boss["pos"], COLORS["boss_body"], 8)
 				screen_shake = max(screen_shake, 5.0)
 
@@ -873,10 +884,7 @@ func _start_slicing() -> void:
 
 
 func _try_consume_energy(amount: float) -> bool:
-	if player["energy"] < amount:
-		return false
-	player["energy"] -= amount
-	return true
+	return _consume_player_energy(amount)
 
 
 func _fire_absorbed_marbles() -> void:
@@ -1126,15 +1134,18 @@ func _update_ui() -> void:
 			_format_distance_delta(distances["fan_to_pierce_end"] - default_distances["fan_to_pierce_end"])
 		]
 	else:
-		wave_label.text = "波次 %d" % wave
-		score_label.text = "得分 %d" % score
+		wave_label.text = "波次 %d%s" % [wave, " | 战斗调试" if debug_battle_mode else ""]
+		score_label.text = "得分 %d%s" % [score, _get_debug_status_suffix()]
 	var sword_mode_text: String = "近战" if sword["state"] == SwordState.ORBITING else "御剑"
 	var bullet_time_text: String = " | 子弹时间" if sword["state"] != SwordState.ORBITING else ""
-	mode_label.text = "%s%s" % [sword_mode_text, bullet_time_text]
+	var debug_mode_text: String = " | DEBUG" if debug_battle_mode else ""
+	mode_label.text = "%s%s%s" % [sword_mode_text, bullet_time_text, debug_mode_text]
 	if debug_calibration_mode:
 		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
+	elif debug_battle_mode:
+		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击必杀 | 4 停刷怪 | 5 清敌弹 | 6 无限剑丸 | F7 退出 | F6 校准"
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀 | F6 校准调试"
+		hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀 | F7 战斗调试 | F6 校准调试"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
@@ -1245,41 +1256,191 @@ func _handle_debug_key_input(event: InputEventKey) -> bool:
 	if event.keycode == KEY_F6:
 		_toggle_debug_calibration_mode()
 		return true
-	if not debug_calibration_mode:
+	if event.keycode == KEY_F7:
+		if debug_calibration_mode:
+			return true
+		_toggle_debug_battle_mode()
+		return true
+	if debug_calibration_mode:
+		var aim_distance: float = player["pos"].distance_to(mouse_world)
+		match event.keycode:
+			KEY_1:
+				SwordArrayConfig.set_morph_distance("ring_stable_end", aim_distance)
+				_refresh_sword_array_live_state()
+				return true
+			KEY_2:
+				SwordArrayConfig.set_morph_distance("ring_to_fan_end", aim_distance)
+				_refresh_sword_array_live_state()
+				return true
+			KEY_3:
+				SwordArrayConfig.set_morph_distance("fan_stable_end", aim_distance)
+				_refresh_sword_array_live_state()
+				return true
+			KEY_4:
+				SwordArrayConfig.set_morph_distance("fan_to_pierce_end", aim_distance)
+				_refresh_sword_array_live_state()
+				return true
+			KEY_R:
+				SwordArrayConfig.reset_morph_distances()
+				_refresh_sword_array_live_state()
+				return true
+			KEY_P:
+				SwordArrayConfig.save_morph_distances_to_project()
+				_refresh_sword_array_live_state()
+				return true
+			KEY_L:
+				SwordArrayConfig.load_morph_distances_from_project()
+				_refresh_sword_array_live_state()
+				return true
+			_:
+				return false
+	if not debug_battle_mode:
 		return false
 
-	var aim_distance: float = player["pos"].distance_to(mouse_world)
 	match event.keycode:
 		KEY_1:
-			SwordArrayConfig.set_morph_distance("ring_stable_end", aim_distance)
-			_refresh_sword_array_live_state()
+			_toggle_debug_flag("infinite_health")
 			return true
 		KEY_2:
-			SwordArrayConfig.set_morph_distance("ring_to_fan_end", aim_distance)
-			_refresh_sword_array_live_state()
+			_toggle_debug_flag("infinite_energy")
 			return true
 		KEY_3:
-			SwordArrayConfig.set_morph_distance("fan_stable_end", aim_distance)
-			_refresh_sword_array_live_state()
+			_toggle_debug_flag("one_hit_kill")
 			return true
 		KEY_4:
-			SwordArrayConfig.set_morph_distance("fan_to_pierce_end", aim_distance)
-			_refresh_sword_array_live_state()
+			_toggle_debug_flag("no_spawn")
 			return true
-		KEY_R:
-			SwordArrayConfig.reset_morph_distances()
-			_refresh_sword_array_live_state()
+		KEY_5:
+			_clear_enemy_bullets()
 			return true
-		KEY_P:
-			SwordArrayConfig.save_morph_distances_to_project()
-			_refresh_sword_array_live_state()
-			return true
-		KEY_L:
-			SwordArrayConfig.load_morph_distances_from_project()
-			_refresh_sword_array_live_state()
+		KEY_6:
+			_toggle_debug_flag("infinite_absorbed_bullets")
 			return true
 		_:
 			return false
+
+
+func _toggle_debug_battle_mode() -> void:
+	debug_battle_mode = not debug_battle_mode
+	if not debug_battle_mode:
+		_reset_debug_battle_flags()
+	_apply_debug_runtime_overrides()
+	_update_ui()
+	queue_redraw()
+
+
+func _reset_debug_battle_flags() -> void:
+	debug_flags = {
+		"infinite_health": false,
+		"infinite_energy": false,
+		"one_hit_kill": false,
+		"no_spawn": false,
+		"infinite_absorbed_bullets": false,
+	}
+
+
+func _toggle_debug_flag(flag_name: String) -> void:
+	debug_flags[flag_name] = not _has_debug_flag(flag_name)
+	_apply_debug_runtime_overrides()
+	_update_ui()
+	queue_redraw()
+
+
+func _has_debug_flag(flag_name: String) -> bool:
+	return bool(debug_flags.get(flag_name, false))
+
+
+func _apply_debug_runtime_overrides() -> void:
+	if _has_debug_flag("infinite_health"):
+		player["health"] = PLAYER_MAX_HEALTH
+	if _has_debug_flag("infinite_energy"):
+		player["energy"] = PLAYER_MAX_ENERGY
+	if _has_debug_flag("infinite_absorbed_bullets"):
+		_refill_debug_absorbed_bullets()
+
+
+func _apply_player_damage(amount: float, _damage_source: String = DAMAGE_SOURCE_NONE) -> bool:
+	if amount <= 0.0:
+		return false
+	if _has_debug_flag("infinite_health"):
+		player["health"] = PLAYER_MAX_HEALTH
+		return false
+	player["health"] = max(player["health"] - amount, 0.0)
+	return true
+
+
+func _add_player_energy(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	if _has_debug_flag("infinite_energy"):
+		player["energy"] = PLAYER_MAX_ENERGY
+		return
+	player["energy"] = min(player["energy"] + amount, PLAYER_MAX_ENERGY)
+
+
+func _drain_player_energy(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	if _has_debug_flag("infinite_energy"):
+		player["energy"] = PLAYER_MAX_ENERGY
+		return
+	player["energy"] = max(player["energy"] - amount, 0.0)
+
+
+func _consume_player_energy(amount: float) -> bool:
+	if amount <= 0.0:
+		return true
+	if _has_debug_flag("infinite_energy"):
+		player["energy"] = PLAYER_MAX_ENERGY
+		return true
+	if player["energy"] < amount:
+		return false
+	player["energy"] -= amount
+	return true
+
+
+func _damage_boss(damage: float) -> void:
+	if not _has_boss() or damage <= 0.0:
+		return
+	if _has_debug_flag("one_hit_kill"):
+		boss["health"] = 0.0
+		return
+	boss["health"] = max(boss["health"] - damage, 0.0)
+
+
+func _clear_enemy_bullets() -> void:
+	var index: int = bullets.size() - 1
+	while index >= 0:
+		var bullet: Dictionary = bullets[index]
+		if bullet["state"] == "fired":
+			index -= 1
+			continue
+		if player["absorbed_ids"].has(bullet["id"]):
+			index -= 1
+			continue
+		_remove_bullet(index)
+		index -= 1
+
+
+func _refill_debug_absorbed_bullets() -> void:
+	_spawn_debug_array_bullets(SwordArrayConfig.MAX_ABSORBED - player["absorbed_ids"].size())
+
+
+func _get_debug_status_suffix() -> String:
+	if not debug_battle_mode:
+		return ""
+	var active_flags: Array = []
+	if _has_debug_flag("infinite_health"):
+		active_flags.append("无限生命")
+	if _has_debug_flag("infinite_energy"):
+		active_flags.append("无限剑意")
+	if _has_debug_flag("one_hit_kill"):
+		active_flags.append("一击必杀")
+	if _has_debug_flag("no_spawn"):
+		active_flags.append("停刷怪")
+	if _has_debug_flag("infinite_absorbed_bullets"):
+		active_flags.append("无限剑丸")
+	return " | %s" % ("已启用" if active_flags.is_empty() else " / ".join(active_flags))
 
 
 func _toggle_debug_calibration_mode() -> void:
