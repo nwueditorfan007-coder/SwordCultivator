@@ -1,0 +1,6238 @@
+{
+	"distances": {
+		"fan_stable_end": 233.99462890625,
+		"fan_to_pierce_end": 400.113616943359,
+		"ring_stable_end": 85.0,
+		"ring_to_fan_end": 138.148620605469
+	},
+	"fire_count": 5,
+	"formation_ratio": 1.0,
+	"generated_at": "2026-03-29 13:46:17",
+	"samples": [
+		{
+			"continuity_from_previous": {
+
+			},
+			"distance": 42.5,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2832,
+				"band_stage": "ring",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					1.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2832,
+				"inner_cap_control": [
+					0.0,
+					0.0
+				],
+				"inner_radius": 68.0,
+				"morph_profile_id": "guard_band->guard_band",
+				"outer_cap_control": [
+					1.0,
+					0.0
+				],
+				"outer_radius": 78.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"preview_state": {
+					"type": 4,
+					"value": "ring"
+				},
+				"preview_type": "ring",
+				"radius": 68.0,
+				"section_centers": [],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						0.0,
+						0.0
+					],
+					[
+						1.0,
+						0.0
+					]
+				],
+				"start": [
+					0.0,
+					0.0
+				],
+				"tail": [
+					0.0,
+					0.0
+				],
+				"tip": [
+					1.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_mid",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "ring"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 34.5,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 77.0,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2832,
+				"band_stage": "ring",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					1.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2832,
+				"inner_cap_control": [
+					0.0,
+					0.0
+				],
+				"inner_radius": 68.0,
+				"morph_profile_id": "guard_band->guard_band",
+				"outer_cap_control": [
+					1.0,
+					0.0
+				],
+				"outer_radius": 78.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"preview_state": {
+					"type": 4,
+					"value": "ring"
+				},
+				"preview_type": "ring",
+				"radius": 68.0,
+				"section_centers": [],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						0.0,
+						0.0
+					],
+					[
+						1.0,
+						0.0
+					]
+				],
+				"start": [
+					0.0,
+					0.0
+				],
+				"tail": [
+					0.0,
+					0.0
+				],
+				"tip": [
+					1.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_core",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "ring"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 4.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 81.0,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2832,
+				"band_stage": "ring",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					1.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2832,
+				"inner_cap_control": [
+					0.0,
+					0.0
+				],
+				"inner_radius": 68.0,
+				"morph_profile_id": "guard_band->guard_band",
+				"outer_cap_control": [
+					1.0,
+					0.0
+				],
+				"outer_radius": 78.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"preview_state": {
+					"type": 4,
+					"value": "ring"
+				},
+				"preview_type": "ring",
+				"radius": 68.0,
+				"section_centers": [],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						0.0,
+						0.0
+					],
+					[
+						1.0,
+						0.0
+					]
+				],
+				"start": [
+					0.0,
+					0.0
+				],
+				"tail": [
+					0.0,
+					0.0
+				],
+				"tip": [
+					1.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_stable_minus_4",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "ring"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 84.0,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2832,
+				"band_stage": "ring",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					1.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2832,
+				"inner_cap_control": [
+					0.0,
+					0.0
+				],
+				"inner_radius": 68.0,
+				"morph_profile_id": "guard_band->guard_band",
+				"outer_cap_control": [
+					1.0,
+					0.0
+				],
+				"outer_radius": 78.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"preview_state": {
+					"type": 4,
+					"value": "ring"
+				},
+				"preview_type": "ring",
+				"radius": 68.0,
+				"section_centers": [],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						0.0,
+						0.0
+					],
+					[
+						1.0,
+						0.0
+					]
+				],
+				"start": [
+					0.0,
+					0.0
+				],
+				"tail": [
+					0.0,
+					0.0
+				],
+				"tip": [
+					1.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_stable_minus_1",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "ring"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 85.0,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2832,
+				"band_stage": "ring",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					1.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2832,
+				"inner_cap_control": [
+					0.0,
+					0.0
+				],
+				"inner_radius": 68.0,
+				"morph_profile_id": "guard_band->guard_band",
+				"outer_cap_control": [
+					1.0,
+					0.0
+				],
+				"outer_radius": 78.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"preview_state": {
+					"type": 4,
+					"value": "ring"
+				},
+				"preview_type": "ring",
+				"radius": 68.0,
+				"section_centers": [],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						0.0,
+						0.0
+					],
+					[
+						1.0,
+						0.0
+					]
+				],
+				"start": [
+					0.0,
+					0.0
+				],
+				"tail": [
+					0.0,
+					0.0
+				],
+				"tip": [
+					1.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_stable_at",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "guard_band",
+				"preset_to": "guard_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "ring"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 10.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 10.0,
+				"tail_delta": 58.0,
+				"tip_delta": 67.0
+			},
+			"distance": 86.0,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2832,
+				"band_stage": "arc_band",
+				"blend": 0.001,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					68.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2832,
+				"inner_cap_control": [
+					58.0,
+					0.0
+				],
+				"inner_radius": 58.0,
+				"morph_profile_id": "guard_band->pressure_band",
+				"outer_cap_control": [
+					68.0,
+					0.0
+				],
+				"outer_radius": 68.0,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "ring",
+					"preset_blend": 0.001,
+					"preset_from": "guard_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.001,
+					"visual_from_mode": "ring",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 68.0,
+				"section_centers": [
+					[
+						-3.641,
+						0.0
+					],
+					[
+						-16.069,
+						0.0
+					],
+					[
+						-28.348,
+						0.0
+					],
+					[
+						-41.442,
+						0.0
+					],
+					[
+						-52.706,
+						0.0
+					],
+					[
+						-61.35,
+						0.0
+					],
+					[
+						-66.24,
+						0.0
+					],
+					[
+						-68.0,
+						0.0
+					]
+				],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						58.0,
+						0.0
+					],
+					[
+						-3.641,
+						0.0
+					],
+					[
+						-16.069,
+						0.0
+					],
+					[
+						-28.348,
+						0.0
+					],
+					[
+						-41.442,
+						0.0
+					],
+					[
+						-52.706,
+						0.0
+					],
+					[
+						-61.35,
+						0.0
+					],
+					[
+						-66.24,
+						0.0
+					],
+					[
+						-68.0,
+						0.0
+					],
+					[
+						68.0,
+						0.0
+					]
+				],
+				"start": [
+					58.0,
+					0.0
+				],
+				"tail": [
+					58.0,
+					0.0
+				],
+				"tip": [
+					68.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_stable_plus_1",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.001,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.001,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.007,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 89.0,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					248.0,
+					0.0
+				],
+				[
+					76.636,
+					235.862
+				],
+				[
+					-200.636,
+					145.771
+				],
+				[
+					-200.636,
+					-145.771
+				],
+				[
+					76.636,
+					-235.862
+				]
+			],
+			"geometry": {
+				"active_preset_id": "guard_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 6.2762,
+				"band_stage": "arc_band",
+				"blend": 0.0161,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					68.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 6.2762,
+				"inner_cap_control": [
+					58.0,
+					0.0
+				],
+				"inner_radius": 58.0,
+				"morph_profile_id": "guard_band->pressure_band",
+				"outer_cap_control": [
+					68.0,
+					0.0
+				],
+				"outer_radius": 68.0,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "ring",
+					"preset_blend": 0.0161,
+					"preset_from": "guard_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0161,
+					"visual_from_mode": "ring",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 68.0,
+				"section_centers": [
+					[
+						-3.537,
+						0.0
+					],
+					[
+						-15.952,
+						0.0
+					],
+					[
+						-28.226,
+						0.0
+					],
+					[
+						-41.323,
+						0.0
+					],
+					[
+						-52.603,
+						0.0
+					],
+					[
+						-61.278,
+						0.0
+					],
+					[
+						-66.206,
+						0.0
+					],
+					[
+						-68.0,
+						0.0
+					]
+				],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						58.0,
+						0.0
+					],
+					[
+						-3.537,
+						0.0
+					],
+					[
+						-15.952,
+						0.0
+					],
+					[
+						-28.226,
+						0.0
+					],
+					[
+						-41.323,
+						0.0
+					],
+					[
+						-52.603,
+						0.0
+					],
+					[
+						-61.278,
+						0.0
+					],
+					[
+						-66.206,
+						0.0
+					],
+					[
+						-68.0,
+						0.0
+					],
+					[
+						68.0,
+						0.0
+					]
+				],
+				"start": [
+					58.0,
+					0.0
+				],
+				"tail": [
+					58.0,
+					0.0
+				],
+				"tip": [
+					68.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 0.0
+			},
+			"label": "ring_stable_plus_4",
+			"morph_state": {
+				"dominant_mode": "ring",
+				"formation_family": "band",
+				"preset_blend": 0.0161,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0161,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 1.0,
+				"packet_size_target": 5.0,
+				"release_rate": 3.125
+			},
+			"slot_positions": [
+				[
+					68.0,
+					0.0
+				],
+				[
+					48.083,
+					48.083
+				],
+				[
+					0.0,
+					68.0
+				],
+				[
+					-48.083,
+					48.083
+				],
+				[
+					-68.0,
+					0.0
+				],
+				[
+					-48.083,
+					-48.083
+				],
+				[
+					0.0,
+					-68.0
+				],
+				[
+					48.083,
+					-48.083
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 4.7054,
+				"center_delta": 18.0,
+				"distance_step": 45.149,
+				"inner_radius_delta": 4.0987,
+				"max_slot_delta": 204.6581,
+				"outer_radius_delta": 73.9013,
+				"tail_delta": 13.901,
+				"tip_delta": 91.901
+			},
+			"distance": 134.149,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					294.86,
+					-129.39
+				],
+				[
+					294.86,
+					129.39
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "arc_band",
+				"blend": 0.9839,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					159.901,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					71.901,
+					0.0
+				],
+				"inner_radius": 53.9013,
+				"morph_profile_id": "guard_band->pressure_band",
+				"outer_cap_control": [
+					159.901,
+					0.0
+				],
+				"outer_radius": 141.9013,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.9839,
+					"preset_from": "guard_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.9839,
+					"visual_from_mode": "ring",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 141.9013,
+				"section_centers": [
+					[
+						67.468,
+						0.0
+					],
+					[
+						77.303,
+						0.0
+					],
+					[
+						86.394,
+						0.0
+					],
+					[
+						95.763,
+						0.0
+					],
+					[
+						103.927,
+						0.0
+					],
+					[
+						110.773,
+						0.0
+					],
+					[
+						115.597,
+						0.0
+					],
+					[
+						118.339,
+						0.0
+					]
+				],
+				"spine_focus": 0.216,
+				"spine_points": [
+					[
+						71.901,
+						0.0
+					],
+					[
+						67.468,
+						0.0
+					],
+					[
+						77.303,
+						0.0
+					],
+					[
+						86.394,
+						0.0
+					],
+					[
+						95.763,
+						0.0
+					],
+					[
+						103.927,
+						0.0
+					],
+					[
+						110.773,
+						0.0
+					],
+					[
+						115.597,
+						0.0
+					],
+					[
+						118.339,
+						0.0
+					],
+					[
+						159.901,
+						0.0
+					]
+				],
+				"start": [
+					71.901,
+					0.0
+				],
+				"tail": [
+					71.901,
+					0.0
+				],
+				"tip": [
+					159.901,
+					0.0
+				],
+				"tip_focus": 0.1763,
+				"tip_radius": 0.0
+			},
+			"label": "ring_to_fan_minus_4",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.9839,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.9839,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.28,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					83.305,
+					-43.635
+				],
+				[
+					95.032,
+					-15.323
+				],
+				[
+					95.032,
+					15.323
+				],
+				[
+					83.305,
+					43.635
+				],
+				[
+					131.213,
+					-46.895
+				],
+				[
+					140.541,
+					0.0
+				],
+				[
+					131.213,
+					46.895
+				],
+				[
+					104.65,
+					86.65
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0983,
+				"max_slot_delta": 0.099,
+				"outer_radius_delta": 0.0983,
+				"tail_delta": 0.099,
+				"tip_delta": 0.099
+			},
+			"distance": 137.149,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					294.86,
+					-129.39
+				],
+				[
+					294.86,
+					129.39
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "arc_band",
+				"blend": 0.999,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 53.9996,
+				"morph_profile_id": "guard_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 141.9996,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.999,
+					"preset_from": "guard_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.999,
+					"visual_from_mode": "ring",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 141.9996,
+				"section_centers": [
+					[
+						67.558,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.848,
+						0.0
+					],
+					[
+						115.669,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.2198,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.558,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.848,
+						0.0
+					],
+					[
+						115.669,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.1798,
+				"tip_radius": 0.0
+			},
+			"label": "ring_to_fan_minus_1",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.999,
+				"preset_from": "guard_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.999,
+				"visual_from_mode": "ring",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.28,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					83.386,
+					-43.69
+				],
+				[
+					95.129,
+					-15.342
+				],
+				[
+					95.129,
+					15.342
+				],
+				[
+					83.386,
+					43.69
+				],
+				[
+					131.304,
+					-46.932
+				],
+				[
+					140.64,
+					0.0
+				],
+				[
+					131.304,
+					46.932
+				],
+				[
+					104.719,
+					86.719
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 0.0004,
+				"max_slot_delta": 54.1411,
+				"outer_radius_delta": 0.0004,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 138.149,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "ring_to_fan_at",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 139.149,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "ring_to_fan_plus_1",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 142.149,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "ring_to_fan_plus_4",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 17.348,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 159.497,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "ring_to_fan_mid",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 26.575,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 186.072,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_mid",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 43.923,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 229.995,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_stable_minus_4",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 232.995,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pressure_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pressure_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "fan"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_stable_minus_1",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pressure_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "fan"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 233.995,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.0,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_stable_at",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 234.995,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.006,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0001,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.0001,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_stable_plus_1",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0001,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0001,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 237.995,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					295.211,
+					-128.587
+				],
+				[
+					295.211,
+					128.587
+				],
+				[
+					227.688,
+					-227.688
+				],
+				[
+					227.688,
+					227.688
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.5708,
+				"band_stage": "fan_band",
+				"blend": 0.0241,
+				"center": [
+					18.0,
+					0.0
+				],
+				"end": [
+					160.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.5708,
+				"inner_cap_control": [
+					72.0,
+					0.0
+				],
+				"inner_radius": 54.0,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					160.0,
+					0.0
+				],
+				"outer_radius": 142.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.0017,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.0017,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 142.0,
+				"section_centers": [
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						72.0,
+						0.0
+					],
+					[
+						67.559,
+						0.0
+					],
+					[
+						77.391,
+						0.0
+					],
+					[
+						86.48,
+						0.0
+					],
+					[
+						95.846,
+						0.0
+					],
+					[
+						104.007,
+						0.0
+					],
+					[
+						110.849,
+						0.0
+					],
+					[
+						115.67,
+						0.0
+					],
+					[
+						118.409,
+						0.0
+					],
+					[
+						160.0,
+						0.0
+					]
+				],
+				"start": [
+					72.0,
+					0.0
+				],
+				"tail": [
+					72.0,
+					0.0
+				],
+				"tip": [
+					160.0,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_stable_plus_4",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.0017,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0017,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 0.0,
+				"coverage_weight": 0.26,
+				"packet_size_target": 3.0,
+				"release_rate": 6.25
+			},
+			"slot_positions": [
+				[
+					72.0,
+					-9.007
+				],
+				[
+					72.0,
+					9.007
+				],
+				[
+					104.368,
+					-23.874
+				],
+				[
+					104.368,
+					23.874
+				],
+				[
+					122.85,
+					-100.409
+				],
+				[
+					122.85,
+					-34.139
+				],
+				[
+					122.85,
+					34.139
+				],
+				[
+					122.85,
+					100.409
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.3727,
+				"center_delta": 10.036,
+				"distance_step": 79.059,
+				"inner_radius_delta": 4.7321,
+				"max_slot_delta": 27.5378,
+				"outer_radius_delta": 26.3646,
+				"tail_delta": 5.304,
+				"tip_delta": 16.328
+			},
+			"distance": 317.054,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					304.605,
+					-104.403
+				],
+				[
+					304.605,
+					104.403
+				],
+				[
+					257.861,
+					-192.852
+				],
+				[
+					257.861,
+					192.852
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pressure_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 1.1981,
+				"band_stage": "fan_band",
+				"blend": 0.5,
+				"center": [
+					7.964,
+					0.0
+				],
+				"end": [
+					176.328,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 1.1981,
+				"inner_cap_control": [
+					66.696,
+					0.0
+				],
+				"inner_radius": 58.7321,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					176.328,
+					0.0
+				],
+				"outer_radius": 168.3646,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "fan",
+					"preset_blend": 0.5,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.5,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 168.3646,
+				"section_centers": [
+					[
+						63.869,
+						0.0
+					],
+					[
+						77.508,
+						0.0
+					],
+					[
+						90.609,
+						0.0
+					],
+					[
+						104.835,
+						0.0
+					],
+					[
+						118.172,
+						0.0
+					],
+					[
+						130.525,
+						0.0
+					],
+					[
+						140.455,
+						0.0
+					],
+					[
+						147.011,
+						0.0
+					]
+				],
+				"spine_focus": 0.22,
+				"spine_points": [
+					[
+						66.696,
+						0.0
+					],
+					[
+						63.869,
+						0.0
+					],
+					[
+						77.508,
+						0.0
+					],
+					[
+						90.609,
+						0.0
+					],
+					[
+						104.835,
+						0.0
+					],
+					[
+						118.172,
+						0.0
+					],
+					[
+						130.525,
+						0.0
+					],
+					[
+						140.455,
+						0.0
+					],
+					[
+						147.011,
+						0.0
+					],
+					[
+						176.328,
+						0.0
+					]
+				],
+				"start": [
+					66.696,
+					0.0
+				],
+				"tail": [
+					66.696,
+					0.0
+				],
+				"tip": [
+					176.328,
+					0.0
+				],
+				"tip_focus": 0.18,
+				"tip_radius": 0.0
+			},
+			"label": "fan_to_pierce_mid",
+			"morph_state": {
+				"dominant_mode": "fan",
+				"formation_family": "band",
+				"preset_blend": 0.5,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.5,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 0.1982,
+				"coverage_weight": 0.2085,
+				"packet_size_target": 2.8042,
+				"release_rate": 8.9684
+			},
+			"slot_positions": [
+				[
+					66.696,
+					-7.56
+				],
+				[
+					66.696,
+					7.56
+				],
+				[
+					114.33,
+					-21.696
+				],
+				[
+					114.33,
+					21.696
+				],
+				[
+					149.838,
+					-94.934
+				],
+				[
+					149.838,
+					-32.277
+				],
+				[
+					149.838,
+					32.277
+				],
+				[
+					149.838,
+					94.934
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 1.057,
+				"center_delta": 7.964,
+				"distance_step": 53.158,
+				"inner_radius_delta": 8.8427,
+				"max_slot_delta": 104.2325,
+				"outer_radius_delta": 49.2662,
+				"tail_delta": 0.879,
+				"tip_delta": 41.303
+			},
+			"distance": 370.212,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					321.68,
+					-14.352
+				],
+				[
+					321.68,
+					14.352
+				],
+				[
+					320.622,
+					-29.763
+				],
+				[
+					320.622,
+					29.763
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.1411,
+				"band_stage": "fan_band",
+				"blend": 0.82,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					217.631,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 0.1411,
+				"inner_cap_control": [
+					67.575,
+					0.0
+				],
+				"inner_radius": 67.5748,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					217.631,
+					0.0
+				],
+				"outer_radius": 217.6308,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "pierce",
+					"preset_blend": 0.9145,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.9145,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 217.6308,
+				"section_centers": [
+					[
+						67.529,
+						0.0
+					],
+					[
+						88.507,
+						0.0
+					],
+					[
+						109.474,
+						0.0
+					],
+					[
+						133.422,
+						0.0
+					],
+					[
+						157.353,
+						0.0
+					],
+					[
+						181.264,
+						0.0
+					],
+					[
+						202.169,
+						0.0
+					],
+					[
+						217.09,
+						0.0
+					]
+				],
+				"spine_focus": 0.9161,
+				"spine_points": [
+					[
+						67.575,
+						0.0
+					],
+					[
+						67.529,
+						0.0
+					],
+					[
+						88.507,
+						0.0
+					],
+					[
+						109.474,
+						0.0
+					],
+					[
+						133.422,
+						0.0
+					],
+					[
+						157.353,
+						0.0
+					],
+					[
+						181.264,
+						0.0
+					],
+					[
+						202.169,
+						0.0
+					],
+					[
+						217.09,
+						0.0
+					],
+					[
+						217.631,
+						0.0
+					]
+				],
+				"start": [
+					67.575,
+					0.0
+				],
+				"tail": [
+					67.575,
+					0.0
+				],
+				"tip": [
+					217.631,
+					0.0
+				],
+				"tip_focus": 0.8172,
+				"tip_radius": 0.9376
+			},
+			"label": "fan_to_pierce_late",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.9145,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.9145,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 0.9589,
+				"coverage_weight": 0.0107,
+				"packet_size_target": 1.1037,
+				"release_rate": 12.348
+			},
+			"slot_positions": [
+				[
+					67.575,
+					-1.041
+				],
+				[
+					67.575,
+					1.041
+				],
+				[
+					145.433,
+					-3.332
+				],
+				[
+					145.433,
+					3.332
+				],
+				[
+					217.135,
+					-15.338
+				],
+				[
+					217.135,
+					-5.215
+				],
+				[
+					217.135,
+					5.215
+				],
+				[
+					217.135,
+					15.338
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0611,
+				"center_delta": 0.0,
+				"distance_step": 25.902,
+				"inner_radius_delta": 0.425,
+				"max_slot_delta": 7.0747,
+				"outer_radius_delta": 2.3682,
+				"tail_delta": 0.425,
+				"tip_delta": 2.368
+			},
+			"distance": 396.114,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					321.854,
+					-9.712
+				],
+				[
+					321.854,
+					9.712
+				],
+				[
+					321.364,
+					-20.223
+				],
+				[
+					321.364,
+					20.223
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.08,
+				"band_stage": "fan_band",
+				"blend": 0.9759,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					219.999,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 0.08,
+				"inner_cap_control": [
+					68.0,
+					0.0
+				],
+				"inner_radius": 67.9998,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					219.999,
+					0.0
+				],
+				"outer_radius": 219.999,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "pierce",
+					"preset_blend": 0.9983,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.9983,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 219.999,
+				"section_centers": [
+					[
+						67.985,
+						0.0
+					],
+					[
+						89.255,
+						0.0
+					],
+					[
+						110.522,
+						0.0
+					],
+					[
+						134.822,
+						0.0
+					],
+					[
+						159.116,
+						0.0
+					],
+					[
+						183.404,
+						0.0
+					],
+					[
+						204.65,
+						0.0
+					],
+					[
+						219.823,
+						0.0
+					]
+				],
+				"spine_focus": 1.0,
+				"spine_points": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						67.985,
+						0.0
+					],
+					[
+						89.255,
+						0.0
+					],
+					[
+						110.522,
+						0.0
+					],
+					[
+						134.822,
+						0.0
+					],
+					[
+						159.116,
+						0.0
+					],
+					[
+						183.404,
+						0.0
+					],
+					[
+						204.65,
+						0.0
+					],
+					[
+						219.823,
+						0.0
+					],
+					[
+						219.999,
+						0.0
+					]
+				],
+				"start": [
+					68.0,
+					0.0
+				],
+				"tail": [
+					68.0,
+					0.0
+				],
+				"tip": [
+					219.999,
+					0.0
+				],
+				"tip_focus": 0.9999,
+				"tip_radius": 1.2519
+			},
+			"label": "fan_to_pierce_minus_4",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.9983,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.9983,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 1.0,
+				"coverage_weight": 0.0,
+				"packet_size_target": 1.0,
+				"release_rate": 12.4999
+			},
+			"slot_positions": [
+				[
+					68.0,
+					-0.594
+				],
+				[
+					68.0,
+					0.594
+				],
+				[
+					146.984,
+					-1.909
+				],
+				[
+					146.984,
+					1.909
+				],
+				[
+					219.838,
+					-8.8
+				],
+				[
+					219.838,
+					-2.992
+				],
+				[
+					219.838,
+					2.992
+				],
+				[
+					219.838,
+					8.8
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0002,
+				"max_slot_delta": 0.0022,
+				"outer_radius_delta": 0.001,
+				"tail_delta": 0.0,
+				"tip_delta": 0.001
+			},
+			"distance": 399.114,
+			"fire_origins": [
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				],
+				[
+					0.0,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					322.0,
+					0.0
+				],
+				[
+					321.854,
+					-9.71
+				],
+				[
+					321.854,
+					9.71
+				],
+				[
+					321.365,
+					-20.219
+				],
+				[
+					321.365,
+					20.219
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.08,
+				"band_stage": "fan_band",
+				"blend": 0.994,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					220.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 0.0,
+				"has_profile_sections": false,
+				"inner_arc": 0.08,
+				"inner_cap_control": [
+					68.0,
+					0.0
+				],
+				"inner_radius": 68.0,
+				"morph_profile_id": "pressure_band->pierce_band",
+				"outer_cap_control": [
+					220.0,
+					0.0
+				],
+				"outer_radius": 220.0,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"dominant_mode": "pierce",
+					"preset_blend": 0.9999,
+					"preset_from": "pressure_band",
+					"preset_to": "pierce_band",
+					"type": "dictionary",
+					"visual_blend": 0.9999,
+					"visual_from_mode": "fan",
+					"visual_to_mode": "pierce"
+				},
+				"preview_type": "fan",
+				"radius": 220.0,
+				"section_centers": [
+					[
+						67.985,
+						0.0
+					],
+					[
+						89.255,
+						0.0
+					],
+					[
+						110.522,
+						0.0
+					],
+					[
+						134.822,
+						0.0
+					],
+					[
+						159.117,
+						0.0
+					],
+					[
+						183.405,
+						0.0
+					],
+					[
+						204.652,
+						0.0
+					],
+					[
+						219.824,
+						0.0
+					]
+				],
+				"spine_focus": 1.0,
+				"spine_points": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						67.985,
+						0.0
+					],
+					[
+						89.255,
+						0.0
+					],
+					[
+						110.522,
+						0.0
+					],
+					[
+						134.822,
+						0.0
+					],
+					[
+						159.117,
+						0.0
+					],
+					[
+						183.405,
+						0.0
+					],
+					[
+						204.652,
+						0.0
+					],
+					[
+						219.824,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"start": [
+					68.0,
+					0.0
+				],
+				"tail": [
+					68.0,
+					0.0
+				],
+				"tip": [
+					220.0,
+					0.0
+				],
+				"tip_focus": 1.0,
+				"tip_radius": 1.2595
+			},
+			"label": "fan_to_pierce_minus_1",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.9999,
+				"preset_from": "pressure_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.9999,
+				"visual_from_mode": "fan",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 1.0,
+				"coverage_weight": 0.0,
+				"packet_size_target": 1.0,
+				"release_rate": 12.5
+			},
+			"slot_positions": [
+				[
+					68.0,
+					-0.594
+				],
+				[
+					68.0,
+					0.594
+				],
+				[
+					146.984,
+					-1.909
+				],
+				[
+					146.984,
+					1.909
+				],
+				[
+					219.839,
+					-8.798
+				],
+				[
+					219.839,
+					-2.991
+				],
+				[
+					219.839,
+					2.991
+				],
+				[
+					219.839,
+					8.798
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.08,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 68.0,
+				"max_slot_delta": 94.9401,
+				"outer_radius_delta": 220.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 400.114,
+			"fire_origins": [
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.0,
+				"band_stage": "line_band",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					220.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 3.5,
+				"has_profile_sections": false,
+				"inner_arc": 0.0,
+				"inner_cap_control": [
+					68.0,
+					0.0
+				],
+				"inner_radius": 0.0,
+				"morph_profile_id": "pierce_band->pierce_band",
+				"outer_cap_control": [
+					220.0,
+					0.0
+				],
+				"outer_radius": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"type": 4,
+					"value": "pierce"
+				},
+				"preview_type": "pierce",
+				"radius": 0.0,
+				"section_centers": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"start": [
+					68.0,
+					0.0
+				],
+				"tail": [
+					68.0,
+					0.0
+				],
+				"tip": [
+					220.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 7.0
+			},
+			"label": "fan_to_pierce_at",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "pierce",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 1.0,
+				"coverage_weight": 0.0,
+				"packet_size_target": 1.0,
+				"release_rate": 12.5
+			},
+			"slot_positions": [
+				[
+					142.48,
+					-24.5
+				],
+				[
+					161.2,
+					-17.5
+				],
+				[
+					179.92,
+					-10.5
+				],
+				[
+					198.64,
+					-3.5
+				],
+				[
+					198.64,
+					3.5
+				],
+				[
+					179.92,
+					10.5
+				],
+				[
+					161.2,
+					17.5
+				],
+				[
+					142.48,
+					24.5
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 1.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 401.114,
+			"fire_origins": [
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.0,
+				"band_stage": "line_band",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					220.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 3.5,
+				"has_profile_sections": false,
+				"inner_arc": 0.0,
+				"inner_cap_control": [
+					68.0,
+					0.0
+				],
+				"inner_radius": 0.0,
+				"morph_profile_id": "pierce_band->pierce_band",
+				"outer_cap_control": [
+					220.0,
+					0.0
+				],
+				"outer_radius": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"type": 4,
+					"value": "pierce"
+				},
+				"preview_type": "pierce",
+				"radius": 0.0,
+				"section_centers": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"start": [
+					68.0,
+					0.0
+				],
+				"tail": [
+					68.0,
+					0.0
+				],
+				"tip": [
+					220.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 7.0
+			},
+			"label": "fan_to_pierce_plus_1",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "pierce",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 1.0,
+				"coverage_weight": 0.0,
+				"packet_size_target": 1.0,
+				"release_rate": 12.5
+			},
+			"slot_positions": [
+				[
+					142.48,
+					-24.5
+				],
+				[
+					161.2,
+					-17.5
+				],
+				[
+					179.92,
+					-10.5
+				],
+				[
+					198.64,
+					-3.5
+				],
+				[
+					198.64,
+					3.5
+				],
+				[
+					179.92,
+					10.5
+				],
+				[
+					161.2,
+					17.5
+				],
+				[
+					142.48,
+					24.5
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 3.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 404.114,
+			"fire_origins": [
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.0,
+				"band_stage": "line_band",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					220.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 3.5,
+				"has_profile_sections": false,
+				"inner_arc": 0.0,
+				"inner_cap_control": [
+					68.0,
+					0.0
+				],
+				"inner_radius": 0.0,
+				"morph_profile_id": "pierce_band->pierce_band",
+				"outer_cap_control": [
+					220.0,
+					0.0
+				],
+				"outer_radius": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"type": 4,
+					"value": "pierce"
+				},
+				"preview_type": "pierce",
+				"radius": 0.0,
+				"section_centers": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"start": [
+					68.0,
+					0.0
+				],
+				"tail": [
+					68.0,
+					0.0
+				],
+				"tip": [
+					220.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 7.0
+			},
+			"label": "fan_to_pierce_plus_4",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "pierce",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 1.0,
+				"coverage_weight": 0.0,
+				"packet_size_target": 1.0,
+				"release_rate": 12.5
+			},
+			"slot_positions": [
+				[
+					142.48,
+					-24.5
+				],
+				[
+					161.2,
+					-17.5
+				],
+				[
+					179.92,
+					-10.5
+				],
+				[
+					198.64,
+					-3.5
+				],
+				[
+					198.64,
+					3.5
+				],
+				[
+					179.92,
+					10.5
+				],
+				[
+					161.2,
+					17.5
+				],
+				[
+					142.48,
+					24.5
+				]
+			]
+		},
+		{
+			"continuity_from_previous": {
+				"arc_delta": 0.0,
+				"center_delta": 0.0,
+				"distance_step": 4.0,
+				"inner_radius_delta": 0.0,
+				"max_slot_delta": 0.0,
+				"outer_radius_delta": 0.0,
+				"tail_delta": 0.0,
+				"tip_delta": 0.0
+			},
+			"distance": 408.114,
+			"fire_origins": [
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				],
+				[
+					217.55,
+					0.0
+				]
+			],
+			"fire_targets": [
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				],
+				[
+					400.0,
+					0.0
+				]
+			],
+			"geometry": {
+				"active_preset_id": "pierce_band",
+				"aim_vector": [
+					1.0,
+					0.0
+				],
+				"arc": 0.0,
+				"band_stage": "line_band",
+				"blend": 0.0,
+				"center": [
+					0.0,
+					0.0
+				],
+				"end": [
+					220.0,
+					0.0
+				],
+				"family": "band",
+				"half_width": 3.5,
+				"has_profile_sections": false,
+				"inner_arc": 0.0,
+				"inner_cap_control": [
+					68.0,
+					0.0
+				],
+				"inner_radius": 0.0,
+				"morph_profile_id": "pierce_band->pierce_band",
+				"outer_cap_control": [
+					220.0,
+					0.0
+				],
+				"outer_radius": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"preview_state": {
+					"type": 4,
+					"value": "pierce"
+				},
+				"preview_type": "pierce",
+				"radius": 0.0,
+				"section_centers": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"spine_focus": 0.0,
+				"spine_points": [
+					[
+						68.0,
+						0.0
+					],
+					[
+						80.16,
+						0.0
+					],
+					[
+						95.36,
+						0.0
+					],
+					[
+						116.64,
+						0.0
+					],
+					[
+						144.0,
+						0.0
+					],
+					[
+						171.36,
+						0.0
+					],
+					[
+						198.72,
+						0.0
+					],
+					[
+						220.0,
+						0.0
+					]
+				],
+				"start": [
+					68.0,
+					0.0
+				],
+				"tail": [
+					68.0,
+					0.0
+				],
+				"tip": [
+					220.0,
+					0.0
+				],
+				"tip_focus": 0.0,
+				"tip_radius": 7.0
+			},
+			"label": "pierce_core",
+			"morph_state": {
+				"dominant_mode": "pierce",
+				"formation_family": "band",
+				"preset_blend": 0.0,
+				"preset_from": "pierce_band",
+				"preset_to": "pierce_band",
+				"visual_blend": 0.0,
+				"visual_from_mode": "pierce",
+				"visual_to_mode": "pierce"
+			},
+			"release_profile": {
+				"center_bias": 1.0,
+				"coverage_weight": 0.0,
+				"packet_size_target": 1.0,
+				"release_rate": 12.5
+			},
+			"slot_positions": [
+				[
+					142.48,
+					-24.5
+				],
+				[
+					161.2,
+					-17.5
+				],
+				[
+					179.92,
+					-10.5
+				],
+				[
+					198.64,
+					-3.5
+				],
+				[
+					198.64,
+					3.5
+				],
+				[
+					179.92,
+					10.5
+				],
+				[
+					161.2,
+					17.5
+				],
+				[
+					142.48,
+					24.5
+				]
+			]
+		}
+	],
+	"slot_count": 8
+}

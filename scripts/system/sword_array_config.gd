@@ -5,6 +5,11 @@ class_name SwordArrayConfig
 const MODE_RING := "ring"
 const MODE_FAN := "fan"
 const MODE_PIERCE := "pierce"
+const FORMATION_FAMILY_BAND := "band"
+const PRESET_GUARD_BAND := "guard_band"
+const PRESET_PRESSURE_BAND := "pressure_band"
+const PRESET_PIERCE_BAND := "pierce_band"
+const DEFAULT_DISTANCE_PRESET_LANE := "default"
 const MORPH_CALIBRATION_PATH := "res://resources/debug/sword_array_morph_calibration.json"
 
 const HOLD_THRESHOLD := 0.10
@@ -52,7 +57,7 @@ const MODE_PROFILES := {
 		"fire_shake": 2.2,
 	},
 	MODE_FAN: {
-		"arc": 1.745,
+		"arc": deg_to_rad(90.0),
 		"idle_arc": 0.92,
 		"radius": 142.0,
 		"idle_radius": 100.0,
@@ -102,6 +107,103 @@ const MODE_PROFILES := {
 	},
 }
 
+const SHAPE_PRESETS := {
+	PRESET_GUARD_BAND: {
+		"id": PRESET_GUARD_BAND,
+		"family": FORMATION_FAMILY_BAND,
+		"dominant_mode": MODE_RING,
+		"section_count": 8,
+		"arc": TAU,
+		"center_offset": 0.0,
+		"forward_length": 68.0,
+		"band_thickness": 10.0,
+		"front_taper": 0.0,
+		"rear_taper": 0.0,
+		"tip_emphasis": 0.0,
+		"spine_emphasis": 0.0,
+		"coverage_bias": 1.0,
+	},
+	PRESET_PRESSURE_BAND: {
+		"id": PRESET_PRESSURE_BAND,
+		"family": FORMATION_FAMILY_BAND,
+		"dominant_mode": MODE_FAN,
+		"section_count": 8,
+		"arc": deg_to_rad(90.0),
+		"center_offset": 18.0,
+		"forward_length": 142.0,
+		"band_thickness": 88.0,
+		"front_taper": 0.12,
+		"rear_taper": 0.0,
+		"tip_emphasis": 0.18,
+		"spine_emphasis": 0.22,
+		"coverage_bias": 0.38,
+	},
+	PRESET_PIERCE_BAND: {
+		"id": PRESET_PIERCE_BAND,
+		"family": FORMATION_FAMILY_BAND,
+		"dominant_mode": MODE_PIERCE,
+		"section_count": 8,
+		"arc": 0.08,
+		"center_offset": 112.0,
+		"forward_length": 220.0,
+		"band_thickness": 7.0,
+		"front_taper": 0.92,
+		"rear_taper": 0.22,
+		"tip_emphasis": 1.0,
+		"spine_emphasis": 1.0,
+		"coverage_bias": 0.0,
+	},
+}
+
+const MORPH_PROFILES := {
+	"guard_band->pressure_band": {
+		"id": "guard_band->pressure_band",
+		"family": FORMATION_FAMILY_BAND,
+		"curve": "smoothstep",
+		"blend_windows": {
+			"arc": [0.0, 0.72],
+			"center_offset": [0.18, 0.84],
+			"forward_length": [0.24, 1.0],
+			"band_thickness": [0.12, 0.9],
+			"tip_emphasis": [0.58, 1.0],
+			"spine_emphasis": [0.42, 1.0],
+		},
+	},
+	"pressure_band->pierce_band": {
+		"id": "pressure_band->pierce_band",
+		"family": FORMATION_FAMILY_BAND,
+		"curve": "smoothstep",
+		"blend_windows": {
+			"arc": [0.0, 1.0],
+			"center_offset": [0.08, 0.86],
+			"forward_length": [0.18, 1.0],
+			"band_thickness": [0.2, 1.0],
+			"tip_emphasis": [0.72, 1.0],
+			"spine_emphasis": [0.58, 1.0],
+		},
+	},
+}
+
+const DISTANCE_PRESET_LANES := {
+	DEFAULT_DISTANCE_PRESET_LANE: [
+		{
+			"mode": MODE_RING,
+			"preset": PRESET_GUARD_BAND,
+			"distance_key": "ring_stable_end",
+		},
+		{
+			"mode": MODE_FAN,
+			"preset": PRESET_PRESSURE_BAND,
+			"distance_key": "fan_stable_end",
+		},
+		{
+			"mode": MODE_PIERCE,
+			"preset": PRESET_PIERCE_BAND,
+			"distance_key": "fan_to_pierce_end",
+		},
+	],
+}
+
 
 static func get_mode_for_distance(aim_distance: float) -> String:
 	return get_morph_state_for_distance(aim_distance)["dominant_mode"]
@@ -125,6 +227,10 @@ static func get_mode_state(mode: String) -> Dictionary:
 		"visual_to_mode": clamped_mode,
 		"visual_blend": 0.0,
 		"distance_ratio": 0.0,
+		"formation_family": get_formation_family_for_mode(clamped_mode),
+		"preset_from": get_default_preset_for_mode(clamped_mode),
+		"preset_to": get_default_preset_for_mode(clamped_mode),
+		"preset_blend": 0.0,
 		"ring_weight": weights[MODE_RING],
 		"fan_weight": weights[MODE_FAN],
 		"pierce_weight": weights[MODE_PIERCE],
@@ -180,6 +286,10 @@ static func complete_morph_state(state: Dictionary) -> Dictionary:
 	if visual_from_mode == visual_to_mode:
 		var stable_state: Dictionary = get_mode_state(dominant_mode)
 		stable_state["distance_ratio"] = distance_ratio
+		stable_state["formation_family"] = state.get("formation_family", stable_state["formation_family"])
+		stable_state["preset_from"] = state.get("preset_from", stable_state["preset_from"])
+		stable_state["preset_to"] = state.get("preset_to", stable_state["preset_to"])
+		stable_state["preset_blend"] = clampf(float(state.get("preset_blend", stable_state["preset_blend"])), 0.0, 1.0)
 		return stable_state
 
 	var transition_state: Dictionary = _build_transition_state(
@@ -190,6 +300,10 @@ static func complete_morph_state(state: Dictionary) -> Dictionary:
 	)
 	if transition_state["dominant_mode"] != dominant_mode and MODE_PROFILES.has(dominant_mode):
 		transition_state["dominant_mode"] = dominant_mode
+	transition_state["formation_family"] = state.get("formation_family", transition_state["formation_family"])
+	transition_state["preset_from"] = state.get("preset_from", transition_state["preset_from"])
+	transition_state["preset_to"] = state.get("preset_to", transition_state["preset_to"])
+	transition_state["preset_blend"] = clampf(float(state.get("preset_blend", transition_state["preset_blend"])), 0.0, 1.0)
 	return transition_state
 
 
@@ -204,16 +318,157 @@ static func _build_transition_state(from_mode: String, to_mode: String, blend: f
 	}
 	weights[normalized_from] = 1.0 - clamped_blend
 	weights[normalized_to] += clamped_blend
+	var family: String = get_formation_family_for_mode(normalized_from)
+	if family != get_formation_family_for_mode(normalized_to):
+		family = get_formation_family_for_mode(normalized_to)
 	return {
 		"dominant_mode": normalized_from if clamped_blend < 0.5 else normalized_to,
 		"visual_from_mode": normalized_from,
 		"visual_to_mode": normalized_to,
 		"visual_blend": clamped_blend,
 		"distance_ratio": distance_ratio,
+		"formation_family": family,
+		"preset_from": get_default_preset_for_mode(normalized_from),
+		"preset_to": get_default_preset_for_mode(normalized_to),
+		"preset_blend": clamped_blend,
 		"ring_weight": weights[MODE_RING],
 		"fan_weight": weights[MODE_FAN],
 		"pierce_weight": weights[MODE_PIERCE],
 	}
+
+
+static func get_formation_family_for_mode(mode: String) -> String:
+	match mode:
+		MODE_RING, MODE_FAN, MODE_PIERCE:
+			return FORMATION_FAMILY_BAND
+		_:
+			return FORMATION_FAMILY_BAND
+
+
+static func get_default_preset_for_mode(mode: String) -> String:
+	match mode:
+		MODE_RING:
+			return PRESET_GUARD_BAND
+		MODE_FAN:
+			return PRESET_PRESSURE_BAND
+		_:
+			return PRESET_PIERCE_BAND
+
+
+static func get_distance_preset_lane(lane_id := DEFAULT_DISTANCE_PRESET_LANE) -> Array:
+	return DISTANCE_PRESET_LANES.get(lane_id, DISTANCE_PRESET_LANES[DEFAULT_DISTANCE_PRESET_LANE]).duplicate(true)
+
+
+static func get_shape_preset(preset_id: String) -> Dictionary:
+	var fallback_id: String = get_default_preset_for_mode(MODE_PIERCE)
+	return SHAPE_PRESETS.get(preset_id, SHAPE_PRESETS[fallback_id]).duplicate(true)
+
+
+static func get_morph_profile(from_preset: String, to_preset: String) -> Dictionary:
+	var normalized_from: String = from_preset if SHAPE_PRESETS.has(from_preset) else get_default_preset_for_mode(MODE_RING)
+	var normalized_to: String = to_preset if SHAPE_PRESETS.has(to_preset) else normalized_from
+	var profile_key: String = _get_morph_profile_key(normalized_from, normalized_to)
+	if MORPH_PROFILES.has(profile_key):
+		return MORPH_PROFILES[profile_key].duplicate(true)
+	return {
+		"id": profile_key,
+		"family": get_shape_preset(normalized_to)["family"],
+		"curve": "smoothstep",
+		"blend_windows": {},
+	}
+
+
+static func get_shape_preset_runtime(state: Dictionary) -> Dictionary:
+	var completed_state: Dictionary = complete_morph_state(state)
+	var dominant_mode: String = String(completed_state.get("dominant_mode", MODE_RING))
+	var blend: float = clampf(float(completed_state.get("preset_blend", completed_state.get("visual_blend", 0.0))), 0.0, 1.0)
+	var from_preset_id: String = String(completed_state.get("preset_from", get_default_preset_for_mode(dominant_mode)))
+	var to_preset_id: String = String(completed_state.get("preset_to", from_preset_id))
+	var from_preset: Dictionary = get_shape_preset(from_preset_id)
+	var to_preset: Dictionary = get_shape_preset(to_preset_id)
+	var morph_profile: Dictionary = get_morph_profile(from_preset_id, to_preset_id)
+	var parameter_blends: Dictionary = _build_shape_parameter_blends(morph_profile, blend)
+	var blended_preset: Dictionary = _blend_shape_presets(from_preset, to_preset, parameter_blends)
+	return {
+		"family": String(completed_state.get("formation_family", from_preset.get("family", FORMATION_FAMILY_BAND))),
+		"from_id": from_preset_id,
+		"to_id": to_preset_id,
+		"blend": blend,
+		"active_id": from_preset_id if blend < 0.5 else to_preset_id,
+		"from": from_preset,
+		"to": to_preset,
+		"blended": blended_preset,
+		"parameter_blends": parameter_blends,
+		"morph_profile": morph_profile,
+	}
+
+
+static func _get_morph_profile_key(from_preset: String, to_preset: String) -> String:
+	return "%s->%s" % [from_preset, to_preset]
+
+
+static func _build_shape_parameter_blends(morph_profile: Dictionary, blend: float) -> Dictionary:
+	var clamped_blend: float = clampf(blend, 0.0, 1.0)
+	var windows: Dictionary = morph_profile.get("blend_windows", {})
+	var parameter_blends := {
+		"__base": clamped_blend,
+	}
+	for key in [
+		"arc",
+		"center_offset",
+		"forward_length",
+		"band_thickness",
+		"front_taper",
+		"rear_taper",
+		"tip_emphasis",
+		"spine_emphasis",
+		"coverage_bias",
+		"section_count",
+	]:
+		parameter_blends[key] = _evaluate_morph_window(clamped_blend, windows.get(key, []))
+	return parameter_blends
+
+
+static func _evaluate_morph_window(blend: float, window: Variant) -> float:
+	var clamped_blend: float = clampf(blend, 0.0, 1.0)
+	if typeof(window) != TYPE_ARRAY or window.size() < 2:
+		return clamped_blend
+	var start: float = clampf(float(window[0]), 0.0, 1.0)
+	var finish: float = clampf(float(window[1]), start, 1.0)
+	if is_equal_approx(start, finish):
+		return 1.0 if clamped_blend >= finish else 0.0
+	return _smoothstep(inverse_lerp(start, finish, clamped_blend))
+
+
+static func _blend_shape_presets(from_preset: Dictionary, to_preset: Dictionary, parameter_blends: Dictionary) -> Dictionary:
+	var base_blend: float = clampf(float(parameter_blends.get("__base", 0.0)), 0.0, 1.0)
+	var blended := from_preset.duplicate(true)
+	blended["id"] = "%s->%s" % [from_preset.get("id", ""), to_preset.get("id", "")]
+	blended["family"] = to_preset.get("family", from_preset.get("family", FORMATION_FAMILY_BAND))
+	blended["dominant_mode"] = (
+		from_preset.get("dominant_mode", MODE_RING)
+		if base_blend < 0.5
+		else to_preset.get("dominant_mode", from_preset.get("dominant_mode", MODE_RING))
+	)
+	for key in [
+		"arc",
+		"center_offset",
+		"forward_length",
+		"band_thickness",
+		"front_taper",
+		"rear_taper",
+		"tip_emphasis",
+		"spine_emphasis",
+		"coverage_bias",
+	]:
+		var key_blend: float = clampf(float(parameter_blends.get(key, base_blend)), 0.0, 1.0)
+		blended[key] = lerpf(float(from_preset.get(key, 0.0)), float(to_preset.get(key, 0.0)), key_blend)
+	blended["section_count"] = int(round(lerpf(
+		float(from_preset.get("section_count", 8)),
+		float(to_preset.get("section_count", 8)),
+		clampf(float(parameter_blends.get("section_count", base_blend)), 0.0, 1.0)
+	)))
+	return blended
 
 
 static func _smoothstep(value: float) -> float:

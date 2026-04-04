@@ -47,7 +47,7 @@ function Write-InterestingLine {
 
 if ($Watch) {
     if (-not (Test-Path $LogPath)) {
-        Write-Host "等待日志文件: $LogPath"
+        Write-Host "Waiting for log file: $LogPath"
         while (-not (Test-Path $LogPath)) {
             Start-Sleep -Milliseconds 500
         }
@@ -61,7 +61,7 @@ if ($Watch) {
 }
 
 if (-not (Test-Path $LogPath)) {
-    throw "日志文件不存在: $LogPath"
+    throw "Log file does not exist: $LogPath"
 }
 
 $lines = Get-Content -Path $LogPath -Tail $Tail
@@ -72,5 +72,5 @@ if ($matches.Count -gt 0) {
     return
 }
 
-Write-Host "没有发现明显错误，下面是最后 $Tail 行日志："
+Write-Host "No obvious errors found. Showing last $Tail log lines:"
 $lines

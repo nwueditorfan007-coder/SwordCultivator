@@ -12,6 +12,8 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
 $startScript = Join-Path $scriptDir "start_godot_with_log.ps1"
 $watchScript = Join-Path $scriptDir "show_godot_errors.ps1"
+$pwshPath = "C:\Program Files\PowerShell\7\pwsh.exe"
+$powerShellExe = if (Test-Path $pwshPath) { $pwshPath } else { "powershell.exe" }
 
 function Start-WatcherWindow {
     param(
@@ -20,7 +22,7 @@ function Start-WatcherWindow {
     )
 
     $watchCommand = "& { Set-Location -LiteralPath '$ProjectRoot'; & '$WatcherPath' -Watch }"
-    Start-Process -FilePath "powershell.exe" `
+    Start-Process -FilePath $powerShellExe `
         -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $watchCommand) `
         -WorkingDirectory $ProjectRoot | Out-Null
 }

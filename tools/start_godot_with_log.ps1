@@ -53,10 +53,10 @@ if (-not $resolvedGodotPath) {
     $resolvedGodotPath = $env:GODOT4
 }
 if (-not $resolvedGodotPath) {
-    throw "找不到 Godot 路径。请在 .vscode/settings.json 配置 godotTools.editorPath.godot4，或传入 -GodotPath。"
+    throw "Godot path not found. Set .vscode/settings.json -> godotTools.editorPath.godot4 or pass -GodotPath."
 }
 if (-not (Test-Path $resolvedGodotPath)) {
-    throw "Godot 不存在: $resolvedGodotPath"
+    throw "Godot executable not found: $resolvedGodotPath"
 }
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null

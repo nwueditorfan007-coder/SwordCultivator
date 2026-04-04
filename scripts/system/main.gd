@@ -1134,7 +1134,7 @@ func _update_ui() -> void:
 	if debug_calibration_mode:
 		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀"
+		hint_label.text = "WASD 移动 | 左键 挥剑/剑阵 | 右键 点刺或连斩 | Space 吸取 | Q 必杀 | F6 校准调试"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
