@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sword Cultivator Core"
+  short_description: "Turn playtest feel into sharper combat design."
+  default_prompt: "Use $sword-cultivator-core to turn my playtest impressions into concrete combat design iterations."

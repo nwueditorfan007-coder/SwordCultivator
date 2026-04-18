@@ -44,7 +44,7 @@ const MODE_PROFILES := {
 		"ring_radius": 68.0,
 		"idle_ring_radius": 44.0,
 		"slot_count": 10,
-		"fire_interval": 0.32,
+		"fire_interval": 0.30,
 		"burst_mode": "all",
 		"preview_outer_offset_idle": 6.0,
 		"preview_outer_offset_active": 10.0,
@@ -55,9 +55,17 @@ const MODE_PROFILES := {
 		"fire_particles_cap": 20,
 		"fire_offset": 0.0,
 		"fire_shake": 2.2,
+		"sortie_target_offset": 124.0,
+		"sortie_max_distance": 190.0,
+		"sortie_guidance_max_distance": 88.0,
+		"sortie_min_distance": 80.0,
+		"sortie_hit_follow_through_distance": 44.0,
+		"sortie_hit_radius_bonus": 22.0,
+		"sortie_penetration_targets": 1,
+		"sortie_rehit_cooldown": 0.16,
 	},
 	MODE_FAN: {
-		"arc": deg_to_rad(90.0),
+		"arc": deg_to_rad(60.0),
 		"idle_arc": 0.92,
 		"radius": 142.0,
 		"idle_radius": 100.0,
@@ -75,6 +83,14 @@ const MODE_PROFILES := {
 		"fire_particles_cap": 18,
 		"fire_offset": 40.0,
 		"fire_shake": 2.4,
+		"sortie_target_offset": 180.0,
+		"sortie_max_distance": 380.0,
+		"sortie_guidance_max_distance": 190.0,
+		"sortie_min_distance": 156.0,
+		"sortie_hit_follow_through_distance": 96.0,
+		"sortie_hit_radius_bonus": 8.0,
+		"sortie_penetration_targets": 1,
+		"sortie_rehit_cooldown": 0.14,
 	},
 	MODE_PIERCE: {
 		"spread": 0.08,
@@ -104,6 +120,14 @@ const MODE_PROFILES := {
 		"fire_particles_cap": 22,
 		"fire_offset": 72.0,
 		"fire_shake": 2.8,
+		"sortie_target_offset": 180.0,
+		"sortie_max_distance": 620.0,
+		"sortie_guidance_max_distance": 320.0,
+		"sortie_min_distance": 220.0,
+		"sortie_hit_follow_through_distance": 170.0,
+		"sortie_hit_radius_bonus": 2.0,
+		"sortie_penetration_targets": 4,
+		"sortie_rehit_cooldown": 0.12,
 	},
 }
 
@@ -128,7 +152,7 @@ const SHAPE_PRESETS := {
 		"family": FORMATION_FAMILY_BAND,
 		"dominant_mode": MODE_FAN,
 		"section_count": 8,
-		"arc": deg_to_rad(90.0),
+		"arc": deg_to_rad(60.0),
 		"center_offset": 18.0,
 		"forward_length": 142.0,
 		"band_thickness": 88.0,
@@ -238,8 +262,28 @@ static func get_mode_state(mode: String) -> Dictionary:
 
 
 static func get_morph_state_for_distance(aim_distance: float) -> Dictionary:
+	return _get_morph_state_for_distance_with_distances(aim_distance, get_morph_distances())
+
+
+static func get_control_morph_distances() -> Dictionary:
+	var base: Dictionary = get_morph_distances()
+	var control_ring_end: float = minf(base["ring_stable_end"] + 30.0, base["ring_to_fan_end"] - 18.0)
+	var control_ring_to_fan: float = minf(base["ring_to_fan_end"] + 34.0, base["fan_stable_end"] - 24.0)
+	var control_fan_end: float = minf(base["fan_stable_end"] + 36.0, base["fan_to_pierce_end"] - 18.0)
+	return {
+		"ring_stable_end": maxf(control_ring_end, 0.0),
+		"ring_to_fan_end": maxf(control_ring_to_fan, control_ring_end + 1.0),
+		"fan_stable_end": maxf(control_fan_end, control_ring_to_fan + 1.0),
+		"fan_to_pierce_end": maxf(base["fan_to_pierce_end"], control_fan_end + 1.0),
+	}
+
+
+static func get_control_morph_state_for_distance(aim_distance: float) -> Dictionary:
+	return _get_morph_state_for_distance_with_distances(aim_distance, get_control_morph_distances())
+
+
+static func _get_morph_state_for_distance_with_distances(aim_distance: float, distances: Dictionary) -> Dictionary:
 	var clamped_distance: float = maxf(aim_distance, 0.0)
-	var distances: Dictionary = get_morph_distances()
 	var distance_ratio: float = clampf(clamped_distance / distances["fan_to_pierce_end"], 0.0, 1.0)
 
 	if clamped_distance <= distances["ring_stable_end"]:

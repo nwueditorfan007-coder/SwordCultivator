@@ -16,13 +16,25 @@ static func reset_runtime(main: Node) -> void:
 	main.is_game_over = false
 	main.enemies.clear()
 	main.bullets.clear()
+	main.array_swords.clear()
+	main.pickups.clear()
 	main.particles.clear()
 	main.boss.clear()
+	main.boss_shard_spawn_timer = 3.5
+	main.boss_shard_failed_cycles = 0
+	main.status_message = ""
+	main.status_message_timer = 0.0
+	main.status_message_color = Color.WHITE
+	main.empower_end_warning_emitted = false
 	main.player = {
 		"pos": main.ARENA_SIZE * 0.5,
 		"vel": Vector2.ZERO,
 		"health": main.PLAYER_MAX_HEALTH,
 		"energy": 0.0,
+		"sword_resource": 0,
+		"sword_resource_max": main.SWORD_RESOURCE_MAX,
+		"sword_resource_elite_pity": 0,
+		"array_empower_timer": 0.0,
 		"mode": main.CombatMode.MELEE,
 		"attack_cooldown": 0.0,
 		"attack_flash_timer": 0.0,
@@ -34,9 +46,9 @@ static func reset_runtime(main: Node) -> void:
 		"array_fire_index": 0,
 		"array_mode": SwordArrayConfig.MODE_RING,
 		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
-		"is_charging": false,
-		"absorb_timer": 0.0,
-		"absorbed_ids": [],
+		"array_fire_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
+		"array_raw_aim_distance": 0.0,
+		"array_control_distance": 0.0,
 	}
 	main.debug_battle_mode = false
 	main.debug_flags = {
@@ -44,7 +56,7 @@ static func reset_runtime(main: Node) -> void:
 		"infinite_energy": false,
 		"one_hit_kill": false,
 		"no_spawn": false,
-		"infinite_absorbed_bullets": false,
+		"infinite_sword_resources": false,
 	}
 	main.debug_calibration_mode = false
 	main.debug_dragging_player = false
@@ -60,5 +72,6 @@ static func reset_runtime(main: Node) -> void:
 		"target_pos": main.ARENA_SIZE * 0.5,
 	}
 	main.game_over_label.visible = false
+	main._rebuild_array_sword_pool()
 	main._update_ui()
 	main.queue_redraw()

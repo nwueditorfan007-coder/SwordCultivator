@@ -32,7 +32,7 @@ static func _draw_ring_preview(main: Node2D, player_pos: Vector2, geometry: Dict
 	var ring_soft_color: Color = SwordArrayController.get_soft_accent_color(SwordArrayConfig.MODE_RING)
 	ring_soft_color.a = (0.14 + formation_ratio * 0.1) * weight
 	main.draw_arc(player_pos, float(geometry.get("outer_radius", 0.0)), 0.0, TAU, 40, ring_soft_color, 1.5)
-	var spoke_count: int = maxi(main.player["absorbed_ids"].size(), 1)
+	var spoke_count: int = maxi(main._get_current_array_sword_capacity(), 1)
 	var spoke_index: int = 0
 	while spoke_index < spoke_count:
 		var spoke_angle: float = (TAU / float(spoke_count)) * float(spoke_index)

@@ -434,7 +434,7 @@ static func _get_mode_fire_target(main: Node, state_source, mode: String, fire_i
 			var ring_fire_dir: Vector2 = bullet_pos - main.player["pos"]
 			if ring_fire_dir.is_zero_approx():
 				ring_fire_dir = Vector2.RIGHT.rotated(ring_angle)
-			return main.player["pos"] + ring_fire_dir.normalized() * (profile["ring_radius"] + 180.0)
+			return main.player["pos"] + ring_fire_dir.normalized() * (profile["ring_radius"] + float(profile.get("sortie_target_offset", 180.0)))
 		SwordArrayConfig.MODE_FAN:
 			var fan_slot_count: int = maxi(volley_count if volley_count > 0 else profile["slot_count"], 1)
 			var fan_angle_factor: float = _get_fire_angle_factor(main, state_source, fire_index, fan_slot_count)
@@ -443,12 +443,12 @@ static func _get_mode_fire_target(main: Node, state_source, mode: String, fire_i
 			var fan_fire_dir: Vector2 = bullet_pos - main.player["pos"]
 			if fan_fire_dir.is_zero_approx():
 				fan_fire_dir = Vector2.RIGHT.rotated(fan_angle)
-			return main.player["pos"] + fan_fire_dir.normalized() * (fan_preview["outer_radius"] + 180.0)
+			return main.player["pos"] + fan_fire_dir.normalized() * (fan_preview["outer_radius"] + float(profile.get("sortie_target_offset", 180.0)))
 		_:
 			var pierce_preview: Dictionary = _get_mode_preview_data(main, mode, 1.0)
 			var pierce_line: Vector2 = pierce_preview["tip"] - pierce_preview["start"]
 			var pierce_dir: Vector2 = pierce_line.normalized() if not pierce_line.is_zero_approx() else aim_vector
-			return pierce_preview["tip"] + pierce_dir * 180.0
+			return pierce_preview["tip"] + pierce_dir * float(profile.get("sortie_target_offset", 180.0))
 
 
 static func _get_crescent_fire_target_from_geometry(main: Node, state_source, geometry: Dictionary, fire_index: int, bullet_pos: Vector2, volley_count := -1, burst_step := 0) -> Vector2:
