@@ -85,6 +85,8 @@ const SWORD_RESOURCE_BOSS_DROP_PITY_FAILS := 2
 const ACTION_FAILURE_REPEAT_DELAY := 0.35
 const ACTION_FAILURE_FLASH_DURATION := 0.28
 const DEFLECT_BULLET_SPEED_MULTIPLIER := 8.0
+const EMPOWERED_RING_BULLET_CLEAR_RADIUS := 34.0
+const EMPOWERED_RING_PLAYER_CLEAR_RADIUS := 58.0
 
 const DAMAGE_SOURCE_NONE := ""
 const DAMAGE_SOURCE_MELEE := "melee"
@@ -277,6 +279,14 @@ func _process(delta: float) -> void:
 		_reset_sword_array_hold_state()
 
 	player["array_hold_ratio"] = 0.0
+	if left_mouse_held:
+		player["array_hold_timer"] = min(
+			float(player.get("array_hold_timer", 0.0)) + delta,
+			SwordArrayConfig.HOLD_THRESHOLD
+		)
+		player["array_hold_ratio"] = clampf(float(player.get("array_hold_timer", 0.0)) / SwordArrayConfig.HOLD_THRESHOLD, 0.0, 1.0)
+	else:
+		player["array_hold_timer"] = 0.0
 	if _can_use_array_attack():
 		if not player["array_is_firing"]:
 			if _get_ready_array_sword_count() > 0:
@@ -397,7 +407,11 @@ func _is_array_empowered() -> bool:
 
 
 func _can_use_array_attack() -> bool:
-	return _is_array_empowered()
+	if not _is_array_empowered():
+		return false
+	if not left_mouse_held:
+		return false
+	return float(player.get("array_hold_timer", 0.0)) >= SwordArrayConfig.HOLD_THRESHOLD
 
 
 func _get_active_array_sword_count() -> int:
@@ -1151,6 +1165,12 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 					_remove_bullet(index)
 					index -= 1
 					continue
+				if _empowered_ring_guard_clears_bullet(bullet):
+					_create_particles(bullet["pos"], COLORS["array_sword"], 4)
+					screen_shake = max(screen_shake, 1.6)
+					_remove_bullet(index)
+					index -= 1
+					continue
 				if _player_hit_by_bullet(bullet):
 					_remove_bullet(index)
 					index -= 1
@@ -1173,6 +1193,8 @@ func _update_array_swords(delta: float) -> void:
 					array_sword["guidance_distance"] = float(array_sword.get("guidance_distance", 0.0)) + array_sword["vel"].length() * delta
 					_emit_array_sword_trail(array_sword, delta, false)
 				_decay_array_sword_target_cooldowns(array_sword, delta)
+				if not batch_return_ready:
+					_clear_bullets_near_empowered_ring_sword(array_sword, travel_mode)
 				if not batch_return_ready and not bool(array_sword.get("has_hit_target", false)):
 					var hit_result: Dictionary = _array_sword_hits_enemy(array_sword)
 					if bool(hit_result.get("hit", false)):
@@ -1222,6 +1244,7 @@ func _update_array_swords(delta: float) -> void:
 					_emit_array_sword_trail(array_sword, delta, true)
 		sword_index -= 1
 	_layout_ready_array_swords(delta)
+	_clear_bullets_near_ready_empowered_ring_swords()
 
 
 func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
@@ -1252,6 +1275,57 @@ func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
 			_create_particles(array_sword["pos"], COLORS["array_sword"], 15)
 			return hit_result
 	return hit_result
+
+
+func _clear_bullets_near_empowered_ring_sword(array_sword: Dictionary, travel_mode: String) -> void:
+	if not _is_array_empowered() or travel_mode != SwordArrayConfig.MODE_RING:
+		return
+	var bullet_index: int = bullets.size() - 1
+	var cleared_count: int = 0
+	while bullet_index >= 0:
+		var bullet: Dictionary = bullets[bullet_index]
+		if String(bullet.get("state", "")) != "normal":
+			bullet_index -= 1
+			continue
+		if bullet["pos"].distance_to(array_sword["pos"]) > bullet["radius"] + array_sword["radius"] + EMPOWERED_RING_BULLET_CLEAR_RADIUS:
+			bullet_index -= 1
+			continue
+		_create_particles(bullet["pos"], COLORS["array_sword"], 4)
+		_remove_bullet(bullet_index)
+		cleared_count += 1
+		bullet_index -= 1
+	if cleared_count > 0:
+		screen_shake = max(screen_shake, 1.8)
+
+
+func _clear_bullets_near_ready_empowered_ring_swords() -> void:
+	if not _is_empowered_ring_guard_active():
+		return
+	for array_sword in array_swords:
+		if String(array_sword.get("state", "")) != "ready":
+			continue
+		_clear_bullets_near_empowered_ring_sword(array_sword, SwordArrayConfig.MODE_RING)
+
+
+func _empowered_ring_guard_clears_bullet(bullet: Dictionary) -> bool:
+	if not _is_empowered_ring_guard_active():
+		return false
+	if String(bullet.get("state", "")) != "normal":
+		return false
+	if player["pos"].distance_to(bullet["pos"]) <= EMPOWERED_RING_PLAYER_CLEAR_RADIUS + float(bullet.get("radius", BULLET_RADIUS)):
+		return true
+	for array_sword in array_swords:
+		if String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)) != SwordArrayConfig.MODE_RING:
+			continue
+		if String(array_sword.get("state", "")) == "":
+			continue
+		if bullet["pos"].distance_to(array_sword["pos"]) <= float(bullet.get("radius", BULLET_RADIUS)) + float(array_sword.get("radius", ARRAY_SWORD_RADIUS)) + EMPOWERED_RING_BULLET_CLEAR_RADIUS:
+			return true
+	return false
+
+
+func _is_empowered_ring_guard_active() -> bool:
+	return _is_array_empowered() and _get_array_batch_mode() == SwordArrayConfig.MODE_RING
 
 
 func _begin_array_sword_return(array_sword: Dictionary) -> void:
@@ -1779,7 +1853,7 @@ func _update_ui() -> void:
 	elif debug_battle_mode:
 		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击必杀 | 4 停刷怪 | 5 清敌弹 | 6 无限剑丸资源 | F7 退出 | F6 校准"
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑 | 右键 点刺或连斩 | Space 持续飞剑爆发 | Q 必杀 | F7 战斗调试 | F6 校准调试"
+		hint_label.text = "WASD 移动 | 左键 挥剑/强化中长按发射飞剑 | 右键 点刺或连斩 | Space 消耗剑丸强化剑技 | Q 必杀 | F7 战斗调试 | F6 校准调试"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 

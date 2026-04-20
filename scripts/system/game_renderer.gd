@@ -5,6 +5,10 @@ const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
 const SwordArrayBandRenderer = preload("res://scripts/system/sword_array_band_renderer.gd")
 
+const EMPOWERED_ARRAY_CORE_COLOR := Color("f8fafc")
+const EMPOWERED_ARRAY_EDGE_COLOR := Color("22d3ee")
+const EMPOWERED_ARRAY_FLARE_COLOR := Color("fb7185")
+
 
 static func draw_game(main: Node2D) -> void:
 	main.draw_rect(Rect2(Vector2.ZERO, main.get_viewport_rect().size), main.COLORS["background"], true)
@@ -103,6 +107,7 @@ static func draw_game(main: Node2D) -> void:
 			main.draw_arc(empty_slot_pos, 7.0, 0.0, TAU, 18, ghost_color, 1.2)
 		slot_index += 1
 
+	var array_empowered: bool = main._is_array_empowered()
 	for array_sword in main.array_swords:
 		var array_sword_pos: Vector2 = main._to_screen(array_sword["pos"])
 		var array_sword_color: Color = SwordArrayController.get_accent_color(main._get_sword_array_morph_state())
@@ -110,8 +115,8 @@ static func draw_game(main: Node2D) -> void:
 			array_sword_color = main.COLORS["array_sword_return"]
 		elif array_sword["state"] == "outbound":
 			array_sword_color = main.COLORS["array_sword"]
-		if main._is_array_empowered():
-			array_sword_color = array_sword_color.lerp(main.COLORS["sword_resource"], 0.28)
+		if array_empowered:
+			array_sword_color = _get_empowered_array_sword_color(main, array_sword_color)
 		var forward: Vector2 = Vector2.RIGHT
 		if array_sword["vel"].length_squared() > 1.0:
 			forward = array_sword["vel"].normalized()
@@ -120,13 +125,20 @@ static func draw_game(main: Node2D) -> void:
 			if forward.is_zero_approx():
 				forward = Vector2.RIGHT
 		var side: Vector2 = forward.rotated(PI * 0.5)
-		var tip_pos: Vector2 = array_sword_pos + forward * 10.0
-		var left_pos: Vector2 = array_sword_pos - forward * 6.0 + side * 4.0
-		var right_pos: Vector2 = array_sword_pos - forward * 6.0 - side * 4.0
-		if main._is_array_empowered():
-			main.draw_circle(array_sword_pos, 8.0, Color(array_sword_color.r, array_sword_color.g, array_sword_color.b, 0.12))
+		var sword_length: float = 14.0 if array_empowered else 10.0
+		var sword_tail_length: float = 8.0 if array_empowered else 6.0
+		var sword_half_width: float = 5.0 if array_empowered else 4.0
+		var tip_pos: Vector2 = array_sword_pos + forward * sword_length
+		var left_pos: Vector2 = array_sword_pos - forward * sword_tail_length + side * sword_half_width
+		var right_pos: Vector2 = array_sword_pos - forward * sword_tail_length - side * sword_half_width
+		if array_empowered:
+			_draw_empowered_array_sword_trail(main, array_sword, array_sword_pos, forward, side, array_sword_color)
 		_try_draw_colored_polygon(main, PackedVector2Array([tip_pos, left_pos, right_pos]), array_sword_color)
-		main.draw_circle(array_sword_pos, 2.2, Color.WHITE)
+		if array_empowered:
+			main.draw_line(array_sword_pos - forward * 5.0, tip_pos, _with_alpha(EMPOWERED_ARRAY_CORE_COLOR, 0.95), 2.0)
+			main.draw_circle(array_sword_pos, 3.0, EMPOWERED_ARRAY_CORE_COLOR)
+		else:
+			main.draw_circle(array_sword_pos, 2.2, Color.WHITE)
 
 	if main.debug_calibration_mode:
 		_draw_debug_calibration_overlay(main, player_pos)
@@ -145,6 +157,54 @@ static func draw_game(main: Node2D) -> void:
 
 	main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	draw_hud_bars(main)
+
+
+static func _get_empowered_array_sword_color(main: Node2D, base_color: Color) -> Color:
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 12.0)
+	var empower_timer: float = float(main.player.get("array_empower_timer", 0.0))
+	var color: Color = base_color.lerp(EMPOWERED_ARRAY_EDGE_COLOR, 0.62)
+	color = color.lerp(EMPOWERED_ARRAY_FLARE_COLOR, 0.22 + pulse * 0.16)
+	if empower_timer <= 1.2:
+		color = color.lerp(main.COLORS["health"], 0.22 + 0.18 * pulse)
+	return color
+
+
+static func _draw_empowered_array_sword_trail(
+	main: Node2D,
+	array_sword: Dictionary,
+	array_sword_pos: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	array_sword_color: Color
+) -> void:
+	var state: String = String(array_sword.get("state", "ready"))
+	var speed: float = array_sword["vel"].length()
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 16.0 + float(array_sword.get("slot_index", 0)) * 0.8)
+	var trail_length: float = 24.0
+	if state != "ready":
+		trail_length = 42.0 + minf(speed * 0.018, 30.0)
+	var tail_end: Vector2 = array_sword_pos - forward * trail_length
+	var inner_tail: Vector2 = array_sword_pos - forward * trail_length * 0.58
+	var flare_color: Color = EMPOWERED_ARRAY_FLARE_COLOR.lerp(array_sword_color, 0.35 + pulse * 0.2)
+	var edge_color: Color = EMPOWERED_ARRAY_EDGE_COLOR.lerp(array_sword_color, 0.3)
+
+	main.draw_line(tail_end, array_sword_pos - forward * 5.0, _with_alpha(flare_color, 0.18 + pulse * 0.08), 8.0)
+	main.draw_line(inner_tail, array_sword_pos - forward * 2.0, _with_alpha(edge_color, 0.42 + pulse * 0.14), 4.0)
+	main.draw_line(
+		array_sword_pos - forward * trail_length * 0.34 + side * 3.2,
+		array_sword_pos + forward * 6.0,
+		_with_alpha(EMPOWERED_ARRAY_CORE_COLOR, 0.45),
+		1.2
+	)
+	main.draw_line(
+		array_sword_pos - forward * trail_length * 0.34 - side * 3.2,
+		array_sword_pos + forward * 6.0,
+		_with_alpha(EMPOWERED_ARRAY_CORE_COLOR, 0.3),
+		1.2
+	)
+	main.draw_circle(array_sword_pos, 10.0 + pulse * 2.0, _with_alpha(edge_color, 0.14))
+	var flare_angle: float = forward.angle()
+	main.draw_arc(array_sword_pos, 13.0 + pulse * 3.0, flare_angle - 0.8, flare_angle + 0.8, 12, _with_alpha(flare_color, 0.48), 1.6)
 
 
 static func _draw_debug_calibration_overlay(main: Node2D, player_pos: Vector2) -> void:
@@ -323,6 +383,12 @@ static func _try_draw_colored_polygon(main: Node2D, points: PackedVector2Array, 
 	if not _is_valid_fill_polygon(points):
 		return
 	main.draw_colored_polygon(points, color)
+
+
+static func _with_alpha(color: Color, alpha: float) -> Color:
+	var result: Color = color
+	result.a = alpha
+	return result
 
 
 static func _is_valid_fill_polygon(points: PackedVector2Array) -> bool:
