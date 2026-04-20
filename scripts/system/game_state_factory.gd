@@ -17,24 +17,16 @@ static func reset_runtime(main: Node) -> void:
 	main.enemies.clear()
 	main.bullets.clear()
 	main.array_swords.clear()
-	main.pickups.clear()
 	main.particles.clear()
 	main.boss.clear()
-	main.boss_shard_spawn_timer = 3.5
-	main.boss_shard_failed_cycles = 0
 	main.status_message = ""
 	main.status_message_timer = 0.0
 	main.status_message_color = Color.WHITE
-	main.empower_end_warning_emitted = false
 	main.player = {
 		"pos": main.ARENA_SIZE * 0.5,
 		"vel": Vector2.ZERO,
 		"health": main.PLAYER_MAX_HEALTH,
 		"energy": 0.0,
-		"sword_resource": 0,
-		"sword_resource_max": main.SWORD_RESOURCE_MAX,
-		"sword_resource_elite_pity": 0,
-		"array_empower_timer": 0.0,
 		"mode": main.CombatMode.MELEE,
 		"attack_cooldown": 0.0,
 		"attack_flash_timer": 0.0,
@@ -56,7 +48,6 @@ static func reset_runtime(main: Node) -> void:
 		"infinite_energy": false,
 		"one_hit_kill": false,
 		"no_spawn": false,
-		"infinite_sword_resources": false,
 	}
 	main.debug_calibration_mode = false
 	main.debug_dragging_player = false

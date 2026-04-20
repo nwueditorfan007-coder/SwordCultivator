@@ -5,9 +5,9 @@ const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
 const SwordArrayBandRenderer = preload("res://scripts/system/sword_array_band_renderer.gd")
 
-const EMPOWERED_ARRAY_CORE_COLOR := Color("f8fafc")
-const EMPOWERED_ARRAY_EDGE_COLOR := Color("22d3ee")
-const EMPOWERED_ARRAY_FLARE_COLOR := Color("fb7185")
+const ARRAY_CHANNEL_CORE_COLOR := Color("f8fafc")
+const ARRAY_CHANNEL_EDGE_COLOR := Color("22d3ee")
+const ARRAY_CHANNEL_FLARE_COLOR := Color("fb7185")
 
 
 static func draw_game(main: Node2D) -> void:
@@ -42,15 +42,6 @@ static func draw_game(main: Node2D) -> void:
 	if main._has_boss():
 		main._draw_boss()
 
-	for pickup in main.pickups:
-		var pickup_pos: Vector2 = main._to_screen(pickup["pos"])
-		var pickup_color: Color = main.COLORS["sword_resource"]
-		var pulse_radius: float = 10.0 + absf(sin(main.elapsed_time * 6.0 + pickup_pos.x * 0.01)) * 3.0
-		main.draw_circle(pickup_pos, 8.0, Color(pickup_color.r, pickup_color.g, pickup_color.b, 0.18))
-		main.draw_arc(pickup_pos, pulse_radius, 0.0, TAU, 24, pickup_color, 2.0)
-		main.draw_line(pickup_pos + Vector2(0.0, -pulse_radius - 3.0), pickup_pos + Vector2(0.0, -pulse_radius + 4.0), pickup_color, 1.4)
-		main.draw_circle(pickup_pos, 4.5, pickup_color)
-
 	for bullet in main.bullets:
 		var bullet_pos: Vector2 = main._to_screen(bullet["pos"])
 		var bullet_color: Color = bullet["color"]
@@ -75,10 +66,11 @@ static func draw_game(main: Node2D) -> void:
 	var player_pos: Vector2 = main._to_screen(main.player["pos"])
 	main.draw_circle(player_pos, main.PLAYER_RADIUS, main.COLORS["player"])
 	var aura_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
-	if main._is_array_empowered():
-		aura_color = aura_color.lerp(main.COLORS["sword_resource"], 0.45)
+	var array_channeling: bool = bool(main.player.get("array_is_firing", false))
+	if array_channeling:
+		aura_color = aura_color.lerp(ARRAY_CHANNEL_EDGE_COLOR, 0.45)
 	main.draw_arc(player_pos, main.PLAYER_RADIUS + 5.0, 0.0, TAU, 28, aura_color, 2.0)
-	if main._is_array_empowered():
+	if array_channeling:
 		var pulse_radius: float = main.PLAYER_RADIUS + 11.0 + sin(main.elapsed_time * 8.0) * 2.0
 		main.draw_arc(
 			player_pos,
@@ -86,7 +78,7 @@ static func draw_game(main: Node2D) -> void:
 			0.0,
 			TAU,
 			32,
-			Color(main.COLORS["sword_resource"].r, main.COLORS["sword_resource"].g, main.COLORS["sword_resource"].b, 0.55),
+			_with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.55),
 			2.2
 		)
 
@@ -107,7 +99,6 @@ static func draw_game(main: Node2D) -> void:
 			main.draw_arc(empty_slot_pos, 7.0, 0.0, TAU, 18, ghost_color, 1.2)
 		slot_index += 1
 
-	var array_empowered: bool = main._is_array_empowered()
 	for array_sword in main.array_swords:
 		var array_sword_pos: Vector2 = main._to_screen(array_sword["pos"])
 		var array_sword_color: Color = SwordArrayController.get_accent_color(main._get_sword_array_morph_state())
@@ -115,8 +106,8 @@ static func draw_game(main: Node2D) -> void:
 			array_sword_color = main.COLORS["array_sword_return"]
 		elif array_sword["state"] == "outbound":
 			array_sword_color = main.COLORS["array_sword"]
-		if array_empowered:
-			array_sword_color = _get_empowered_array_sword_color(main, array_sword_color)
+		if array_channeling:
+			array_sword_color = _get_channeled_array_sword_color(main, array_sword_color)
 		var forward: Vector2 = Vector2.RIGHT
 		if array_sword["vel"].length_squared() > 1.0:
 			forward = array_sword["vel"].normalized()
@@ -125,18 +116,18 @@ static func draw_game(main: Node2D) -> void:
 			if forward.is_zero_approx():
 				forward = Vector2.RIGHT
 		var side: Vector2 = forward.rotated(PI * 0.5)
-		var sword_length: float = 14.0 if array_empowered else 10.0
-		var sword_tail_length: float = 8.0 if array_empowered else 6.0
-		var sword_half_width: float = 5.0 if array_empowered else 4.0
+		var sword_length: float = 14.0 if array_channeling else 10.0
+		var sword_tail_length: float = 8.0 if array_channeling else 6.0
+		var sword_half_width: float = 5.0 if array_channeling else 4.0
 		var tip_pos: Vector2 = array_sword_pos + forward * sword_length
 		var left_pos: Vector2 = array_sword_pos - forward * sword_tail_length + side * sword_half_width
 		var right_pos: Vector2 = array_sword_pos - forward * sword_tail_length - side * sword_half_width
-		if array_empowered:
-			_draw_empowered_array_sword_trail(main, array_sword, array_sword_pos, forward, side, array_sword_color)
+		if array_channeling:
+			_draw_channeled_array_sword_trail(main, array_sword, array_sword_pos, forward, side, array_sword_color)
 		_try_draw_colored_polygon(main, PackedVector2Array([tip_pos, left_pos, right_pos]), array_sword_color)
-		if array_empowered:
-			main.draw_line(array_sword_pos - forward * 5.0, tip_pos, _with_alpha(EMPOWERED_ARRAY_CORE_COLOR, 0.95), 2.0)
-			main.draw_circle(array_sword_pos, 3.0, EMPOWERED_ARRAY_CORE_COLOR)
+		if array_channeling:
+			main.draw_line(array_sword_pos - forward * 5.0, tip_pos, _with_alpha(ARRAY_CHANNEL_CORE_COLOR, 0.95), 2.0)
+			main.draw_circle(array_sword_pos, 3.0, ARRAY_CHANNEL_CORE_COLOR)
 		else:
 			main.draw_circle(array_sword_pos, 2.2, Color.WHITE)
 
@@ -159,17 +150,17 @@ static func draw_game(main: Node2D) -> void:
 	draw_hud_bars(main)
 
 
-static func _get_empowered_array_sword_color(main: Node2D, base_color: Color) -> Color:
+static func _get_channeled_array_sword_color(main: Node2D, base_color: Color) -> Color:
 	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 12.0)
-	var empower_timer: float = float(main.player.get("array_empower_timer", 0.0))
-	var color: Color = base_color.lerp(EMPOWERED_ARRAY_EDGE_COLOR, 0.62)
-	color = color.lerp(EMPOWERED_ARRAY_FLARE_COLOR, 0.22 + pulse * 0.16)
-	if empower_timer <= 1.2:
+	var energy_ratio: float = clampf(float(main.player.get("energy", 0.0)) / main.PLAYER_MAX_ENERGY, 0.0, 1.0)
+	var color: Color = base_color.lerp(ARRAY_CHANNEL_EDGE_COLOR, 0.62)
+	color = color.lerp(ARRAY_CHANNEL_FLARE_COLOR, 0.22 + pulse * 0.16)
+	if energy_ratio <= 0.18:
 		color = color.lerp(main.COLORS["health"], 0.22 + 0.18 * pulse)
 	return color
 
 
-static func _draw_empowered_array_sword_trail(
+static func _draw_channeled_array_sword_trail(
 	main: Node2D,
 	array_sword: Dictionary,
 	array_sword_pos: Vector2,
@@ -185,21 +176,21 @@ static func _draw_empowered_array_sword_trail(
 		trail_length = 42.0 + minf(speed * 0.018, 30.0)
 	var tail_end: Vector2 = array_sword_pos - forward * trail_length
 	var inner_tail: Vector2 = array_sword_pos - forward * trail_length * 0.58
-	var flare_color: Color = EMPOWERED_ARRAY_FLARE_COLOR.lerp(array_sword_color, 0.35 + pulse * 0.2)
-	var edge_color: Color = EMPOWERED_ARRAY_EDGE_COLOR.lerp(array_sword_color, 0.3)
+	var flare_color: Color = ARRAY_CHANNEL_FLARE_COLOR.lerp(array_sword_color, 0.35 + pulse * 0.2)
+	var edge_color: Color = ARRAY_CHANNEL_EDGE_COLOR.lerp(array_sword_color, 0.3)
 
 	main.draw_line(tail_end, array_sword_pos - forward * 5.0, _with_alpha(flare_color, 0.18 + pulse * 0.08), 8.0)
 	main.draw_line(inner_tail, array_sword_pos - forward * 2.0, _with_alpha(edge_color, 0.42 + pulse * 0.14), 4.0)
 	main.draw_line(
 		array_sword_pos - forward * trail_length * 0.34 + side * 3.2,
 		array_sword_pos + forward * 6.0,
-		_with_alpha(EMPOWERED_ARRAY_CORE_COLOR, 0.45),
+		_with_alpha(ARRAY_CHANNEL_CORE_COLOR, 0.45),
 		1.2
 	)
 	main.draw_line(
 		array_sword_pos - forward * trail_length * 0.34 - side * 3.2,
 		array_sword_pos + forward * 6.0,
-		_with_alpha(EMPOWERED_ARRAY_CORE_COLOR, 0.3),
+		_with_alpha(ARRAY_CHANNEL_CORE_COLOR, 0.3),
 		1.2
 	)
 	main.draw_circle(array_sword_pos, 10.0 + pulse * 2.0, _with_alpha(edge_color, 0.14))
@@ -277,44 +268,19 @@ static func draw_hud_bars(main: Node2D) -> void:
 	main.draw_rect(Rect2(health_bar_rect.position, Vector2(health_bar_rect.size.x * (main.player["health"] / main.PLAYER_MAX_HEALTH), health_bar_rect.size.y)), main.COLORS["health"], true)
 	main.draw_rect(energy_bar_rect, Color("1d1d1d"), true)
 	var energy_fill_color: Color = main.COLORS["energy"]
-	if main._is_array_empowered():
-		energy_fill_color = energy_fill_color.lerp(main.COLORS["sword_resource"], 0.35)
+	if bool(main.player.get("array_is_firing", false)):
+		energy_fill_color = energy_fill_color.lerp(ARRAY_CHANNEL_EDGE_COLOR, 0.35)
 		main.draw_rect(
 			Rect2(energy_bar_rect.position - Vector2(2.0, 2.0), energy_bar_rect.size + Vector2(4.0, 4.0)),
-			Color(
-				main.COLORS["sword_resource"].r,
-				main.COLORS["sword_resource"].g,
-				main.COLORS["sword_resource"].b,
-				0.18
-			),
+			_with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.18),
 			false,
 			2.0
 		)
-		_draw_empower_flames(main, energy_bar_rect)
+		_draw_array_channel_flames(main, energy_bar_rect)
 	main.draw_rect(Rect2(energy_bar_rect.position, Vector2(energy_bar_rect.size.x * (main.player["energy"] / main.PLAYER_MAX_ENERGY), energy_bar_rect.size.y)), energy_fill_color, true)
-	if main._is_array_empowered():
-		var empower_ratio: float = clampf(float(main.player.get("array_empower_timer", 0.0)) / main.ARRAY_SWORD_EMPOWER_DURATION, 0.0, 1.0)
-		var empower_bar_rect: Rect2 = Rect2(energy_bar_rect.position + Vector2(0.0, 17.0), Vector2(energy_bar_rect.size.x, 5.0))
-		var empower_color: Color = main.COLORS["sword_resource"]
-		if float(main.player.get("array_empower_timer", 0.0)) <= 1.2:
-			empower_color = empower_color.lerp(main.COLORS["health"], 0.45 + 0.25 * absf(sin(main.elapsed_time * 16.0)))
-		main.draw_rect(empower_bar_rect, Color("2b171a"), true)
-		main.draw_rect(Rect2(empower_bar_rect.position, Vector2(empower_bar_rect.size.x * empower_ratio, empower_bar_rect.size.y)), empower_color, true)
-	var shard_index: int = 0
-	while shard_index < int(main.player.get("sword_resource_max", main.SWORD_RESOURCE_MAX)):
-		var icon_center: Vector2 = Vector2(health_bar_rect.position.x + 12.0 + shard_index * 18.0, energy_bar_rect.position.y + 30.0)
-		var icon_color: Color = main.COLORS["sword_resource"] if shard_index < int(main.player.get("sword_resource", 0)) else Color("4b5563")
-		var diamond := PackedVector2Array([
-			icon_center + Vector2(0.0, -6.0),
-			icon_center + Vector2(6.0, 0.0),
-			icon_center + Vector2(0.0, 6.0),
-			icon_center + Vector2(-6.0, 0.0),
-		])
-		_try_draw_colored_polygon(main, diamond, icon_color)
-		shard_index += 1
 
 
-static func _draw_empower_flames(main: Node2D, energy_bar_rect: Rect2) -> void:
+static func _draw_array_channel_flames(main: Node2D, energy_bar_rect: Rect2) -> void:
 	var flame_count: int = 8
 	var flame_index: int = 0
 	while flame_index < flame_count:
@@ -322,7 +288,7 @@ static func _draw_empower_flames(main: Node2D, energy_bar_rect: Rect2) -> void:
 		var base_x: float = energy_bar_rect.position.x + x_ratio * energy_bar_rect.size.x
 		var sway: float = sin(main.elapsed_time * 8.0 + float(flame_index) * 0.9) * 3.0
 		var flame_height: float = 7.0 + absf(sin(main.elapsed_time * 10.5 + float(flame_index) * 1.2)) * 7.0
-		var flame_color: Color = main.COLORS["sword_resource"].lerp(main.COLORS["energy"], 0.35)
+		var flame_color: Color = ARRAY_CHANNEL_EDGE_COLOR.lerp(main.COLORS["energy"], 0.35)
 		flame_color.a = 0.42
 		var flame := PackedVector2Array([
 			Vector2(base_x - 5.0, energy_bar_rect.position.y + 1.0),

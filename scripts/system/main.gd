@@ -51,42 +51,28 @@ const BULLET_TIME_RECOVERY_DURATION := 2.0
 const PLAYER_BULLET_TIME_SPEED_MULTIPLIER := 0.85
 const ENEMY_HIT_COOLDOWN := 0.05
 
-const ENERGY_INITIAL_RANGED_COST := 10.0
-const ENERGY_CONSUMPTION_RANGED := 0.25 * 60.0
 const ENERGY_RECOVERY_MELEE_NATURAL := 4.0
 const ENERGY_GAIN_MELEE_HIT := 2.0
 const ENERGY_GAIN_MELEE_DEFLECT := 8.0
-const SWORD_RESOURCE_MAX := 3
-const ARRAY_SWORD_BASE_COUNT := 6
-const ARRAY_SWORD_EMPOWERED_COUNT := 12
+const ARRAY_SWORD_COUNT := 12
 const ARRAY_SWORD_RADIUS := 6.0
 const ARRAY_SWORD_RETURN_SPEED := 32.0 * 60.0
 const ARRAY_SWORD_RETURN_CATCH_RADIUS := 18.0
-const ARRAY_SWORD_ENERGY_COST_PER_SWORD := 3.5
+const ARRAY_SWORD_ENERGY_COST_PER_SWORD := 0.65
 const ARRAY_SWORD_MAX_TRAVEL_DISTANCE := 540.0
 const ARRAY_SWORD_MIN_SORTIE_DISTANCE := 220.0
 const ARRAY_SWORD_HIT_FOLLOW_THROUGH_DISTANCE := 130.0
 const ARRAY_MORPH_CONTROL_SMOOTH_SPEED_IDLE := 12.0
 const ARRAY_MORPH_CONTROL_SMOOTH_SPEED_HELD := 9.0
 const ARRAY_MORPH_CONTROL_SMOOTH_SPEED_FIRING := 6.5
-const ARRAY_SWORD_EMPOWER_DURATION := 5.0
-const ARRAY_SWORD_EMPOWER_FIRE_SPEED_SCALE := 1.35
-const ARRAY_SWORD_EMPOWER_RETURN_SPEED_SCALE := 1.0
-const ARRAY_SWORD_EMPOWER_RELEASE_RATE_SCALE := 0.78
-const BULLET_TIME_RECOVERY_DURATION_EMPOWERED := 3.25
-const SWORD_RESOURCE_PICKUP_RADIUS := 44.0
-const SWORD_RESOURCE_PULL_RADIUS := 96.0
-const SWORD_RESOURCE_PULL_SPEED := 10.0
-const SWORD_RESOURCE_ELITE_DROP_CHANCE := 0.22
-const SWORD_RESOURCE_ELITE_PITY_KILLS := 4
-const SWORD_RESOURCE_BOSS_DROP_INTERVAL := 5.0
-const SWORD_RESOURCE_BOSS_DROP_CHANCE := 0.30
-const SWORD_RESOURCE_BOSS_DROP_PITY_FAILS := 2
+const ARRAY_SWORD_FIRE_SPEED_SCALE := 1.35
+const ARRAY_SWORD_RETURN_SPEED_SCALE := 1.0
+const ARRAY_SWORD_RELEASE_RATE_SCALE := 0.78
 const ACTION_FAILURE_REPEAT_DELAY := 0.35
 const ACTION_FAILURE_FLASH_DURATION := 0.28
 const DEFLECT_BULLET_SPEED_MULTIPLIER := 8.0
-const EMPOWERED_RING_BULLET_CLEAR_RADIUS := 34.0
-const EMPOWERED_RING_PLAYER_CLEAR_RADIUS := 58.0
+const RING_GUARD_BULLET_CLEAR_RADIUS := 34.0
+const RING_GUARD_PLAYER_CLEAR_RADIUS := 58.0
 
 const DAMAGE_SOURCE_NONE := ""
 const DAMAGE_SOURCE_MELEE := "melee"
@@ -159,7 +145,6 @@ const COLORS := {
 	"frozen": Color("00ffff"),
 	"array_sword": Color("7dd3fc"),
 	"array_sword_return": Color("facc15"),
-	"sword_resource": Color("fb7185"),
 	"energy": Color("facc15"),
 	"health": Color("ef4444"),
 	"boss_body": Color("7c3aed"),
@@ -173,7 +158,6 @@ var sword: Dictionary = {}
 var enemies: Array = []
 var bullets: Array = []
 var array_swords: Array = []
-var pickups: Array = []
 var particles: Array = []
 var boss: Dictionary = {}
 
@@ -185,8 +169,6 @@ var is_game_over: bool = false
 var screen_shake: float = 0.0
 var elapsed_time: float = 0.0
 var id_counter: int = 0
-var boss_shard_spawn_timer: float = 0.0
-var boss_shard_failed_cycles: int = 0
 var status_message: String = ""
 var status_message_timer: float = 0.0
 var status_message_color: Color = Color.WHITE
@@ -195,7 +177,6 @@ var energy_feedback_timer: float = 0.0
 var energy_feedback_color: Color = Color.WHITE
 var array_feedback_timer: float = 0.0
 var array_feedback_color: Color = Color.WHITE
-var empower_end_warning_emitted: bool = false
 
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
 var left_mouse_held: bool = false
@@ -295,10 +276,8 @@ func _process(delta: float) -> void:
 			player["array_hold_ratio"] = 1.0
 			_update_sword_array_continuous_firing(delta)
 
-	_update_array_empower_state(delta)
 	_update_status_feedback(delta)
 	_update_action_feedback(delta)
-	_update_pickups(delta)
 	_update_player(delta, player_delta)
 	_update_sword(delta)
 	_update_boss(delta, bullet_time_delta)
@@ -320,9 +299,6 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.is_action_pressed("absorb"):
-			_try_activate_array_empower()
-			return
 		if _handle_debug_key_input(event):
 			return
 	if event is InputEventMouseMotion:
@@ -399,16 +375,10 @@ func _update_player(delta: float, player_delta: float) -> void:
 
 
 func _get_bullet_time_recovery_duration() -> float:
-	return BULLET_TIME_RECOVERY_DURATION_EMPOWERED if _is_array_empowered() else BULLET_TIME_RECOVERY_DURATION
-
-
-func _is_array_empowered() -> bool:
-	return float(player.get("array_empower_timer", 0.0)) > 0.0
+	return BULLET_TIME_RECOVERY_DURATION
 
 
 func _can_use_array_attack() -> bool:
-	if not _is_array_empowered():
-		return false
 	if not left_mouse_held:
 		return false
 	return float(player.get("array_hold_timer", 0.0)) >= SwordArrayConfig.HOLD_THRESHOLD
@@ -419,7 +389,7 @@ func _get_active_array_sword_count() -> int:
 
 
 func _get_current_array_sword_capacity() -> int:
-	return ARRAY_SWORD_EMPOWERED_COUNT if _is_array_empowered() else ARRAY_SWORD_BASE_COUNT
+	return ARRAY_SWORD_COUNT
 
 
 func _get_array_sortie_profile(mode: String) -> Dictionary:
@@ -427,7 +397,7 @@ func _get_array_sortie_profile(mode: String) -> Dictionary:
 
 
 func _should_array_consume_energy() -> bool:
-	return not _is_array_empowered()
+	return true
 
 
 func _get_array_batch_mode() -> String:
@@ -467,8 +437,7 @@ func _get_array_mode_speed_scale(mode: String) -> float:
 
 func _get_current_array_sword_speed(mode := "") -> float:
 	var resolved_mode: String = mode if mode != "" else _get_array_batch_mode()
-	var speed_scale: float = ARRAY_SWORD_EMPOWER_FIRE_SPEED_SCALE if _is_array_empowered() else 1.0
-	return SwordArrayConfig.FIRED_SPEED * speed_scale * _get_array_mode_speed_scale(resolved_mode)
+	return SwordArrayConfig.FIRED_SPEED * ARRAY_SWORD_FIRE_SPEED_SCALE * _get_array_mode_speed_scale(resolved_mode)
 
 
 func _get_array_mode_return_speed_scale(mode: String) -> float:
@@ -483,15 +452,11 @@ func _get_array_mode_return_speed_scale(mode: String) -> float:
 
 func _get_current_array_sword_return_speed(mode := "") -> float:
 	var resolved_mode: String = mode if mode != "" else _get_array_batch_mode()
-	var speed_scale: float = ARRAY_SWORD_EMPOWER_RETURN_SPEED_SCALE if _is_array_empowered() else 1.0
-	return ARRAY_SWORD_RETURN_SPEED * speed_scale * _get_array_mode_return_speed_scale(resolved_mode)
+	return ARRAY_SWORD_RETURN_SPEED * ARRAY_SWORD_RETURN_SPEED_SCALE * _get_array_mode_return_speed_scale(resolved_mode)
 
 
 func _get_current_array_release_rate(base_rate: float) -> float:
-	var release_rate: float = maxf(base_rate, 0.0)
-	if _is_array_empowered():
-		release_rate *= ARRAY_SWORD_EMPOWER_RELEASE_RATE_SCALE
-	return release_rate
+	return maxf(base_rate, 0.0) * ARRAY_SWORD_RELEASE_RATE_SCALE
 
 
 func _get_ready_array_sword_count() -> int:
@@ -515,7 +480,7 @@ func _sort_array_swords_by_slot(a: Dictionary, b: Dictionary) -> bool:
 	return int(a.get("slot_index", 0)) < int(b.get("slot_index", 0))
 
 
-func _build_array_sword(slot_index: int, is_empowered_only: bool) -> Dictionary:
+func _build_array_sword(slot_index: int) -> Dictionary:
 	return {
 		"id": _next_id("array_sword"),
 		"pos": player["pos"],
@@ -538,7 +503,6 @@ func _build_array_sword(slot_index: int, is_empowered_only: bool) -> Dictionary:
 		"batch_id": "",
 		"batch_return_ready": false,
 		"return_unlock_distance": ARRAY_SWORD_MIN_SORTIE_DISTANCE,
-		"empowered_only": is_empowered_only,
 		"pending_remove": false,
 	}
 
@@ -566,7 +530,7 @@ func _rebuild_array_sword_pool() -> void:
 	var sword_index: int = 0
 	var target_count: int = _get_current_array_sword_capacity()
 	while sword_index < target_count:
-		array_swords.append(_build_array_sword(sword_index, sword_index >= ARRAY_SWORD_BASE_COUNT))
+		array_swords.append(_build_array_sword(sword_index))
 		sword_index += 1
 	_layout_ready_array_swords(1.0)
 
@@ -577,35 +541,18 @@ func _sync_array_sword_pool_capacity() -> void:
 	if current_count < target_count:
 		var add_index: int = current_count
 		while add_index < target_count:
-			array_swords.append(_build_array_sword(add_index, add_index >= ARRAY_SWORD_BASE_COUNT))
+			array_swords.append(_build_array_sword(add_index))
 			add_index += 1
 	elif current_count > target_count:
 		var sword_index: int = array_swords.size() - 1
 		while sword_index >= 0 and array_swords.size() > target_count:
 			var array_sword: Dictionary = array_swords[sword_index]
-			if array_sword["state"] == "ready" and bool(array_sword.get("empowered_only", false)):
+			if array_sword["state"] == "ready":
 				array_swords.remove_at(sword_index)
 			sword_index -= 1
 		for array_sword in array_swords:
-			array_sword["pending_remove"] = bool(array_sword.get("empowered_only", false)) and array_swords.size() > target_count
+			array_sword["pending_remove"] = array_swords.size() > target_count
 	array_swords.sort_custom(_sort_array_swords_by_slot)
-
-
-func _ready_all_array_swords_for_empower() -> void:
-	_sync_array_sword_pool_capacity()
-	for array_sword in array_swords:
-		array_sword["state"] = "ready"
-		array_sword["travel_mode"] = _get_array_batch_mode()
-		_reset_array_sword_sortie_state(array_sword)
-		array_sword["pending_remove"] = false
-		array_sword["vel"] = Vector2.ZERO
-	array_swords.sort_custom(_sort_array_swords_by_slot)
-	player["array_is_firing"] = false
-	player["array_release_progress"] = 0.0
-	player["array_packet_remainder"] = 0.0
-	player["array_fire_index"] = 0
-	_layout_ready_array_swords(1.0)
-	_refresh_sword_array_live_state()
 
 
 func _get_array_sword_slot_position(slot_index: int, formation_ratio := -1.0) -> Vector2:
@@ -629,24 +576,6 @@ func _layout_ready_array_swords(delta: float) -> void:
 		var target_pos: Vector2 = _get_array_sword_slot_position(int(array_sword.get("slot_index", 0)), formation_ratio)
 		array_sword["pos"] = array_sword["pos"].lerp(target_pos, min(delta * 18.0, 1.0))
 		array_sword["vel"] = Vector2.ZERO
-
-
-func _update_array_empower_state(delta: float) -> void:
-	var previous_timer: float = float(player.get("array_empower_timer", 0.0))
-	var empower_timer: float = maxf(float(player.get("array_empower_timer", 0.0)) - delta, 0.0)
-	player["array_empower_timer"] = empower_timer
-	if previous_timer > 1.2 and empower_timer <= 1.2 and empower_timer > 0.0 and not empower_end_warning_emitted:
-		_show_status_message("强化即将结束", COLORS["sword_resource"], 1.0)
-		empower_end_warning_emitted = true
-	if previous_timer > 0.0 and is_zero_approx(empower_timer):
-		_show_status_message("强化结束", COLORS["energy"], 0.9)
-		empower_end_warning_emitted = false
-		_reset_sword_array_hold_state()
-	elif empower_timer > 1.2:
-		empower_end_warning_emitted = false
-	_sync_array_sword_pool_capacity()
-	if not player["array_is_firing"]:
-		_refresh_sword_array_live_state()
 
 
 func _update_status_feedback(delta: float) -> void:
@@ -674,10 +603,6 @@ func _get_array_failure_color() -> Color:
 	return COLORS["array_sword"].lerp(COLORS["health"], 0.38)
 
 
-func _get_sword_resource_failure_color() -> Color:
-	return COLORS["sword_resource"].lerp(COLORS["health"], 0.42)
-
-
 func _trigger_action_feedback(channel: String, color: Color, duration := ACTION_FAILURE_FLASH_DURATION) -> void:
 	match channel:
 		"energy":
@@ -696,55 +621,6 @@ func _show_action_failure(message: String, reason_key: String, color: Color, cha
 		return
 	action_failure_cooldowns[reason_key] = elapsed_time + repeat_delay
 	_show_status_message(message, color, duration)
-
-
-func _update_pickups(delta: float) -> void:
-	var pickup_index: int = pickups.size() - 1
-	while pickup_index >= 0:
-		var pickup: Dictionary = pickups[pickup_index]
-		var to_player: Vector2 = player["pos"] - pickup["pos"]
-		var distance: float = to_player.length()
-		if distance <= SWORD_RESOURCE_PICKUP_RADIUS:
-			_collect_pickup(pickups[pickup_index])
-			pickups.remove_at(pickup_index)
-			pickup_index -= 1
-			continue
-		if distance <= SWORD_RESOURCE_PULL_RADIUS and distance > 0.001:
-			pickup["pos"] = pickup["pos"].lerp(player["pos"], min(delta * SWORD_RESOURCE_PULL_SPEED, 1.0))
-		pickup_index -= 1
-
-
-func _spawn_sword_resource_pickup(position: Vector2) -> void:
-	pickups.append({
-		"id": _next_id("sword_resource"),
-		"type": "sword_resource",
-		"pos": position,
-	})
-
-
-func _collect_pickup(pickup: Dictionary) -> void:
-	if String(pickup.get("type", "")) != "sword_resource":
-		return
-	player["sword_resource"] = mini(int(player.get("sword_resource", 0)) + 1, int(player.get("sword_resource_max", SWORD_RESOURCE_MAX)))
-	player["sword_resource_elite_pity"] = 0
-	_create_particles(pickup["pos"], COLORS["sword_resource"], 14)
-	_show_status_message("剑丸 +1", COLORS["sword_resource"], 0.9)
-
-
-func _try_activate_array_empower() -> void:
-	if is_game_over:
-		return
-	if int(player.get("sword_resource", 0)) <= 0:
-		_show_action_failure("剑丸不足", "array_empower_resource", _get_sword_resource_failure_color(), "energy")
-		return
-	player["sword_resource"] = maxi(int(player.get("sword_resource", 0)) - 1, 0)
-	player["array_empower_timer"] = ARRAY_SWORD_EMPOWER_DURATION
-	empower_end_warning_emitted = false
-	_ready_all_array_swords_for_empower()
-	_begin_sword_array_firing()
-	_show_status_message("剑技强化", COLORS["sword_resource"], 1.1)
-	_create_particles(player["pos"], COLORS["sword_resource"], 20)
-	screen_shake = max(screen_shake, 7.0)
 
 
 func _get_sword_array_formation_ratio() -> float:
@@ -791,7 +667,10 @@ func _begin_sword_array_firing() -> void:
 	player["array_is_firing"] = true
 	player["array_release_progress"] = 1.0
 	player["array_packet_remainder"] = 0.0
-	_fire_array_swords()
+	if not _fire_array_swords():
+		player["array_is_firing"] = false
+		player["array_release_progress"] = 0.0
+		player["array_packet_remainder"] = 0.0
 
 
 func _update_sword_array_continuous_firing(delta: float) -> void:
@@ -968,9 +847,6 @@ func _update_sword(delta: float) -> void:
 		return
 
 	if sword["state"] == SwordState.SLICING:
-		_drain_player_energy(ENERGY_CONSUMPTION_RANGED * delta)
-		if player["energy"] <= 0.0:
-			sword["state"] = SwordState.RECALLING
 		sword["pos"] = sword["pos"].lerp(mouse_world, min(delta * 18.0, 1.0))
 		sword["vel"] = mouse_world - sword["pos"]
 	elif sword["state"] == SwordState.POINT_STRIKE:
@@ -1048,23 +924,7 @@ func _handle_enemy_death(enemy: Dictionary, index: int) -> void:
 	if enemy["type"] != PUPPET:
 		score += enemy["score"]
 		_add_player_energy(ENERGY_GAIN_MELEE_HIT * 2.0)
-		_try_spawn_sword_resource_drop(enemy)
 	enemies.remove_at(index)
-
-
-func _try_spawn_sword_resource_drop(enemy: Dictionary) -> void:
-	if int(player.get("sword_resource", 0)) >= int(player.get("sword_resource_max", SWORD_RESOURCE_MAX)):
-		return
-	var enemy_type: String = String(enemy.get("type", ""))
-	if enemy_type != CASTER and enemy_type != HEAVY:
-		return
-	var pity_kills: int = int(player.get("sword_resource_elite_pity", 0)) + 1
-	var should_drop: bool = pity_kills >= SWORD_RESOURCE_ELITE_PITY_KILLS or randf() <= SWORD_RESOURCE_ELITE_DROP_CHANCE
-	if should_drop:
-		player["sword_resource_elite_pity"] = 0
-		_spawn_sword_resource_pickup(enemy["pos"])
-		return
-	player["sword_resource_elite_pity"] = pity_kills
 
 
 func _update_enemies(delta: float) -> void:
@@ -1165,7 +1025,7 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 					_remove_bullet(index)
 					index -= 1
 					continue
-				if _empowered_ring_guard_clears_bullet(bullet):
+				if _ring_guard_clears_bullet(bullet):
 					_create_particles(bullet["pos"], COLORS["array_sword"], 4)
 					screen_shake = max(screen_shake, 1.6)
 					_remove_bullet(index)
@@ -1194,7 +1054,7 @@ func _update_array_swords(delta: float) -> void:
 					_emit_array_sword_trail(array_sword, delta, false)
 				_decay_array_sword_target_cooldowns(array_sword, delta)
 				if not batch_return_ready:
-					_clear_bullets_near_empowered_ring_sword(array_sword, travel_mode)
+					_clear_bullets_near_ring_guard_sword(array_sword, travel_mode)
 				if not batch_return_ready and not bool(array_sword.get("has_hit_target", false)):
 					var hit_result: Dictionary = _array_sword_hits_enemy(array_sword)
 					if bool(hit_result.get("hit", false)):
@@ -1237,14 +1097,14 @@ func _update_array_swords(delta: float) -> void:
 					array_sword["pos"] = return_target
 					array_sword["vel"] = Vector2.ZERO
 					_reset_array_sword_sortie_state(array_sword)
-					_create_particles(return_target, COLORS["array_sword_return"], 4 if not _is_array_empowered() else 7)
+					_create_particles(return_target, COLORS["array_sword_return"], 4)
 				else:
 					array_sword["vel"] = to_player.normalized() * _get_current_array_sword_return_speed(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
 					array_sword["pos"] += array_sword["vel"] * delta
 					_emit_array_sword_trail(array_sword, delta, true)
 		sword_index -= 1
 	_layout_ready_array_swords(delta)
-	_clear_bullets_near_ready_empowered_ring_swords()
+	_clear_bullets_near_ready_ring_guard_swords()
 
 
 func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
@@ -1277,8 +1137,8 @@ func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
 	return hit_result
 
 
-func _clear_bullets_near_empowered_ring_sword(array_sword: Dictionary, travel_mode: String) -> void:
-	if not _is_array_empowered() or travel_mode != SwordArrayConfig.MODE_RING:
+func _clear_bullets_near_ring_guard_sword(array_sword: Dictionary, travel_mode: String) -> void:
+	if not _is_ring_guard_active() or travel_mode != SwordArrayConfig.MODE_RING:
 		return
 	var bullet_index: int = bullets.size() - 1
 	var cleared_count: int = 0
@@ -1287,7 +1147,7 @@ func _clear_bullets_near_empowered_ring_sword(array_sword: Dictionary, travel_mo
 		if String(bullet.get("state", "")) != "normal":
 			bullet_index -= 1
 			continue
-		if bullet["pos"].distance_to(array_sword["pos"]) > bullet["radius"] + array_sword["radius"] + EMPOWERED_RING_BULLET_CLEAR_RADIUS:
+		if bullet["pos"].distance_to(array_sword["pos"]) > bullet["radius"] + array_sword["radius"] + RING_GUARD_BULLET_CLEAR_RADIUS:
 			bullet_index -= 1
 			continue
 		_create_particles(bullet["pos"], COLORS["array_sword"], 4)
@@ -1298,34 +1158,34 @@ func _clear_bullets_near_empowered_ring_sword(array_sword: Dictionary, travel_mo
 		screen_shake = max(screen_shake, 1.8)
 
 
-func _clear_bullets_near_ready_empowered_ring_swords() -> void:
-	if not _is_empowered_ring_guard_active():
+func _clear_bullets_near_ready_ring_guard_swords() -> void:
+	if not _is_ring_guard_active():
 		return
 	for array_sword in array_swords:
 		if String(array_sword.get("state", "")) != "ready":
 			continue
-		_clear_bullets_near_empowered_ring_sword(array_sword, SwordArrayConfig.MODE_RING)
+		_clear_bullets_near_ring_guard_sword(array_sword, SwordArrayConfig.MODE_RING)
 
 
-func _empowered_ring_guard_clears_bullet(bullet: Dictionary) -> bool:
-	if not _is_empowered_ring_guard_active():
+func _ring_guard_clears_bullet(bullet: Dictionary) -> bool:
+	if not _is_ring_guard_active():
 		return false
 	if String(bullet.get("state", "")) != "normal":
 		return false
-	if player["pos"].distance_to(bullet["pos"]) <= EMPOWERED_RING_PLAYER_CLEAR_RADIUS + float(bullet.get("radius", BULLET_RADIUS)):
+	if player["pos"].distance_to(bullet["pos"]) <= RING_GUARD_PLAYER_CLEAR_RADIUS + float(bullet.get("radius", BULLET_RADIUS)):
 		return true
 	for array_sword in array_swords:
 		if String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)) != SwordArrayConfig.MODE_RING:
 			continue
 		if String(array_sword.get("state", "")) == "":
 			continue
-		if bullet["pos"].distance_to(array_sword["pos"]) <= float(bullet.get("radius", BULLET_RADIUS)) + float(array_sword.get("radius", ARRAY_SWORD_RADIUS)) + EMPOWERED_RING_BULLET_CLEAR_RADIUS:
+		if bullet["pos"].distance_to(array_sword["pos"]) <= float(bullet.get("radius", BULLET_RADIUS)) + float(array_sword.get("radius", ARRAY_SWORD_RADIUS)) + RING_GUARD_BULLET_CLEAR_RADIUS:
 			return true
 	return false
 
 
-func _is_empowered_ring_guard_active() -> bool:
-	return _is_array_empowered() and _get_array_batch_mode() == SwordArrayConfig.MODE_RING
+func _is_ring_guard_active() -> bool:
+	return bool(player.get("array_is_firing", false)) and _get_array_batch_mode() == SwordArrayConfig.MODE_RING
 
 
 func _begin_array_sword_return(array_sword: Dictionary) -> void:
@@ -1379,10 +1239,8 @@ func _emit_array_sword_trail(array_sword: Dictionary, delta: float, is_returning
 	if trail_timer > 0.0:
 		array_sword["trail_timer"] = trail_timer
 		return
-	array_sword["trail_timer"] = 0.032 if _is_array_empowered() else 0.055
+	array_sword["trail_timer"] = 0.032 if bool(player.get("array_is_firing", false)) else 0.055
 	var trail_color: Color = COLORS["array_sword_return"] if is_returning else COLORS["array_sword"]
-	if _is_array_empowered():
-		trail_color = trail_color.lerp(COLORS["sword_resource"], 0.35)
 	_create_particles(array_sword["pos"], trail_color, 1)
 
 
@@ -1545,18 +1403,12 @@ func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> voi
 
 
 func _start_point_strike() -> void:
-	if not _try_consume_energy(ENERGY_INITIAL_RANGED_COST):
-		_show_action_failure("剑意不足", "ranged_energy", _get_energy_failure_color(), "energy")
-		return
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
 	player["mode"] = CombatMode.RANGED
 
 
 func _start_slicing() -> void:
-	if not _try_consume_energy(ENERGY_INITIAL_RANGED_COST):
-		_show_action_failure("剑意不足", "ranged_energy", _get_energy_failure_color(), "energy")
-		return
 	sword["state"] = SwordState.SLICING
 	player["mode"] = CombatMode.RANGED
 
@@ -1772,15 +1624,9 @@ func _set_game_over() -> void:
 
 func _update_ui() -> void:
 	health_label.text = "生命 %.0f / %.0f" % [player["health"], PLAYER_MAX_HEALTH]
-	var empower_suffix: String = ""
-	if _is_array_empowered():
-		empower_suffix = " | 强化 %.1fs" % [float(player.get("array_empower_timer", 0.0))]
-	energy_label.text = "剑意 %.0f / %.0f | 剑丸 %d / %d%s" % [
+	energy_label.text = "剑意 %.0f / %.0f" % [
 		player["energy"],
-		PLAYER_MAX_ENERGY,
-		int(player.get("sword_resource", 0)),
-		int(player.get("sword_resource_max", SWORD_RESOURCE_MAX)),
-		empower_suffix
+		PLAYER_MAX_ENERGY
 	]
 	if debug_calibration_mode:
 		var raw_distance: float = float(player.get("array_raw_aim_distance", player["pos"].distance_to(mouse_world)))
@@ -1846,14 +1692,12 @@ func _update_ui() -> void:
 		)
 	status_label.text = status_message
 	status_label.modulate = status_message_color
-	if _is_array_empowered() and float(player.get("array_empower_timer", 0.0)) <= 1.2:
-		status_label.modulate = status_label.modulate.lerp(COLORS["health"], 0.35 + 0.25 * absf(sin(elapsed_time * 14.0)))
 	if debug_calibration_mode:
 		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
 	elif debug_battle_mode:
-		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击必杀 | 4 停刷怪 | 5 清敌弹 | 6 无限剑丸资源 | F7 退出 | F6 校准"
+		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击必杀 | 4 停刷怪 | 5 清敌弹 | F7 退出 | F6 校准"
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑/强化中长按发射飞剑 | 右键 点刺或连斩 | Space 消耗剑丸强化剑技 | Q 必杀 | F7 战斗调试 | F6 校准调试"
+		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | Q 必杀 | F7 战斗调试 | F6 校准调试"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
@@ -1877,31 +1721,6 @@ func _get_sword_array_target(fire_index: int, bullet_pos: Vector2, volley_count 
 
 func _update_boss(delta: float, bullet_time_delta: float) -> void:
 	GameBossController.update_boss(self, delta, bullet_time_delta)
-	_update_boss_sword_resource_spawns(delta)
-
-
-func _update_boss_sword_resource_spawns(delta: float) -> void:
-	if not _has_boss():
-		boss_shard_spawn_timer = SWORD_RESOURCE_BOSS_DROP_INTERVAL
-		boss_shard_failed_cycles = 0
-		return
-	if int(player.get("sword_resource", 0)) >= int(player.get("sword_resource_max", SWORD_RESOURCE_MAX)):
-		return
-	boss_shard_spawn_timer -= delta
-	if boss_shard_spawn_timer > 0.0:
-		return
-	boss_shard_spawn_timer = SWORD_RESOURCE_BOSS_DROP_INTERVAL
-	var should_drop: bool = boss_shard_failed_cycles >= SWORD_RESOURCE_BOSS_DROP_PITY_FAILS or randf() <= SWORD_RESOURCE_BOSS_DROP_CHANCE
-	if not should_drop:
-		boss_shard_failed_cycles += 1
-		return
-	boss_shard_failed_cycles = 0
-	var spawn_offset: Vector2 = Vector2.RIGHT.rotated(randf_range(0.0, TAU)) * randf_range(60.0, 140.0)
-	var spawn_pos: Vector2 = (boss.get("pos", ARENA_SIZE * 0.5) + spawn_offset).clamp(
-		Vector2(PLAYER_RADIUS + 20.0, PLAYER_RADIUS + 20.0),
-		ARENA_SIZE - Vector2(PLAYER_RADIUS + 20.0, PLAYER_RADIUS + 20.0)
-	)
-	_spawn_sword_resource_pickup(spawn_pos)
 
 
 func _draw_boss() -> void:
@@ -2046,9 +1865,6 @@ func _handle_debug_key_input(event: InputEventKey) -> bool:
 		KEY_5:
 			_clear_enemy_bullets()
 			return true
-		KEY_6:
-			_toggle_debug_flag("infinite_sword_resources")
-			return true
 		_:
 			return false
 
@@ -2068,7 +1884,6 @@ func _reset_debug_battle_flags() -> void:
 		"infinite_energy": false,
 		"one_hit_kill": false,
 		"no_spawn": false,
-		"infinite_sword_resources": false,
 	}
 
 
@@ -2088,8 +1903,6 @@ func _apply_debug_runtime_overrides() -> void:
 		player["health"] = PLAYER_MAX_HEALTH
 	if _has_debug_flag("infinite_energy"):
 		player["energy"] = PLAYER_MAX_ENERGY
-	if _has_debug_flag("infinite_sword_resources"):
-		player["sword_resource"] = int(player.get("sword_resource_max", SWORD_RESOURCE_MAX))
 
 
 func _apply_player_damage(amount: float, _damage_source: String = DAMAGE_SOURCE_NONE) -> bool:
@@ -2160,8 +1973,6 @@ func _get_debug_status_suffix() -> String:
 		active_flags.append("一击必杀")
 	if _has_debug_flag("no_spawn"):
 		active_flags.append("停刷怪")
-	if _has_debug_flag("infinite_sword_resources"):
-		active_flags.append("无限剑丸资源")
 	return " | %s" % ("已启用" if active_flags.is_empty() else " / ".join(active_flags))
 
 
@@ -2185,7 +1996,6 @@ func _enter_debug_calibration_mode() -> void:
 	sword["prev_pos"] = player["pos"]
 	bullets.clear()
 	array_swords.clear()
-	pickups.clear()
 	enemies.clear()
 	particles.clear()
 	boss.clear()
