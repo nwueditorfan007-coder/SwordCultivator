@@ -1,5 +1,6 @@
 Original prompt: 阅读 Google AI Studio 原型源码，并在 Godot 中实现对应 demo。
 
+- 2026-04-21：继续收口统一命中框架结构，新增 `target_descriptor_registry.gd` 将 enemy/boss/silk 的 hurtbox 生成改为 provider registry；`target_writeback_adapters.gd` 改为 adapter registry；`target_event_system.gd` 改为 handler/rule evaluator registry，为后续扩展护甲片、锚点、可破坏部位和更多受击事件做准备。
 - 已确认原型核心是单屏 800x600 弹幕动作循环，不是当前仓库里原有的切近远程 + 飞剑秒杀骨架。
 - 2026-03-27：已将 Godot `Main` 重写为集中式主循环，接入移动、近战挥剑冻结弹幕、右键点刺/长按连斩、子弹时间、吸收冻结弹、长按左键顺序发射、波次刷怪、基础 HUD、重开。
 - 当前第一版保留了原型的 4 类基础敌人：Shooter / Tank / Caster / Heavy。

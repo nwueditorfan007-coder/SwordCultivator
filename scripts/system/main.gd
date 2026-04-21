@@ -1,10 +1,20 @@
 extends Node2D
 
+const AttackProfiles = preload("res://scripts/combat/attack_profiles.gd")
+const DamageResolver = preload("res://scripts/combat/damage_resolver.gd")
+const HitDetection = preload("res://scripts/combat/hit_detection.gd")
+const HurtboxRegistry = preload("res://scripts/combat/hurtbox_registry.gd")
 const GameBossController = preload("res://scripts/system/game_boss_controller.gd")
 const GameRenderer = preload("res://scripts/system/game_renderer.gd")
 const GameStateFactory = preload("res://scripts/system/game_state_factory.gd")
+const HitRegistry = preload("res://scripts/combat/hit_registry.gd")
 const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
+const TargetDescriptors = preload("res://scripts/combat/target_descriptors.gd")
+const TargetDescriptorRegistry = preload("res://scripts/combat/target_descriptor_registry.gd")
+const TargetEventSystem = preload("res://scripts/combat/target_event_system.gd")
+const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
+const TargetWritebackAdapters = preload("res://scripts/combat/target_writeback_adapters.gd")
 
 enum CombatMode {
 	MELEE,
@@ -28,12 +38,9 @@ const PLAYER_MAX_ENERGY := 100.0
 const PLAYER_SPEED := 300.0
 
 const SWORD_RADIUS := 25.0
-const SWORD_ROTATION_SPEED := 5.2
 const SWORD_MELEE_RANGE := 100.0
 const SWORD_MELEE_COOLDOWN := 10.0 / 60.0
 const SWORD_MELEE_ARC := PI * 1.2
-const SWORD_MELEE_DAMAGE := 100.0
-const SWORD_RANGED_DAMAGE := 100.0
 const SWORD_TAP_THRESHOLD := 0.15
 const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
@@ -49,16 +56,69 @@ const BULLET_LARGE_DAMAGE := 25.0
 const BULLET_TIME_START_MULTIPLIER := 0.1
 const BULLET_TIME_RECOVERY_DURATION := 2.0
 const PLAYER_BULLET_TIME_SPEED_MULTIPLIER := 0.85
-const ENEMY_HIT_COOLDOWN := 0.05
+const TIME_STOP_VISUAL_MAX_STRENGTH := 0.84
+const TIME_STOP_VISUAL_ENTER_SPEED := 12.0
+const TIME_STOP_VISUAL_EXIT_SPEED := 4.8
+const TIME_STOP_VISUAL_RELEASE_HOLD := 0.28
+const TIME_STOP_VISUAL_HOLD_FLOOR := 0.26
+const TIME_STOP_VISUAL_ENTRY_PULSE_DURATION := 0.12
+const TIME_STOP_VISUAL_WASH_SUSTAIN_ALPHA := 0.072
+const TIME_STOP_VISUAL_WASH_PULSE_ALPHA := 0.045
+const UNSHEATH_FLASH_DURATION := 0.08
+const UNSHEATH_FLASH_REPEAT_SUPPRESSION := 0.16
+const UNSHEATH_FLASH_BASE_STRENGTH := 0.34
+const UNSHEATH_FLASH_REPEAT_STRENGTH := 0.12
+const UNSHEATH_PRESS_FLASH_DURATION := 0.045
+const UNSHEATH_PRESS_FLASH_STRENGTH := 1
+const UNSHEATH_PRESS_FLASH_REPEAT_SUPPRESSION := 0.11
+const UNSHEATH_PRESS_FLASH_BASE_STRENGTH := 0.22
+const UNSHEATH_PRESS_FLASH_REPEAT_STRENGTH := 0.08
+const UNSHEATH_FLASH_LENGTH_SCALE := 1.08
+const UNSHEATH_FLASH_WIDTH_SCALE := 0.92
+const UNSHEATH_FLASH_ANCHOR_LERP := 0.68
+const UNSHEATH_PRESS_FLASH_ANCHOR_LERP := 0.6
+const UNSHEATH_FLASH_ROOT_BACK_OFFSET := 2.5
+const UNSHEATH_FLASH_SWORD_FORWARD_OFFSET := 10.0
+const UNSHEATH_FLASH_RELEASE_MIN_DISTANCE := 72.0
+const UNSHEATH_FLASH_RELEASE_MAX_DISTANCE := 152.0
+const UNSHEATH_FLASH_POINT_RELEASE_PREDICT_TIME := 1.0 / 60.0
+const UNSHEATH_FLASH_SLICE_RELEASE_RATIO := 0.32
+const SWORD_AFTERIMAGE_DURATION := 0.09
+const SWORD_AFTERIMAGE_BURST_DURATION := 0.09
+const SWORD_AFTERIMAGE_EMIT_INTERVAL := 0.016
+const SWORD_AFTERIMAGE_MIN_SPEED := 600.0
+const SWORD_AFTERIMAGE_MAX_COUNT := 10
+const SWORD_AFTERIMAGE_ALPHA_SCALE := 0.95
+const SWORD_TRAIL_DURATION := 0.11
+const SWORD_TRAIL_SAMPLE_INTERVAL := 0.012
+const SWORD_TRAIL_MIN_SPEED := 560.0
+const SWORD_TRAIL_MAX_POINTS := 12
+const SWORD_TRAIL_BASE_HALF_WIDTH := 11.0
+const SWORD_TRAIL_POINT_WIDTH_SCALE := 0.66
+const SWORD_TRAIL_SLICE_WIDTH_SCALE := 1.08
+const SWORD_TRAIL_FORWARD_OFFSET := 11.0
+const SWORD_TRAIL_POINT_LIFE_SCALE := 0.9
+const SWORD_TRAIL_SLICE_LIFE_SCALE := 1.12
+const SWORD_HIT_EFFECT_DURATION := 0.09
+const SWORD_HIT_EFFECT_MAX_COUNT := 18
+const SWORD_HIT_EFFECT_BASE_LENGTH := 18.0
+const SWORD_HIT_EFFECT_BASE_WIDTH := 7.0
+const SWORD_HIT_EFFECT_POINT_LENGTH_SCALE := 0.9
+const SWORD_HIT_EFFECT_POINT_WIDTH_SCALE := 0.42
+const SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE := 1.28
+const SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE := 0.96
+const SWORD_HIT_EFFECT_SPARK_COUNT := 2
 
-const ENERGY_RECOVERY_MELEE_NATURAL := 4.0
-const ENERGY_GAIN_MELEE_HIT := 2.0
-const ENERGY_GAIN_MELEE_DEFLECT := 8.0
+const ENERGY_RECOVERY_MELEE_NATURAL := 3.0
+const ENERGY_GAIN_MELEE_HIT := 3.0
+const ENERGY_GAIN_MELEE_DEFLECT := 10.0
 const ARRAY_SWORD_COUNT := 12
 const ARRAY_SWORD_RADIUS := 6.0
 const ARRAY_SWORD_RETURN_SPEED := 32.0 * 60.0
 const ARRAY_SWORD_RETURN_CATCH_RADIUS := 18.0
-const ARRAY_SWORD_ENERGY_COST_PER_SWORD := 0.65
+const ARRAY_SWORD_ENERGY_COST_RING := 0.95
+const ARRAY_SWORD_ENERGY_COST_FAN := 1.00
+const ARRAY_SWORD_ENERGY_COST_PIERCE := 1.10
 const ARRAY_SWORD_MAX_TRAVEL_DISTANCE := 540.0
 const ARRAY_SWORD_MIN_SORTIE_DISTANCE := 220.0
 const ARRAY_SWORD_HIT_FOLLOW_THROUGH_DISTANCE := 130.0
@@ -159,7 +219,18 @@ var enemies: Array = []
 var bullets: Array = []
 var array_swords: Array = []
 var particles: Array = []
+var sword_afterimages: Array = []
+var sword_trail_points: Array = []
+var sword_hit_effects: Array = []
 var boss: Dictionary = {}
+var hit_registry: HitRegistry = HitRegistry.new()
+var hurtbox_registry: HurtboxRegistry = HurtboxRegistry.new()
+var damage_resolver: DamageResolver = DamageResolver.new()
+var hit_detection: HitDetection = HitDetection.new()
+var target_descriptor_registry: TargetDescriptorRegistry = TargetDescriptorRegistry.new()
+var target_event_system: TargetEventSystem = TargetEventSystem.new()
+var target_writeback_adapters: TargetWritebackAdapters = TargetWritebackAdapters.new()
+var combat_runtime: Dictionary = {}
 
 var wave: int = 1
 var enemies_to_spawn: int = WAVE_BASE_ENEMIES
@@ -185,6 +256,19 @@ var debug_battle_mode: bool = false
 var debug_flags: Dictionary = {}
 var debug_calibration_mode: bool = false
 var debug_dragging_player: bool = false
+var visual_time_stop_strength: float = 0.0
+var visual_time_stop_hold_timer: float = 0.0
+var visual_time_stop_entry_pulse_timer: float = 0.0
+var unsheath_flash_timer: float = 0.0
+var unsheath_flash_origin: Vector2 = ARENA_SIZE * 0.5
+var unsheath_flash_direction: Vector2 = Vector2.RIGHT
+var unsheath_flash_strength: float = 0.0
+var unsheath_flash_repeat_timer: float = 0.0
+var unsheath_press_flash_timer: float = 0.0
+var unsheath_press_flash_origin: Vector2 = ARENA_SIZE * 0.5
+var unsheath_press_flash_direction: Vector2 = Vector2.RIGHT
+var unsheath_press_flash_strength: float = 0.0
+var unsheath_press_flash_repeat_timer: float = 0.0
 
 const DEBUG_ENEMY_LAYOUT := [
 	Vector2(120.0, 110.0),
@@ -232,14 +316,18 @@ func _process(delta: float) -> void:
 		sword["time_slow_timer"] += delta
 	else:
 		sword["time_slow_timer"] = 0.0
+	_update_time_stop_visual(delta, is_flying_sword)
+	unsheath_flash_timer = max(unsheath_flash_timer - delta, 0.0)
+	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - delta, 0.0)
+	unsheath_press_flash_timer = max(unsheath_press_flash_timer - delta, 0.0)
+	unsheath_press_flash_repeat_timer = max(unsheath_press_flash_repeat_timer - delta, 0.0)
 
 	var bullet_time_ratio: float = 1.0
 	var player_time_ratio: float = 1.0
 	if is_flying_sword:
-		var recovery_duration: float = _get_bullet_time_recovery_duration()
-		var recovery_progress: float = min(sword["time_slow_timer"] / recovery_duration, 1.0)
-		bullet_time_ratio = lerpf(BULLET_TIME_START_MULTIPLIER, 1.0, recovery_progress)
-		player_time_ratio = lerpf(PLAYER_BULLET_TIME_SPEED_MULTIPLIER, 1.0, recovery_progress)
+		var time_slow_timer: float = float(sword["time_slow_timer"])
+		bullet_time_ratio = _get_bullet_time_ratio(time_slow_timer)
+		player_time_ratio = _get_player_bullet_time_ratio(time_slow_timer)
 
 	var bullet_time_delta: float = delta * bullet_time_ratio
 	var player_delta: float = delta * player_time_ratio
@@ -285,6 +373,7 @@ func _process(delta: float) -> void:
 	_update_bullets(delta, bullet_time_delta)
 	_update_array_swords(delta)
 	_update_particles(bullet_time_delta)
+	_update_sword_hit_effects(delta)
 	_update_wave(delta)
 	_try_cast_ultimate()
 	_apply_debug_runtime_overrides()
@@ -329,6 +418,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				right_mouse_held = true
 				sword["press_timer"] = 0.0
 				sword["target_pos"] = mouse_world
+				if sword["state"] == SwordState.ORBITING:
+					_trigger_unsheath_press_flash(mouse_world - player["pos"])
 			else:
 				right_mouse_held = false
 				if sword["state"] == SwordState.ORBITING:
@@ -378,6 +469,90 @@ func _get_bullet_time_recovery_duration() -> float:
 	return BULLET_TIME_RECOVERY_DURATION
 
 
+func _get_bullet_time_ratio(time_slow_timer: float) -> float:
+	var recovery_duration: float = _get_bullet_time_recovery_duration()
+	var recovery_progress: float = clampf(time_slow_timer / recovery_duration, 0.0, 1.0)
+	return lerpf(BULLET_TIME_START_MULTIPLIER, 1.0, recovery_progress)
+
+
+func _get_player_bullet_time_ratio(time_slow_timer: float) -> float:
+	var recovery_duration: float = _get_bullet_time_recovery_duration()
+	var recovery_progress: float = clampf(time_slow_timer / recovery_duration, 0.0, 1.0)
+	return lerpf(PLAYER_BULLET_TIME_SPEED_MULTIPLIER, 1.0, recovery_progress)
+
+
+func _update_time_stop_visual(delta: float, is_flying_sword: bool) -> void:
+	var had_visual_presence: bool = _has_time_stop_visual_presence()
+	visual_time_stop_hold_timer = max(visual_time_stop_hold_timer - delta, 0.0)
+	visual_time_stop_entry_pulse_timer = max(visual_time_stop_entry_pulse_timer - delta, 0.0)
+	var target_strength: float = 0.0
+	if is_flying_sword:
+		target_strength = _get_time_stop_gameplay_strength() * TIME_STOP_VISUAL_MAX_STRENGTH
+		visual_time_stop_hold_timer = TIME_STOP_VISUAL_RELEASE_HOLD
+		if not had_visual_presence:
+			visual_time_stop_entry_pulse_timer = TIME_STOP_VISUAL_ENTRY_PULSE_DURATION
+	elif visual_time_stop_hold_timer > 0.0 and TIME_STOP_VISUAL_RELEASE_HOLD > 0.0:
+		var hold_ratio: float = clampf(visual_time_stop_hold_timer / TIME_STOP_VISUAL_RELEASE_HOLD, 0.0, 1.0)
+		target_strength = TIME_STOP_VISUAL_HOLD_FLOOR * hold_ratio
+	var smoothing_speed: float = TIME_STOP_VISUAL_ENTER_SPEED if target_strength > visual_time_stop_strength else TIME_STOP_VISUAL_EXIT_SPEED
+	visual_time_stop_strength = move_toward(visual_time_stop_strength, target_strength, delta * smoothing_speed)
+
+
+func _has_time_stop_visual_presence() -> bool:
+	return (
+		visual_time_stop_strength > 0.04
+		or visual_time_stop_hold_timer > 0.0
+		or visual_time_stop_entry_pulse_timer > 0.0
+	)
+
+
+func _get_time_stop_gameplay_strength() -> float:
+	var bullet_time_ratio: float = _get_bullet_time_ratio(float(sword.get("time_slow_timer", 0.0)))
+	var max_slow_amount: float = maxf(1.0 - BULLET_TIME_START_MULTIPLIER, 0.001)
+	return clampf((1.0 - bullet_time_ratio) / max_slow_amount, 0.0, 1.0)
+
+
+func _get_time_stop_visual_strength() -> float:
+	return visual_time_stop_strength
+
+
+func _get_time_stop_entry_pulse_strength() -> float:
+	if TIME_STOP_VISUAL_ENTRY_PULSE_DURATION <= 0.0:
+		return 0.0
+	var pulse_ratio: float = clampf(visual_time_stop_entry_pulse_timer / TIME_STOP_VISUAL_ENTRY_PULSE_DURATION, 0.0, 1.0)
+	return pow(pulse_ratio, 1.6)
+
+
+func _get_time_stop_world_color(color: Color) -> Color:
+	var strength: float = _get_time_stop_visual_strength()
+	if strength <= 0.0:
+		return color
+	var shaped_strength: float = clampf(pow(strength, 0.72) * 1.06, 0.0, 1.0)
+	var luminance: float = color.r * 0.299 + color.g * 0.587 + color.b * 0.114
+	var frozen_color := Color(luminance, luminance, luminance, color.a)
+	frozen_color = frozen_color.darkened(0.08 * shaped_strength)
+	frozen_color = frozen_color.lerp(Color(0.8, 0.9, 1.0, color.a), 0.3 * shaped_strength)
+	return color.lerp(frozen_color, minf(shaped_strength * 1.04, 1.0))
+
+
+func _get_time_stop_world_wash_alpha() -> float:
+	var sustain_alpha: float = TIME_STOP_VISUAL_WASH_SUSTAIN_ALPHA * sqrt(_get_time_stop_visual_strength())
+	var pulse_alpha: float = TIME_STOP_VISUAL_WASH_PULSE_ALPHA * _get_time_stop_entry_pulse_strength()
+	return sustain_alpha + pulse_alpha
+
+
+func _get_unsheath_flash_progress() -> float:
+	if UNSHEATH_FLASH_DURATION <= 0.0:
+		return 0.0
+	return clampf(unsheath_flash_timer / UNSHEATH_FLASH_DURATION, 0.0, 1.0)
+
+
+func _get_unsheath_press_flash_progress() -> float:
+	if UNSHEATH_PRESS_FLASH_DURATION <= 0.0:
+		return 0.0
+	return clampf(unsheath_press_flash_timer / UNSHEATH_PRESS_FLASH_DURATION, 0.0, 1.0)
+
+
 func _can_use_array_attack() -> bool:
 	if not left_mouse_held:
 		return false
@@ -404,10 +579,21 @@ func _get_array_batch_mode() -> String:
 	return String(_get_sword_array_fire_state().get("dominant_mode", SwordArrayConfig.MODE_RING))
 
 
-func _get_array_sword_energy_cost(fire_count: int) -> float:
+func _get_array_mode_energy_cost_per_sword(mode: String) -> float:
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			return ARRAY_SWORD_ENERGY_COST_RING
+		SwordArrayConfig.MODE_FAN:
+			return ARRAY_SWORD_ENERGY_COST_FAN
+		_:
+			return ARRAY_SWORD_ENERGY_COST_PIERCE
+
+
+func _get_array_sword_energy_cost(fire_count: int, mode := "") -> float:
 	if fire_count <= 0 or not _should_array_consume_energy():
 		return 0.0
-	return float(fire_count) * ARRAY_SWORD_ENERGY_COST_PER_SWORD
+	var resolved_mode: String = mode if mode != "" else _get_array_batch_mode()
+	return float(fire_count) * _get_array_mode_energy_cost_per_sword(resolved_mode)
 
 
 func _get_array_mode_batch_target(mode: String) -> int:
@@ -488,6 +674,8 @@ func _build_array_sword(slot_index: int) -> Dictionary:
 		"radius": ARRAY_SWORD_RADIUS,
 		"slot_index": slot_index,
 		"state": "ready",
+		"attack_instance_id": "",
+		"attack_profile_id": "",
 		"travel_mode": SwordArrayConfig.MODE_RING,
 		"trail_timer": 0.0,
 		"guidance_active": false,
@@ -509,6 +697,7 @@ func _build_array_sword(slot_index: int) -> Dictionary:
 
 func _reset_array_sword_sortie_state(array_sword: Dictionary) -> void:
 	var travel_mode: String = String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING))
+	_clear_array_sword_attack_instance(array_sword)
 	array_sword["trail_timer"] = 0.0
 	array_sword["guidance_active"] = false
 	array_sword["guidance_elapsed"] = 0.0
@@ -523,6 +712,35 @@ func _reset_array_sword_sortie_state(array_sword: Dictionary) -> void:
 	array_sword["batch_id"] = ""
 	array_sword["batch_return_ready"] = false
 	array_sword["return_unlock_distance"] = _get_array_sword_min_sortie_distance(travel_mode)
+
+
+func _get_array_attack_profile_id(travel_mode: String) -> String:
+	match travel_mode:
+		SwordArrayConfig.MODE_RING:
+			return AttackProfiles.PROFILE_ARRAY_RING
+		SwordArrayConfig.MODE_FAN:
+			return AttackProfiles.PROFILE_ARRAY_FAN
+		_:
+			return AttackProfiles.PROFILE_ARRAY_PIERCE
+
+
+func _start_array_sword_attack_instance(array_sword: Dictionary) -> void:
+	var profile_id: String = _get_array_attack_profile_id(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
+	if profile_id == "":
+		return
+	_clear_array_sword_attack_instance(array_sword)
+	var source_node: String = str(array_sword.get("id", "array_sword"))
+	var attack_instance: Dictionary = _build_attack_instance(profile_id, "player", source_node)
+	array_sword["attack_instance_id"] = str(attack_instance.get("id", ""))
+	array_sword["attack_profile_id"] = profile_id
+
+
+func _clear_array_sword_attack_instance(array_sword: Dictionary) -> void:
+	var attack_instance_id: String = str(array_sword.get("attack_instance_id", ""))
+	if attack_instance_id != "":
+		_clear_attack_instance(attack_instance_id)
+	array_sword["attack_instance_id"] = ""
+	array_sword["attack_profile_id"] = ""
 
 
 func _rebuild_array_sword_pool() -> void:
@@ -840,10 +1058,20 @@ func _update_sword(delta: float) -> void:
 	sword["prev_pos"] = sword["pos"]
 
 	if sword["state"] == SwordState.ORBITING:
+		if str(sword.get("attack_instance_id", "")) != "":
+			_end_sword_attack_instance()
 		_add_player_energy(ENERGY_RECOVERY_MELEE_NATURAL * delta)
-		sword["angle"] += SWORD_ROTATION_SPEED * delta
-		var target: Vector2 = player["pos"] + Vector2.RIGHT.rotated(sword["angle"]) * SWORD_ORBIT_DISTANCE
+		var orbit_direction: Vector2 = mouse_world - player["pos"]
+		if orbit_direction.is_zero_approx():
+			orbit_direction = Vector2.RIGHT.rotated(sword["angle"])
+		else:
+			orbit_direction = orbit_direction.normalized()
+		sword["angle"] = orbit_direction.angle()
+		var target: Vector2 = player["pos"] + orbit_direction * SWORD_ORBIT_DISTANCE
+		sword["vel"] = Vector2.ZERO
 		sword["pos"] = sword["pos"].lerp(target, min(delta * 18.0, 1.0))
+		_update_sword_trail(delta, Vector2.ZERO)
+		_update_sword_afterimages(delta, Vector2.ZERO)
 		return
 
 	if sword["state"] == SwordState.SLICING:
@@ -859,6 +1087,7 @@ func _update_sword(delta: float) -> void:
 			sword["pos"] = sword["target_pos"]
 			sword["vel"] = Vector2.ZERO
 			sword["state"] = SwordState.RECALLING
+			_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
 			screen_shake = max(screen_shake, 6.0)
 			_create_particles(sword["pos"], COLORS["ranged_sword"], 12)
 	elif sword["state"] == SwordState.RECALLING:
@@ -873,40 +1102,74 @@ func _update_sword(delta: float) -> void:
 			sword["state"] = SwordState.ORBITING
 			player["mode"] = CombatMode.MELEE
 			sword["press_timer"] = 0.0
+			_end_sword_attack_instance()
 
 	if sword["vel"].length_squared() > 1.0:
 		sword["angle"] = sword["vel"].angle()
+	var frame_velocity: Vector2 = (sword["pos"] - sword["prev_pos"]) / maxf(delta, 0.001)
+	if frame_velocity.length_squared() > 1.0:
+		sword["angle"] = frame_velocity.angle()
+	_update_sword_trail(delta, frame_velocity)
+	_update_sword_afterimages(delta, frame_velocity)
 
 	_damage_enemies_with_sword(delta)
 
 
 func _damage_enemies_with_sword(delta: float) -> void:
-	for enemy in enemies:
-		if enemy["type"] == PUPPET:
+	var swing_direction: Vector2 = sword["pos"] - sword["prev_pos"]
+	var detection_result: Dictionary = hit_detection.collect_segment_sweep_targets(
+		self,
+		sword["prev_pos"],
+		sword["pos"],
+		float(sword.get("radius", SWORD_RADIUS)),
+		str(sword.get("attack_profile_id", "")),
+		DAMAGE_SOURCE_FLYING_SWORD,
+		delta,
+		{
+			"exclude_enemy_types": [PUPPET],
+			"skip_if_start_inside": true,
+		}
+	)
+	for contact_variant in detection_result.get("contacts", []):
+		var contact: Dictionary = contact_variant
+		var attack_result: Dictionary = _apply_sword_hit_to_target(
+			str(contact.get("target_id", "")),
+			str(contact.get("hurtbox_id", "")),
+			str(contact.get("target_profile_id", "")),
+			DAMAGE_SOURCE_FLYING_SWORD,
+			float(contact.get("contact_time", delta)),
+			str(contact.get("target_state", "")),
+			bool(contact.get("is_currently_overlapping", true)),
+			{
+				"contact_point": contact.get("contact_point", sword["pos"]),
+			}
+		)
+		if not bool(attack_result.get("allowed", false)):
 			continue
-		enemy["hit_cooldown"] = max(enemy["hit_cooldown"] - delta, 0.0)
-		if enemy["hit_cooldown"] > 0.0:
+		var enemy: Variant = contact.get("entity", null)
+		if enemy == null:
 			continue
-		var hit_radius: float = sword["radius"] + enemy["radius"]
-		if not _segment_hits_circle(sword["prev_pos"], sword["pos"], enemy["pos"], hit_radius):
-			continue
-		if sword["prev_pos"].distance_to(enemy["pos"]) <= hit_radius:
-			continue
-		var damage: float = SWORD_RANGED_DAMAGE * (1.5 if sword["state"] == SwordState.POINT_STRIKE else 0.5)
-		_damage_enemy(enemy, damage, DAMAGE_SOURCE_FLYING_SWORD)
-		enemy["hit_cooldown"] = ENEMY_HIT_COOLDOWN
-		_create_particles(sword["pos"], COLORS["ranged_sword"], 4)
-		if sword["state"] == SwordState.POINT_STRIKE:
+		var contact_point: Vector2 = contact.get("contact_point", sword["pos"])
+		var effect_color: Color = COLORS["ranged_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24)
+		_emit_sword_hit_effect(contact_point, swing_direction, effect_color)
+		if str(sword.get("attack_profile_id", "")) == AttackProfiles.PROFILE_FLYING_SWORD_POINT:
 			screen_shake = max(screen_shake, 4.0)
 
 	if _has_boss():
 		_update_silk_damage(delta)
-		if boss["is_vulnerable"] or boss["phase"] == 1:
-			var boss_hit_radius: float = boss["radius"] + sword["radius"]
-			if _segment_hits_circle(sword["prev_pos"], sword["pos"], boss["pos"], boss_hit_radius) and sword["prev_pos"].distance_to(boss["pos"]) > boss_hit_radius:
-				var boss_damage: float = SWORD_RANGED_DAMAGE * (1.5 if sword["state"] == SwordState.POINT_STRIKE else 0.5) * delta * 15.0
-				_damage_boss(boss_damage)
-				_create_particles(sword["pos"], COLORS["boss_body"], 2)
+		var boss_contact: Dictionary = detection_result.get("boss_contact", {})
+		if not boss_contact.is_empty():
+			var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
+				str(sword.get("attack_instance_id", "")),
+				str(sword.get("attack_profile_id", "")),
+				boss_contact.get("contact_point", sword["pos"]),
+				DAMAGE_SOURCE_FLYING_SWORD,
+				float(boss_contact.get("contact_time", delta)),
+				bool(boss_contact.get("is_currently_overlapping", true))
+			)
+			if bool(boss_hit_result.get("allowed", false)):
+				var boss_contact_point: Vector2 = boss_contact.get("contact_point", sword["pos"])
+				_emit_sword_hit_effect(boss_contact_point, swing_direction, COLORS["ranged_sword"].lerp(COLORS["boss_body"], 0.28), 1.12)
 
 
 func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> void:
@@ -921,6 +1184,8 @@ func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> v
 
 func _handle_enemy_death(enemy: Dictionary, index: int) -> void:
 	_create_particles(enemy["pos"], COLORS[enemy["type"]], 14)
+	_clear_target_runtime_state(str(enemy.get("id", "")))
+	_clear_target_hurtboxes(str(enemy.get("id", "")))
 	if enemy["type"] != PUPPET:
 		score += enemy["score"]
 		_add_player_energy(ENERGY_GAIN_MELEE_HIT * 2.0)
@@ -932,13 +1197,17 @@ func _update_enemies(delta: float) -> void:
 	while index >= 0:
 		var enemy: Dictionary = enemies[index]
 		if enemy.get("is_debug_static", false):
-			enemy["hit_cooldown"] = max(enemy["hit_cooldown"] - delta, 0.0)
 			if enemy["health"] <= 0.0 and debug_calibration_mode:
 				enemy["health"] = enemy["max_health"]
 			index -= 1
 			continue
 		if enemy["health"] <= 0.0:
 			_handle_enemy_death(enemy, index)
+			index -= 1
+			continue
+		enemy["stagger_timer"] = maxf(float(enemy.get("stagger_timer", 0.0)) - delta, 0.0)
+		if float(enemy.get("stagger_timer", 0.0)) > 0.0:
+			enemy["vel"] = Vector2.ZERO
 			index -= 1
 			continue
 		var to_player: Vector2 = player["pos"] - enemy["pos"]
@@ -1114,22 +1383,51 @@ func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
 		"hit": false,
 		"should_return": false,
 	}
-	for enemy in enemies:
-		if enemy["type"] == PUPPET:
-			continue
-		var target_id: String = str(enemy.get("id", ""))
+	var detection_result: Dictionary = hit_detection.collect_circle_contact_targets(
+		self,
+		array_sword["pos"],
+		float(array_sword.get("radius", ARRAY_SWORD_RADIUS)),
+		str(array_sword.get("attack_profile_id", "")),
+		DAMAGE_SOURCE_ARRAY_SWORD,
+		0.0,
+		{
+			"exclude_enemy_types": [PUPPET],
+			"contact_radius_bonus": hit_radius_bonus,
+		}
+	)
+	for contact_variant in detection_result.get("contacts", []):
+		var contact: Dictionary = contact_variant
+		var target_id: String = str(contact.get("target_id", ""))
 		if not _can_array_sword_hit_target(array_sword, target_id):
 			continue
-		if enemy["pos"].distance_to(array_sword["pos"]) > enemy["radius"] + array_sword["radius"] + hit_radius_bonus:
+		var attack_result: Dictionary = _apply_array_sword_hit_to_target(
+			array_sword,
+			target_id,
+			str(contact.get("hurtbox_id", "")),
+			str(contact.get("target_profile_id", "")),
+			DAMAGE_SOURCE_ARRAY_SWORD,
+			str(contact.get("target_state", "")),
+			bool(contact.get("is_currently_overlapping", true))
+		)
+		if not bool(attack_result.get("allowed", false)):
 			continue
-		_damage_enemy(enemy, SwordArrayConfig.FIRED_DAMAGE, DAMAGE_SOURCE_ARRAY_SWORD)
 		hit_result["hit"] = true
 		hit_result["should_return"] = _register_array_sword_target_hit(array_sword, target_id, travel_mode)
 		_create_particles(array_sword["pos"], COLORS["array_sword"], 10)
 		return hit_result
 	if _has_boss():
-		if _can_array_sword_hit_target(array_sword, "boss") and boss["pos"].distance_to(array_sword["pos"]) <= boss["radius"] + array_sword["radius"] + hit_radius_bonus and (boss["is_vulnerable"] or boss["phase"] == 1):
-			_damage_boss(SwordArrayConfig.FIRED_DAMAGE * 2.0)
+		var boss_contact: Dictionary = detection_result.get("boss_contact", {})
+		if not boss_contact.is_empty() and _can_array_sword_hit_target(array_sword, "boss"):
+			var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
+				str(array_sword.get("attack_instance_id", "")),
+				str(array_sword.get("attack_profile_id", "")),
+				boss_contact.get("contact_point", array_sword["pos"]),
+				DAMAGE_SOURCE_ARRAY_SWORD,
+				float(boss_contact.get("contact_time", 0.0)),
+				bool(boss_contact.get("is_currently_overlapping", true))
+			)
+			if not bool(boss_hit_result.get("allowed", false)):
+				return hit_result
 			hit_result["hit"] = true
 			hit_result["should_return"] = _register_array_sword_target_hit(array_sword, "boss", travel_mode)
 			_create_particles(array_sword["pos"], COLORS["array_sword"], 15)
@@ -1189,6 +1487,7 @@ func _is_ring_guard_active() -> bool:
 
 
 func _begin_array_sword_return(array_sword: Dictionary) -> void:
+	_clear_array_sword_attack_instance(array_sword)
 	array_sword["state"] = "returning"
 	array_sword["guidance_active"] = false
 	array_sword["trail_timer"] = 0.0
@@ -1245,17 +1544,57 @@ func _emit_array_sword_trail(array_sword: Dictionary, delta: float, is_returning
 
 
 func _deflected_bullet_hits_enemy(bullet: Dictionary) -> bool:
-	for enemy in enemies:
-		if enemy["type"] == PUPPET:
+	var attack_instance_id: String = str(bullet.get("attack_instance_id", ""))
+	var attack_profile_id: String = str(bullet.get("attack_profile_id", AttackProfiles.PROFILE_DEFLECTED_BULLET))
+	var channel_scalar: float = maxf(float(bullet.get("channel_scalar", float(bullet.get("damage", BULLET_DAMAGE)) / maxf(BULLET_DAMAGE, 0.001))), 0.0)
+	var detection_result: Dictionary = hit_detection.collect_circle_contact_targets(
+		self,
+		bullet["pos"],
+		float(bullet.get("radius", BULLET_RADIUS)),
+		attack_profile_id,
+		DAMAGE_SOURCE_MELEE,
+		0.0,
+		{
+			"exclude_enemy_types": [PUPPET],
+		}
+	)
+	for contact_variant in detection_result.get("contacts", []):
+		var contact: Dictionary = contact_variant
+		var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
+			attack_instance_id,
+			attack_profile_id,
+			contact.get("contact_point", bullet["pos"]),
+			str(contact.get("target_id", "")),
+			str(contact.get("hurtbox_id", "")),
+			str(contact.get("target_profile_id", "")),
+			DAMAGE_SOURCE_MELEE,
+			float(contact.get("contact_time", 0.0)),
+			str(contact.get("target_state", "")),
+			bool(contact.get("is_currently_overlapping", true)),
+			{
+				"channel_scalar": channel_scalar,
+			}
+		)
+		if not bool(attack_result.get("allowed", false)):
 			continue
-		if enemy["pos"].distance_to(bullet["pos"]) > enemy["radius"] + bullet["radius"]:
-			continue
-		_damage_enemy(enemy, bullet["damage"] * 2.0, DAMAGE_SOURCE_MELEE)
 		_create_particles(bullet["pos"], COLORS["melee_sword"], 8)
 		return true
 	if _has_boss():
-		if boss["pos"].distance_to(bullet["pos"]) <= boss["radius"] + bullet["radius"] and (boss["is_vulnerable"] or boss["phase"] == 1):
-			_damage_boss(bullet["damage"] * 2.5)
+		var boss_contact: Dictionary = detection_result.get("boss_contact", {})
+		if not boss_contact.is_empty():
+			var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
+				attack_instance_id,
+				attack_profile_id,
+				boss_contact.get("contact_point", bullet["pos"]),
+				DAMAGE_SOURCE_MELEE,
+				float(boss_contact.get("contact_time", 0.0)),
+				bool(boss_contact.get("is_currently_overlapping", true)),
+				{
+					"channel_scalar": channel_scalar,
+				}
+			)
+			if not bool(boss_hit_result.get("allowed", false)):
+				return false
 			_create_particles(bullet["pos"], COLORS["melee_sword"], 10)
 			return true
 	return false
@@ -1288,6 +1627,8 @@ func _update_wave(delta: float) -> void:
 		return
 	if _has_boss() and boss["health"] <= 0.0:
 		_create_particles(boss["pos"], COLORS["boss_body"], 40)
+		_clear_target_runtime_state("boss")
+		_clear_target_hurtboxes("boss")
 		boss.clear()
 		score += 5000
 		enemies_to_spawn = WAVE_BASE_ENEMIES + wave * 2
@@ -1332,14 +1673,40 @@ func _try_cast_ultimate() -> void:
 	while index >= 0:
 		_remove_bullet(index)
 		index -= 1
+	var ultimate_attack_instance: Dictionary = _build_attack_instance(AttackProfiles.PROFILE_ULTIMATE_PULSE, "player", "ultimate")
+	var ultimate_attack_instance_id: String = str(ultimate_attack_instance.get("id", ""))
+	var ultimate_attack_profile_id: String = str(ultimate_attack_instance.get("profile_id", AttackProfiles.PROFILE_ULTIMATE_PULSE))
 	for enemy in enemies:
 		if enemy["type"] == PUPPET:
 			continue
-		_damage_enemy(enemy, 50.0, DAMAGE_SOURCE_ULTIMATE)
+		var hurtbox: Dictionary = _get_enemy_primary_hurtbox(enemy)
+		var enemy_id: String = str(hurtbox.get("target_id", ""))
+		var hurtbox_id: String = str(hurtbox.get("hurtbox_id", ""))
+		var target_profile_id: String = str(hurtbox.get("target_profile_id", ""))
+		if enemy_id == "" or hurtbox_id == "" or target_profile_id == "":
+			continue
+		var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
+			ultimate_attack_instance_id,
+			ultimate_attack_profile_id,
+			enemy["pos"],
+			enemy_id,
+			hurtbox_id,
+			target_profile_id,
+			DAMAGE_SOURCE_ULTIMATE
+		)
+		if not bool(attack_result.get("allowed", false)):
+			continue
 		_create_particles(enemy["pos"], COLORS["energy"], 12)
 	if _has_boss():
-		_damage_boss(250.0)
-		_create_particles(boss["pos"], COLORS["energy"], 18)
+		var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
+			ultimate_attack_instance_id,
+			ultimate_attack_profile_id,
+			boss["pos"],
+			DAMAGE_SOURCE_ULTIMATE
+		)
+		if bool(boss_hit_result.get("allowed", false)):
+			_create_particles(boss["pos"], COLORS["energy"], 18)
+	_clear_attack_instance(ultimate_attack_instance_id)
 	_create_particles(player["pos"], COLORS["energy"], 24)
 
 
@@ -1349,41 +1716,71 @@ func _perform_melee_attack() -> void:
 	var attack_direction: Vector2 = mouse_world - player["pos"]
 	if attack_direction.is_zero_approx():
 		attack_direction = Vector2.RIGHT
-	var attack_angle: float = attack_direction.angle()
+	var melee_attack_instance: Dictionary = _build_attack_instance(AttackProfiles.PROFILE_MELEE_SLASH, "player", "melee")
+	var melee_attack_instance_id: String = str(melee_attack_instance.get("id", ""))
+	var melee_attack_profile_id: String = str(melee_attack_instance.get("profile_id", AttackProfiles.PROFILE_MELEE_SLASH))
+	var detection_result: Dictionary = hit_detection.collect_melee_arc_targets(
+		self,
+		player["pos"],
+		attack_direction,
+		SWORD_MELEE_RANGE,
+		SWORD_MELEE_ARC,
+		melee_attack_profile_id,
+		DAMAGE_SOURCE_MELEE,
+		{
+			"exclude_enemy_types": [PUPPET],
+			"bullet_range_bonus": 20.0,
+		}
+	)
 
-	for bullet in bullets:
-		if bullet["state"] != "normal":
-			continue
-		var offset: Vector2 = bullet["pos"] - player["pos"]
-		if offset.length() > SWORD_MELEE_RANGE + 20.0:
-			continue
-		if absf(wrapf(offset.angle() - attack_angle, -PI, PI)) > SWORD_MELEE_ARC * 0.5:
+	for bullet_contact_variant in detection_result.get("bullet_contacts", []):
+		var bullet_contact: Dictionary = bullet_contact_variant
+		var bullet: Variant = bullet_contact.get("bullet", null)
+		if bullet == null:
 			continue
 		_deflect_enemy_bullet(bullet, attack_direction)
 		_add_player_energy(ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0))
 		screen_shake = max(screen_shake, 3.0)
 
-	for enemy in enemies:
-		var enemy_offset: Vector2 = enemy["pos"] - player["pos"]
-		if enemy_offset.length() > SWORD_MELEE_RANGE + enemy["radius"]:
+	for contact_variant in detection_result.get("contacts", []):
+		var contact: Dictionary = contact_variant
+		var enemy: Variant = contact.get("entity", null)
+		if enemy == null:
 			continue
-		if absf(wrapf(enemy_offset.angle() - attack_angle, -PI, PI)) > SWORD_MELEE_ARC * 0.5:
+		var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
+			melee_attack_instance_id,
+			melee_attack_profile_id,
+			contact.get("contact_point", enemy["pos"]),
+			str(contact.get("target_id", "")),
+			str(contact.get("hurtbox_id", "")),
+			str(contact.get("target_profile_id", "")),
+			DAMAGE_SOURCE_MELEE,
+			float(contact.get("contact_time", 0.0)),
+			str(contact.get("target_state", "")),
+			bool(contact.get("is_currently_overlapping", true))
+		)
+		if not bool(attack_result.get("allowed", false)):
 			continue
-		if enemy["type"] == PUPPET:
-			continue
-		_damage_enemy(enemy, SWORD_MELEE_DAMAGE, DAMAGE_SOURCE_MELEE)
 		_add_player_energy(ENERGY_GAIN_MELEE_HIT)
 		_create_particles(enemy["pos"], COLORS[enemy["type"]], 5)
 		screen_shake = max(screen_shake, 4.0)
 
-	if _has_boss() and (boss["is_vulnerable"] or boss["phase"] == 1):
-		var boss_offset: Vector2 = boss["pos"] - player["pos"]
-		if boss_offset.length() <= SWORD_MELEE_RANGE + boss["radius"]:
-			if absf(wrapf(boss_offset.angle() - attack_angle, -PI, PI)) <= SWORD_MELEE_ARC * 0.5:
-				_damage_boss(SWORD_MELEE_DAMAGE)
+	if _has_boss():
+		var boss_contact: Dictionary = detection_result.get("boss_contact", {})
+		if not boss_contact.is_empty():
+			var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
+				melee_attack_instance_id,
+				melee_attack_profile_id,
+				boss_contact.get("contact_point", boss["pos"]),
+				DAMAGE_SOURCE_MELEE,
+				float(boss_contact.get("contact_time", 0.0)),
+				bool(boss_contact.get("is_currently_overlapping", true))
+			)
+			if bool(boss_hit_result.get("allowed", false)):
 				_add_player_energy(ENERGY_GAIN_MELEE_HIT)
 				_create_particles(boss["pos"], COLORS["boss_body"], 8)
 				screen_shake = max(screen_shake, 5.0)
+	_clear_attack_instance(melee_attack_instance_id)
 
 
 func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> void:
@@ -1395,22 +1792,238 @@ func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> voi
 	var blended_direction: Vector2 = deflect_direction.lerp(attack_direction.normalized(), 0.5)
 	if blended_direction.is_zero_approx():
 		blended_direction = deflect_direction
+	_clear_attack_instance(str(bullet.get("attack_instance_id", "")))
+	var attack_instance: Dictionary = _build_attack_instance(AttackProfiles.PROFILE_DEFLECTED_BULLET, "player", str(bullet.get("id", "bullet")))
 	bullet["state"] = "deflected"
 	bullet["owner_id"] = "player"
 	bullet["color"] = COLORS["melee_sword"]
+	bullet["attack_instance_id"] = str(attack_instance.get("id", ""))
+	bullet["attack_profile_id"] = str(attack_instance.get("profile_id", AttackProfiles.PROFILE_DEFLECTED_BULLET))
+	bullet["channel_scalar"] = float(bullet.get("damage", BULLET_DAMAGE)) / maxf(BULLET_DAMAGE, 0.001)
 	bullet["vel"] = blended_direction.normalized() * maxf(bullet["vel"].length(), BULLET_SPEED) * DEFLECT_BULLET_SPEED_MULTIPLIER
 	_create_particles(bullet["pos"], COLORS["melee_sword"], 4)
 
 
 func _start_point_strike() -> void:
+	var unsheath_direction: Vector2 = mouse_world - player["pos"]
+	_trigger_unsheath_flash(
+		unsheath_direction,
+		_get_unsheath_flash_release_anchor(unsheath_direction, SwordState.POINT_STRIKE)
+	)
+	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_POINT)
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
 	player["mode"] = CombatMode.RANGED
 
 
 func _start_slicing() -> void:
+	var unsheath_direction: Vector2 = mouse_world - player["pos"]
+	_trigger_unsheath_flash(
+		unsheath_direction,
+		_get_unsheath_flash_release_anchor(unsheath_direction, SwordState.SLICING)
+	)
+	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
 	sword["state"] = SwordState.SLICING
 	player["mode"] = CombatMode.RANGED
+
+
+func _trigger_unsheath_flash(direction: Vector2, flash_origin: Vector2) -> void:
+	var flash_direction: Vector2 = direction.normalized()
+	if flash_direction.is_zero_approx():
+		flash_direction = Vector2.RIGHT
+	var is_repeated_trigger: bool = unsheath_flash_repeat_timer > 0.0
+	unsheath_flash_timer = UNSHEATH_FLASH_DURATION * (0.72 if is_repeated_trigger else 1.0)
+	unsheath_flash_direction = flash_direction
+	unsheath_flash_origin = flash_origin
+	unsheath_flash_strength = UNSHEATH_FLASH_REPEAT_STRENGTH if is_repeated_trigger else UNSHEATH_FLASH_BASE_STRENGTH
+	unsheath_flash_repeat_timer = UNSHEATH_FLASH_REPEAT_SUPPRESSION
+	sword["afterimage_burst_timer"] = SWORD_AFTERIMAGE_BURST_DURATION
+	sword["afterimage_emit_timer"] = 0.0
+
+
+func _trigger_unsheath_press_flash(direction: Vector2) -> void:
+	var flash_direction: Vector2 = direction.normalized()
+	if flash_direction.is_zero_approx():
+		flash_direction = Vector2.RIGHT
+	var is_repeated_trigger: bool = unsheath_press_flash_repeat_timer > 0.0
+	unsheath_press_flash_timer = UNSHEATH_PRESS_FLASH_DURATION
+	unsheath_press_flash_direction = flash_direction
+	unsheath_press_flash_origin = _get_unsheath_press_flash_anchor(flash_direction, UNSHEATH_PRESS_FLASH_ANCHOR_LERP)
+	unsheath_press_flash_strength = UNSHEATH_PRESS_FLASH_REPEAT_STRENGTH if is_repeated_trigger else UNSHEATH_PRESS_FLASH_BASE_STRENGTH
+	unsheath_press_flash_repeat_timer = UNSHEATH_PRESS_FLASH_REPEAT_SUPPRESSION
+
+
+func _get_unsheath_flash_release_anchor(flash_direction: Vector2, next_sword_state: int) -> Vector2:
+	if flash_direction.is_zero_approx():
+		flash_direction = Vector2.RIGHT
+	else:
+		flash_direction = flash_direction.normalized()
+	var target_distance: float = player["pos"].distance_to(mouse_world)
+	var desired_distance: float = SWORD_ORBIT_DISTANCE + UNSHEATH_FLASH_SWORD_FORWARD_OFFSET
+	match next_sword_state:
+		SwordState.POINT_STRIKE:
+			desired_distance = SWORD_ORBIT_DISTANCE + SWORD_POINT_STRIKE_SPEED * UNSHEATH_FLASH_POINT_RELEASE_PREDICT_TIME
+		SwordState.SLICING:
+			desired_distance = lerpf(
+				SWORD_ORBIT_DISTANCE + UNSHEATH_FLASH_SWORD_FORWARD_OFFSET,
+				target_distance,
+				UNSHEATH_FLASH_SLICE_RELEASE_RATIO
+			)
+	var clamped_distance: float = _get_unsheath_flash_release_distance(target_distance, desired_distance)
+	return player["pos"] + flash_direction * (clamped_distance + UNSHEATH_FLASH_SWORD_FORWARD_OFFSET)
+
+
+func _get_unsheath_flash_release_distance(target_distance: float, desired_distance: float) -> float:
+	var max_distance: float = minf(
+		maxf(target_distance - 10.0, SWORD_ORBIT_DISTANCE + 12.0),
+		UNSHEATH_FLASH_RELEASE_MAX_DISTANCE
+	)
+	var min_distance: float = minf(UNSHEATH_FLASH_RELEASE_MIN_DISTANCE, max_distance)
+	return clampf(desired_distance, min_distance, max_distance)
+
+
+func _get_unsheath_press_flash_anchor(flash_direction: Vector2, anchor_lerp: float) -> Vector2:
+	var contact_anchor: Vector2 = player["pos"].lerp(sword["pos"], anchor_lerp)
+	return contact_anchor - flash_direction * UNSHEATH_FLASH_ROOT_BACK_OFFSET
+
+
+func _update_sword_trail(delta: float, frame_velocity: Vector2) -> void:
+	var index: int = sword_trail_points.size() - 1
+	while index >= 0:
+		var trail_point: Dictionary = sword_trail_points[index]
+		trail_point["life"] = max(float(trail_point.get("life", 0.0)) - delta, 0.0)
+		if trail_point["life"] <= 0.0:
+			sword_trail_points.remove_at(index)
+		else:
+			sword_trail_points[index] = trail_point
+		index -= 1
+
+	if sword["state"] != SwordState.POINT_STRIKE and sword["state"] != SwordState.SLICING:
+		sword["trail_emit_timer"] = 0.0
+		return
+
+	var emit_timer: float = max(float(sword.get("trail_emit_timer", 0.0)) - delta, 0.0)
+	if frame_velocity.length() < SWORD_TRAIL_MIN_SPEED:
+		sword["trail_emit_timer"] = emit_timer
+		return
+	if emit_timer > 0.0:
+		sword["trail_emit_timer"] = emit_timer
+		return
+
+	sword["trail_emit_timer"] = SWORD_TRAIL_SAMPLE_INTERVAL
+	_emit_sword_trail_point(frame_velocity)
+
+
+func _emit_sword_trail_point(frame_velocity: Vector2) -> void:
+	var direction: Vector2 = frame_velocity.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT.rotated(sword["angle"])
+	var speed_ratio: float = clampf(frame_velocity.length() / SWORD_POINT_STRIKE_SPEED, 0.0, 1.0)
+	var is_slice: bool = sword["state"] == SwordState.SLICING
+	var width_scale: float = SWORD_TRAIL_SLICE_WIDTH_SCALE if is_slice else SWORD_TRAIL_POINT_WIDTH_SCALE
+	var life_scale: float = SWORD_TRAIL_SLICE_LIFE_SCALE if is_slice else SWORD_TRAIL_POINT_LIFE_SCALE
+	sword_trail_points.append({
+		"pos": sword["pos"] + direction * SWORD_TRAIL_FORWARD_OFFSET,
+		"life": SWORD_TRAIL_DURATION * life_scale,
+		"max_life": SWORD_TRAIL_DURATION * life_scale,
+		"half_width": lerpf(SWORD_TRAIL_BASE_HALF_WIDTH * 0.82, SWORD_TRAIL_BASE_HALF_WIDTH * 1.24, speed_ratio) * width_scale,
+		"alpha_scale": lerpf(0.76, 1.0, speed_ratio),
+		"style": "slice" if is_slice else "point",
+		"forward": direction,
+	})
+	if sword_trail_points.size() > SWORD_TRAIL_MAX_POINTS:
+		sword_trail_points.remove_at(0)
+
+
+func _update_sword_afterimages(delta: float, frame_velocity: Vector2) -> void:
+	var index: int = sword_afterimages.size() - 1
+	while index >= 0:
+		var afterimage: Dictionary = sword_afterimages[index]
+		afterimage["life"] = max(float(afterimage.get("life", 0.0)) - delta, 0.0)
+		if afterimage["life"] <= 0.0:
+			sword_afterimages.remove_at(index)
+		else:
+			sword_afterimages[index] = afterimage
+		index -= 1
+
+	if sword["state"] == SwordState.ORBITING or sword["state"] == SwordState.RECALLING:
+		sword["afterimage_burst_timer"] = 0.0
+		sword["afterimage_emit_timer"] = 0.0
+		return
+
+	var burst_timer: float = max(float(sword.get("afterimage_burst_timer", 0.0)) - delta, 0.0)
+	var emit_timer: float = max(float(sword.get("afterimage_emit_timer", 0.0)) - delta, 0.0)
+	sword["afterimage_burst_timer"] = burst_timer
+	if burst_timer <= 0.0:
+		sword["afterimage_emit_timer"] = 0.0
+		return
+	if frame_velocity.length() < SWORD_AFTERIMAGE_MIN_SPEED:
+		sword["afterimage_emit_timer"] = emit_timer
+		return
+	if emit_timer > 0.0:
+		sword["afterimage_emit_timer"] = emit_timer
+		return
+
+	sword["afterimage_emit_timer"] = SWORD_AFTERIMAGE_EMIT_INTERVAL
+	_emit_sword_afterimage(frame_velocity)
+
+
+func _emit_sword_afterimage(frame_velocity: Vector2) -> void:
+	var direction: Vector2 = frame_velocity.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT.rotated(sword["angle"])
+	var speed_ratio: float = clampf(frame_velocity.length() / SWORD_POINT_STRIKE_SPEED, 0.0, 1.0)
+	sword_afterimages.append({
+		"pos": sword["pos"],
+		"angle": direction.angle(),
+		"life": SWORD_AFTERIMAGE_DURATION,
+		"max_life": SWORD_AFTERIMAGE_DURATION,
+		"stretch": lerpf(1.0, 1.28, speed_ratio),
+		"width_scale": lerpf(1.0, 1.14, speed_ratio),
+		"color": COLORS["ranged_sword"],
+	})
+	if sword_afterimages.size() > SWORD_AFTERIMAGE_MAX_COUNT:
+		sword_afterimages.remove_at(0)
+
+
+func _update_sword_hit_effects(delta: float) -> void:
+	var index: int = sword_hit_effects.size() - 1
+	while index >= 0:
+		var hit_effect: Dictionary = sword_hit_effects[index]
+		hit_effect["life"] = max(float(hit_effect.get("life", 0.0)) - delta, 0.0)
+		if hit_effect["life"] <= 0.0:
+			sword_hit_effects.remove_at(index)
+		else:
+			sword_hit_effects[index] = hit_effect
+		index -= 1
+
+
+func _emit_sword_hit_effect(contact_pos: Vector2, swing_direction: Vector2, effect_color: Color, intensity := 1.0) -> void:
+	var direction: Vector2 = swing_direction
+	if direction.is_zero_approx():
+		direction = sword["vel"]
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT.rotated(sword["angle"])
+	var speed_ratio: float = clampf(maxf(direction.length(), sword["vel"].length()) / SWORD_POINT_STRIKE_SPEED, 0.0, 1.0)
+	var attack_profile_id: String = str(sword.get("attack_profile_id", ""))
+	var is_slice: bool = attack_profile_id == AttackProfiles.PROFILE_FLYING_SWORD_SLICE
+	var length_scale: float = SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE if is_slice else SWORD_HIT_EFFECT_POINT_LENGTH_SCALE
+	var width_scale: float = SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE if is_slice else SWORD_HIT_EFFECT_POINT_WIDTH_SCALE
+	direction = direction.normalized()
+	sword_hit_effects.append({
+		"pos": contact_pos,
+		"direction": direction,
+		"life": SWORD_HIT_EFFECT_DURATION,
+		"max_life": SWORD_HIT_EFFECT_DURATION,
+		"length": (SWORD_HIT_EFFECT_BASE_LENGTH + 10.0 * speed_ratio) * length_scale * intensity,
+		"width": (SWORD_HIT_EFFECT_BASE_WIDTH + 3.0 * speed_ratio) * width_scale * intensity,
+		"spark_count": SWORD_HIT_EFFECT_SPARK_COUNT,
+		"seed": randf() * TAU,
+		"color": effect_color,
+		"style": "slice" if is_slice else "point",
+	})
+	if sword_hit_effects.size() > SWORD_HIT_EFFECT_MAX_COUNT:
+		sword_hit_effects.remove_at(0)
 
 
 func _try_consume_energy(amount: float) -> bool:
@@ -1430,7 +2043,7 @@ func _fire_array_swords() -> bool:
 		_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
 		return false
 	var fire_count: int = mini(_get_array_mode_batch_target(mode), ready_count)
-	var energy_cost: float = _get_array_sword_energy_cost(fire_count)
+	var energy_cost: float = _get_array_sword_energy_cost(fire_count, mode)
 	if energy_cost > 0.0 and not _try_consume_energy(energy_cost):
 		_show_action_failure("剑意不足", "array_energy", _get_energy_failure_color(), "energy")
 		return false
@@ -1508,6 +2121,7 @@ func _fire_single_array_sword(sword_id: String, volley_fire_index: int, volley_f
 	array_sword["state"] = "outbound"
 	array_sword["travel_mode"] = _get_array_batch_mode()
 	_reset_array_sword_sortie_state(array_sword)
+	_start_array_sword_attack_instance(array_sword)
 	array_sword["batch_id"] = String(batch_id)
 	array_sword["vel"] = direction.normalized() * _get_current_array_sword_speed(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
 	array_sword["guidance_active"] = true
@@ -1531,16 +2145,18 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 	var enemy: Dictionary = {
 		"id": _next_id(enemy_type),
 		"type": enemy_type,
+		"target_profile_id": TargetProfiles.get_enemy_profile_id(enemy_type),
+		"descriptor_provider_id": TargetDescriptorRegistry.PROVIDER_ENEMY,
 		"pos": spawn_pos,
 		"vel": Vector2.ZERO,
 		"move_timer": randf_range(0.2, 1.4),
 		"shoot_cooldown": randf_range(0.2, 1.0),
-		"hit_cooldown": 0.0,
 		"radius": SHOOTER_RADIUS,
 		"health": SHOOTER_HEALTH,
 		"max_health": SHOOTER_HEALTH,
 		"last_damage_source": DAMAGE_SOURCE_NONE,
 		"score": 20,
+		"stagger_timer": 0.0,
 	}
 	match enemy_type:
 		PUPPET:
@@ -1569,6 +2185,7 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 		_:
 			enemy["shoot_cooldown"] = randf_range(0.4, SHOOTER_COOLDOWN)
 	enemies.append(enemy)
+	_register_enemy_hurtboxes(enemy)
 	return enemy
 
 
@@ -1583,6 +2200,9 @@ func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, ow
 		"owner_id": owner_id,
 		"color": color,
 		"state": "normal",
+		"attack_instance_id": "",
+		"attack_profile_id": "",
+		"channel_scalar": 1.0,
 		"freeze_timer": 0.0,
 		"life_timer": 0.0,
 		"guidance_active": false,
@@ -1612,6 +2232,7 @@ func _create_particles(position: Vector2, color: Color, count: int) -> void:
 func _remove_bullet(index: int) -> void:
 	if index < 0 or index >= bullets.size():
 		return
+	_clear_attack_instance(str(bullets[index].get("attack_instance_id", "")))
 	bullets.remove_at(index)
 
 
@@ -1759,6 +2380,52 @@ func _find_enemy_by_id(enemy_id: String) -> Variant:
 	return GameBossController.find_enemy_by_id(self, enemy_id)
 
 
+func _resolve_silk_binding(silk_id: String) -> Dictionary:
+	return GameBossController.resolve_silk_binding(self, silk_id)
+
+
+func _register_hurtbox_descriptor(descriptor: Dictionary) -> void:
+	hurtbox_registry.register_descriptor(descriptor)
+
+
+func _register_hurtbox_descriptors(descriptors: Array) -> void:
+	hurtbox_registry.register_descriptors(descriptors)
+
+
+func _clear_target_hurtboxes(target_id: String) -> void:
+	hurtbox_registry.clear_target(target_id)
+
+
+func _get_hurtbox_descriptor(hurtbox_id: String) -> Dictionary:
+	return hurtbox_registry.get_descriptor(hurtbox_id)
+
+
+func _resolve_target_hurtbox_descriptor(target_id: String, descriptor_role := TargetDescriptors.ROLE_PRIMARY, active_states: Array = []) -> Dictionary:
+	return hurtbox_registry.select_descriptor(target_id, descriptor_role, active_states)
+
+
+func _get_enemy_primary_hurtbox(enemy: Dictionary) -> Dictionary:
+	return _resolve_target_hurtbox_descriptor(str(enemy.get("id", "")))
+
+
+func _get_target_primary_hurtbox(target_id: String, active_states: Array = []) -> Dictionary:
+	return _resolve_target_hurtbox_descriptor(target_id, TargetDescriptors.ROLE_PRIMARY, active_states)
+
+
+func _build_target_hurtbox_descriptors(source_data: Dictionary, provider_id := "") -> Array:
+	var context := {}
+	if provider_id != "":
+		context["provider_id"] = provider_id
+	return target_descriptor_registry.build_descriptors(source_data, context)
+
+
+func _register_target_hurtboxes(source_data: Dictionary, provider_id := "") -> void:
+	var descriptors: Array = _build_target_hurtbox_descriptors(source_data, provider_id)
+	if descriptors.is_empty():
+		return
+	_register_hurtbox_descriptors(descriptors)
+
+
 func _kill_enemy_by_id(enemy_id: String) -> void:
 	GameBossController.kill_enemy_by_id(self, enemy_id)
 
@@ -1802,6 +2469,571 @@ func _is_inside_extended_bounds(position: Vector2) -> bool:
 func _next_id(prefix: String) -> String:
 	id_counter += 1
 	return "%s_%d" % [prefix, id_counter]
+
+
+func _reset_combat_runtime() -> void:
+	hit_registry = HitRegistry.new()
+	hurtbox_registry = HurtboxRegistry.new()
+	damage_resolver = DamageResolver.new()
+	hit_detection = HitDetection.new()
+	combat_runtime = {
+		"attack_instances": {},
+		"target_states": {},
+	}
+
+
+func _get_attack_profile(profile_id: String) -> Dictionary:
+	return AttackProfiles.get_profile(profile_id)
+
+
+func _get_target_profile(profile_id: String) -> Dictionary:
+	return TargetProfiles.get_profile(profile_id)
+
+
+func _register_enemy_hurtboxes(enemy: Dictionary) -> void:
+	_register_target_hurtboxes(enemy, TargetDescriptorRegistry.PROVIDER_ENEMY)
+
+
+func _register_boss_hurtboxes() -> void:
+	if not _has_boss():
+		return
+	_register_target_hurtboxes(boss, TargetDescriptorRegistry.PROVIDER_BOSS)
+
+
+func _register_silk_hurtbox(silk: Dictionary) -> void:
+	_register_target_hurtboxes(silk, TargetDescriptorRegistry.PROVIDER_SILK_SEGMENT)
+
+
+func _is_boss_core_open() -> bool:
+	return _has_boss() and (bool(boss.get("is_vulnerable", false)) or int(boss.get("phase", 0)) == 1)
+
+
+func _get_boss_hit_context(attack_profile_id := "", damage_source := DAMAGE_SOURCE_NONE) -> Dictionary:
+	var active_states: Array = []
+	var target_state := ""
+	if _is_boss_core_open() or _should_bypass_boss_window(attack_profile_id, damage_source):
+		active_states.append("vulnerable")
+		target_state = "vulnerable"
+	var descriptor: Dictionary = _resolve_target_hurtbox_descriptor("boss", TargetDescriptors.ROLE_PRIMARY, active_states)
+	if descriptor.is_empty():
+		var fallback_descriptors: Array = _build_target_hurtbox_descriptors(boss, TargetDescriptorRegistry.PROVIDER_BOSS)
+		if not fallback_descriptors.is_empty():
+			descriptor = fallback_descriptors[0]
+		else:
+			descriptor = TargetDescriptors.build_boss_body(boss)
+	return {
+		"target_id": "boss",
+		"hurtbox_id": str(descriptor.get("hurtbox_id", "boss:body")),
+		"target_profile_id": str(descriptor.get("target_profile_id", TargetProfiles.PROFILE_BOSS_BODY)),
+		"target_state": target_state,
+		"descriptor": descriptor,
+	}
+
+
+func _should_bypass_boss_window(attack_profile_id: String, damage_source := DAMAGE_SOURCE_NONE) -> bool:
+	if damage_source == DAMAGE_SOURCE_ULTIMATE:
+		return true
+	if attack_profile_id == "":
+		return false
+	var attack_profile: Dictionary = _get_attack_profile(attack_profile_id)
+	return str(attack_profile.get("boss_window_mode", AttackProfiles.BOSS_WINDOW_GATED)) == AttackProfiles.BOSS_WINDOW_BYPASS
+
+
+func _open_boss_vulnerability_window(duration: float, show_feedback := true) -> bool:
+	if not _has_boss() or duration <= 0.0 or float(boss.get("health", 0.0)) <= 0.0:
+		return false
+	var was_vulnerable: bool = bool(boss.get("is_vulnerable", false))
+	boss["is_vulnerable"] = true
+	boss["vulnerable_timer"] = maxf(float(boss.get("vulnerable_timer", 0.0)), duration)
+	if show_feedback and not was_vulnerable:
+		_create_particles(boss["pos"], COLORS["boss_vulnerable"], 18)
+		_show_status_message("破绽显现", COLORS["boss_vulnerable"], 0.6)
+	return true
+
+
+func _get_target_runtime_state_key(target_id: String, target_profile_id: String) -> String:
+	return "%s::%s" % [target_id, target_profile_id]
+
+
+func _ensure_target_runtime_state(target_id: String, target_profile_id: String, target_profile: Dictionary) -> Dictionary:
+	var target_states: Dictionary = combat_runtime.get("target_states", {})
+	var state_key: String = _get_target_runtime_state_key(target_id, target_profile_id)
+	if not target_states.has(state_key):
+		var max_poise: float = maxf(float(target_profile.get("max_poise", 0.0)), 0.0)
+		var initial_state := {
+			"target_id": target_id,
+			"target_profile_id": target_profile_id,
+			"current_poise": max_poise,
+			"last_poise_hit_time": -1000000.0,
+			"last_poise_eval_time": elapsed_time,
+			"poise_broken_until": 0.0,
+		}
+		target_states[state_key] = target_event_system.prime_target_state(initial_state)
+		combat_runtime["target_states"] = target_states
+	return target_event_system.prime_target_state(target_states[state_key])
+
+
+func _store_target_runtime_state(target_id: String, target_profile_id: String, target_state: Dictionary) -> void:
+	var target_states: Dictionary = combat_runtime.get("target_states", {})
+	target_states[_get_target_runtime_state_key(target_id, target_profile_id)] = target_state
+	combat_runtime["target_states"] = target_states
+
+
+func _clear_target_runtime_state(target_id: String, target_profile_id := "") -> void:
+	if target_id == "":
+		return
+	var target_states: Dictionary = combat_runtime.get("target_states", {})
+	if target_profile_id == "":
+		var state_prefix: String = "%s::" % [target_id]
+		var erase_keys: Array = []
+		for state_key_variant in target_states.keys():
+			var state_key: String = str(state_key_variant)
+			if state_key.begins_with(state_prefix):
+				erase_keys.append(state_key)
+		for erase_key_variant in erase_keys:
+			target_states.erase(str(erase_key_variant))
+	else:
+		target_states.erase(_get_target_runtime_state_key(target_id, str(target_profile_id)))
+	combat_runtime["target_states"] = target_states
+
+
+func _resolve_target_binding(target_id: String, target_profile_id: String, target_profile: Dictionary) -> Dictionary:
+	return target_writeback_adapters.resolve_binding(self, target_id, target_profile_id, target_profile)
+
+
+func _apply_target_binding_resource(target_binding: Dictionary, amount: float, damage_source := DAMAGE_SOURCE_NONE) -> Dictionary:
+	return target_writeback_adapters.apply(self, target_binding, amount, damage_source)
+
+
+func _refresh_target_poise_state(target_state: Dictionary, target_profile: Dictionary) -> Dictionary:
+	var max_poise: float = maxf(float(target_profile.get("max_poise", 0.0)), 0.0)
+	if max_poise <= 0.0:
+		target_state["current_poise"] = 0.0
+		target_state["last_poise_eval_time"] = elapsed_time
+		return target_state
+	var current_poise: float = clampf(float(target_state.get("current_poise", max_poise)), 0.0, max_poise)
+	var poise_broken_until: float = float(target_state.get("poise_broken_until", 0.0))
+	if elapsed_time < poise_broken_until:
+		target_state["current_poise"] = 0.0
+		target_state["last_poise_eval_time"] = elapsed_time
+		return target_state
+	if poise_broken_until > 0.0:
+		target_state["poise_broken_until"] = 0.0
+	var poise_recovery_rate: float = maxf(float(target_profile.get("poise_recovery_rate", 0.0)), 0.0)
+	var poise_recovery_delay: float = maxf(float(target_profile.get("poise_recovery_delay", 0.0)), 0.0)
+	var last_poise_hit_time: float = float(target_state.get("last_poise_hit_time", -1000000.0))
+	var recovery_start: float = last_poise_hit_time + poise_recovery_delay
+	var last_poise_eval_time: float = float(target_state.get("last_poise_eval_time", recovery_start))
+	var recover_from: float = maxf(last_poise_eval_time, recovery_start)
+	if poise_recovery_rate > 0.0 and elapsed_time > recover_from and current_poise < max_poise:
+		current_poise = minf(current_poise + (elapsed_time - recover_from) * poise_recovery_rate, max_poise)
+	target_state["current_poise"] = current_poise
+	target_state["last_poise_eval_time"] = elapsed_time
+	return target_state
+
+
+func _apply_target_response(
+	target_binding: Dictionary,
+	hit_result: Dictionary,
+	writeback_result: Dictionary,
+	damage_source := DAMAGE_SOURCE_NONE
+) -> Dictionary:
+	var target_id: String = str(target_binding.get("target_id", ""))
+	var target_profile_id: String = str(target_binding.get("target_profile_id", ""))
+	var target_profile: Dictionary = target_binding.get("target_profile", {})
+	var response_events: Array = []
+	var result := {
+		"poise_applied": 0.0,
+		"poise_before": 0.0,
+		"poise_after": 0.0,
+		"response_events": response_events,
+		"response_event_names": [],
+		"applied_response_events": [],
+		"applied_response_event_names": [],
+	}
+	var max_poise: float = maxf(float(target_profile.get("max_poise", 0.0)), 0.0)
+	var applied_channels: Dictionary = hit_result.get("applied_channels", {})
+	var poise_amount: float = maxf(float(applied_channels.get(AttackProfiles.CHANNEL_POISE, 0.0)), 0.0)
+	var target_state: Dictionary = _ensure_target_runtime_state(target_id, target_profile_id, target_profile)
+	target_state = target_event_system.prime_target_state(target_state)
+	var base_event_payload: Dictionary = target_event_system.build_base_payload(
+		target_binding,
+		target_profile,
+		hit_result,
+		writeback_result,
+		damage_source
+	)
+	if max_poise > 0.0:
+		target_state = _refresh_target_poise_state(target_state, target_profile)
+		var poise_before: float = float(target_state.get("current_poise", max_poise))
+		result["poise_before"] = poise_before
+		if poise_amount > 0.0:
+			result["poise_applied"] = poise_amount
+			if elapsed_time < float(target_state.get("poise_broken_until", 0.0)):
+				target_state["last_poise_hit_time"] = elapsed_time
+				target_state["last_poise_eval_time"] = elapsed_time
+			else:
+				var poise_after: float = maxf(poise_before - poise_amount, 0.0)
+				target_state["current_poise"] = poise_after
+				target_state["last_poise_hit_time"] = elapsed_time
+				target_state["last_poise_eval_time"] = elapsed_time
+				if poise_after <= 0.0:
+					var break_duration: float = maxf(float(target_profile.get("break_duration", 0.0)), 0.0)
+					target_state["poise_broken_until"] = elapsed_time + break_duration
+					var poise_event_payload: Dictionary = base_event_payload.duplicate(true)
+					poise_event_payload["poise_damage"] = poise_amount
+					poise_event_payload["poise_before"] = poise_before
+					poise_event_payload["poise_after"] = poise_after
+					poise_event_payload["break_duration"] = break_duration
+					for event_variant in target_profile.get("poise_break_events", []):
+						target_event_system.append_event_record(
+							response_events,
+							event_variant,
+							poise_event_payload,
+							{
+								"trigger": "poise_break",
+								"poise_before": poise_before,
+								"poise_after": poise_after,
+								"break_duration": break_duration,
+							}
+						)
+		result["poise_after"] = float(target_state.get("current_poise", poise_before))
+	var event_collection_result: Dictionary = target_event_system.collect_events(
+		target_binding,
+		target_profile,
+		hit_result,
+		writeback_result,
+		target_state,
+		damage_source
+	)
+	target_state = event_collection_result.get("target_state", target_state)
+	for event_variant in event_collection_result.get("events", []):
+		target_event_system.append_event_record(response_events, event_variant)
+	_store_target_runtime_state(target_id, target_profile_id, target_state)
+	var event_result: Dictionary = target_event_system.dispatch_events(self, target_binding, target_profile, response_events)
+	result["response_events"] = response_events
+	result["response_event_names"] = target_event_system.list_event_names(response_events)
+	result["applied_response_events"] = event_result.get("applied_response_events", [])
+	result["applied_response_event_names"] = event_result.get("applied_response_event_names", [])
+	return result
+
+
+func _apply_hit_result_to_target(target_id: String, target_profile_id: String, hit_result: Dictionary, damage_source := DAMAGE_SOURCE_NONE) -> Dictionary:
+	var result := {
+		"target_found": false,
+		"target_kind": "",
+		"applied": false,
+		"amount": 0.0,
+		"killed": false,
+		"pool_key": "",
+		"resource_channel": "",
+		"poise_applied": 0.0,
+		"poise_before": 0.0,
+		"poise_after": 0.0,
+		"response_events": [],
+		"response_event_names": [],
+		"applied_response_events": [],
+		"applied_response_event_names": [],
+	}
+	if not bool(hit_result.get("allowed", false)):
+		return result
+	var target_profile: Dictionary = _get_target_profile(target_profile_id)
+	var target_binding: Dictionary = _resolve_target_binding(target_id, target_profile_id, target_profile)
+	var pool_key: String = str(target_binding.get("pool_key", ""))
+	var resource_channel: String = str(target_binding.get("resource_channel", AttackProfiles.CHANNEL_HP))
+	var applied_channels: Dictionary = hit_result.get("applied_channels", {})
+	var amount: float = maxf(float(applied_channels.get(resource_channel, 0.0)), 0.0)
+	result["pool_key"] = pool_key
+	result["resource_channel"] = resource_channel
+	result["target_kind"] = str(target_binding.get("target_kind", ""))
+	var writeback_result: Dictionary = _apply_target_binding_resource(target_binding, amount, damage_source)
+	writeback_result["pool_key"] = pool_key
+	writeback_result["resource_channel"] = resource_channel
+	result["target_found"] = bool(writeback_result.get("target_found", false))
+	result["applied"] = bool(writeback_result.get("applied", false))
+	result["amount"] = float(writeback_result.get("amount", 0.0))
+	result["killed"] = bool(writeback_result.get("killed", false))
+	if not bool(result.get("target_found", false)):
+		return result
+	var response_result: Dictionary = _apply_target_response(target_binding, hit_result, writeback_result, damage_source)
+	var applied_response_events: Array = response_result.get("applied_response_events", [])
+	result["poise_applied"] = float(response_result.get("poise_applied", 0.0))
+	result["poise_before"] = float(response_result.get("poise_before", 0.0))
+	result["poise_after"] = float(response_result.get("poise_after", 0.0))
+	result["response_events"] = response_result.get("response_events", [])
+	result["response_event_names"] = response_result.get("response_event_names", [])
+	result["applied_response_events"] = applied_response_events
+	result["applied_response_event_names"] = response_result.get("applied_response_event_names", [])
+	result["applied"] = bool(result.get("applied", false)) or float(result.get("poise_applied", 0.0)) > 0.0 or not applied_response_events.is_empty()
+	return result
+
+
+func _apply_boss_attack_instance_hit(
+	attack_instance_id: String,
+	attack_profile_id: String,
+	contact_point: Vector2,
+	damage_source := DAMAGE_SOURCE_NONE,
+	contact_time := 0.0,
+	is_currently_overlapping := true,
+	hit_request_overrides := {}
+) -> Dictionary:
+	var result := {
+		"allowed": false,
+		"blocked_reason": "no_boss",
+		"target_profile_id": "",
+		"hurtbox_id": "",
+		"target_state": "",
+		"hit_result": {},
+		"apply_result": {},
+	}
+	if not _has_boss():
+		return result
+	var bypass_boss_window: bool = _should_bypass_boss_window(attack_profile_id, damage_source)
+	if not bypass_boss_window and not _is_boss_core_open():
+		result["blocked_reason"] = "boss_window_closed"
+		return result
+	var boss_hit_context: Dictionary = _get_boss_hit_context(attack_profile_id, damage_source)
+	var target_profile_id: String = str(boss_hit_context.get("target_profile_id", TargetProfiles.PROFILE_BOSS_BODY))
+	var hurtbox_id: String = str(boss_hit_context.get("hurtbox_id", "boss:body"))
+	var target_state: String = str(boss_hit_context.get("target_state", ""))
+	var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
+		attack_instance_id,
+		attack_profile_id,
+		contact_point,
+		"boss",
+		hurtbox_id,
+		target_profile_id,
+		damage_source,
+		contact_time,
+		target_state,
+		is_currently_overlapping,
+		hit_request_overrides
+	)
+	var hit_result: Dictionary = attack_result.get("hit_result", {})
+	result["target_profile_id"] = target_profile_id
+	result["hurtbox_id"] = hurtbox_id
+	result["target_state"] = target_state
+	result["hit_result"] = hit_result
+	result["apply_result"] = attack_result.get("apply_result", {})
+	result["allowed"] = bool(attack_result.get("allowed", false))
+	result["blocked_reason"] = str(attack_result.get("blocked_reason", ""))
+	return result
+
+
+func _build_attack_instance(profile_id: String, owner_id: String, source_node: String, team := "player") -> Dictionary:
+	var attack_instance := {
+		"id": _next_id("attack"),
+		"profile_id": profile_id,
+		"owner_id": owner_id,
+		"team": team,
+		"source_node": source_node,
+		"spawn_time": elapsed_time,
+		"alive": true,
+		"runtime": {},
+	}
+	combat_runtime["attack_instances"][attack_instance["id"]] = attack_instance
+	return attack_instance
+
+
+func _clear_attack_instance(attack_instance_id: String) -> void:
+	if attack_instance_id == "":
+		return
+	hit_registry.clear_attack_instance(attack_instance_id)
+	var attack_instances: Dictionary = combat_runtime.get("attack_instances", {})
+	attack_instances.erase(attack_instance_id)
+	combat_runtime["attack_instances"] = attack_instances
+
+
+func _resolve_attack_instance_hit(
+	attack_instance_id: String,
+	attack_profile_id: String,
+	contact_point: Vector2,
+	target_id: String,
+	hurtbox_id: String,
+	target_profile_id: String,
+	contact_time := 0.0,
+	target_state := "",
+	is_currently_overlapping := true,
+	hit_request_overrides := {}
+) -> Dictionary:
+	if attack_instance_id == "" or attack_profile_id == "":
+		return {
+			"allowed": false,
+			"blocked_reason": "no_attack_instance",
+		}
+	var attack_profile: Dictionary = _get_attack_profile(attack_profile_id)
+	var target_profile: Dictionary = _get_target_profile(target_profile_id)
+	var hurtbox_kind: String = String(target_profile.get("hurtbox_kind", ""))
+	var rehit_policy: String = AttackProfiles.get_rehit_policy_for_hurtbox(attack_profile, hurtbox_kind)
+	var rehit_interval: float = AttackProfiles.get_rehit_interval_for_hurtbox(attack_profile, hurtbox_kind)
+	if not hit_registry.is_hit_allowed(
+		attack_instance_id,
+		target_id,
+		hurtbox_id,
+		rehit_policy,
+		elapsed_time,
+		rehit_interval,
+		is_currently_overlapping
+	):
+		return {
+			"allowed": false,
+			"blocked_reason": "rehit_blocked",
+		}
+	var hit_request := {
+		"attack_instance_id": attack_instance_id,
+		"attack_profile_id": attack_profile_id,
+		"target_id": target_id,
+		"hurtbox_id": hurtbox_id,
+		"contact_time": contact_time,
+		"contact_point": contact_point,
+		"target_state": target_state,
+	}
+	if typeof(hit_request_overrides) == TYPE_DICTIONARY:
+		for key in hit_request_overrides.keys():
+			hit_request[key] = hit_request_overrides[key]
+	var hit_result: Dictionary = damage_resolver.resolve_hit(hit_request, attack_profile, target_profile)
+	if not bool(hit_result.get("allowed", false)):
+		return hit_result
+	hit_registry.register_hit(attack_instance_id, target_id, hurtbox_id, elapsed_time, is_currently_overlapping)
+	return hit_result
+
+
+func _apply_attack_instance_hit_to_target(
+	attack_instance_id: String,
+	attack_profile_id: String,
+	contact_point: Vector2,
+	target_id: String,
+	hurtbox_id: String,
+	target_profile_id: String,
+	damage_source := DAMAGE_SOURCE_NONE,
+	contact_time := 0.0,
+	target_state := "",
+	is_currently_overlapping := true,
+	hit_request_overrides := {}
+) -> Dictionary:
+	var result := {
+		"allowed": false,
+		"blocked_reason": "",
+		"target_id": target_id,
+		"hurtbox_id": hurtbox_id,
+		"target_profile_id": target_profile_id,
+		"target_state": target_state,
+		"hit_result": {},
+		"apply_result": {},
+	}
+	var hit_result: Dictionary = _resolve_attack_instance_hit(
+		attack_instance_id,
+		attack_profile_id,
+		contact_point,
+		target_id,
+		hurtbox_id,
+		target_profile_id,
+		contact_time,
+		target_state,
+		is_currently_overlapping,
+		hit_request_overrides
+	)
+	result["hit_result"] = hit_result
+	result["allowed"] = bool(hit_result.get("allowed", false))
+	result["blocked_reason"] = str(hit_result.get("blocked_reason", ""))
+	if not bool(result.get("allowed", false)):
+		return result
+	result["apply_result"] = _apply_hit_result_to_target(target_id, target_profile_id, hit_result, damage_source)
+	return result
+
+
+func _apply_sword_hit_to_target(
+	target_id: String,
+	hurtbox_id: String,
+	target_profile_id: String,
+	damage_source := DAMAGE_SOURCE_NONE,
+	contact_time := 0.0,
+	target_state := "",
+	is_currently_overlapping := true,
+	hit_request_overrides := {}
+) -> Dictionary:
+	return _apply_attack_instance_hit_to_target(
+		str(sword.get("attack_instance_id", "")),
+		str(sword.get("attack_profile_id", "")),
+		sword["pos"],
+		target_id,
+		hurtbox_id,
+		target_profile_id,
+		damage_source,
+		contact_time,
+		target_state,
+		is_currently_overlapping,
+		hit_request_overrides
+	)
+
+
+func _apply_array_sword_hit_to_target(
+	array_sword: Dictionary,
+	target_id: String,
+	hurtbox_id: String,
+	target_profile_id: String,
+	damage_source := DAMAGE_SOURCE_NONE,
+	target_state := "",
+	is_currently_overlapping := true,
+	hit_request_overrides := {}
+) -> Dictionary:
+	return _apply_attack_instance_hit_to_target(
+		str(array_sword.get("attack_instance_id", "")),
+		str(array_sword.get("attack_profile_id", "")),
+		array_sword["pos"],
+		target_id,
+		hurtbox_id,
+		target_profile_id,
+		damage_source,
+		0.0,
+		target_state,
+		is_currently_overlapping,
+		hit_request_overrides
+	)
+
+
+func _start_sword_attack_instance(profile_id: String) -> void:
+	if profile_id == "":
+		return
+	_end_sword_attack_instance()
+	var attack_instance: Dictionary = _build_attack_instance(profile_id, "player", "sword")
+	sword["attack_instance_id"] = str(attack_instance.get("id", ""))
+	sword["attack_profile_id"] = profile_id
+
+
+func _set_sword_attack_profile(profile_id: String) -> void:
+	if profile_id == "":
+		return
+	var attack_instance_id: String = str(sword.get("attack_instance_id", ""))
+	if attack_instance_id == "":
+		_start_sword_attack_instance(profile_id)
+		return
+	sword["attack_profile_id"] = profile_id
+	var attack_instances: Dictionary = combat_runtime.get("attack_instances", {})
+	if not attack_instances.has(attack_instance_id):
+		return
+	var attack_instance: Dictionary = attack_instances[attack_instance_id]
+	attack_instance["profile_id"] = profile_id
+	attack_instances[attack_instance_id] = attack_instance
+	combat_runtime["attack_instances"] = attack_instances
+
+
+func _end_sword_attack_instance() -> void:
+	var attack_instance_id: String = str(sword.get("attack_instance_id", ""))
+	_clear_attack_instance(attack_instance_id)
+	sword["attack_instance_id"] = ""
+	sword["attack_profile_id"] = ""
+
+
+func _set_sword_hit_overlap(target_id: String, hurtbox_id: String, is_overlapping: bool) -> void:
+	var sword_attack_instance_id: String = str(sword.get("attack_instance_id", ""))
+	if sword_attack_instance_id == "":
+		return
+	hit_registry.set_overlap_state(sword_attack_instance_id, target_id, hurtbox_id, is_overlapping, elapsed_time)
+
+
+func _resolve_hit_preview(hit_request: Dictionary, attack_profile_id: String, target_profile_id: String) -> Dictionary:
+	return damage_resolver.resolve_hit(hit_request, _get_attack_profile(attack_profile_id), _get_target_profile(target_profile_id))
 
 
 func _handle_debug_key_input(event: InputEventKey) -> bool:
@@ -1998,6 +3230,11 @@ func _enter_debug_calibration_mode() -> void:
 	array_swords.clear()
 	enemies.clear()
 	particles.clear()
+	sword_afterimages.clear()
+	sword_trail_points.clear()
+	sword_hit_effects.clear()
+	_clear_target_runtime_state("boss")
+	_clear_target_hurtboxes("boss")
 	boss.clear()
 	wave = 0
 	score = 0
@@ -2037,11 +3274,3 @@ func _set_debug_player_position(target_pos: Vector2) -> void:
 	sword["pos"] = player["pos"] if sword["state"] == SwordState.ORBITING else sword["pos"]
 	sword["prev_pos"] = sword["pos"]
 	_refresh_sword_array_live_state()
-
-
-func _dist_to_segment(point: Vector2, segment_a: Vector2, segment_b: Vector2) -> float:
-	return GameBossController.dist_to_segment(point, segment_a, segment_b)
-
-
-func _segment_hits_circle(segment_a: Vector2, segment_b: Vector2, center: Vector2, radius: float) -> bool:
-	return _dist_to_segment(center, segment_a, segment_b) <= radius

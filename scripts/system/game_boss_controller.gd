@@ -1,6 +1,9 @@
 extends RefCounted
 class_name GameBossController
 
+const TargetDescriptorRegistry = preload("res://scripts/combat/target_descriptor_registry.gd")
+const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
+
 
 static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> void:
 	if not has_boss(main):
@@ -47,8 +50,7 @@ static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> v
 			pass
 
 	if main.boss["state"] == main.BOSS_PUPPET_AMBUSH and count_active_silks(main) == 0:
-		main.boss["is_vulnerable"] = true
-		main.boss["vulnerable_timer"] = 2.0
+		main._open_boss_vulnerability_window(2.0)
 
 
 static func draw_boss(main: Node2D) -> void:
@@ -58,42 +60,61 @@ static func draw_boss(main: Node2D) -> void:
 		if silk["is_active"]:
 			var from_pos: Vector2 = main._to_screen(silk["from"])
 			var to_pos: Vector2 = main._to_screen(silk["to"])
-			main.draw_line(from_pos, to_pos, main.COLORS["silk_main"] if silk["is_main"] else main.COLORS["silk"], 3.0 if silk["is_main"] else 1.0)
+			var silk_color: Color = main.COLORS["silk_main"] if silk["is_main"] else main.COLORS["silk"]
+			main.draw_line(from_pos, to_pos, main._get_time_stop_world_color(silk_color), 3.0 if silk["is_main"] else 1.0)
 		silk_index += 1
 
 	var boss_color: Color = main.COLORS["boss_vulnerable"] if main.boss["is_vulnerable"] else main.COLORS["boss_body"]
 	var boss_pos: Vector2 = main._to_screen(main.boss["pos"])
-	main.draw_circle(boss_pos, main.boss["radius"], boss_color)
-	main.draw_arc(boss_pos, main.boss["radius"] + 8.0, 0.0, TAU, 32, Color.WHITE, 2.0)
+	main.draw_circle(boss_pos, main.boss["radius"], main._get_time_stop_world_color(boss_color))
+	main.draw_arc(boss_pos, main.boss["radius"] + 8.0, 0.0, TAU, 32, main._get_time_stop_world_color(Color.WHITE), 2.0)
 
 	var bar_width: float = 400.0
 	var bar_rect: Rect2 = Rect2(Vector2((main.ARENA_SIZE.x - bar_width) * 0.5 + main.ARENA_ORIGIN.x, 40.0), Vector2(bar_width, 10.0))
-	main.draw_rect(bar_rect, Color(0.0, 0.0, 0.0, 0.5), true)
-	main.draw_rect(Rect2(bar_rect.position, Vector2(bar_width * (main.boss["health"] / main.boss["max_health"]), bar_rect.size.y)), main.COLORS["boss_body"], true)
-	main.draw_rect(bar_rect, Color.WHITE, false, 1.0)
+	main.draw_rect(bar_rect, main._get_time_stop_world_color(Color(0.0, 0.0, 0.0, 0.5)), true)
+	main.draw_rect(
+		Rect2(bar_rect.position, Vector2(bar_width * (main.boss["health"] / main.boss["max_health"]), bar_rect.size.y)),
+		main._get_time_stop_world_color(main.COLORS["boss_body"]),
+		true
+	)
+	main.draw_rect(bar_rect, main._get_time_stop_world_color(Color.WHITE), false, 1.0)
 
 
 static func update_silk_damage(main: Node, delta: float) -> void:
 	var silk_index: int = 0
 	while silk_index < main.boss["silks"].size():
 		var silk: Dictionary = main.boss["silks"][silk_index]
-		if silk["is_active"] and (main.sword["state"] == main.SwordState.SLICING or main.sword["state"] == main.SwordState.POINT_STRIKE):
-			if dist_to_segment(main.sword["pos"], silk["from"], silk["to"]) < main.sword["radius"] + 5.0:
-				var frame_scaled_damage: float = (5.0 if main.sword["state"] == main.SwordState.POINT_STRIKE else 0.5) * delta * 60.0
-				silk["health"] -= frame_scaled_damage
-				if silk["health"] <= 0.0:
-					silk["is_active"] = false
-					kill_enemy_by_id(main, silk["id"])
+		var hurtbox: Dictionary = main._get_target_primary_hurtbox(str(silk.get("id", "")))
+		var hurtbox_id: String = str(hurtbox.get("hurtbox_id", ""))
+		var target_profile_id: String = str(hurtbox.get("target_profile_id", TargetProfiles.PROFILE_SILK_SEGMENT))
+		var is_sword_attack_active: bool = main.sword["state"] == main.SwordState.SLICING or main.sword["state"] == main.SwordState.POINT_STRIKE
+		var is_contacting_silk: bool = false
+		if silk["is_active"] and is_sword_attack_active:
+			is_contacting_silk = dist_to_segment(main.sword["pos"], silk["from"], silk["to"]) < main.sword["radius"] + 5.0
+			if is_contacting_silk and hurtbox_id != "":
+				var attack_result: Dictionary = main._apply_sword_hit_to_target(
+					str(silk.get("id", "")),
+					hurtbox_id,
+					target_profile_id,
+					main.DAMAGE_SOURCE_FLYING_SWORD,
+					delta
+				)
+				var apply_result: Dictionary = attack_result.get("apply_result", {})
+				if bool(apply_result.get("killed", false)):
 					main._create_particles(main.sword["pos"], main.COLORS["silk"], 20)
-		main.boss["silks"][silk_index] = silk
+		if hurtbox_id != "":
+			main._set_sword_hit_overlap(str(silk.get("id", "")), hurtbox_id, is_contacting_silk)
 		silk_index += 1
 
 
 static func spawn_boss(main: Node) -> void:
+	main._clear_target_hurtboxes("boss")
 	main.boss = {
 		"id": main._next_id("boss"),
+		"descriptor_provider_id": TargetDescriptorRegistry.PROVIDER_BOSS,
 		"pos": Vector2(main.ARENA_SIZE.x * 0.5, -150.0),
 		"radius": main.BOSS_RADIUS,
+		"target_profile_id": TargetProfiles.PROFILE_BOSS_BODY,
 		"health": main.BOSS_MAX_HEALTH,
 		"max_health": main.BOSS_MAX_HEALTH,
 		"state": main.BOSS_IDLE,
@@ -104,6 +125,7 @@ static func spawn_boss(main: Node) -> void:
 		"vulnerable_timer": 0.0,
 		"target_pos": Vector2(main.ARENA_SIZE.x * 0.5, 150.0),
 	}
+	main._register_boss_hurtboxes()
 
 
 static func spawn_puppets(main: Node, count: int) -> void:
@@ -116,19 +138,26 @@ static func spawn_puppets(main: Node, count: int) -> void:
 		var puppet_pos: Vector2 = Vector2(main.ARENA_SIZE.x * 0.5, main.ARENA_SIZE.y * 0.5) + Vector2.RIGHT.rotated(angle) * distance
 		var puppet_id: String = main._next_id("puppet")
 		var puppet: Dictionary = main._spawn_enemy(main.PUPPET)
+		var previous_puppet_id: String = str(puppet.get("id", ""))
 		puppet["id"] = puppet_id
 		puppet["pos"] = puppet_pos.clamp(Vector2(main.PUPPET_RADIUS, main.PUPPET_RADIUS), main.ARENA_SIZE - Vector2(main.PUPPET_RADIUS, main.PUPPET_RADIUS))
 		puppet["melee_timer"] = 0.0
+		main._clear_target_hurtboxes(previous_puppet_id)
+		main._register_enemy_hurtboxes(puppet)
 		main.enemies[main.enemies.size() - 1] = puppet
-		main.boss["silks"].append({
+		var silk := {
 			"id": puppet_id,
+			"descriptor_provider_id": TargetDescriptorRegistry.PROVIDER_SILK_SEGMENT,
+			"target_profile_id": TargetProfiles.PROFILE_SILK_SEGMENT,
 			"from": main.boss["pos"],
 			"to": puppet["pos"],
 			"is_main": false,
 			"health": main.SILK_MAX_HEALTH,
 			"max_health": main.SILK_MAX_HEALTH,
 			"is_active": true,
-		})
+		}
+		main.boss["silks"].append(silk)
+		main._register_silk_hurtbox(silk)
 		puppet_count += 1
 
 
@@ -170,6 +199,92 @@ static func kill_enemy_by_id(main: Node, enemy_id: String) -> void:
 			main.enemies[index]["health"] = 0.0
 			return
 		index -= 1
+
+
+static func find_silk_index(main: Node, silk_id: String) -> int:
+	if not has_boss(main):
+		return -1
+	var silk_index: int = 0
+	while silk_index < main.boss["silks"].size():
+		if str(main.boss["silks"][silk_index].get("id", "")) == silk_id:
+			return silk_index
+		silk_index += 1
+	return -1
+
+
+static func resolve_silk_binding(main: Node, silk_id: String) -> Dictionary:
+	var result := {
+		"found": false,
+		"index": -1,
+		"id": silk_id,
+		"is_active": false,
+		"health": 0.0,
+		"max_health": 0.0,
+		"target_profile_id": TargetProfiles.PROFILE_SILK_SEGMENT,
+		"from": Vector2.ZERO,
+		"to": Vector2.ZERO,
+	}
+	if not has_boss(main):
+		return result
+	var silk_index: int = find_silk_index(main, silk_id)
+	if silk_index < 0:
+		return result
+	var silk: Dictionary = main.boss["silks"][silk_index]
+	result["found"] = true
+	result["index"] = silk_index
+	result["is_active"] = bool(silk.get("is_active", false))
+	result["health"] = float(silk.get("health", 0.0))
+	result["max_health"] = float(silk.get("max_health", 0.0))
+	result["target_profile_id"] = str(silk.get("target_profile_id", TargetProfiles.PROFILE_SILK_SEGMENT))
+	result["from"] = silk.get("from", Vector2.ZERO)
+	result["to"] = silk.get("to", Vector2.ZERO)
+	return result
+
+
+static func apply_silk_damage(main: Node, silk_id: String, damage: float, damage_source := "") -> Dictionary:
+	var result := {
+		"found": false,
+		"applied": false,
+		"amount": 0.0,
+		"killed": false,
+		"resource_before": 0.0,
+		"resource_after": 0.0,
+		"resource_max": 0.0,
+	}
+	var silk_binding: Dictionary = resolve_silk_binding(main, silk_id)
+	if not bool(silk_binding.get("found", false)):
+		return result
+	var silk_index: int = int(silk_binding.get("index", -1))
+	var silk: Dictionary = main.boss["silks"][silk_index]
+	result["found"] = true
+	result["resource_before"] = float(silk_binding.get("health", 0.0))
+	result["resource_after"] = float(silk_binding.get("health", 0.0))
+	result["resource_max"] = float(silk_binding.get("max_health", 0.0))
+	if not bool(silk_binding.get("is_active", false)):
+		return result
+	if damage <= 0.0:
+		return result
+	var previous_health: float = float(silk_binding.get("health", 0.0))
+	if main._has_debug_flag("one_hit_kill"):
+		silk["health"] = 0.0
+	elif damage > 0.0:
+		silk["health"] = maxf(previous_health - damage, 0.0)
+	result["resource_before"] = previous_health
+	result["resource_after"] = float(silk.get("health", previous_health))
+	result["amount"] = maxf(previous_health - float(result.get("resource_after", previous_health)), 0.0)
+	result["applied"] = float(result.get("amount", 0.0)) > 0.0 or (main._has_debug_flag("one_hit_kill") and previous_health > 0.0)
+	if damage_source != "" and damage_source != main.DAMAGE_SOURCE_NONE:
+		var puppet: Variant = find_enemy_by_id(main, silk_id)
+		if puppet != null:
+			puppet["last_damage_source"] = damage_source
+	result["resource_after"] = float(silk.get("health", result.get("resource_after", previous_health)))
+	if float(result.get("resource_after", 0.0)) <= 0.0:
+		silk["is_active"] = false
+		main._clear_target_hurtboxes(silk_id)
+		kill_enemy_by_id(main, silk_id)
+		result["killed"] = true
+	main.boss["silks"][silk_index] = silk
+	return result
 
 
 static func has_boss(main: Node) -> bool:

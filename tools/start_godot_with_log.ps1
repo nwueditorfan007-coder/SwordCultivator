@@ -31,6 +31,46 @@ function Get-ConfiguredGodotPath {
     }
 }
 
+function Get-FallbackGodotCandidates {
+    $candidates = New-Object System.Collections.Generic.List[string]
+    $searchRoots = @(
+        "E:\Godot",
+        "G:\Godot",
+        "D:\Godot",
+        "C:\Godot",
+        (Join-Path $env:ProgramFiles "Godot"),
+        (Join-Path ${env:ProgramFiles(x86)} "Godot")
+    ) | Where-Object { $_ }
+
+    foreach ($root in $searchRoots) {
+        if (-not (Test-Path $root)) {
+            continue
+        }
+
+        $preferred = Get-ChildItem -LiteralPath $root -Filter "Godot*_win64.exe" -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notmatch "_console" } |
+            Sort-Object LastWriteTime -Descending
+
+        foreach ($file in $preferred) {
+            $candidates.Add($file.FullName)
+        }
+    }
+
+    return $candidates
+}
+
+function Resolve-GodotExecutable {
+    param([string[]]$Candidates)
+
+    foreach ($candidate in ($Candidates | Where-Object { $_ } | Select-Object -Unique)) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 function Quote-Argument {
     param([string]$Value)
 
@@ -45,18 +85,16 @@ function Quote-Argument {
     return $Value
 }
 
-$resolvedGodotPath = $GodotPath
+$candidateGodotPaths = @(
+    $GodotPath,
+    (Get-ConfiguredGodotPath -ProjectRoot $projectDir),
+    $env:GODOT4
+) + (Get-FallbackGodotCandidates)
+
+$resolvedGodotPath = Resolve-GodotExecutable -Candidates $candidateGodotPaths
 if (-not $resolvedGodotPath) {
-    $resolvedGodotPath = Get-ConfiguredGodotPath -ProjectRoot $projectDir
-}
-if (-not $resolvedGodotPath) {
-    $resolvedGodotPath = $env:GODOT4
-}
-if (-not $resolvedGodotPath) {
-    throw "Godot path not found. Set .vscode/settings.json -> godotTools.editorPath.godot4 or pass -GodotPath."
-}
-if (-not (Test-Path $resolvedGodotPath)) {
-    throw "Godot executable not found: $resolvedGodotPath"
+    $checked = ($candidateGodotPaths | Where-Object { $_ } | Select-Object -Unique) -join ", "
+    throw "Godot path not found. Checked: $checked"
 }
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
