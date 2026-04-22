@@ -2,6 +2,17 @@
 
 本项目的设计文档按“用途”而不是按时间分类，方便后续持续迭代时快速恢复上下文。
 
+当前阅读时请先区分两件事：
+
+- `当前实装`：以 [docs/project/CURRENT_PROJECT_DESIGN.md](/E:/SwordCultivator/docs/project/CURRENT_PROJECT_DESIGN.md) 为准
+- `目标方向 / 已定案方案`：以 `docs/decisions/` 与相关系统文档为准
+
+如果两者冲突，不表示文档有一份一定错了，更常见的情况是：
+
+- `docs/project/` 记录的是当前代码里已经能玩的版本
+- `docs/decisions/` 记录的是准备继续推进、但未必全部落地的方向
+- `docs/discussions/` 和部分 `docs/reviews/` 保留了历史阶段判断，不应直接当作当前实现说明
+
 ## 分类规则
 
 ### `docs/project/`
@@ -9,6 +20,7 @@
 - 项目层总览文档
 - 记录当前项目是什么、当前版本实现了什么、核心战斗循环是什么
 - 适合新会话快速建立整体理解
+- 当前主入口是 `docs/project/CURRENT_PROJECT_DESIGN.md`
 
 ### `docs/decisions/`
 
@@ -44,8 +56,8 @@
 
 如果要快速恢复项目上下文，建议按以下顺序阅读：
 
-1. `docs/project/`
-2. `docs/decisions/`
+1. `docs/project/CURRENT_PROJECT_DESIGN.md`
+2. `docs/decisions/PROJECT_DECISIONS.md`
 3. `docs/systems/`
 4. `docs/reviews/`
 5. `docs/discussions/`
@@ -59,6 +71,7 @@
 - 项目设计评估报告
 - 剑阵形变系统 V1
 - 剑阵形变系统 V2
+- 剑阵飞剑出入阵轨迹终版设计
 - 统一伤害与命中框架
 - 已定案设计决策清单
 - 内部进度记录

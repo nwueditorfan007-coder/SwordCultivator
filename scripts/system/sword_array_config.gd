@@ -63,6 +63,10 @@ const MODE_PROFILES := {
 		"sortie_hit_radius_bonus": 22.0,
 		"sortie_penetration_targets": 1,
 		"sortie_rehit_cooldown": 0.16,
+		"sortie_launch_tangent_bias": 0.18,
+		"sortie_guidance_tangent_bias": 0.05,
+		"sortie_return_swirl_strength": 0.12,
+		"sortie_return_turn_rate": 12.4,
 	},
 	MODE_FAN: {
 		"arc": deg_to_rad(60.0),
@@ -91,6 +95,10 @@ const MODE_PROFILES := {
 		"sortie_hit_radius_bonus": 8.0,
 		"sortie_penetration_targets": 1,
 		"sortie_rehit_cooldown": 0.14,
+		"sortie_launch_tangent_bias": 0.12,
+		"sortie_guidance_tangent_bias": 0.04,
+		"sortie_return_swirl_strength": 0.1,
+		"sortie_return_turn_rate": 13.0,
 	},
 	MODE_PIERCE: {
 		"spread": 0.08,
@@ -128,6 +136,10 @@ const MODE_PROFILES := {
 		"sortie_hit_radius_bonus": 2.0,
 		"sortie_penetration_targets": 4,
 		"sortie_rehit_cooldown": 0.12,
+		"sortie_launch_tangent_bias": 0.035,
+		"sortie_guidance_tangent_bias": 0.015,
+		"sortie_return_swirl_strength": 0.03,
+		"sortie_return_turn_rate": 14.4,
 	},
 }
 

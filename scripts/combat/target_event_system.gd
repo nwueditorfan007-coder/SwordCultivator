@@ -487,10 +487,28 @@ func _handle_tether_sever_feedback(
 	main: Node,
 	target_binding: Dictionary,
 	_target_profile: Dictionary,
-	_event_record: Dictionary
+	event_record: Dictionary
 ) -> bool:
 	if str(target_binding.get("target_kind", "")) != "silk":
 		return false
+	var silk_aux: Dictionary = target_binding.get("aux", {})
+	var sever_from: Vector2 = silk_aux.get("from", Vector2.ZERO)
+	var sever_to: Vector2 = silk_aux.get("to", Vector2.ZERO)
+	var sever_position: Vector2 = _resolve_event_position(main, target_binding, event_record)
+	main._emit_silk_sever_effect(
+		sever_from,
+		sever_to,
+		sever_position,
+		bool(silk_aux.get("is_main", false))
+	)
+	main._mark_silk_sever_feedback(
+		str(target_binding.get("target_id", "")),
+		sever_from,
+		sever_to,
+		sever_position,
+		bool(silk_aux.get("is_main", false))
+	)
+	main._trigger_silk_sever_hitstop()
 	main._show_status_message("丝线断裂", main.COLORS.get("silk", Color.WHITE), 0.45)
 	return true
 

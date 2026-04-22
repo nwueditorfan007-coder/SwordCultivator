@@ -632,6 +632,37 @@ final_sever = raw_sever if hurtbox_kind == silk else 0
 
 第一版为了兼容当前工程，可继续使用 `Dictionary` 作为运行时数据承载，不强制引入新的复杂类体系。
 
+### 14.1 当前落地快照（2026-04-21）
+
+截至 `2026-04-21`，这套框架的实现状态可以概括为：
+
+- `HitDetection` 已正式落地成独立 detection service
+  - 飞剑扫段
+  - 剑阵接触
+  - 弹反子弹
+  - 近战扇形
+  这四条主要命中发现路径已经改为先返回标准化 `contact record`，再统一走 hit/apply 流程。
+- `DamageResolver` 已改为注册式四段管线
+  - `gate`
+  - `channel stage`
+  - `mitigation`
+  - `post rule`
+  当前默认规则已经覆盖 tag/state gate、runtime channel scalar、护甲减伤、韧性抗性、丝线只吃 sever、丝线 sever_progress 事件等语义。
+- `TargetEventSystem` 已从“事件名数组”升级为 `event record`
+  - 事件已可携带 `payload`
+  - 事件已可携带 `context`
+  - 写回结果已补充 `resource_before / resource_after / resource_max`
+  这意味着后续 `part_break / guard_break / buildup_threshold / core_exposure` 已经有统一承载层，不需要每个表现点重新查上下文。
+- Boss 旧语义已经在新框架上恢复
+  - 非必杀攻击在闭窗期不会有效命中 Boss 血条
+  - Boss body 不再在闭窗期偷偷承受 HP 伤害
+  - 必杀仍可绕过窗口
+- 第一轮数值试探已经开始，但仍不属于“最终精修”
+  - 飞剑连斩已先切到激进测试值
+  - 剑阵能耗已改成按 `ring / fan / pierce` 三形态独立计费
+
+换句话说，当前阻塞点已经从“结构没搭完”切换为“成长属性层和实机数值校准还没做完”。
+
 
 ## 15. 分阶段实施计划
 
@@ -733,6 +764,49 @@ final_sever = raw_sever if hurtbox_kind == silk else 0
 - 不需要引入新的全局 `hit_cooldown`
 - 不需要写新的 `if boss` 专属伤害路径
 - 不需要为 `回旋刃` 使用按帧离散多段 hit 的临时方案
+
+### 阶段 7.5：补运行时成长属性层
+
+在当前骨架下，如果要让 `剑阵` 进入长期养成玩法，建议先补一层统一的运行时属性，而不是直接在各个 getter 里读 upgrade flag。
+
+建议至少先抽出以下字段：
+
+- `array_capacity`
+- `array_outbound_speed_scalar`
+- `array_return_speed_scalar`
+- `array_damage_scalar`
+- `array_damage_scalar_by_mode`
+- `array_poise_scalar_by_mode`
+- `array_energy_cost_scalar_by_mode`
+- `array_penetration_bonus_by_mode`
+- `array_rehit_haste_by_mode`
+
+优先接入的位置：
+
+- `_get_current_array_sword_capacity()`
+- `_get_current_array_sword_speed()`
+- `_get_current_array_sword_return_speed()`
+- `_get_array_mode_energy_cost_per_sword()`
+- `_get_array_sword_penetration_targets()`
+- `_get_array_sword_rehit_cooldown()`
+- `_apply_array_sword_hit_to_target()` 的 `channel_scalar / channel_scalar_overrides`
+
+这样后续做“加飞剑数量、加出击速度、加回收速度、加单剑伤害、加穿透收益”时，不需要再改伤害框架本体。
+
+### 阶段 7.6：拆飞剑连斩 profile
+
+当前 `点刺结束后的回收段` 和 `长按连斩` 仍共用同一个 `slice profile`。
+
+这会带来一个直接问题：
+
+- 想增强长按连斩时，会顺带把点刺回收段一起抬高
+
+因此建议在下一轮结构补强中拆成：
+
+- `slice_hold`
+- `slice_return`
+
+拆完之后，飞剑的“持续压制强度”和“点刺收尾收益”才能真正分开调。
 
 
 ## 16. 验证清单

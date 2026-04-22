@@ -25,7 +25,14 @@ git checkout -b feature/sword-array-tuning
 
 ## 文档入口
 
-优先阅读 `docs/project/`、`docs/decisions/` 与 `docs/systems/`。
+优先阅读：
+
+1. `docs/project/CURRENT_PROJECT_DESIGN.md`
+   当前主场景里已经实装、可以直接运行验证的玩法说明。
+2. `docs/decisions/PROJECT_DECISIONS.md`
+   项目准备继续收敛到的目标方向，不代表已全部落地。
+3. `docs/systems/`
+   各系统的定稿或准定稿方案。
 
 ## Godot 报错协作
 

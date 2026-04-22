@@ -8,6 +8,16 @@ const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
 static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> void:
 	if not has_boss(main):
 		return
+	main.boss["hit_flash_timer"] = maxf(float(main.boss.get("hit_flash_timer", 0.0)) - bullet_time_delta, 0.0)
+	main.boss["hit_reaction_timer"] = maxf(float(main.boss.get("hit_reaction_timer", 0.0)) - bullet_time_delta, 0.0)
+	main.boss["hit_reaction_offset"] = main._resolve_hit_reaction_offset(
+		Vector2(main.boss.get("hit_reaction_vector", Vector2.ZERO)),
+		float(main.boss.get("hit_reaction_timer", 0.0)),
+		main.BOSS_HIT_REACTION_DURATION,
+		main.BOSS_HIT_REACTION_SHAKE_CYCLES
+	)
+	if float(main.boss.get("hit_reaction_timer", 0.0)) <= 0.0:
+		main.boss["hit_reaction_vector"] = Vector2.ZERO
 
 	var to_target: Vector2 = main.boss["target_pos"] - main.boss["pos"]
 	if to_target.length() > 5.0:
@@ -19,7 +29,7 @@ static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> v
 		if main.boss["vulnerable_timer"] <= 0.0:
 			main.boss["is_vulnerable"] = false
 
-	_update_boss_silks(main)
+	_update_boss_silks(main, bullet_time_delta)
 
 	if main.boss["phase"] == 1 and main.boss["health"] < main.boss["max_health"] * 0.7:
 		main.boss["phase"] = 2
@@ -54,21 +64,112 @@ static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> v
 
 
 static func draw_boss(main: Node2D) -> void:
+	draw_boss_world(main)
+	draw_boss_hud(main)
+
+
+static func draw_boss_world(main: Node2D) -> void:
+	var boss_visual_offset: Vector2 = Vector2(main.boss.get("hit_reaction_offset", Vector2.ZERO))
 	var silk_index: int = 0
 	while silk_index < main.boss["silks"].size():
 		var silk: Dictionary = main.boss["silks"][silk_index]
+		var puppet: Variant = find_enemy_by_id(main, str(silk.get("id", "")))
+		var puppet_visual_offset: Vector2 = Vector2.ZERO
+		if puppet != null:
+			puppet_visual_offset = Vector2(puppet.get("hit_reaction_offset", Vector2.ZERO))
 		if silk["is_active"]:
-			var from_pos: Vector2 = main._to_screen(silk["from"])
-			var to_pos: Vector2 = main._to_screen(silk["to"])
+			var from_world: Vector2 = silk["from"] + boss_visual_offset
+			var to_world: Vector2 = silk["to"] + puppet_visual_offset
+			var from_pos: Vector2 = main._to_screen(from_world)
+			var to_pos: Vector2 = main._to_screen(to_world)
 			var silk_color: Color = main.COLORS["silk_main"] if silk["is_main"] else main.COLORS["silk"]
 			main.draw_line(from_pos, to_pos, main._get_time_stop_world_color(silk_color), 3.0 if silk["is_main"] else 1.0)
+			var contact_feedback_timer: float = float(silk.get("contact_feedback_timer", 0.0))
+			if contact_feedback_timer > 0.0:
+				var contact_strength: float = clampf(contact_feedback_timer / maxf(main.SILK_CONTACT_FEEDBACK_DURATION, 0.001), 0.0, 1.0)
+				var contact_pos: Vector2 = main._to_screen(silk.get("contact_feedback_pos", silk["to"]))
+				var contact_color: Color = Color(silk.get("contact_feedback_color", Color.WHITE))
+				var contact_axis: Vector2 = (to_world - from_world).normalized()
+				if contact_axis.is_zero_approx():
+					contact_axis = Vector2.RIGHT
+				var contact_half_length: float = 14.0 + 10.0 * contact_strength + (8.0 if bool(silk.get("contact_feedback_is_point", false)) else 0.0)
+				main.draw_line(
+					contact_pos - contact_axis * contact_half_length,
+					contact_pos + contact_axis * contact_half_length,
+					main._get_time_stop_world_color(contact_color),
+					1.4 + 1.8 * contact_strength
+				)
+				main.draw_circle(
+					contact_pos,
+					2.6 + 2.8 * contact_strength,
+					main._get_time_stop_world_color(Color.WHITE)
+				)
+		var cut_feedback_timer: float = float(silk.get("cut_feedback_timer", 0.0))
+		if cut_feedback_timer > 0.0:
+			var cut_strength: float = clampf(cut_feedback_timer / maxf(main.SILK_SEVER_FEEDBACK_DURATION, 0.001), 0.0, 1.0)
+			var cut_from_world: Vector2 = Vector2(silk.get("cut_feedback_from", silk.get("from", Vector2.ZERO))) + boss_visual_offset
+			var cut_to_world: Vector2 = Vector2(silk.get("cut_feedback_to", silk.get("to", Vector2.ZERO))) + puppet_visual_offset
+			var cut_center_world: Vector2 = Vector2(silk.get("cut_feedback_center", cut_from_world.lerp(cut_to_world, 0.5)))
+			var cut_axis: Vector2 = cut_to_world - cut_from_world
+			if cut_axis.is_zero_approx():
+				cut_axis = Vector2.RIGHT
+			else:
+				cut_axis = cut_axis.normalized()
+			var retract_axis: Vector2 = cut_axis.rotated(PI * 0.5)
+			var retract_distance: float = (1.0 - cut_strength) * (20.0 if bool(silk.get("cut_feedback_is_main", false)) else 12.0)
+			var gap_size: float = 10.0 + 14.0 * cut_strength
+			var cut_color: Color = Color.WHITE
+			var from_screen: Vector2 = main._to_screen(cut_from_world)
+			var to_screen: Vector2 = main._to_screen(cut_to_world)
+			var center_screen: Vector2 = main._to_screen(cut_center_world)
+			main.draw_line(
+				from_screen,
+				main._to_screen(cut_center_world - cut_axis * gap_size - retract_axis * retract_distance),
+				main._get_time_stop_world_color(cut_color),
+				1.6 + 2.2 * cut_strength
+			)
+			main.draw_line(
+				main._to_screen(cut_center_world + cut_axis * gap_size + retract_axis * retract_distance),
+				to_screen,
+				main._get_time_stop_world_color(cut_color),
+				1.6 + 2.2 * cut_strength
+			)
+			main.draw_circle(
+				center_screen,
+				4.0 + 4.0 * cut_strength,
+				main._get_time_stop_world_color(Color(1.0, 1.0, 1.0, 0.12 + 0.12 * cut_strength))
+			)
 		silk_index += 1
 
 	var boss_color: Color = main.COLORS["boss_vulnerable"] if main.boss["is_vulnerable"] else main.COLORS["boss_body"]
-	var boss_pos: Vector2 = main._to_screen(main.boss["pos"])
+	var boss_hit_flash_ratio: float = clampf(float(main.boss.get("hit_flash_timer", 0.0)) / maxf(main.BOSS_HIT_FLASH_DURATION, 0.001), 0.0, 1.0)
+	if boss_hit_flash_ratio > 0.0:
+		var boss_flash_color: Color = Color(main.boss.get("hit_flash_color", Color.WHITE))
+		boss_color = boss_color.lerp(boss_flash_color, 0.42 + 0.34 * boss_hit_flash_ratio)
+	var boss_pos: Vector2 = main._to_screen(main.boss["pos"] + boss_visual_offset)
 	main.draw_circle(boss_pos, main.boss["radius"], main._get_time_stop_world_color(boss_color))
+	if boss_hit_flash_ratio > 0.0:
+		main.draw_circle(
+			boss_pos,
+			main.boss["radius"] + 2.0 + 3.5 * boss_hit_flash_ratio,
+			main._get_time_stop_world_color(Color(1.0, 1.0, 1.0, 0.06 + 0.12 * boss_hit_flash_ratio))
+		)
 	main.draw_arc(boss_pos, main.boss["radius"] + 8.0, 0.0, TAU, 32, main._get_time_stop_world_color(Color.WHITE), 2.0)
+	if boss_hit_flash_ratio > 0.0:
+		var boss_ring_color: Color = Color(main.boss.get("hit_flash_color", Color.WHITE))
+		boss_ring_color.a = 0.24 + 0.24 * boss_hit_flash_ratio
+		main.draw_arc(
+			boss_pos,
+			main.boss["radius"] + 12.0 + 8.0 * boss_hit_flash_ratio,
+			0.0,
+			TAU,
+			32,
+			main._get_time_stop_world_color(boss_ring_color),
+			1.8 + 2.0 * boss_hit_flash_ratio
+		)
 
+
+static func draw_boss_hud(main: Node2D) -> void:
 	var bar_width: float = 400.0
 	var bar_rect: Rect2 = Rect2(Vector2((main.ARENA_SIZE.x - bar_width) * 0.5 + main.ARENA_ORIGIN.x, 40.0), Vector2(bar_width, 10.0))
 	main.draw_rect(bar_rect, main._get_time_stop_world_color(Color(0.0, 0.0, 0.0, 0.5)), true)
@@ -124,6 +225,11 @@ static func spawn_boss(main: Node) -> void:
 		"is_vulnerable": false,
 		"vulnerable_timer": 0.0,
 		"target_pos": Vector2(main.ARENA_SIZE.x * 0.5, 150.0),
+		"hit_flash_timer": 0.0,
+		"hit_flash_color": Color.WHITE,
+		"hit_reaction_timer": 0.0,
+		"hit_reaction_offset": Vector2.ZERO,
+		"hit_reaction_vector": Vector2.ZERO,
 	}
 	main._register_boss_hurtboxes()
 
@@ -155,6 +261,15 @@ static func spawn_puppets(main: Node, count: int) -> void:
 			"health": main.SILK_MAX_HEALTH,
 			"max_health": main.SILK_MAX_HEALTH,
 			"is_active": true,
+			"contact_feedback_timer": 0.0,
+			"contact_feedback_pos": puppet["pos"],
+			"contact_feedback_color": Color.WHITE,
+			"contact_feedback_is_point": false,
+			"cut_feedback_timer": 0.0,
+			"cut_feedback_from": main.boss["pos"],
+			"cut_feedback_to": puppet["pos"],
+			"cut_feedback_center": puppet["pos"].lerp(main.boss["pos"], 0.5),
+			"cut_feedback_is_main": false,
 		}
 		main.boss["silks"].append(silk)
 		main._register_silk_hurtbox(silk)
@@ -238,6 +353,7 @@ static func resolve_silk_binding(main: Node, silk_id: String) -> Dictionary:
 	result["target_profile_id"] = str(silk.get("target_profile_id", TargetProfiles.PROFILE_SILK_SEGMENT))
 	result["from"] = silk.get("from", Vector2.ZERO)
 	result["to"] = silk.get("to", Vector2.ZERO)
+	result["is_main"] = bool(silk.get("is_main", false))
 	return result
 
 
@@ -300,10 +416,12 @@ static func dist_to_segment(point: Vector2, segment_a: Vector2, segment_b: Vecto
 	return point.distance_to(closest)
 
 
-static func _update_boss_silks(main: Node) -> void:
+static func _update_boss_silks(main: Node, delta: float) -> void:
 	var silk_index: int = 0
 	while silk_index < main.boss["silks"].size():
 		var silk: Dictionary = main.boss["silks"][silk_index]
+		silk["contact_feedback_timer"] = maxf(float(silk.get("contact_feedback_timer", 0.0)) - delta, 0.0)
+		silk["cut_feedback_timer"] = maxf(float(silk.get("cut_feedback_timer", 0.0)) - delta, 0.0)
 		silk["from"] = main.boss["pos"]
 		var puppet: Variant = find_enemy_by_id(main, silk["id"])
 		if puppet != null:

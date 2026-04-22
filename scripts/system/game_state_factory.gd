@@ -32,6 +32,22 @@ static func reset_runtime(main: Node) -> void:
 	main.status_message = ""
 	main.status_message_timer = 0.0
 	main.status_message_color = Color.WHITE
+	main.focus_status_message = ""
+	main.focus_status_message_timer = 0.0
+	main.focus_status_message_color = Color.WHITE
+	main.array_energy_forecast_level = 0
+	main.array_energy_warning_display = 0.0
+	main.array_energy_break_timer = 0.0
+	main.array_mode_confirm_timer = 0.0
+	main.array_mode_confirm_cooldown = 0.0
+	main.array_mode_confirm_mode = ""
+	main.array_mode_confirm_angle = 0.0
+	main.energy_gain_feedback_timer = 0.0
+	main.energy_gain_feedback_strength = 0.0
+	main.energy_gain_feedback_color = Color.WHITE
+	main.hitstop_timer = 0.0
+	main.hitstop_queue = []
+	main.hitstop_gap_timer = 0.0
 	main.player = {
 		"pos": main.ARENA_SIZE * 0.5,
 		"vel": Vector2.ZERO,
@@ -49,6 +65,7 @@ static func reset_runtime(main: Node) -> void:
 		"array_mode": SwordArrayConfig.MODE_RING,
 		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"array_fire_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
+		"array_confirm_observed_stable_mode": SwordArrayConfig.MODE_RING,
 		"array_raw_aim_distance": 0.0,
 		"array_control_distance": 0.0,
 	}
@@ -89,6 +106,9 @@ static func reset_runtime(main: Node) -> void:
 		"afterimage_burst_timer": 0.0,
 		"afterimage_emit_timer": 0.0,
 		"trail_emit_timer": 0.0,
+		"impact_feedback_timer": 0.0,
+		"impact_feedback_offset": Vector2.ZERO,
+		"impact_angle_offset": 0.0,
 	}
 	main.hit_registry = HitRegistry.new()
 	main.hurtbox_registry = HurtboxRegistry.new()

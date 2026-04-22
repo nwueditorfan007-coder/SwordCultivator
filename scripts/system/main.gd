@@ -28,6 +28,12 @@ enum SwordState {
 	RECALLING,
 }
 
+enum ArrayEnergyForecastLevel {
+	NONE,
+	WARNING,
+	CRITICAL,
+}
+
 const ARENA_SIZE := Vector2(800.0, 600.0)
 const ARENA_ORIGIN := Vector2(240.0, 72.0)
 const ARENA_RECT := Rect2(ARENA_ORIGIN, ARENA_SIZE)
@@ -45,6 +51,7 @@ const SWORD_TAP_THRESHOLD := 0.15
 const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
 const SWORD_ORBIT_DISTANCE := 25.0
+const SWORD_SLICE_MIN_HIT_SPEED := 90.0
 
 const BULLET_RADIUS := 5.0
 const BULLET_LARGE_RADIUS := 12.0
@@ -108,6 +115,37 @@ const SWORD_HIT_EFFECT_POINT_WIDTH_SCALE := 0.42
 const SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE := 1.28
 const SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE := 0.96
 const SWORD_HIT_EFFECT_SPARK_COUNT := 2
+const MELEE_ATTACK_FLASH_DURATION := 0.08
+const ENERGY_GAIN_FEEDBACK_DURATION := 0.24
+const ENERGY_GAIN_FEEDBACK_MAX_STRENGTH := 1.0
+const FLYING_SWORD_POINT_HITSTOP_BASE_DURATION := 0.045
+const FLYING_SWORD_POINT_HITSTOP_CHAIN_GAP := 0.014
+const FLYING_SWORD_POINT_HITSTOP_MAX_DURATION := 0.07
+const SILK_SEVER_HITSTOP_DURATION := 0.07
+const ENEMY_HIT_FLASH_DURATION := 0.14
+const ENEMY_HIT_REACTION_DURATION := 0.2
+const ENEMY_HIT_REACTION_SHAKE_CYCLES := 4
+const ENEMY_HIT_REACTION_INTENSITY := 0.8
+const HIT_REACTION_BACKSWING_SCALE := 0.42
+const HIT_REACTION_DECAY_EXPONENT := 0.72
+const ENEMY_HIT_REACTION_RETURN_SPEED := 132.0
+const ENEMY_HIT_REACTION_MAX_OFFSET := 18.0
+const ENEMY_DEATH_FEEDBACK_DURATION := 0.18
+const BOSS_HIT_FLASH_DURATION := 0.17
+const BOSS_HIT_REACTION_DURATION := 0.22
+const BOSS_HIT_REACTION_SHAKE_CYCLES := 2.8
+const BOSS_HIT_REACTION_INTENSITY := 0.9
+const BOSS_HIT_REACTION_RETURN_SPEED := 92.0
+const BOSS_HIT_REACTION_MAX_OFFSET := 12.0
+const SILK_CONTACT_FEEDBACK_DURATION := 0.1
+const SILK_SEVER_FEEDBACK_DURATION := 0.18
+const SWORD_IMPACT_FEEDBACK_DURATION := 0.18
+const SWORD_IMPACT_RETURN_SPEED := 150
+const SWORD_IMPACT_ANGLE_RETURN_SPEED := 5.2
+const SWORD_IMPACT_MAX_OFFSET := 20
+const SWORD_IMPACT_MAX_ANGLE_OFFSET := 0.3
+const SWORD_SLICE_IMPACT_FEEDBACK_DURATION := 0.24
+const SWORD_SLICE_IMPACT_SIDE_OFFSET_RATIO := 0.46
 
 const ENERGY_RECOVERY_MELEE_NATURAL := 3.0
 const ENERGY_GAIN_MELEE_HIT := 3.0
@@ -130,6 +168,13 @@ const ARRAY_SWORD_RETURN_SPEED_SCALE := 1.0
 const ARRAY_SWORD_RELEASE_RATE_SCALE := 0.78
 const ACTION_FAILURE_REPEAT_DELAY := 0.35
 const ACTION_FAILURE_FLASH_DURATION := 0.28
+const ARRAY_ENERGY_WARNING_HOLD_RATIO_THRESHOLD := 0.55
+const ARRAY_ENERGY_WARNING_FADE_SPEED := 7.5
+const ARRAY_ENERGY_BREAK_DURATION := 0.24
+const ARRAY_MODE_CONFIRM_DURATION := 0.16
+const ARRAY_MODE_CONFIRM_COOLDOWN := 0.12
+const FOCUS_STATUS_DURATION := 0.46
+const FOCUS_STATUS_Y_OFFSET := 58.0
 const DEFLECT_BULLET_SPEED_MULTIPLIER := 8.0
 const RING_GUARD_BULLET_CLEAR_RADIUS := 34.0
 const RING_GUARD_PLAYER_CLEAR_RADIUS := 58.0
@@ -248,6 +293,22 @@ var energy_feedback_timer: float = 0.0
 var energy_feedback_color: Color = Color.WHITE
 var array_feedback_timer: float = 0.0
 var array_feedback_color: Color = Color.WHITE
+var focus_status_message: String = ""
+var focus_status_message_timer: float = 0.0
+var focus_status_message_color: Color = Color.WHITE
+var array_energy_forecast_level: int = ArrayEnergyForecastLevel.NONE
+var array_energy_warning_display: float = 0.0
+var array_energy_break_timer: float = 0.0
+var array_mode_confirm_timer: float = 0.0
+var array_mode_confirm_cooldown: float = 0.0
+var array_mode_confirm_mode: String = ""
+var array_mode_confirm_angle: float = 0.0
+var energy_gain_feedback_timer: float = 0.0
+var energy_gain_feedback_strength: float = 0.0
+var energy_gain_feedback_color: Color = Color.WHITE
+var hitstop_timer: float = 0.0
+var hitstop_queue: Array = []
+var hitstop_gap_timer: float = 0.0
 
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
 var left_mouse_held: bool = false
@@ -294,6 +355,7 @@ const DEBUG_ENEMY_LAYOUT := [
 @onready var score_label: Label = $CanvasLayer/ScoreLabel
 @onready var mode_label: Label = $CanvasLayer/ModeLabel
 @onready var status_label: Label = $CanvasLayer/StatusLabel
+@onready var focus_status_label: Label = $CanvasLayer/FocusStatusLabel
 @onready var hint_label: Label = $CanvasLayer/HintLabel
 @onready var game_over_label: Label = $CanvasLayer/GameOverLabel
 
@@ -305,11 +367,14 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	elapsed_time += delta
-
 	if is_game_over:
 		queue_redraw()
 		return
+	if _consume_hitstop(delta):
+		queue_redraw()
+		return
+
+	elapsed_time += delta
 
 	var is_flying_sword: bool = sword["state"] != SwordState.ORBITING
 	if is_flying_sword:
@@ -365,7 +430,10 @@ func _process(delta: float) -> void:
 			_update_sword_array_continuous_firing(delta)
 
 	_update_status_feedback(delta)
+	_update_focus_status_feedback(delta)
 	_update_action_feedback(delta)
+	_update_array_energy_feedback_state(delta)
+	_update_array_mode_confirm_feedback(delta)
 	_update_player(delta, player_delta)
 	_update_sword(delta)
 	_update_boss(delta, bullet_time_delta)
@@ -430,20 +498,30 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
-	GameRenderer.draw_game(self)
+	GameRenderer.draw_game(self )
 
 
 func _draw_hud_bars() -> void:
-	GameRenderer.draw_hud_bars(self)
+	GameRenderer.draw_hud_bars(self )
 
 
 func _reset_game() -> void:
-	GameStateFactory.reset_runtime(self)
+	GameStateFactory.reset_runtime(self )
 	action_failure_cooldowns.clear()
 	energy_feedback_timer = 0.0
 	energy_feedback_color = Color.WHITE
 	array_feedback_timer = 0.0
 	array_feedback_color = Color.WHITE
+	focus_status_message = ""
+	focus_status_message_timer = 0.0
+	focus_status_message_color = Color.WHITE
+	array_energy_forecast_level = ArrayEnergyForecastLevel.NONE
+	array_energy_warning_display = 0.0
+	array_energy_break_timer = 0.0
+	array_mode_confirm_timer = 0.0
+	array_mode_confirm_cooldown = 0.0
+	array_mode_confirm_mode = ""
+	array_mode_confirm_angle = 0.0
 
 
 func _update_player(delta: float, player_delta: float) -> void:
@@ -681,16 +759,17 @@ func _build_array_sword(slot_index: int) -> Dictionary:
 		"guidance_active": false,
 		"guidance_elapsed": 0.0,
 		"guidance_distance": 0.0,
-		"guidance_fire_index": -1,
-		"guidance_volley_count": -1,
+		"guidance_fire_index": - 1,
+		"guidance_volley_count": - 1,
 		"guidance_burst_step": 0,
-		"guidance_total_count": -1,
+		"guidance_total_count": - 1,
 		"has_hit_target": false,
 		"remaining_penetration": 1,
 		"hit_target_cooldowns": {},
 		"batch_id": "",
 		"batch_return_ready": false,
 		"return_unlock_distance": ARRAY_SWORD_MIN_SORTIE_DISTANCE,
+		"flow_side": 1.0,
 		"pending_remove": false,
 	}
 
@@ -712,6 +791,7 @@ func _reset_array_sword_sortie_state(array_sword: Dictionary) -> void:
 	array_sword["batch_id"] = ""
 	array_sword["batch_return_ready"] = false
 	array_sword["return_unlock_distance"] = _get_array_sword_min_sortie_distance(travel_mode)
+	array_sword["flow_side"] = 1.0
 
 
 func _get_array_attack_profile_id(travel_mode: String) -> String:
@@ -778,7 +858,7 @@ func _get_array_sword_slot_position(slot_index: int, formation_ratio := -1.0) ->
 	if formation_ratio < 0.0:
 		formation_ratio = _get_sword_array_formation_ratio()
 	return SwordArrayController.get_slot_position(
-		self,
+		self ,
 		_get_sword_array_morph_state(),
 		slot_index,
 		slot_count,
@@ -802,15 +882,86 @@ func _update_status_feedback(delta: float) -> void:
 		status_message = ""
 
 
+func _update_focus_status_feedback(delta: float) -> void:
+	focus_status_message_timer = maxf(focus_status_message_timer - delta, 0.0)
+	if is_zero_approx(focus_status_message_timer):
+		focus_status_message = ""
+
+
 func _update_action_feedback(delta: float) -> void:
 	energy_feedback_timer = maxf(energy_feedback_timer - delta, 0.0)
 	array_feedback_timer = maxf(array_feedback_timer - delta, 0.0)
+	energy_gain_feedback_timer = maxf(energy_gain_feedback_timer - delta, 0.0)
+	if energy_gain_feedback_timer <= 0.0:
+		energy_gain_feedback_strength = 0.0
+
+
+func _consume_hitstop(delta: float) -> bool:
+	if hitstop_timer > 0.0:
+		hitstop_timer = maxf(hitstop_timer - delta, 0.0)
+		return true
+	if hitstop_gap_timer > 0.0:
+		hitstop_gap_timer = maxf(hitstop_gap_timer - delta, 0.0)
+		return false
+	if hitstop_queue.is_empty():
+		return false
+	hitstop_timer = maxf(float(hitstop_queue[0]), 0.0)
+	hitstop_queue.remove_at(0)
+	hitstop_gap_timer = FLYING_SWORD_POINT_HITSTOP_CHAIN_GAP if not hitstop_queue.is_empty() else 0.0
+	hitstop_timer = maxf(hitstop_timer - delta, 0.0)
+	return true
+
+
+func _update_array_energy_feedback_state(delta: float) -> void:
+	array_energy_break_timer = maxf(array_energy_break_timer - delta, 0.0)
+	var forecast: Dictionary = _build_array_energy_forecast()
+	array_energy_forecast_level = int(forecast.get("level", ArrayEnergyForecastLevel.NONE))
+	var target_display: float = 0.0
+	match array_energy_forecast_level:
+		ArrayEnergyForecastLevel.WARNING:
+			target_display = 0.58
+		ArrayEnergyForecastLevel.CRITICAL:
+			target_display = 1.0
+	if array_energy_break_timer > 0.0:
+		target_display = maxf(target_display, 1.0)
+	array_energy_warning_display = move_toward(
+		array_energy_warning_display,
+		target_display,
+		delta * ARRAY_ENERGY_WARNING_FADE_SPEED
+	)
+
+
+func _update_array_mode_confirm_feedback(delta: float) -> void:
+	array_mode_confirm_timer = maxf(array_mode_confirm_timer - delta, 0.0)
+	array_mode_confirm_cooldown = maxf(array_mode_confirm_cooldown - delta, 0.0)
+	var fire_state: Dictionary = _get_sword_array_fire_state()
+	var stable_mode: String = _get_array_stable_mode_from_state(fire_state)
+	var is_array_engaged: bool = left_mouse_held or bool(player.get("array_is_firing", false))
+	if not is_array_engaged:
+		player["array_confirm_observed_stable_mode"] = stable_mode
+		return
+	if stable_mode == "":
+		player["array_confirm_observed_stable_mode"] = ""
+		return
+	var observed_mode: String = str(player.get("array_confirm_observed_stable_mode", ""))
+	if stable_mode == observed_mode:
+		return
+	player["array_confirm_observed_stable_mode"] = stable_mode
+	if array_mode_confirm_cooldown > 0.0:
+		return
+	_trigger_array_mode_confirm(stable_mode)
 
 
 func _show_status_message(message: String, color: Color, duration: float) -> void:
 	status_message = message
 	status_message_color = color
 	status_message_timer = duration
+
+
+func _show_focus_status_message(message: String, color: Color, duration: float) -> void:
+	focus_status_message = message
+	focus_status_message_color = color
+	focus_status_message_timer = duration
 
 
 func _get_energy_failure_color() -> Color:
@@ -838,17 +989,99 @@ func _show_action_failure(message: String, reason_key: String, color: Color, cha
 	if elapsed_time < next_allowed_time:
 		return
 	action_failure_cooldowns[reason_key] = elapsed_time + repeat_delay
+	if reason_key == "array_energy":
+		_trigger_array_energy_break_feedback()
 	_show_status_message(message, color, duration)
+	_show_focus_status_message(message, color, minf(duration, FOCUS_STATUS_DURATION))
+	_emit_action_feedback_sfx(reason_key)
+
+
+func _emit_action_feedback_sfx(_reason_key: String) -> void:
+	# Intentionally left as a hook until the project grows a shared SFX entry point.
+	pass
+
+
+func _trigger_array_energy_break_feedback() -> void:
+	array_energy_break_timer = maxf(array_energy_break_timer, ARRAY_ENERGY_BREAK_DURATION)
+
+
+func _trigger_array_mode_confirm(mode: String) -> void:
+	array_mode_confirm_timer = ARRAY_MODE_CONFIRM_DURATION
+	array_mode_confirm_cooldown = ARRAY_MODE_CONFIRM_COOLDOWN
+	array_mode_confirm_mode = mode
+	var aim_vector: Vector2 = mouse_world - player["pos"]
+	if aim_vector.is_zero_approx():
+		aim_vector = Vector2.RIGHT
+	array_mode_confirm_angle = aim_vector.angle()
+
+
+func _should_evaluate_array_energy_forecast() -> bool:
+	if not left_mouse_held:
+		return false
+	if bool(player.get("array_is_firing", false)):
+		return true
+	return float(player.get("array_hold_ratio", 0.0)) >= ARRAY_ENERGY_WARNING_HOLD_RATIO_THRESHOLD
+
+
+func _build_array_energy_forecast() -> Dictionary:
+	var forecast: Dictionary = {
+		"level": ArrayEnergyForecastLevel.NONE,
+		"energy_cost": 0.0,
+		"shots_remaining": 0,
+	}
+	if not _should_array_consume_energy() or not _should_evaluate_array_energy_forecast():
+		return forecast
+	var mode: String = _get_array_batch_mode()
+	var ready_count: int = _get_ready_array_sword_count()
+	if ready_count <= 0 or not _can_fire_array_batch(mode, ready_count):
+		return forecast
+	var fire_count: int = mini(_get_array_mode_batch_target(mode), ready_count)
+	var energy_cost: float = _get_array_sword_energy_cost(fire_count, mode)
+	forecast["energy_cost"] = energy_cost
+	if energy_cost <= 0.0:
+		return forecast
+	var shots_remaining: int = int(floor(float(player.get("energy", 0.0)) / energy_cost))
+	forecast["shots_remaining"] = shots_remaining
+	if shots_remaining <= 0:
+		forecast["level"] = ArrayEnergyForecastLevel.CRITICAL
+	elif shots_remaining == 1:
+		forecast["level"] = ArrayEnergyForecastLevel.WARNING
+	return forecast
+
+
+func _get_array_energy_warning_strength() -> float:
+	return clampf(array_energy_warning_display, 0.0, 1.0)
+
+
+func _get_array_energy_break_strength() -> float:
+	if ARRAY_ENERGY_BREAK_DURATION <= 0.0:
+		return 0.0
+	return clampf(array_energy_break_timer / ARRAY_ENERGY_BREAK_DURATION, 0.0, 1.0)
+
+
+func _get_array_stable_mode_from_state(state: Dictionary) -> String:
+	var completed_state: Dictionary = SwordArrayConfig.complete_morph_state(state)
+	var visual_from_mode: String = str(completed_state.get("visual_from_mode", ""))
+	var visual_to_mode: String = str(completed_state.get("visual_to_mode", visual_from_mode))
+	if visual_from_mode != "" and visual_from_mode == visual_to_mode:
+		return str(completed_state.get("dominant_mode", visual_from_mode))
+	return ""
+
+
+func _get_array_mode_confirm_strength() -> float:
+	if ARRAY_MODE_CONFIRM_DURATION <= 0.0:
+		return 0.0
+	return clampf(array_mode_confirm_timer / ARRAY_MODE_CONFIRM_DURATION, 0.0, 1.0)
 
 
 func _get_sword_array_formation_ratio() -> float:
-	if _can_use_array_attack() and player["array_is_firing"]:
+	if bool(player.get("array_is_firing", false)):
 		return 1.0
-	return 0.0
+	return clampf(float(player.get("array_hold_ratio", 0.0)), 0.0, 1.0)
 
 
 func _should_draw_sword_array_preview() -> bool:
-	return false
+	return left_mouse_held and not bool(player.get("array_is_firing", false)) and float(player.get("array_hold_ratio", 0.0)) > 0.08
 
 
 func _update_array_morph_control(delta: float) -> void:
@@ -899,7 +1132,7 @@ func _update_sword_array_continuous_firing(delta: float) -> void:
 	var mode: String = String(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
 	var ready_count: int = _get_ready_array_sword_count()
 	var release_profile: Dictionary = SwordArrayController.get_fire_release_profile(
-		self,
+		self ,
 		morph_state,
 		maxi(ready_count, 1)
 	)
@@ -921,7 +1154,7 @@ func _update_sword_array_continuous_firing(delta: float) -> void:
 		release_count += 1
 		morph_state = _get_sword_array_fire_state()
 		release_profile = SwordArrayController.get_fire_release_profile(
-			self,
+			self ,
 			morph_state,
 			_get_ready_array_sword_count()
 		)
@@ -961,6 +1194,106 @@ func _get_array_sword_penetration_targets(mode: String) -> int:
 
 func _get_array_sword_rehit_cooldown(mode: String) -> float:
 	return maxf(float(_get_array_sortie_profile(mode).get("sortie_rehit_cooldown", 0.0)), 0.0)
+
+
+func _get_array_sword_launch_tangent_bias(mode: String) -> float:
+	return maxf(float(_get_array_sortie_profile(mode).get("sortie_launch_tangent_bias", 0.0)), 0.0)
+
+
+func _get_array_sword_guidance_tangent_bias(mode: String) -> float:
+	return maxf(float(_get_array_sortie_profile(mode).get("sortie_guidance_tangent_bias", 0.0)), 0.0)
+
+
+func _get_array_sword_return_swirl_strength(mode: String) -> float:
+	return maxf(float(_get_array_sortie_profile(mode).get("sortie_return_swirl_strength", 0.0)), 0.0)
+
+
+func _get_array_sword_return_turn_rate(mode: String) -> float:
+	return maxf(float(_get_array_sortie_profile(mode).get("sortie_return_turn_rate", 10.0)), 0.0)
+
+
+func _get_array_sword_flow_phase(array_sword: Dictionary) -> float:
+	var slot_index: float = float(int(array_sword.get("slot_index", 0)))
+	var fire_index: float = float(int(array_sword.get("guidance_fire_index", 0)))
+	return sin(slot_index * 1.618 + fire_index * 0.73)
+
+
+func _get_array_sword_flow_slot_weight(array_sword: Dictionary, travel_mode: String) -> float:
+	var fire_count: int = maxi(int(array_sword.get("guidance_volley_count", 0)), 0)
+	if fire_count <= 0:
+		fire_count = _get_array_mode_batch_target(travel_mode)
+	var fire_index: int = int(array_sword.get("guidance_fire_index", int(array_sword.get("slot_index", 0))))
+	if fire_count > 0:
+		fire_index = posmod(fire_index, fire_count)
+	var center_weight: float = 1.0
+	if fire_count > 1:
+		var center_index: float = float(fire_count - 1) * 0.5
+		center_weight = absf(float(fire_index) - center_index) / maxf(center_index, 1.0)
+	var base_weight: float = 0.62
+	match travel_mode:
+		SwordArrayConfig.MODE_FAN:
+			base_weight = lerpf(0.3, 0.72, center_weight)
+		SwordArrayConfig.MODE_PIERCE:
+			base_weight = lerpf(0.14, 0.28, center_weight)
+		_:
+			base_weight = 0.62
+	return maxf(base_weight * (1.0 + _get_array_sword_flow_phase(array_sword) * 0.05), 0.0)
+
+
+func _resolve_array_sword_flow_side(array_sword: Dictionary, reference_pos: Vector2, forward_dir: Vector2) -> float:
+	var resolved_forward: Vector2 = forward_dir.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = mouse_world - player["pos"]
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	var relative: Vector2 = reference_pos - player["pos"]
+	var cross_value: float = resolved_forward.cross(relative)
+	if absf(cross_value) > 0.001:
+		return 1.0 if cross_value >= 0.0 else -1.0
+	return 1.0 if int(array_sword.get("slot_index", 0)) % 2 == 0 else -1.0
+
+
+func _blend_array_sword_direction_with_tangent(base_direction: Vector2, tangent_direction: Vector2, tangent_bias: float) -> Vector2:
+	var resolved_base: Vector2 = base_direction.normalized()
+	if resolved_base.is_zero_approx():
+		return tangent_direction.normalized() if not tangent_direction.is_zero_approx() else Vector2.RIGHT
+	if tangent_direction.is_zero_approx() or tangent_bias <= 0.0:
+		return resolved_base
+	var blended: Vector2 = resolved_base + tangent_direction.normalized() * tangent_bias
+	if blended.is_zero_approx():
+		return resolved_base
+	return blended.normalized()
+
+
+func _get_array_sword_launch_tangent_direction(travel_mode: String, launch_origin: Vector2, forward_dir: Vector2, flow_side: float) -> Vector2:
+	var resolved_forward: Vector2 = forward_dir.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = mouse_world - player["pos"]
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	match travel_mode:
+		SwordArrayConfig.MODE_RING:
+			var radial: Vector2 = launch_origin - player["pos"]
+			if radial.is_zero_approx():
+				radial = resolved_forward
+			var tangent: Vector2 = radial.orthogonal().normalized()
+			if tangent.dot(resolved_forward) < 0.0:
+				tangent = - tangent
+			return tangent
+		_:
+			if is_zero_approx(flow_side):
+				flow_side = 1.0
+			return resolved_forward.orthogonal().normalized() * flow_side
+
+
+func _get_array_sword_return_tangent_direction(array_sword: Dictionary, to_target: Vector2) -> Vector2:
+	var resolved_target: Vector2 = to_target.normalized()
+	if resolved_target.is_zero_approx():
+		return Vector2.ZERO
+	var flow_side: float = float(array_sword.get("flow_side", 1.0))
+	if is_zero_approx(flow_side):
+		flow_side = 1.0
+	return resolved_target.orthogonal().normalized() * flow_side
 
 
 func _decay_array_sword_target_cooldowns(array_sword: Dictionary, delta: float) -> void:
@@ -1056,11 +1389,21 @@ func _reset_sword_array_hold_state() -> void:
 
 func _update_sword(delta: float) -> void:
 	sword["prev_pos"] = sword["pos"]
+	sword["impact_feedback_timer"] = maxf(float(sword.get("impact_feedback_timer", 0.0)) - delta, 0.0)
+	sword["impact_feedback_offset"] = Vector2(sword.get("impact_feedback_offset", Vector2.ZERO)).move_toward(
+		Vector2.ZERO,
+		delta * SWORD_IMPACT_RETURN_SPEED
+	)
+	sword["impact_angle_offset"] = move_toward(
+		float(sword.get("impact_angle_offset", 0.0)),
+		0.0,
+		delta * SWORD_IMPACT_ANGLE_RETURN_SPEED
+	)
 
 	if sword["state"] == SwordState.ORBITING:
 		if str(sword.get("attack_instance_id", "")) != "":
 			_end_sword_attack_instance()
-		_add_player_energy(ENERGY_RECOVERY_MELEE_NATURAL * delta)
+		_add_player_energy(ENERGY_RECOVERY_MELEE_NATURAL * delta, false)
 		var orbit_direction: Vector2 = mouse_world - player["pos"]
 		if orbit_direction.is_zero_approx():
 			orbit_direction = Vector2.RIGHT.rotated(sword["angle"])
@@ -1117,19 +1460,28 @@ func _update_sword(delta: float) -> void:
 
 func _damage_enemies_with_sword(delta: float) -> void:
 	var swing_direction: Vector2 = sword["pos"] - sword["prev_pos"]
-	var detection_result: Dictionary = hit_detection.collect_segment_sweep_targets(
-		self,
-		sword["prev_pos"],
-		sword["pos"],
-		float(sword.get("radius", SWORD_RADIUS)),
-		str(sword.get("attack_profile_id", "")),
-		DAMAGE_SOURCE_FLYING_SWORD,
-		delta,
-		{
-			"exclude_enemy_types": [PUPPET],
-			"skip_if_start_inside": true,
-		}
-	)
+	var detection_result := {
+		"contacts": [],
+		"boss_contact": {},
+	}
+	var can_slice_hit: bool = true
+	if sword["state"] == SwordState.SLICING:
+		var swing_speed: float = swing_direction.length() / maxf(delta, 0.001)
+		can_slice_hit = swing_speed >= SWORD_SLICE_MIN_HIT_SPEED
+	if can_slice_hit:
+		# Keep start-inside hits valid for large targets; attack-instance rehit gating handles repeat damage.
+		detection_result = hit_detection.collect_segment_sweep_targets(
+			self ,
+			sword["prev_pos"],
+			sword["pos"],
+			float(sword.get("radius", SWORD_RADIUS)),
+			str(sword.get("attack_profile_id", "")),
+			DAMAGE_SOURCE_FLYING_SWORD,
+			delta,
+			{
+				"exclude_enemy_types": [PUPPET],
+			}
+		)
 	for contact_variant in detection_result.get("contacts", []):
 		var contact: Dictionary = contact_variant
 		var attack_result: Dictionary = _apply_sword_hit_to_target(
@@ -1152,8 +1504,6 @@ func _damage_enemies_with_sword(delta: float) -> void:
 		var contact_point: Vector2 = contact.get("contact_point", sword["pos"])
 		var effect_color: Color = COLORS["ranged_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24)
 		_emit_sword_hit_effect(contact_point, swing_direction, effect_color)
-		if str(sword.get("attack_profile_id", "")) == AttackProfiles.PROFILE_FLYING_SWORD_POINT:
-			screen_shake = max(screen_shake, 4.0)
 
 	if _has_boss():
 		_update_silk_damage(delta)
@@ -1175,21 +1525,55 @@ func _damage_enemies_with_sword(delta: float) -> void:
 func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> void:
 	if damage <= 0.0:
 		return
+	if bool(enemy.get("is_dying", false)):
+		return
 	if _has_debug_flag("one_hit_kill"):
 		enemy["health"] = 0.0
 	else:
 		enemy["health"] = max(enemy["health"] - damage, 0.0)
 	enemy["last_damage_source"] = damage_source
+	if enemy["health"] <= 0.0:
+		_begin_enemy_death(enemy)
 
 
-func _handle_enemy_death(enemy: Dictionary, index: int) -> void:
-	_create_particles(enemy["pos"], COLORS[enemy["type"]], 14)
+func _begin_enemy_death(enemy: Dictionary) -> void:
+	if bool(enemy.get("is_dying", false)):
+		return
+	if bool(enemy.get("is_debug_static", false)) and debug_calibration_mode:
+		return
+	enemy["is_dying"] = true
+	enemy["death_feedback_timer"] = ENEMY_DEATH_FEEDBACK_DURATION
+	enemy["death_feedback_color"] = Color.WHITE
+	enemy["stagger_timer"] = 0.0
+	enemy["vel"] = Vector2.ZERO
+	if enemy.has("melee_timer"):
+		enemy["melee_timer"] = 0.0
 	_clear_target_runtime_state(str(enemy.get("id", "")))
 	_clear_target_hurtboxes(str(enemy.get("id", "")))
 	if enemy["type"] != PUPPET:
 		score += enemy["score"]
 		_add_player_energy(ENERGY_GAIN_MELEE_HIT * 2.0)
+
+
+func _finalize_enemy_death(enemy: Dictionary, index: int) -> void:
+	var death_pos: Vector2 = enemy["pos"] + Vector2(enemy.get("hit_reaction_offset", Vector2.ZERO))
+	_create_particles(death_pos, COLORS[enemy["type"]], 14)
 	enemies.remove_at(index)
+
+
+func _update_enemy_visual_feedback(enemy: Dictionary, delta: float) -> void:
+	enemy["hit_flash_timer"] = maxf(float(enemy.get("hit_flash_timer", 0.0)) - delta, 0.0)
+	enemy["hit_reaction_timer"] = maxf(float(enemy.get("hit_reaction_timer", 0.0)) - delta, 0.0)
+	enemy["hit_reaction_offset"] = _resolve_hit_reaction_offset(
+		Vector2(enemy.get("hit_reaction_vector", Vector2.ZERO)),
+		float(enemy.get("hit_reaction_timer", 0.0)),
+		ENEMY_HIT_REACTION_DURATION,
+		ENEMY_HIT_REACTION_SHAKE_CYCLES
+	)
+	if float(enemy.get("hit_reaction_timer", 0.0)) <= 0.0:
+		enemy["hit_reaction_vector"] = Vector2.ZERO
+	if bool(enemy.get("is_dying", false)):
+		enemy["death_feedback_timer"] = maxf(float(enemy.get("death_feedback_timer", 0.0)) - delta, 0.0)
 
 
 func _update_enemies(delta: float) -> void:
@@ -1199,13 +1583,27 @@ func _update_enemies(delta: float) -> void:
 		if enemy.get("is_debug_static", false):
 			if enemy["health"] <= 0.0 and debug_calibration_mode:
 				enemy["health"] = enemy["max_health"]
+				enemy["is_dying"] = false
+				enemy["death_feedback_timer"] = 0.0
+				enemy["hit_flash_timer"] = 0.0
+				enemy["hit_reaction_timer"] = 0.0
+				enemy["hit_reaction_offset"] = Vector2.ZERO
+				enemy["hit_reaction_vector"] = Vector2.ZERO
+				enemy["death_feedback_color"] = Color.WHITE
+			index -= 1
+			continue
+		if bool(enemy.get("is_dying", false)):
+			_update_enemy_visual_feedback(enemy, delta)
+			if float(enemy.get("death_feedback_timer", 0.0)) <= 0.0:
+				_finalize_enemy_death(enemy, index)
 			index -= 1
 			continue
 		if enemy["health"] <= 0.0:
-			_handle_enemy_death(enemy, index)
+			_begin_enemy_death(enemy)
 			index -= 1
 			continue
 		enemy["stagger_timer"] = maxf(float(enemy.get("stagger_timer", 0.0)) - delta, 0.0)
+		_update_enemy_visual_feedback(enemy, delta)
 		if float(enemy.get("stagger_timer", 0.0)) > 0.0:
 			enemy["vel"] = Vector2.ZERO
 			index -= 1
@@ -1269,7 +1667,7 @@ func _update_enemies(delta: float) -> void:
 								_create_particles(player["pos"], COLORS["puppet"], 10)
 
 		if enemy["health"] <= 0.0:
-			_handle_enemy_death(enemy, index)
+			_begin_enemy_death(enemy)
 		index -= 1
 
 
@@ -1368,7 +1766,21 @@ func _update_array_swords(delta: float) -> void:
 					_reset_array_sword_sortie_state(array_sword)
 					_create_particles(return_target, COLORS["array_sword_return"], 4)
 				else:
-					array_sword["vel"] = to_player.normalized() * _get_current_array_sword_return_speed(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
+					var travel_mode: String = String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING))
+					var desired_return_direction: Vector2 = to_player.normalized()
+					var return_swirl_strength: float = _get_array_sword_return_swirl_strength(travel_mode)
+					if return_swirl_strength > 0.0:
+						var swirl_window: float = maxf(_get_array_sword_min_sortie_distance(travel_mode), ARRAY_SWORD_RETURN_CATCH_RADIUS + 1.0)
+						var swirl_fade: float = clampf(to_player.length() / swirl_window, 0.0, 1.0)
+						swirl_fade *= swirl_fade
+						desired_return_direction = _blend_array_sword_direction_with_tangent(
+							desired_return_direction,
+							_get_array_sword_return_tangent_direction(array_sword, to_player),
+							return_swirl_strength * _get_array_sword_flow_slot_weight(array_sword, travel_mode) * swirl_fade
+						)
+					var desired_return_velocity: Vector2 = desired_return_direction * _get_current_array_sword_return_speed(travel_mode)
+					var return_turn_alpha: float = min(delta * _get_array_sword_return_turn_rate(travel_mode), 1.0)
+					array_sword["vel"] = desired_return_velocity if array_sword["vel"].is_zero_approx() else array_sword["vel"].lerp(desired_return_velocity, return_turn_alpha)
 					array_sword["pos"] += array_sword["vel"] * delta
 					_emit_array_sword_trail(array_sword, delta, true)
 		sword_index -= 1
@@ -1384,7 +1796,7 @@ func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
 		"should_return": false,
 	}
 	var detection_result: Dictionary = hit_detection.collect_circle_contact_targets(
-		self,
+		self ,
 		array_sword["pos"],
 		float(array_sword.get("radius", ARRAY_SWORD_RADIUS)),
 		str(array_sword.get("attack_profile_id", "")),
@@ -1505,7 +1917,7 @@ func _update_guided_array_sword(array_sword: Dictionary, delta: float) -> void:
 		array_sword["guidance_active"] = false
 		return
 	var target_point: Vector2 = SwordArrayController.get_fire_target(
-		self,
+		self ,
 		_get_sword_array_fire_state(),
 		int(array_sword.get("guidance_fire_index", 0)),
 		array_sword["pos"],
@@ -1520,16 +1932,31 @@ func _update_guided_array_sword(array_sword: Dictionary, delta: float) -> void:
 		desired_direction = mouse_world - player["pos"]
 	if desired_direction.is_zero_approx():
 		desired_direction = Vector2.RIGHT
+	var desired_forward: Vector2 = desired_direction.normalized()
+	var guidance_tangent_bias: float = _get_array_sword_guidance_tangent_bias(travel_mode)
+	if guidance_tangent_bias > 0.0:
+		var guidance_progress: float = clampf(float(array_sword.get("guidance_elapsed", 0.0)) / maxf(SwordArrayConfig.FIRED_GUIDANCE_DURATION, 0.001), 0.0, 1.0)
+		var tangent_fade: float = 1.0 - guidance_progress
+		tangent_fade *= tangent_fade
+		desired_forward = _blend_array_sword_direction_with_tangent(
+			desired_forward,
+			_get_array_sword_launch_tangent_direction(
+				travel_mode,
+				array_sword["pos"],
+				desired_forward,
+				float(array_sword.get("flow_side", 1.0))
+			),
+			guidance_tangent_bias * _get_array_sword_flow_slot_weight(array_sword, travel_mode) * tangent_fade
+		)
 	var current_forward: Vector2 = array_sword["vel"].normalized()
 	if not current_forward.is_zero_approx():
-		var forward_component: float = desired_direction.dot(current_forward)
-		var min_forward_component: float = desired_direction.length() * 0.18
+		var forward_component: float = desired_forward.dot(current_forward)
+		var min_forward_component: float = 0.18
 		if forward_component < min_forward_component:
-			var lateral_component: Vector2 = desired_direction - current_forward * forward_component
-			desired_direction = lateral_component + current_forward * min_forward_component
-			if desired_direction.is_zero_approx():
-				desired_direction = current_forward
-	var desired_velocity: Vector2 = desired_direction.normalized() * _get_current_array_sword_speed(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
+			var lateral_component: Vector2 = desired_forward - current_forward * forward_component
+			var adjusted_forward: Vector2 = lateral_component + current_forward * min_forward_component
+			desired_forward = adjusted_forward.normalized() if not adjusted_forward.is_zero_approx() else current_forward
+	var desired_velocity: Vector2 = desired_forward * _get_current_array_sword_speed(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
 	array_sword["vel"] = array_sword["vel"].lerp(desired_velocity, min(delta * SwordArrayConfig.FIRED_GUIDANCE_TURN_RATE, 1.0))
 
 
@@ -1548,7 +1975,7 @@ func _deflected_bullet_hits_enemy(bullet: Dictionary) -> bool:
 	var attack_profile_id: String = str(bullet.get("attack_profile_id", AttackProfiles.PROFILE_DEFLECTED_BULLET))
 	var channel_scalar: float = maxf(float(bullet.get("channel_scalar", float(bullet.get("damage", BULLET_DAMAGE)) / maxf(BULLET_DAMAGE, 0.001))), 0.0)
 	var detection_result: Dictionary = hit_detection.collect_circle_contact_targets(
-		self,
+		self ,
 		bullet["pos"],
 		float(bullet.get("radius", BULLET_RADIUS)),
 		attack_profile_id,
@@ -1712,7 +2139,7 @@ func _try_cast_ultimate() -> void:
 
 func _perform_melee_attack() -> void:
 	player["attack_cooldown"] = SWORD_MELEE_COOLDOWN
-	player["attack_flash_timer"] = 0.08
+	player["attack_flash_timer"] = MELEE_ATTACK_FLASH_DURATION
 	var attack_direction: Vector2 = mouse_world - player["pos"]
 	if attack_direction.is_zero_approx():
 		attack_direction = Vector2.RIGHT
@@ -1720,7 +2147,7 @@ func _perform_melee_attack() -> void:
 	var melee_attack_instance_id: String = str(melee_attack_instance.get("id", ""))
 	var melee_attack_profile_id: String = str(melee_attack_instance.get("profile_id", AttackProfiles.PROFILE_MELEE_SLASH))
 	var detection_result: Dictionary = hit_detection.collect_melee_arc_targets(
-		self,
+		self ,
 		player["pos"],
 		attack_direction,
 		SWORD_MELEE_RANGE,
@@ -1738,7 +2165,18 @@ func _perform_melee_attack() -> void:
 		var bullet: Variant = bullet_contact.get("bullet", null)
 		if bullet == null:
 			continue
+		var bullet_color: Color = bullet.get("color", COLORS["bullet"])
 		_deflect_enemy_bullet(bullet, attack_direction)
+		_emit_sword_hit_effect(
+			bullet_contact.get("contact_point", bullet["pos"]),
+			attack_direction,
+			COLORS["melee_sword"].lerp(bullet_color, 0.18),
+			1.0,
+			"deflect",
+			{
+				"spark_count": 4,
+			}
+		)
 		_add_player_energy(ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0))
 		screen_shake = max(screen_shake, 3.0)
 
@@ -1762,6 +2200,16 @@ func _perform_melee_attack() -> void:
 		if not bool(attack_result.get("allowed", false)):
 			continue
 		_add_player_energy(ENERGY_GAIN_MELEE_HIT)
+		_emit_sword_hit_effect(
+			contact.get("contact_point", enemy["pos"]),
+			attack_direction,
+			COLORS["melee_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24),
+			1.06,
+			"melee",
+			{
+				"spark_count": 3,
+			}
+		)
 		_create_particles(enemy["pos"], COLORS[enemy["type"]], 5)
 		screen_shake = max(screen_shake, 4.0)
 
@@ -1778,6 +2226,16 @@ func _perform_melee_attack() -> void:
 			)
 			if bool(boss_hit_result.get("allowed", false)):
 				_add_player_energy(ENERGY_GAIN_MELEE_HIT)
+				_emit_sword_hit_effect(
+					boss_contact.get("contact_point", boss["pos"]),
+					attack_direction,
+					COLORS["melee_sword"].lerp(COLORS["boss_body"], 0.28),
+					1.12,
+					"melee",
+					{
+						"spark_count": 4,
+					}
+				)
 				_create_particles(boss["pos"], COLORS["boss_body"], 8)
 				screen_shake = max(screen_shake, 5.0)
 	_clear_attack_instance(melee_attack_instance_id)
@@ -1998,7 +2456,14 @@ func _update_sword_hit_effects(delta: float) -> void:
 		index -= 1
 
 
-func _emit_sword_hit_effect(contact_pos: Vector2, swing_direction: Vector2, effect_color: Color, intensity := 1.0) -> void:
+func _emit_sword_hit_effect(
+	contact_pos: Vector2,
+	swing_direction: Vector2,
+	effect_color: Color,
+	intensity := 1.0,
+	style_override := "",
+	extra := {}
+) -> void:
 	var direction: Vector2 = swing_direction
 	if direction.is_zero_approx():
 		direction = sword["vel"]
@@ -2007,23 +2472,145 @@ func _emit_sword_hit_effect(contact_pos: Vector2, swing_direction: Vector2, effe
 	var speed_ratio: float = clampf(maxf(direction.length(), sword["vel"].length()) / SWORD_POINT_STRIKE_SPEED, 0.0, 1.0)
 	var attack_profile_id: String = str(sword.get("attack_profile_id", ""))
 	var is_slice: bool = attack_profile_id == AttackProfiles.PROFILE_FLYING_SWORD_SLICE
-	var length_scale: float = SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE if is_slice else SWORD_HIT_EFFECT_POINT_LENGTH_SCALE
-	var width_scale: float = SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE if is_slice else SWORD_HIT_EFFECT_POINT_WIDTH_SCALE
+	var style: String = str(style_override)
+	if style == "":
+		style = "slice" if is_slice else "point"
+	var length_scale: float = SWORD_HIT_EFFECT_POINT_LENGTH_SCALE
+	var width_scale: float = SWORD_HIT_EFFECT_POINT_WIDTH_SCALE
+	var spark_count: int = SWORD_HIT_EFFECT_SPARK_COUNT
+	match style:
+		"slice":
+			length_scale = SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE
+			width_scale = SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE
+			spark_count = 3
+		"melee":
+			length_scale = 1.42
+			width_scale = 1.2
+			spark_count = 3
+		"deflect":
+			length_scale = 0.96
+			width_scale = 0.72
+			spark_count = 4
+		"sever":
+			length_scale = 1.28
+			width_scale = 0.68
+			spark_count = 5
 	direction = direction.normalized()
-	sword_hit_effects.append({
+	var hit_effect := {
 		"pos": contact_pos,
 		"direction": direction,
 		"life": SWORD_HIT_EFFECT_DURATION,
 		"max_life": SWORD_HIT_EFFECT_DURATION,
 		"length": (SWORD_HIT_EFFECT_BASE_LENGTH + 10.0 * speed_ratio) * length_scale * intensity,
 		"width": (SWORD_HIT_EFFECT_BASE_WIDTH + 3.0 * speed_ratio) * width_scale * intensity,
-		"spark_count": SWORD_HIT_EFFECT_SPARK_COUNT,
+		"spark_count": spark_count,
 		"seed": randf() * TAU,
 		"color": effect_color,
-		"style": "slice" if is_slice else "point",
-	})
+		"style": style,
+	}
+	if typeof(extra) == TYPE_DICTIONARY:
+		for key_variant in extra.keys():
+			hit_effect[key_variant] = extra[key_variant]
+	sword_hit_effects.append(hit_effect)
 	if sword_hit_effects.size() > SWORD_HIT_EFFECT_MAX_COUNT:
 		sword_hit_effects.remove_at(0)
+
+
+func _emit_silk_sever_effect(from_pos: Vector2, to_pos: Vector2, contact_pos: Vector2, is_main := false) -> void:
+	var silk_color: Color = COLORS["silk_main"] if is_main else COLORS["silk"]
+	_emit_sword_hit_effect(
+		contact_pos,
+		to_pos - from_pos,
+		silk_color,
+		1.18 if is_main else 1.0,
+		"sever",
+		{
+			"from": from_pos,
+			"to": to_pos,
+			"is_main": is_main,
+			"spark_count": 6 if is_main else 5,
+		}
+	)
+
+
+func _request_hitstop(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	hitstop_timer = maxf(hitstop_timer, duration)
+	hitstop_queue.clear()
+	hitstop_gap_timer = 0.0
+
+
+func _queue_point_strike_hitstop_pulse() -> void:
+	var hitstop_duration: float = minf(FLYING_SWORD_POINT_HITSTOP_BASE_DURATION, FLYING_SWORD_POINT_HITSTOP_MAX_DURATION)
+	hitstop_queue.append(hitstop_duration)
+
+
+func _trigger_silk_sever_hitstop() -> void:
+	_request_hitstop(SILK_SEVER_HITSTOP_DURATION)
+
+
+func _trigger_sword_self_hit_feedback(contact_point: Vector2, attack_profile_id: String, target_kind := "") -> void:
+	var sword_forward: Vector2 = sword["vel"]
+	if sword_forward.is_zero_approx():
+		sword_forward = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+	if sword_forward.is_zero_approx():
+		sword_forward = Vector2.RIGHT
+	sword_forward = sword_forward.normalized()
+	var contact_direction: Vector2 = contact_point - sword["pos"]
+	if contact_direction.is_zero_approx():
+		contact_direction = sword_forward
+	else:
+		contact_direction = contact_direction.normalized()
+	var side_sign: float = 1.0 if sword_forward.cross(contact_direction) >= 0.0 else -1.0
+	var side_axis: Vector2 = sword_forward.rotated(PI * 0.5) * side_sign
+	var offset_distance: float = 4.6
+	var angle_offset: float = 0.1 * side_sign
+	var screen_shake_strength: float = 4.2
+	var local_hit_intensity: float = 0.72
+	var local_hit_style: String = "slice"
+	var side_offset_ratio: float = 0.34
+	var feedback_duration: float = SWORD_IMPACT_FEEDBACK_DURATION
+	var force_max_rebound: bool = false
+	match attack_profile_id:
+		AttackProfiles.PROFILE_FLYING_SWORD_POINT:
+			offset_distance = 9.8
+			angle_offset = 0.24 * side_sign
+			screen_shake_strength = 6.8
+			local_hit_intensity = 0.88
+			local_hit_style = "point"
+		AttackProfiles.PROFILE_FLYING_SWORD_SLICE:
+			offset_distance = SWORD_IMPACT_MAX_OFFSET
+			angle_offset = SWORD_IMPACT_MAX_ANGLE_OFFSET * side_sign
+			screen_shake_strength = 0.0
+			local_hit_intensity = 1.0
+			local_hit_style = "slice"
+			side_offset_ratio = SWORD_SLICE_IMPACT_SIDE_OFFSET_RATIO
+			feedback_duration = SWORD_SLICE_IMPACT_FEEDBACK_DURATION
+			force_max_rebound = true
+	if target_kind == "silk":
+		offset_distance *= 0.85
+		screen_shake_strength *= 0.92
+	var target_offset: Vector2 = - sword_forward * offset_distance + side_axis * (offset_distance * side_offset_ratio)
+	var new_offset: Vector2 = Vector2(sword.get("impact_feedback_offset", Vector2.ZERO)) + target_offset
+	if force_max_rebound:
+		new_offset = target_offset.normalized() * SWORD_IMPACT_MAX_OFFSET
+	elif new_offset.length() > SWORD_IMPACT_MAX_OFFSET:
+		new_offset = new_offset.normalized() * SWORD_IMPACT_MAX_OFFSET
+	sword["impact_feedback_offset"] = new_offset
+	var next_angle_offset: float = float(sword.get("impact_angle_offset", 0.0)) + angle_offset
+	if force_max_rebound:
+		next_angle_offset = angle_offset
+	sword["impact_angle_offset"] = clampf(
+		next_angle_offset,
+		- SWORD_IMPACT_MAX_ANGLE_OFFSET,
+		SWORD_IMPACT_MAX_ANGLE_OFFSET
+	)
+	sword["impact_feedback_timer"] = maxf(float(sword.get("impact_feedback_timer", 0.0)), feedback_duration)
+	var local_hit_pos: Vector2 = sword["pos"] - sword_forward * (2.0 + offset_distance * 0.18) + side_axis * (offset_distance * 0.12)
+	var local_hit_color: Color = COLORS["ranged_sword"].lerp(Color.WHITE, 0.2)
+	_emit_sword_hit_effect(local_hit_pos, sword_forward + side_axis * 0.16, local_hit_color, local_hit_intensity, local_hit_style)
+	screen_shake = max(screen_shake, screen_shake_strength)
 
 
 func _try_consume_energy(amount: float) -> bool:
@@ -2061,7 +2648,7 @@ func _fire_array_swords() -> bool:
 		for source in source_snapshot:
 			snapshot_positions.append(source["pos"])
 		var source_snapshot_index: int = SwordArrayController.get_fire_source_snapshot_index(
-			self,
+			self ,
 			morph_state,
 			snapshot_positions,
 			fired_count,
@@ -2102,8 +2689,9 @@ func _fire_single_array_sword(sword_id: String, volley_fire_index: int, volley_f
 	var array_sword: Dictionary = _get_array_sword_by_id(sword_id)
 	if array_sword.is_empty() or String(array_sword.get("state", "")) != "ready":
 		return
+	var travel_mode: String = _get_array_batch_mode()
 	var launch_origin: Vector2 = SwordArrayController.get_fire_launch_origin(
-		self,
+		self ,
 		_get_sword_array_fire_state(),
 		volley_fire_index,
 		array_sword["pos"],
@@ -2119,23 +2707,31 @@ func _fire_single_array_sword(sword_id: String, volley_fire_index: int, volley_f
 		direction = Vector2.RIGHT
 	array_sword["pos"] = launch_origin
 	array_sword["state"] = "outbound"
-	array_sword["travel_mode"] = _get_array_batch_mode()
+	array_sword["travel_mode"] = travel_mode
 	_reset_array_sword_sortie_state(array_sword)
 	_start_array_sword_attack_instance(array_sword)
 	array_sword["batch_id"] = String(batch_id)
-	array_sword["vel"] = direction.normalized() * _get_current_array_sword_speed(String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING)))
 	array_sword["guidance_active"] = true
 	array_sword["guidance_fire_index"] = volley_fire_index
 	array_sword["guidance_volley_count"] = volley_fire_count
 	array_sword["guidance_burst_step"] = burst_step
 	array_sword["guidance_total_count"] = total_count_before_fire
+	var base_direction: Vector2 = direction.normalized()
+	var flow_side: float = _resolve_array_sword_flow_side(array_sword, launch_origin, base_direction)
+	array_sword["flow_side"] = flow_side
+	var launch_velocity_direction: Vector2 = _blend_array_sword_direction_with_tangent(
+		base_direction,
+		_get_array_sword_launch_tangent_direction(travel_mode, launch_origin, base_direction, flow_side),
+		_get_array_sword_launch_tangent_bias(travel_mode) * _get_array_sword_flow_slot_weight(array_sword, travel_mode)
+	)
+	array_sword["vel"] = launch_velocity_direction * _get_current_array_sword_speed(travel_mode)
 	player["array_fire_index"] += 1
 	_create_particles(array_sword["pos"], COLORS["array_sword"], 5)
 	screen_shake = max(screen_shake, 2.0)
 
 
 func _emit_sword_array_fire_effect(state_source, fire_count: int) -> void:
-	var effect: Dictionary = SwordArrayController.get_fire_effect(self, state_source, fire_count)
+	var effect: Dictionary = SwordArrayController.get_fire_effect(self , state_source, fire_count)
 	_create_particles(effect["position"], effect["color"], effect["particles"])
 	screen_shake = max(screen_shake, effect["shake"])
 
@@ -2157,6 +2753,14 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 		"last_damage_source": DAMAGE_SOURCE_NONE,
 		"score": 20,
 		"stagger_timer": 0.0,
+		"hit_flash_timer": 0.0,
+		"hit_flash_color": Color.WHITE,
+		"hit_reaction_timer": 0.0,
+		"hit_reaction_offset": Vector2.ZERO,
+		"hit_reaction_vector": Vector2.ZERO,
+		"is_dying": false,
+		"death_feedback_timer": 0.0,
+		"death_feedback_color": Color.WHITE,
 	}
 	match enemy_type:
 		PUPPET:
@@ -2208,10 +2812,10 @@ func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, ow
 		"guidance_active": false,
 		"guidance_elapsed": 0.0,
 		"guidance_distance": 0.0,
-		"guidance_fire_index": -1,
-		"guidance_volley_count": -1,
+		"guidance_fire_index": - 1,
+		"guidance_volley_count": - 1,
 		"guidance_burst_step": 0,
-		"guidance_total_count": -1,
+		"guidance_total_count": - 1,
 	})
 
 
@@ -2298,6 +2902,16 @@ func _update_ui() -> void:
 	var debug_mode_text: String = " | DEBUG" if debug_battle_mode else ""
 	mode_label.text = "%s%s%s" % [sword_mode_text, bullet_time_text, debug_mode_text]
 	energy_label.modulate = Color.WHITE
+	if array_energy_warning_display > 0.0:
+		var warning_color: Color = COLORS["energy"].lerp(
+			COLORS["health"],
+			0.44 if array_energy_forecast_level >= ArrayEnergyForecastLevel.CRITICAL or array_energy_break_timer > 0.0 else 0.18
+		)
+		var warning_pulse: float = 0.28 + 0.28 * absf(sin(elapsed_time * 12.0))
+		energy_label.modulate = energy_label.modulate.lerp(
+			warning_color,
+			(0.14 + warning_pulse) * clampf(array_energy_warning_display, 0.0, 1.0)
+		)
 	if energy_feedback_timer > 0.0:
 		var energy_feedback_strength: float = clampf(energy_feedback_timer / ACTION_FAILURE_FLASH_DURATION, 0.0, 1.0)
 		energy_label.modulate = energy_label.modulate.lerp(
@@ -2313,6 +2927,25 @@ func _update_ui() -> void:
 		)
 	status_label.text = status_message
 	status_label.modulate = status_message_color
+	focus_status_label.visible = focus_status_message_timer > 0.0 and focus_status_message != ""
+	if focus_status_label.visible:
+		focus_status_label.text = focus_status_message
+		var label_alpha: float = clampf(focus_status_message_timer / FOCUS_STATUS_DURATION, 0.0, 1.0)
+		var label_pulse: float = 0.7 + 0.3 * absf(sin(elapsed_time * 18.0))
+		var focus_color: Color = focus_status_message_color.lerp(Color.WHITE, 0.1 * label_pulse)
+		focus_color.a = 0.5 + 0.5 * label_alpha
+		focus_status_label.modulate = focus_color
+		var focus_label_size: Vector2 = focus_status_label.size
+		if focus_label_size.x <= 0.0 or focus_label_size.y <= 0.0:
+			focus_label_size = Vector2(240.0, 32.0)
+		var viewport_size: Vector2 = get_viewport_rect().size
+		var focus_anchor: Vector2 = _to_screen(player["pos"]) + Vector2(0.0, - (PLAYER_RADIUS + FOCUS_STATUS_Y_OFFSET))
+		var focus_position: Vector2 = focus_anchor + Vector2(-focus_label_size.x * 0.5, 0.0)
+		focus_position.x = clampf(focus_position.x, 0.0, viewport_size.x - focus_label_size.x)
+		focus_position.y = clampf(focus_position.y, ARENA_ORIGIN.y - 28.0, viewport_size.y - focus_label_size.y)
+		focus_status_label.position = focus_position
+	else:
+		focus_status_label.text = ""
 	if debug_calibration_mode:
 		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
 	elif debug_battle_mode:
@@ -2329,59 +2962,67 @@ func _format_distance_delta(delta: float) -> String:
 
 
 func _get_sword_array_mode() -> String:
-	return SwordArrayController.get_mode(self)
+	return SwordArrayController.get_mode(self )
 
 
 func _get_sword_array_direction(fire_index: int, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
-	return SwordArrayController.get_fire_direction(self, _get_sword_array_fire_state(), fire_index, volley_count, burst_step, total_count)
+	return SwordArrayController.get_fire_direction(self , _get_sword_array_fire_state(), fire_index, volley_count, burst_step, total_count)
 
 
 func _get_sword_array_target(fire_index: int, bullet_pos: Vector2, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
-	return SwordArrayController.get_fire_target(self, _get_sword_array_fire_state(), fire_index, bullet_pos, volley_count, burst_step, total_count)
+	return SwordArrayController.get_fire_target(self , _get_sword_array_fire_state(), fire_index, bullet_pos, volley_count, burst_step, total_count)
 
 
 func _update_boss(delta: float, bullet_time_delta: float) -> void:
-	GameBossController.update_boss(self, delta, bullet_time_delta)
+	GameBossController.update_boss(self , delta, bullet_time_delta)
 
 
 func _draw_boss() -> void:
-	GameBossController.draw_boss(self)
+	GameBossController.draw_boss(self )
 
 
-func _update_boss_silks() -> void:
-	GameBossController._update_boss_silks(self)
+func _draw_boss_world() -> void:
+	GameBossController.draw_boss_world(self )
+
+
+func _draw_boss_hud() -> void:
+	GameBossController.draw_boss_hud(self )
+
+
+func _update_boss_silks(delta: float) -> void:
+	GameBossController._update_boss_silks(self , delta)
 
 
 func _update_silk_damage(delta: float) -> void:
-	GameBossController.update_silk_damage(self, delta)
+	GameBossController.update_silk_damage(self , delta)
 
 
 func _choose_next_boss_state() -> void:
-	GameBossController._choose_next_boss_state(self)
+	GameBossController._choose_next_boss_state(self )
 
 
 func _spawn_boss() -> void:
-	GameBossController.spawn_boss(self)
+	GameBossController.spawn_boss(self )
 
 
 func _spawn_puppets(count: int) -> void:
-	GameBossController.spawn_puppets(self, count)
+	GameBossController.spawn_puppets(self , count)
 
 
 func _count_active_silks() -> int:
-	return GameBossController.count_active_silks(self)
+	return GameBossController.count_active_silks(self )
 
 
 func _is_silk_active(enemy_id: String) -> bool:
-	return GameBossController.is_silk_active(self, enemy_id)
+	return GameBossController.is_silk_active(self , enemy_id)
 
 
 func _find_enemy_by_id(enemy_id: String) -> Variant:
-	return GameBossController.find_enemy_by_id(self, enemy_id)
+	return GameBossController.find_enemy_by_id(self , enemy_id)
 
 
 func _resolve_silk_binding(silk_id: String) -> Dictionary:
-	return GameBossController.resolve_silk_binding(self, silk_id)
+	return GameBossController.resolve_silk_binding(self , silk_id)
 
 
 func _register_hurtbox_descriptor(descriptor: Dictionary) -> void:
@@ -2427,11 +3068,11 @@ func _register_target_hurtboxes(source_data: Dictionary, provider_id := "") -> v
 
 
 func _kill_enemy_by_id(enemy_id: String) -> void:
-	GameBossController.kill_enemy_by_id(self, enemy_id)
+	GameBossController.kill_enemy_by_id(self , enemy_id)
 
 
 func _has_boss() -> bool:
-	return GameBossController.has_boss(self)
+	return GameBossController.has_boss(self )
 
 
 func _to_screen(world_pos: Vector2) -> Vector2:
@@ -2564,7 +3205,7 @@ func _ensure_target_runtime_state(target_id: String, target_profile_id: String, 
 			"target_id": target_id,
 			"target_profile_id": target_profile_id,
 			"current_poise": max_poise,
-			"last_poise_hit_time": -1000000.0,
+			"last_poise_hit_time": - 1000000.0,
 			"last_poise_eval_time": elapsed_time,
 			"poise_broken_until": 0.0,
 		}
@@ -2598,11 +3239,11 @@ func _clear_target_runtime_state(target_id: String, target_profile_id := "") -> 
 
 
 func _resolve_target_binding(target_id: String, target_profile_id: String, target_profile: Dictionary) -> Dictionary:
-	return target_writeback_adapters.resolve_binding(self, target_id, target_profile_id, target_profile)
+	return target_writeback_adapters.resolve_binding(self , target_id, target_profile_id, target_profile)
 
 
 func _apply_target_binding_resource(target_binding: Dictionary, amount: float, damage_source := DAMAGE_SOURCE_NONE) -> Dictionary:
-	return target_writeback_adapters.apply(self, target_binding, amount, damage_source)
+	return target_writeback_adapters.apply(self , target_binding, amount, damage_source)
 
 
 func _refresh_target_poise_state(target_state: Dictionary, target_profile: Dictionary) -> Dictionary:
@@ -2710,7 +3351,7 @@ func _apply_target_response(
 	for event_variant in event_collection_result.get("events", []):
 		target_event_system.append_event_record(response_events, event_variant)
 	_store_target_runtime_state(target_id, target_profile_id, target_state)
-	var event_result: Dictionary = target_event_system.dispatch_events(self, target_binding, target_profile, response_events)
+	var event_result: Dictionary = target_event_system.dispatch_events(self , target_binding, target_profile, response_events)
 	result["response_events"] = response_events
 	result["response_event_names"] = target_event_system.list_event_names(response_events)
 	result["applied_response_events"] = event_result.get("applied_response_events", [])
@@ -2766,6 +3407,163 @@ func _apply_hit_result_to_target(target_id: String, target_profile_id: String, h
 	result["applied_response_event_names"] = response_result.get("applied_response_event_names", [])
 	result["applied"] = bool(result.get("applied", false)) or float(result.get("poise_applied", 0.0)) > 0.0 or not applied_response_events.is_empty()
 	return result
+
+
+func _apply_target_hit_feedback(
+	target_id: String,
+	_target_profile_id: String,
+	contact_point: Vector2,
+	attack_profile_id: String,
+	damage_source: String,
+	_hit_result: Dictionary,
+	apply_result: Dictionary
+) -> void:
+	if not bool(apply_result.get("target_found", false)):
+		return
+	if not bool(apply_result.get("applied", false)):
+		return
+	var target_kind: String = str(apply_result.get("target_kind", ""))
+	if damage_source == DAMAGE_SOURCE_FLYING_SWORD:
+		_trigger_sword_self_hit_feedback(contact_point, attack_profile_id, target_kind)
+		if attack_profile_id == AttackProfiles.PROFILE_FLYING_SWORD_POINT:
+			_queue_point_strike_hitstop_pulse()
+	var feedback_color: Color = _resolve_target_hit_feedback_color(target_id, target_kind, attack_profile_id, damage_source)
+	match target_kind:
+		"enemy":
+			var enemy: Variant = _find_enemy_by_id(target_id)
+			if enemy != null:
+				_apply_enemy_hit_feedback(enemy, contact_point, feedback_color, attack_profile_id)
+		"boss":
+			_apply_boss_hit_feedback(contact_point, feedback_color, attack_profile_id)
+		"silk":
+			_mark_silk_contact_feedback(target_id, contact_point, feedback_color, attack_profile_id)
+
+
+func _resolve_target_hit_feedback_color(_target_id: String, _target_kind: String, _attack_profile_id: String, _damage_source: String) -> Color:
+	return Color.WHITE
+
+
+func _get_hit_feedback_direction(target_pos: Vector2, contact_point: Vector2) -> Vector2:
+	var direction: Vector2 = target_pos - contact_point
+	if direction.is_zero_approx():
+		direction = target_pos - player["pos"]
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT
+	return direction.normalized()
+
+
+func _resolve_hit_reaction_offset(
+	reaction_vector: Vector2,
+	reaction_timer: float,
+	reaction_duration: float,
+	shake_cycles: float
+) -> Vector2:
+	if reaction_duration <= 0.0 or reaction_timer <= 0.0 or reaction_vector.is_zero_approx():
+		return Vector2.ZERO
+	var timer_ratio: float = clampf(reaction_timer / reaction_duration, 0.0, 1.0)
+	var progress: float = 1.0 - timer_ratio
+	var amplitude: float = pow(timer_ratio, HIT_REACTION_DECAY_EXPONENT)
+	var wave: float = cos(progress * TAU * shake_cycles)
+	if wave < 0.0:
+		wave *= HIT_REACTION_BACKSWING_SCALE
+	return reaction_vector * amplitude * wave
+
+
+func _get_target_hit_reaction_distance(attack_profile_id: String, damage_source: String, target_kind: String) -> float:
+	var reaction_distance: float = 5.2
+	match attack_profile_id:
+		AttackProfiles.PROFILE_FLYING_SWORD_POINT:
+			reaction_distance = 12.0
+		AttackProfiles.PROFILE_FLYING_SWORD_SLICE:
+			reaction_distance = 7.8
+		AttackProfiles.PROFILE_MELEE_SLASH:
+			reaction_distance = 7.0
+		AttackProfiles.PROFILE_ARRAY_PIERCE:
+			reaction_distance = 5.2
+		AttackProfiles.PROFILE_ARRAY_FAN:
+			reaction_distance = 4.4
+		AttackProfiles.PROFILE_ARRAY_RING:
+			reaction_distance = 4.0
+		AttackProfiles.PROFILE_DEFLECTED_BULLET:
+			reaction_distance = 5.0
+		AttackProfiles.PROFILE_ULTIMATE_PULSE:
+			reaction_distance = 0.0
+		_:
+			if damage_source == DAMAGE_SOURCE_MELEE:
+				reaction_distance = 6.6
+	if target_kind == "boss":
+		reaction_distance *= 0.72
+	return reaction_distance
+
+
+func _apply_enemy_hit_feedback(enemy: Dictionary, contact_point: Vector2, feedback_color: Color, attack_profile_id: String) -> void:
+	var reaction_vector: Vector2 = _get_hit_feedback_direction(enemy.get("pos", contact_point), contact_point) * _get_target_hit_reaction_distance(
+		attack_profile_id,
+		str(enemy.get("last_damage_source", DAMAGE_SOURCE_NONE)),
+		"enemy"
+	) * ENEMY_HIT_REACTION_INTENSITY
+	if reaction_vector.length() > ENEMY_HIT_REACTION_MAX_OFFSET:
+		reaction_vector = reaction_vector.normalized() * ENEMY_HIT_REACTION_MAX_OFFSET
+	enemy["hit_reaction_vector"] = reaction_vector
+	enemy["hit_reaction_timer"] = ENEMY_HIT_REACTION_DURATION
+	enemy["hit_reaction_offset"] = reaction_vector
+	enemy["hit_flash_timer"] = maxf(float(enemy.get("hit_flash_timer", 0.0)), ENEMY_HIT_FLASH_DURATION)
+	enemy["hit_flash_color"] = feedback_color
+	if bool(enemy.get("is_dying", false)):
+		enemy["death_feedback_color"] = feedback_color
+
+
+func _apply_boss_hit_feedback(contact_point: Vector2, feedback_color: Color, attack_profile_id: String) -> void:
+	if not _has_boss():
+		return
+	var reaction_vector: Vector2 = _get_hit_feedback_direction(boss.get("pos", contact_point), contact_point) * _get_target_hit_reaction_distance(
+		attack_profile_id,
+		DAMAGE_SOURCE_NONE,
+		"boss"
+	) * BOSS_HIT_REACTION_INTENSITY
+	if reaction_vector.length() > BOSS_HIT_REACTION_MAX_OFFSET:
+		reaction_vector = reaction_vector.normalized() * BOSS_HIT_REACTION_MAX_OFFSET
+	boss["hit_reaction_vector"] = reaction_vector
+	boss["hit_reaction_timer"] = BOSS_HIT_REACTION_DURATION
+	boss["hit_reaction_offset"] = reaction_vector
+	boss["hit_flash_timer"] = maxf(float(boss.get("hit_flash_timer", 0.0)), BOSS_HIT_FLASH_DURATION)
+	boss["hit_flash_color"] = feedback_color
+
+
+func _mark_silk_contact_feedback(target_id: String, contact_point: Vector2, feedback_color: Color, attack_profile_id: String) -> void:
+	if not _has_boss():
+		return
+	var silk_binding: Dictionary = _resolve_silk_binding(target_id)
+	if not bool(silk_binding.get("found", false)):
+		return
+	var silk_index: int = int(silk_binding.get("index", -1))
+	if silk_index < 0 or silk_index >= boss["silks"].size():
+		return
+	var silk: Dictionary = boss["silks"][silk_index]
+	silk["contact_feedback_timer"] = maxf(float(silk.get("contact_feedback_timer", 0.0)), SILK_CONTACT_FEEDBACK_DURATION)
+	silk["contact_feedback_pos"] = contact_point
+	silk["contact_feedback_color"] = feedback_color
+	silk["contact_feedback_is_point"] = attack_profile_id == AttackProfiles.PROFILE_FLYING_SWORD_POINT
+	boss["silks"][silk_index] = silk
+
+
+func _mark_silk_sever_feedback(target_id: String, from_pos: Vector2, to_pos: Vector2, contact_point: Vector2, is_main := false) -> void:
+	if not _has_boss():
+		return
+	var silk_binding: Dictionary = _resolve_silk_binding(target_id)
+	if not bool(silk_binding.get("found", false)):
+		return
+	var silk_index: int = int(silk_binding.get("index", -1))
+	if silk_index < 0 or silk_index >= boss["silks"].size():
+		return
+	var silk: Dictionary = boss["silks"][silk_index]
+	silk["cut_feedback_timer"] = SILK_SEVER_FEEDBACK_DURATION
+	silk["cut_feedback_from"] = from_pos
+	silk["cut_feedback_to"] = to_pos
+	silk["cut_feedback_center"] = contact_point
+	silk["cut_feedback_is_main"] = is_main
+	silk["contact_feedback_timer"] = 0.0
+	boss["silks"][silk_index] = silk
 
 
 func _apply_boss_attack_instance_hit(
@@ -2939,6 +3737,15 @@ func _apply_attack_instance_hit_to_target(
 	if not bool(result.get("allowed", false)):
 		return result
 	result["apply_result"] = _apply_hit_result_to_target(target_id, target_profile_id, hit_result, damage_source)
+	_apply_target_hit_feedback(
+		target_id,
+		target_profile_id,
+		contact_point,
+		attack_profile_id,
+		damage_source,
+		hit_result,
+		result["apply_result"]
+	)
 	return result
 
 
@@ -3147,13 +3954,30 @@ func _apply_player_damage(amount: float, _damage_source: String = DAMAGE_SOURCE_
 	return true
 
 
-func _add_player_energy(amount: float) -> void:
+func _add_player_energy(amount: float, show_feedback := true) -> void:
 	if amount <= 0.0:
 		return
 	if _has_debug_flag("infinite_energy"):
 		player["energy"] = PLAYER_MAX_ENERGY
 		return
-	player["energy"] = min(player["energy"] + amount, PLAYER_MAX_ENERGY)
+	var previous_energy: float = float(player.get("energy", 0.0))
+	player["energy"] = min(previous_energy + amount, PLAYER_MAX_ENERGY)
+	var gained_amount: float = player["energy"] - previous_energy
+	if show_feedback and gained_amount > 0.0:
+		_trigger_energy_gain_feedback(gained_amount)
+
+
+func _trigger_energy_gain_feedback(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var normalized_strength: float = clampf(
+		amount / maxf(ENERGY_GAIN_MELEE_DEFLECT * 1.5, 1.0),
+		0.18,
+		ENERGY_GAIN_FEEDBACK_MAX_STRENGTH
+	)
+	energy_gain_feedback_timer = maxf(energy_gain_feedback_timer, ENERGY_GAIN_FEEDBACK_DURATION)
+	energy_gain_feedback_strength = maxf(energy_gain_feedback_strength, normalized_strength)
+	energy_gain_feedback_color = COLORS["energy"].lerp(Color.WHITE, 0.18)
 
 
 func _drain_player_energy(amount: float) -> void:
