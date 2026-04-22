@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/main/Main.tscn" id="1_main"]
+[ext_resource type="Resource" path="res://resources/vfx/sword_vfx_profile_lookdev.tres" id="2_vfx"]
+
+[node name="SwordVfxAuthoritativeLookdev" instance=ExtResource("1_main")]
+lookdev_mode = true
+lookdev_auto_cycle = true
+lookdev_preview_mode = 1
+sword_vfx_profile = ExtResource("2_vfx")

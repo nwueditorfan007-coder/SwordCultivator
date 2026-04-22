@@ -85,52 +85,6 @@ static func draw_game(main: Node2D) -> void:
 			bullet["state"] == "deflected"
 		)
 
-	for package_variant in main.enemy_packages.values():
-		var package: Dictionary = package_variant
-		if str(package.get("type", "")) != main.ENEMY_PACKAGE_RING_LEECH_CLOSE:
-			continue
-		var package_phase: String = str(package.get("phase", ""))
-		if package_phase == "" or package_phase == main.ENEMY_PACKAGE_PHASE_BREAK:
-			continue
-		var slot_count: int = max(int(package.get("slot_count", 0)), 0)
-		if slot_count < 3:
-			continue
-		var slot_positions: Array = []
-		slot_positions.resize(slot_count)
-		var active_slot_count: int = 0
-		for member_id_variant in package.get("member_ids", []):
-			var member: Variant = main._find_enemy_by_id(str(member_id_variant))
-			if member == null or bool(member.get("is_dying", false)):
-				continue
-			var slot_index: int = int(member.get("package_slot_index", -1))
-			if slot_index < 0 or slot_index >= slot_count:
-				continue
-			slot_positions[slot_index] = main._to_screen(
-				Vector2(member.get("pos", Vector2.ZERO)) + Vector2(member.get("hit_reaction_offset", Vector2.ZERO))
-			)
-			active_slot_count += 1
-		if active_slot_count < 3:
-			continue
-		var pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 8.0))
-		var link_alpha: float = 0.14
-		var link_width: float = 1.7
-		match package_phase:
-			main.ENEMY_PACKAGE_PHASE_COLLAPSE:
-				link_alpha = 0.22
-				link_width = 2.1
-			main.ENEMY_PACKAGE_PHASE_ENGAGE:
-				link_alpha = 0.18
-				link_width = 1.9
-		var link_color: Color = _with_alpha(main.COLORS["ring_leech"], link_alpha * pulse)
-		var slot_index: int = 0
-		while slot_index < slot_count:
-			var next_index: int = (slot_index + 1) % slot_count
-			var from_slot: Variant = slot_positions[slot_index]
-			var to_slot: Variant = slot_positions[next_index]
-			if typeof(from_slot) == TYPE_VECTOR2 and typeof(to_slot) == TYPE_VECTOR2:
-				main.draw_line(from_slot, to_slot, main._get_time_stop_world_color(link_color), link_width)
-			slot_index += 1
-
 	for enemy in main.enemies:
 		if str(enemy.get("type", "")) != main.DRAPE_PRIEST:
 			continue
@@ -349,6 +303,8 @@ static func draw_game(main: Node2D) -> void:
 			_with_alpha(break_color, 0.05 + 0.08 * array_break_strength)
 		)
 	_draw_energy_gain_pulse(main, player_pos)
+	_draw_sword_recall_gate(main, player_pos)
+	_draw_sword_return_catches(main)
 
 	_draw_array_mode_confirm(main, player_pos)
 
@@ -413,14 +369,26 @@ static func draw_game(main: Node2D) -> void:
 			continue
 		var array_sword_focus_strength: float = 0.16 if array_channeling else 0.03
 		var sword_scale: float = 0.94 if array_channeling else 0.88
+		var array_local_glow_strength: float = 0.0
+		var array_glow_style: String = "idle"
+		var sword_vfx = _get_sword_vfx(main)
 		if array_sword_state == "returning":
 			array_sword_focus_strength = maxf(array_sword_focus_strength, 0.12)
 			sword_scale = 1.02
-		_draw_sword_body(main, array_sword_pos, forward, array_sword_color, sword_scale, array_sword_focus_strength)
+			array_local_glow_strength = float(sword_vfx.local_glow_array_recall)
+			array_glow_style = "recall"
+		elif array_sword_state == "outbound":
+			array_local_glow_strength = float(sword_vfx.local_glow_array_outbound)
+			array_glow_style = "point"
+		elif array_channeling:
+			array_local_glow_strength = float(sword_vfx.local_glow_array_channel_base) + float(sword_vfx.local_glow_array_channel_hold_scale) * array_hold_ratio
+			array_glow_style = "slice"
+		_draw_sword_body(main, array_sword_pos, forward, array_sword_color, sword_scale, array_sword_focus_strength, array_local_glow_strength, array_glow_style)
 
 	if main.debug_calibration_mode:
 		_draw_debug_calibration_overlay(main, player_pos)
 
+	_draw_sword_air_wakes(main)
 	_draw_sword_trail(main)
 	_draw_sword_afterimages(main)
 	_draw_sword_hit_effects(main)
@@ -437,8 +405,32 @@ static func draw_game(main: Node2D) -> void:
 	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
 	var sword_focus_strength: float = 0.06 if main.player["mode"] == main.CombatMode.MELEE else 0.26 + time_stop_strength * 1.04
 	sword_focus_strength += sword_impact_ratio * (0.42 if main.player["mode"] == main.CombatMode.MELEE else 0.56)
+	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var sword_vfx = _get_sword_vfx(main)
+	var sword_local_glow_strength: float = float(sword_vfx.local_glow_ranged_idle) if main.player["mode"] == main.CombatMode.RANGED else 0.0
+	var sword_glow_style: String = "idle"
+	if sword_state == main.SwordState.POINT_STRIKE:
+		var point_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
+		sword_local_glow_strength = float(sword_vfx.local_glow_point_base) + float(sword_vfx.local_glow_point_speed_scale) * point_speed_ratio
+		sword_glow_style = "point"
+	elif sword_state == main.SwordState.SLICING:
+		var slice_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
+		sword_local_glow_strength = float(sword_vfx.local_glow_slice_base) + float(sword_vfx.local_glow_slice_speed_scale) * slice_speed_ratio
+		sword_glow_style = "slice"
+	elif sword_state == main.SwordState.RECALLING:
+		var recall_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_RECALL_SPEED, 0.001), 0.0, 1.0)
+		sword_local_glow_strength = float(sword_vfx.local_glow_recall_base) + float(sword_vfx.local_glow_recall_speed_scale) * recall_speed_ratio
+		sword_glow_style = "recall"
+	sword_local_glow_strength = clampf(
+		sword_local_glow_strength
+		+ sword_impact_ratio * float(sword_vfx.local_glow_impact_bonus_scale)
+		+ time_stop_strength * float(sword_vfx.local_glow_time_stop_bonus_scale),
+		0.0,
+		1.0
+	)
 	if main.sword["state"] != main.SwordState.ORBITING and time_stop_strength > 0.001:
 		_draw_time_stop_sword_focus(main, sword_pos, sword_forward, time_stop_strength)
+	_draw_sword_motion_front(main, sword_pos, sword_forward, sword_color)
 	if sword_impact_ratio > 0.0:
 		_draw_sword_impact_smear(main, sword_base_pos, sword_pos, sword_forward, sword_color, sword_impact_ratio)
 		main.draw_circle(
@@ -446,7 +438,7 @@ static func draw_game(main: Node2D) -> void:
 			3.6 + 3.2 * sword_impact_ratio,
 			_with_alpha(sword_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.22), 0.12 + 0.16 * sword_impact_ratio)
 		)
-	_draw_sword_body(main, sword_pos, sword_forward, sword_color, 1.6, sword_focus_strength)
+	_draw_sword_body(main, sword_pos, sword_forward, sword_color, 1.6, sword_focus_strength, sword_local_glow_strength, sword_glow_style)
 
 	if main.player["attack_flash_timer"] > 0.0:
 		var attack_angle: float = (main.mouse_world - main.player["pos"]).angle()
@@ -1253,17 +1245,89 @@ static func _draw_time_stop_sword_focus(main: Node2D, sword_pos: Vector2, forwar
 	)
 
 
+static func _draw_sword_motion_front(main: Node2D, sword_pos: Vector2, forward: Vector2, base_color: Color) -> void:
+	var sword_vfx = _get_sword_vfx(main)
+	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	if sword_state != main.SwordState.POINT_STRIKE and sword_state != main.SwordState.RECALLING:
+		return
+	var sword_velocity: Vector2 = Vector2(main.sword.get("vel", Vector2.ZERO))
+	var speed: float = sword_velocity.length()
+	var speed_reference: float = main.SWORD_RECALL_SPEED if sword_state == main.SwordState.RECALLING else main.SWORD_POINT_STRIKE_SPEED
+	var speed_ratio: float = clampf(
+		(speed / maxf(speed_reference, 0.001) - float(sword_vfx.front_speed_start)) / maxf(float(sword_vfx.front_speed_span), 0.001),
+		0.0,
+		1.0
+	)
+	if speed_ratio <= 0.0:
+		return
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	forward = forward.normalized()
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var time_stop_strength: float = main._get_time_stop_visual_strength()
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * (16.0 if sword_state == main.SwordState.POINT_STRIKE else 12.0))
+	var front_origin: Vector2 = sword_pos + forward * (8.0 + 4.0 * speed_ratio)
+	var front_length: float = lerpf(float(sword_vfx.front_length_min), float(sword_vfx.front_length_max), speed_ratio) * (float(sword_vfx.front_recall_length_scale) if sword_state == main.SwordState.RECALLING else 1.0)
+	var front_width: float = lerpf(float(sword_vfx.front_width_min), float(sword_vfx.front_width_max), speed_ratio) * (float(sword_vfx.front_recall_width_scale) if sword_state == main.SwordState.RECALLING else 1.0)
+	var pulse_strength: float = float(sword_vfx.front_point_pulse) if sword_state == main.SwordState.POINT_STRIKE else float(sword_vfx.front_recall_pulse)
+	var tip: Vector2 = front_origin + forward * (front_length + pulse * pulse_strength)
+	var halo_tip: Vector2 = tip + forward * (5.0 + 7.0 * speed_ratio)
+	var outer_poly := PackedVector2Array([
+		front_origin + side * front_width * 1.2,
+		front_origin - side * front_width * 1.2,
+		tip - side * front_width * 0.28,
+		halo_tip,
+		tip + side * front_width * 0.28,
+	])
+	var core_poly := PackedVector2Array([
+		front_origin + side * front_width * 0.38,
+		front_origin - side * front_width * 0.38,
+		tip - side * front_width * 0.08,
+		tip + forward * 2.0,
+		tip + side * front_width * 0.08,
+	])
+	var outer_color: Color = base_color.lerp(UNSHEATH_FLASH_EDGE_COLOR, 0.28)
+	var accent_color: Color = UNSHEATH_FLASH_WARM_COLOR
+	if sword_state == main.SwordState.RECALLING:
+		outer_color = main.COLORS["array_sword_return"].lerp(main.COLORS["ranged_sword"], 0.42)
+		accent_color = ART_GOLD
+	outer_color = outer_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.18 * time_stop_strength)
+	_try_draw_colored_polygon(main, outer_poly, _with_alpha(outer_color, 0.06 + 0.12 * speed_ratio))
+	_try_draw_colored_polygon(main, core_poly, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.12 + 0.18 * speed_ratio))
+	main.draw_line(
+		sword_pos + forward * 4.0,
+		halo_tip,
+		_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.12 + 0.18 * speed_ratio),
+		1.1 + 1.0 * speed_ratio
+	)
+	main.draw_line(
+		front_origin + side * front_width * 0.54,
+		tip + side * front_width * 0.18,
+		_with_alpha(accent_color, 0.06 + 0.08 * speed_ratio),
+		0.8 + 0.5 * speed_ratio
+	)
+	main.draw_line(
+		front_origin - side * front_width * 0.54,
+		tip - side * front_width * 0.18,
+		_with_alpha(accent_color, 0.05 + 0.07 * speed_ratio),
+		0.8 + 0.4 * speed_ratio
+	)
+
+
 static func _draw_sword_body(
 	main: Node2D,
 	sword_pos: Vector2,
 	forward: Vector2,
 	base_color: Color,
 	scale := 1.0,
-	focus_strength := 0.0
+	focus_strength := 0.0,
+	local_glow_strength := 0.0,
+	glow_style := "idle"
 ) -> void:
 	if forward.is_zero_approx():
 		forward = Vector2.RIGHT
 	forward = forward.normalized()
+	var sword_vfx = _get_sword_vfx(main)
 	var side: Vector2 = forward.rotated(PI * 0.5)
 	var blade_tip: Vector2 = sword_pos + forward * (24.4 * scale)
 	var shoulder_center: Vector2 = sword_pos + forward * (0.25 * scale)
@@ -1307,6 +1371,89 @@ static func _draw_sword_body(
 		])
 		_try_draw_colored_polygon(main, sword_outer_glow, _with_alpha(base_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.5), 0.04 + 0.07 * focus_strength))
 		_try_draw_colored_polygon(main, sword_glow, _with_alpha(base_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.45), 0.08 + 0.12 * focus_strength))
+	if local_glow_strength > 0.001:
+		var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * (15.0 if glow_style == "point" else 11.0))
+		var local_accent_color: Color = base_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.32)
+		var guard_accent_color: Color = base_color.lerp(ART_BLUE_CORE, 0.14)
+		var tip_bias: float = 0.0
+		match glow_style:
+			"point":
+				local_accent_color = UNSHEATH_FLASH_CORE_COLOR.lerp(base_color, 0.34)
+				guard_accent_color = local_accent_color.lerp(UNSHEATH_FLASH_EDGE_COLOR, 0.28)
+				tip_bias = 0.12
+			"slice":
+				local_accent_color = base_color.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.16)
+				guard_accent_color = local_accent_color.lerp(ART_BLUE_CORE, 0.16)
+			"recall":
+				local_accent_color = main.COLORS["array_sword_return"].lerp(ART_GOLD, 0.24)
+				guard_accent_color = local_accent_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.24)
+				tip_bias = -0.08
+		var tip_glow_center: Vector2 = blade_tip - forward * (2.0 - 1.2 * tip_bias)
+		var tip_glow_radius: float = (
+			float(sword_vfx.local_glow_tip_radius_min)
+			+ float(sword_vfx.local_glow_tip_radius_scale) * local_glow_strength
+			+ pulse * float(sword_vfx.local_glow_tip_radius_pulse)
+		) * scale
+		var guard_glow_radius: float = (
+			float(sword_vfx.local_glow_guard_radius_min)
+			+ float(sword_vfx.local_glow_guard_radius_scale) * local_glow_strength
+		) * scale
+		var spine_width: float = (
+			float(sword_vfx.local_glow_spine_width_min)
+			+ float(sword_vfx.local_glow_spine_width_scale) * local_glow_strength
+		) * scale
+		var spine_tail: Vector2 = blade_root + forward * (1.0 + 0.8 * local_glow_strength)
+		var spine_mid: Vector2 = shoulder_center + forward * 4.2
+		var spine_tip: Vector2 = blade_tip - forward * 2.4
+		var spine_poly := PackedVector2Array([
+			spine_tail + side * spine_width * 0.44,
+			spine_mid + side * spine_width * 0.82,
+			spine_tip + side * spine_width * 0.18,
+			spine_tip - side * spine_width * 0.18,
+			spine_mid - side * spine_width * 0.82,
+			spine_tail - side * spine_width * 0.44,
+		])
+		_try_draw_colored_polygon(
+			main,
+			spine_poly,
+			_with_alpha(local_accent_color, float(sword_vfx.local_glow_spine_alpha_base) + float(sword_vfx.local_glow_spine_alpha_scale) * local_glow_strength)
+		)
+		var tip_alpha: float = float(sword_vfx.local_glow_tip_alpha_base) + float(sword_vfx.local_glow_tip_alpha_scale) * local_glow_strength
+		var guard_alpha: float = float(sword_vfx.local_glow_guard_alpha_base) + float(sword_vfx.local_glow_guard_alpha_scale) * local_glow_strength
+		main.draw_arc(
+			tip_glow_center,
+			tip_glow_radius,
+			0.0,
+			TAU,
+			24,
+			_with_alpha(local_accent_color, tip_alpha * 0.82),
+			0.9 + 0.8 * local_glow_strength
+		)
+		main.draw_circle(
+			tip_glow_center,
+			tip_glow_radius * 0.32,
+			_with_alpha(local_accent_color.lerp(Color.WHITE, 0.12), tip_alpha * 0.42)
+		)
+		main.draw_arc(
+			guard_center,
+			guard_glow_radius,
+			0.0,
+			TAU,
+			22,
+			_with_alpha(guard_accent_color, guard_alpha * 0.74),
+			0.8 + 0.7 * local_glow_strength
+		)
+		main.draw_circle(
+			guard_center,
+			guard_glow_radius * 0.24,
+			_with_alpha(guard_accent_color.lerp(Color.WHITE, 0.08), guard_alpha * 0.28)
+		)
+		main.draw_line(
+			spine_tail,
+			blade_tip - forward * 1.4,
+			_with_alpha(local_accent_color.lerp(Color.WHITE, 0.18), float(sword_vfx.local_glow_spine_line_alpha_base) + float(sword_vfx.local_glow_spine_line_alpha_scale) * local_glow_strength),
+			float(sword_vfx.local_glow_spine_line_width_base) + float(sword_vfx.local_glow_spine_line_width_scale) * local_glow_strength
+		)
 	var blade_polygon := PackedVector2Array([
 		blade_tip,
 		shoulder_center + side * shoulder_half_width,
@@ -1445,21 +1592,76 @@ static func _draw_sword_afterimages(main: Node2D) -> void:
 		)
 
 
+static func _draw_sword_air_wakes(main: Node2D) -> void:
+	if main.sword_air_wakes.is_empty():
+		return
+	var time_stop_strength: float = main._get_time_stop_visual_strength()
+	for wake in main.sword_air_wakes:
+		var life_ratio: float = clampf(float(wake.get("life", 0.0)) / maxf(float(wake.get("max_life", 1.0)), 0.001), 0.0, 1.0)
+		if life_ratio <= 0.0:
+			continue
+		var center: Vector2 = main._to_screen(wake["pos"])
+		var forward: Vector2 = Vector2(wake.get("forward", Vector2.RIGHT))
+		if forward.is_zero_approx():
+			forward = Vector2.RIGHT
+		forward = forward.normalized()
+		var outward: Vector2 = Vector2(wake.get("outward", forward.rotated(PI * 0.5)))
+		if outward.is_zero_approx():
+			outward = forward.rotated(PI * 0.5)
+		outward = outward.normalized()
+		var turn_strength: float = clampf(float(wake.get("turn_strength", 0.0)), 0.0, 1.0)
+		var speed_ratio: float = clampf(float(wake.get("speed_ratio", 0.0)), 0.0, 1.0)
+		var style: String = str(wake.get("style", "point"))
+		var length: float = float(wake.get("length", main.SWORD_AIR_WAKE_BASE_LENGTH)) * (0.46 + 0.54 * life_ratio)
+		var width: float = float(wake.get("width", main.SWORD_AIR_WAKE_BASE_WIDTH)) * (0.5 + 0.5 * life_ratio)
+		var tail: Vector2 = center - forward * length * 0.66
+		var tip: Vector2 = center + forward * length * (0.34 + 0.1 * turn_strength) + outward * width * (0.76 + 0.12 * speed_ratio)
+		var outer_tip: Vector2 = center + forward * length * (0.56 + 0.12 * turn_strength) + outward * width * (1.06 + 0.16 * speed_ratio)
+		var outer_poly := PackedVector2Array([
+			tail - outward * width * 0.14,
+			center - forward * length * 0.3 + outward * width * 0.82,
+			outer_tip,
+			tip + forward * length * 0.08,
+			center + forward * length * 0.04 + outward * width * 0.24,
+			tail + outward * width * 0.08,
+		])
+		var inner_poly := PackedVector2Array([
+			tail,
+			center - forward * length * 0.18 + outward * width * 0.42,
+			tip,
+			center + forward * length * 0.04 + outward * width * 0.16,
+		])
+		var haze_color: Color = main.COLORS["ranged_sword"].lerp(UNSHEATH_FLASH_EDGE_COLOR, 0.22)
+		var streak_color: Color = UNSHEATH_FLASH_EDGE_COLOR.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.22)
+		if style == "recall":
+			haze_color = main.COLORS["array_sword_return"].lerp(main.COLORS["ranged_sword"], 0.5)
+			streak_color = main.COLORS["array_sword_return"].lerp(UNSHEATH_FLASH_CORE_COLOR, 0.34)
+		haze_color = haze_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.18 * time_stop_strength)
+		streak_color = streak_color.lerp(TIME_STOP_FRAME_CORE_COLOR, 0.16 * time_stop_strength)
+		_try_draw_colored_polygon(main, outer_poly, _with_alpha(haze_color, 0.06 + 0.12 * life_ratio * (0.5 + 0.5 * turn_strength)))
+		_try_draw_colored_polygon(main, inner_poly, _with_alpha(streak_color, 0.12 + 0.16 * life_ratio * (0.45 + 0.55 * turn_strength)))
+		main.draw_line(
+			center - forward * length * 0.26,
+			tip,
+			_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.06 + 0.12 * life_ratio),
+			0.9 + 0.7 * turn_strength
+		)
+
+
 static func _draw_sword_trail(main: Node2D) -> void:
 	if main.sword_trail_points.size() < 2:
 		return
 	var time_stop_strength: float = main._get_time_stop_visual_strength()
-	var outer_color: Color = main.COLORS["ranged_sword"].lerp(UNSHEATH_FLASH_EDGE_COLOR, 0.34).lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.22 * time_stop_strength)
 	var segment_index: int = 1
 	while segment_index < main.sword_trail_points.size():
 		var older: Dictionary = main.sword_trail_points[segment_index - 1]
 		var newer: Dictionary = main.sword_trail_points[segment_index]
 		var older_ratio: float = clampf(float(older.get("life", 0.0)) / maxf(float(older.get("max_life", 1.0)), 0.001), 0.0, 1.0)
 		var newer_ratio: float = clampf(float(newer.get("life", 0.0)) / maxf(float(newer.get("max_life", 1.0)), 0.001), 0.0, 1.0)
-		var alpha_scale: float = 0.5 * (float(older.get("alpha_scale", 1.0)) + float(newer.get("alpha_scale", 1.0))) * (1.0 + time_stop_strength * 1.02)
 		if older_ratio <= 0.0 and newer_ratio <= 0.0:
 			segment_index += 1
 			continue
+		var alpha_scale: float = 0.5 * (float(older.get("alpha_scale", 1.0)) + float(newer.get("alpha_scale", 1.0))) * (1.0 + time_stop_strength * 1.02)
 		var from_pos: Vector2 = main._to_screen(older["pos"])
 		var to_pos: Vector2 = main._to_screen(newer["pos"])
 		var segment: Vector2 = to_pos - from_pos
@@ -1467,7 +1669,7 @@ static func _draw_sword_trail(main: Node2D) -> void:
 			segment_index += 1
 			continue
 		var style: String = str(newer.get("style", older.get("style", "slice")))
-		var trail_forward: Vector2 = newer.get("forward", segment.normalized())
+		var trail_forward: Vector2 = Vector2(newer.get("forward", segment.normalized()))
 		if trail_forward.is_zero_approx():
 			trail_forward = segment.normalized()
 		else:
@@ -1476,10 +1678,28 @@ static func _draw_sword_trail(main: Node2D) -> void:
 		var from_half_width: float = float(older.get("half_width", main.SWORD_TRAIL_BASE_HALF_WIDTH)) * older_ratio
 		var to_half_width: float = float(newer.get("half_width", main.SWORD_TRAIL_BASE_HALF_WIDTH)) * newer_ratio
 		var segment_ratio: float = 0.5 * (older_ratio + newer_ratio)
+		var turn_strength: float = maxf(float(older.get("turn_strength", 0.0)), float(newer.get("turn_strength", 0.0)))
+		var haze_color: Color = main.COLORS["ranged_sword"].lerp(UNSHEATH_FLASH_EDGE_COLOR, 0.28)
+		var ribbon_color: Color = main.COLORS["ranged_sword"].lerp(ART_BLUE_CORE, 0.12)
+		var accent_color: Color = UNSHEATH_FLASH_WARM_COLOR
+		if style == "recall":
+			haze_color = main.COLORS["array_sword_return"].lerp(main.COLORS["ranged_sword"], 0.42)
+			ribbon_color = main.COLORS["array_sword_return"].lerp(ART_BLUE_CORE, 0.16)
+			accent_color = ART_GOLD
+		elif style == "slice":
+			ribbon_color = ribbon_color.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.08)
+		haze_color = haze_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.22 * time_stop_strength)
+		ribbon_color = ribbon_color.lerp(TIME_STOP_FRAME_CORE_COLOR, 0.14 * time_stop_strength)
 		if style == "point":
-			var point_outer_quad := PackedVector2Array([
-				from_pos + side * from_half_width * 0.56,
-				from_pos - side * from_half_width * 0.56,
+			var point_haze_quad := PackedVector2Array([
+				from_pos + side * from_half_width * (0.92 + 0.22 * turn_strength),
+				from_pos - side * from_half_width * (0.92 + 0.22 * turn_strength),
+				to_pos - side * to_half_width * (0.8 + 0.18 * turn_strength) + trail_forward * (5.0 + 4.0 * turn_strength),
+				to_pos + side * to_half_width * (0.8 + 0.18 * turn_strength) + trail_forward * (5.0 + 4.0 * turn_strength),
+			])
+			var point_ribbon_quad := PackedVector2Array([
+				from_pos + side * from_half_width * 0.58,
+				from_pos - side * from_half_width * 0.58,
 				to_pos - side * to_half_width * 0.46,
 				to_pos + side * to_half_width * 0.46,
 			])
@@ -1489,7 +1709,8 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				to_pos - side * to_half_width * 0.14,
 				to_pos + side * to_half_width * 0.14,
 			])
-			_try_draw_colored_polygon(main, point_outer_quad, _with_alpha(outer_color, (0.16 + 0.2 * segment_ratio) * alpha_scale))
+			_try_draw_colored_polygon(main, point_haze_quad, _with_alpha(haze_color, (0.08 + 0.18 * segment_ratio + 0.1 * turn_strength) * alpha_scale))
+			_try_draw_colored_polygon(main, point_ribbon_quad, _with_alpha(ribbon_color, (0.16 + 0.22 * segment_ratio) * alpha_scale))
 			_try_draw_colored_polygon(main, point_core_quad, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, (0.28 + 0.3 * segment_ratio) * alpha_scale))
 			if time_stop_strength > 0.001:
 				var point_focus_poly := PackedVector2Array([
@@ -1503,20 +1724,60 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				_try_draw_colored_polygon(main, point_focus_poly, _with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, (0.06 + 0.1 * segment_ratio) * alpha_scale * time_stop_strength))
 			main.draw_line(
 				from_pos - trail_forward * 1.6,
-				to_pos + trail_forward * (6.0 + 8.5 * segment_ratio),
-				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, (0.22 + 0.28 * segment_ratio) * alpha_scale),
+				to_pos + trail_forward * (7.0 + 9.0 * segment_ratio),
+				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, (0.24 + 0.28 * segment_ratio) * alpha_scale),
 				1.2 + 1.0 * segment_ratio
 			)
 			main.draw_line(
 				from_pos + trail_forward * 2.0,
-				to_pos + trail_forward * (2.8 + 4.8 * segment_ratio),
-				_with_alpha(UNSHEATH_FLASH_WARM_COLOR, (0.08 + 0.12 * segment_ratio) * alpha_scale),
-				0.8 + 0.5 * segment_ratio
+				to_pos + trail_forward * (3.4 + 5.4 * segment_ratio),
+				_with_alpha(accent_color, (0.08 + 0.12 * segment_ratio) * alpha_scale),
+				0.8 + 0.6 * segment_ratio
+			)
+		elif style == "recall":
+			var recall_haze_quad := PackedVector2Array([
+				from_pos + side * from_half_width * 0.84,
+				from_pos - side * from_half_width * 0.84,
+				to_pos - side * to_half_width * 0.64 + trail_forward * (3.6 + 2.8 * turn_strength),
+				to_pos + side * to_half_width * 0.64 + trail_forward * (3.6 + 2.8 * turn_strength),
+			])
+			var recall_ribbon_quad := PackedVector2Array([
+				from_pos + side * from_half_width * 0.42,
+				from_pos - side * from_half_width * 0.42,
+				to_pos - side * to_half_width * 0.34,
+				to_pos + side * to_half_width * 0.34,
+			])
+			var recall_core_quad := PackedVector2Array([
+				from_pos + side * from_half_width * 0.1,
+				from_pos - side * from_half_width * 0.1,
+				to_pos - side * to_half_width * 0.08,
+				to_pos + side * to_half_width * 0.08,
+			])
+			_try_draw_colored_polygon(main, recall_haze_quad, _with_alpha(haze_color, (0.08 + 0.16 * segment_ratio) * alpha_scale))
+			_try_draw_colored_polygon(main, recall_ribbon_quad, _with_alpha(ribbon_color, (0.14 + 0.18 * segment_ratio) * alpha_scale))
+			_try_draw_colored_polygon(main, recall_core_quad, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, (0.18 + 0.2 * segment_ratio) * alpha_scale))
+			main.draw_line(
+				from_pos - trail_forward * 0.8,
+				to_pos + trail_forward * (4.0 + 5.0 * segment_ratio),
+				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, (0.16 + 0.18 * segment_ratio) * alpha_scale),
+				0.9 + 0.6 * segment_ratio
+			)
+			main.draw_line(
+				from_pos + side * from_half_width * 0.16,
+				to_pos + side * to_half_width * 0.2 + trail_forward * 2.8,
+				_with_alpha(accent_color, (0.06 + 0.08 * segment_ratio) * alpha_scale),
+				0.8 + 0.4 * segment_ratio
 			)
 		else:
 			var blade_bias_from: Vector2 = trail_forward * from_half_width * 0.18
 			var blade_bias_to: Vector2 = trail_forward * to_half_width * 0.22
-			var slice_outer_quad := PackedVector2Array([
+			var slice_haze_quad := PackedVector2Array([
+				from_pos + side * from_half_width * (1.0 + 0.22 * turn_strength) + blade_bias_from * 0.22,
+				from_pos - side * from_half_width * (0.9 + 0.18 * turn_strength) - blade_bias_from * 0.42,
+				to_pos - side * to_half_width * (0.82 + 0.16 * turn_strength) - blade_bias_to * 0.5,
+				to_pos + side * to_half_width * (0.92 + 0.18 * turn_strength) + blade_bias_to * 0.22,
+			])
+			var slice_ribbon_quad := PackedVector2Array([
 				from_pos + side * from_half_width * 0.68 + blade_bias_from * 0.16,
 				from_pos - side * from_half_width * 0.58 - blade_bias_from * 0.34,
 				to_pos - side * to_half_width * 0.54 - blade_bias_to * 0.42,
@@ -1528,7 +1789,8 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				to_pos - side * to_half_width * 0.14 - blade_bias_to * 0.12,
 				to_pos + side * to_half_width * 0.18,
 			])
-			_try_draw_colored_polygon(main, slice_outer_quad, _with_alpha(outer_color, (0.1 + 0.18 * segment_ratio) * alpha_scale))
+			_try_draw_colored_polygon(main, slice_haze_quad, _with_alpha(haze_color, (0.08 + 0.16 * segment_ratio + 0.08 * turn_strength) * alpha_scale))
+			_try_draw_colored_polygon(main, slice_ribbon_quad, _with_alpha(ribbon_color, (0.12 + 0.18 * segment_ratio) * alpha_scale))
 			_try_draw_colored_polygon(main, slice_core_quad, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, (0.14 + 0.18 * segment_ratio) * alpha_scale))
 			if time_stop_strength > 0.001:
 				var slice_focus_poly := PackedVector2Array([
@@ -1548,7 +1810,7 @@ static func _draw_sword_trail(main: Node2D) -> void:
 			main.draw_line(
 				from_pos + side * from_half_width * 0.34,
 				to_pos + side * to_half_width * 0.4 + trail_forward * 3.2,
-				_with_alpha(UNSHEATH_FLASH_WARM_COLOR, (0.05 + 0.08 * segment_ratio) * alpha_scale),
+				_with_alpha(accent_color, (0.05 + 0.08 * segment_ratio) * alpha_scale),
 				0.8 + 0.7 * segment_ratio
 			)
 		segment_index += 1
@@ -1556,22 +1818,23 @@ static func _draw_sword_trail(main: Node2D) -> void:
 	var head_ratio: float = clampf(float(head_point.get("life", 0.0)) / maxf(float(head_point.get("max_life", 1.0)), 0.001), 0.0, 1.0)
 	if head_ratio > 0.0:
 		var head_pos: Vector2 = main._to_screen(head_point["pos"])
-		var head_forward: Vector2 = head_point.get("forward", Vector2.RIGHT)
+		var head_forward: Vector2 = Vector2(head_point.get("forward", Vector2.RIGHT))
 		if head_forward.is_zero_approx():
 			head_forward = Vector2.RIGHT
 		head_forward = head_forward.normalized()
 		var head_side: Vector2 = head_forward.rotated(PI * 0.5)
 		var head_half_width: float = float(head_point.get("half_width", main.SWORD_TRAIL_BASE_HALF_WIDTH))
-		if str(head_point.get("style", "slice")) == "point":
+		var head_style: String = str(head_point.get("style", "slice"))
+		if head_style == "point":
 			var spear_tip := PackedVector2Array([
 				head_pos + head_forward * (9.0 + 8.0 * head_ratio),
 				head_pos - head_forward * 1.6 + head_side * head_half_width * 0.18,
 				head_pos - head_forward * 1.6 - head_side * head_half_width * 0.18,
 			])
-			_try_draw_colored_polygon(main, spear_tip, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.2 + 0.2 * head_ratio))
+			_try_draw_colored_polygon(main, spear_tip, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.24 + 0.2 * head_ratio))
 			main.draw_line(
 				head_pos - head_forward * 0.5,
-				head_pos + head_forward * (7.0 + 8.0 * head_ratio),
+				head_pos + head_forward * (8.0 + 9.0 * head_ratio),
 				_with_alpha(UNSHEATH_FLASH_WARM_COLOR, 0.08 + 0.1 * head_ratio),
 				0.9 + 0.4 * head_ratio
 			)
@@ -1581,6 +1844,18 @@ static func _draw_sword_trail(main: Node2D) -> void:
 					4.0 + 5.0 * head_ratio * time_stop_strength,
 					_with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, 0.06 + 0.1 * head_ratio * time_stop_strength)
 				)
+		elif head_style == "recall":
+			var comet_tip := PackedVector2Array([
+				head_pos + head_forward * (7.0 + 6.0 * head_ratio),
+				head_pos - head_forward * 2.2 + head_side * head_half_width * 0.12,
+				head_pos - head_forward * 2.2 - head_side * head_half_width * 0.12,
+			])
+			_try_draw_colored_polygon(main, comet_tip, _with_alpha(main.COLORS["array_sword_return"].lerp(UNSHEATH_FLASH_CORE_COLOR, 0.34), 0.18 + 0.18 * head_ratio))
+			main.draw_circle(
+				head_pos,
+				2.0 + 2.0 * head_ratio,
+				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.1 + 0.12 * head_ratio)
+			)
 		else:
 			var blade_tip := PackedVector2Array([
 				head_pos + head_forward * (6.0 + 6.0 * head_ratio) + head_side * head_half_width * 0.14,
@@ -1588,7 +1863,7 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				head_pos - head_forward * 3.0 - head_side * head_half_width * 0.22,
 				head_pos + head_forward * 3.0 - head_side * head_half_width * 0.12,
 			])
-			_try_draw_colored_polygon(main, blade_tip, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.12 + 0.15 * head_ratio))
+			_try_draw_colored_polygon(main, blade_tip, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.14 + 0.16 * head_ratio))
 
 
 static func _draw_sword_hit_effects(main: Node2D) -> void:
@@ -1648,6 +1923,12 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 				_with_alpha(effect_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.26), 0.08 + 0.1 * intensity)
 			)
 		elif style == "point":
+			var pierce_tip := PackedVector2Array([
+				center + forward * cut_half_length * 1.12,
+				center + forward * cut_half_length * 0.34 + cut_normal * cut_width * 0.22,
+				center + forward * cut_half_length * 0.34 - cut_normal * cut_width * 0.22,
+			])
+			_try_draw_colored_polygon(main, pierce_tip, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.22 + 0.24 * intensity))
 			main.draw_line(
 				center - forward * cut_half_length * 0.16,
 				center + forward * cut_half_length * 0.9,
@@ -1665,6 +1946,15 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 				center + cut_normal * cut_width * 0.72,
 				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.12 + 0.16 * intensity),
 				0.9 + 0.45 * intensity
+			)
+			main.draw_arc(
+				center + forward * cut_half_length * 0.18,
+				2.6 + cut_width * 0.72,
+				0.0,
+				TAU,
+				18,
+				_with_alpha(effect_color, 0.08 + 0.12 * intensity),
+				1.0
 			)
 		elif style == "deflect":
 			main.draw_line(
@@ -1688,6 +1978,18 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 				_with_alpha(effect_color, 0.08 + 0.14 * intensity),
 				1.0 + 0.4 * intensity
 			)
+			main.draw_line(
+				center - forward * cut_half_length * 0.52 - cut_normal * cut_width * 0.92,
+				center + forward * cut_half_length * 0.36 + cut_normal * cut_width * 0.82,
+				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.1 + 0.16 * intensity),
+				0.9 + 0.5 * intensity
+			)
+			main.draw_line(
+				center - forward * cut_half_length * 0.52 + cut_normal * cut_width * 0.92,
+				center + forward * cut_half_length * 0.36 - cut_normal * cut_width * 0.82,
+				_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.1 + 0.16 * intensity),
+				0.9 + 0.5 * intensity
+			)
 		elif style == "melee":
 			var slash_axis: Vector2 = forward.rotated(-0.16)
 			var melee_body := PackedVector2Array([
@@ -1709,6 +2011,15 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 				_with_alpha(UNSHEATH_FLASH_WARM_COLOR, 0.08 + 0.12 * intensity),
 				0.8 + 0.5 * intensity
 			)
+			main.draw_arc(
+				center + slash_axis * cut_half_length * 0.08,
+				5.0 + cut_width * 0.68,
+				slash_axis.angle() - 0.6,
+				slash_axis.angle() + 0.72,
+				18,
+				_with_alpha(effect_color, 0.08 + 0.12 * intensity),
+				1.0 + 0.4 * intensity
+			)
 		else:
 			var slash_axis: Vector2 = forward
 			var slash_body := PackedVector2Array([
@@ -1729,6 +2040,12 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 				center + slash_axis * cut_half_length * 0.62 + cut_normal * cut_width * 0.14,
 				_with_alpha(UNSHEATH_FLASH_WARM_COLOR, 0.1 + 0.14 * intensity),
 				maxf(cut_width * 0.1, 0.8)
+			)
+			main.draw_line(
+				center - slash_axis * cut_half_length * 0.18 - cut_normal * cut_width * 0.42,
+				center + slash_axis * cut_half_length * 0.78 - cut_normal * cut_width * 0.16,
+				_with_alpha(effect_color, 0.08 + 0.12 * intensity),
+				0.9 + 0.4 * intensity
 			)
 		var spark_index: int = 0
 		while spark_index < spark_count:
@@ -1773,9 +2090,22 @@ static func _draw_hit_contact_glyph(
 	if style == "point":
 		main.draw_line(center - forward * radius * 0.8, center + forward * radius * 1.35, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.18 + 0.22 * intensity), 1.0)
 		main.draw_line(center - side * radius * 0.36, center + side * radius * 0.36, _with_alpha(glyph_color, 0.1 + 0.14 * intensity), 0.9)
+		var pierce_head := PackedVector2Array([
+			center + forward * radius * 1.2,
+			center + forward * radius * 0.34 + side * radius * 0.16,
+			center + forward * radius * 0.34 - side * radius * 0.16,
+		])
+		_try_draw_colored_polygon(main, pierce_head, _with_alpha(glyph_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.24), 0.12 + 0.16 * intensity))
 	elif style == "deflect":
 		main.draw_line(center - side * radius, center + side * radius, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.2 + 0.2 * intensity), 1.2)
 		main.draw_arc(center, radius * 0.78, -PI * 0.2, PI * 1.2, 18, _with_alpha(glyph_color, 0.12 + 0.14 * intensity), 1.0)
+		main.draw_line(center - forward * radius * 0.86, center + forward * radius * 0.86, _with_alpha(glyph_color, 0.1 + 0.14 * intensity), 1.0)
+		main.draw_line(center - forward * radius * 0.62 - side * radius * 0.62, center + forward * radius * 0.62 + side * radius * 0.62, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.08 + 0.12 * intensity), 0.9)
+		main.draw_line(center - forward * radius * 0.62 + side * radius * 0.62, center + forward * radius * 0.62 - side * radius * 0.62, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.08 + 0.12 * intensity), 0.9)
+	elif style == "sever":
+		main.draw_arc(center, radius * 0.78, -PI * 0.42, PI * 0.42, 14, _with_alpha(glyph_color, 0.12 + 0.16 * intensity), 1.0)
+		main.draw_arc(center, radius * 0.78, PI * 0.58, PI * 1.42, 14, _with_alpha(glyph_color, 0.12 + 0.16 * intensity), 1.0)
+		main.draw_line(center - side * radius * 0.86, center + side * radius * 0.86, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.14 + 0.16 * intensity), 1.0)
 	else:
 		var diamond := PackedVector2Array([
 			center + forward * radius,
@@ -2083,6 +2413,89 @@ static func _draw_energy_gain_pulse(main: Node2D, player_pos: Vector2) -> void:
 	)
 
 
+static func _draw_sword_recall_gate(main: Node2D, player_pos: Vector2) -> void:
+	if int(main.sword.get("state", main.SwordState.ORBITING)) != main.SwordState.RECALLING:
+		return
+	var to_sword: Vector2 = Vector2(main.sword.get("pos", main.player["pos"])) - main.player["pos"]
+	var distance: float = to_sword.length()
+	if distance <= main.PLAYER_RADIUS + 10.0:
+		return
+	var direction: Vector2 = to_sword.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT
+	var gate_ratio: float = clampf((distance - (main.PLAYER_RADIUS + 10.0)) / 220.0, 0.0, 1.0)
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 10.0)
+	var gate_color: Color = main.COLORS["array_sword_return"].lerp(main.COLORS["ranged_sword"], 0.46)
+	var inner_radius: float = main.PLAYER_RADIUS + 13.0 + pulse * 1.6
+	var outer_radius: float = main.PLAYER_RADIUS + 22.0 + gate_ratio * 6.0
+	main.draw_arc(
+		player_pos,
+		inner_radius,
+		0.0,
+		TAU,
+		32,
+		_with_alpha(gate_color, 0.08 + 0.14 * gate_ratio),
+		1.4 + 0.8 * gate_ratio
+	)
+	main.draw_arc(
+		player_pos,
+		outer_radius,
+		direction.angle() - 0.62,
+		direction.angle() + 0.62,
+		20,
+		_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.08 + 0.14 * gate_ratio),
+		1.0 + 0.7 * gate_ratio
+	)
+	for offset in [-0.34, 0.0, 0.34]:
+		var ray_dir: Vector2 = direction.rotated(float(offset))
+		var ray_from: Vector2 = player_pos + ray_dir * outer_radius
+		var ray_to: Vector2 = player_pos + ray_dir * (inner_radius - 4.0)
+		main.draw_line(ray_from, ray_to, _with_alpha(gate_color, 0.08 + 0.12 * gate_ratio), 0.9 + 0.4 * gate_ratio)
+
+
+static func _draw_sword_return_catches(main: Node2D) -> void:
+	if main.sword_return_catches.is_empty():
+		return
+	for catch_effect in main.sword_return_catches:
+		var life_ratio: float = clampf(float(catch_effect.get("life", 0.0)) / maxf(float(catch_effect.get("max_life", 1.0)), 0.001), 0.0, 1.0)
+		if life_ratio <= 0.0:
+			continue
+		var progress: float = 1.0 - life_ratio
+		var center: Vector2 = main._to_screen(catch_effect["pos"])
+		var forward: Vector2 = Vector2(catch_effect.get("forward", Vector2.RIGHT))
+		if forward.is_zero_approx():
+			forward = Vector2.RIGHT
+		forward = forward.normalized()
+		var base_radius: float = float(catch_effect.get("radius", main.SWORD_RETURN_CATCH_BASE_RADIUS))
+		var ring_radius: float = lerpf(main.PLAYER_RADIUS + 8.0, base_radius, progress)
+		var ring_color: Color = main.COLORS["array_sword_return"].lerp(UNSHEATH_FLASH_CORE_COLOR, 0.32)
+		main.draw_arc(
+			center,
+			ring_radius,
+			0.0,
+			TAU,
+			30,
+			_with_alpha(ring_color, 0.08 + 0.18 * life_ratio),
+			1.2 + 0.9 * life_ratio
+		)
+		main.draw_line(
+			center - forward * (3.0 + 3.0 * life_ratio),
+			center + forward * (10.0 + 12.0 * life_ratio),
+			_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.1 + 0.16 * life_ratio),
+			1.0 + 0.7 * life_ratio
+		)
+		for offset in [-0.45, 0.45]:
+			var spoke_dir: Vector2 = forward.rotated(float(offset))
+			var spoke_end: Vector2 = center + spoke_dir * ring_radius
+			var spoke_inner: Vector2 = center + spoke_dir * (ring_radius * 0.48)
+			main.draw_line(spoke_end, spoke_inner, _with_alpha(ring_color, 0.06 + 0.12 * life_ratio), 0.9 + 0.4 * life_ratio)
+		main.draw_circle(
+			center,
+			2.2 + 2.0 * life_ratio,
+			_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.06 + 0.1 * life_ratio)
+		)
+
+
 static func _draw_array_channel_flames(main: Node2D, energy_bar_rect: Rect2) -> void:
 	var flame_count: int = 8
 	var flame_index: int = 0
@@ -2162,6 +2575,12 @@ static func _try_draw_polyline_closed(main: Node2D, points: PackedVector2Array, 
 		var next_index: int = (point_index + 1) % points.size()
 		main.draw_line(points[point_index], points[next_index], color, width)
 		point_index += 1
+
+
+static func _get_sword_vfx(main: Node) -> Resource:
+	if main.has_method("get_sword_vfx_profile"):
+		return main.call("get_sword_vfx_profile")
+	return null
 
 
 static func _with_alpha(color: Color, alpha: float) -> Color:

@@ -28,6 +28,8 @@ static func reset_runtime(main: Node) -> void:
 	main.particles.clear()
 	main.sword_afterimages.clear()
 	main.sword_trail_points.clear()
+	main.sword_air_wakes.clear()
+	main.sword_return_catches.clear()
 	main.sword_hit_effects.clear()
 	main.boss.clear()
 	main.status_message = ""
@@ -107,6 +109,8 @@ static func reset_runtime(main: Node) -> void:
 		"afterimage_burst_timer": 0.0,
 		"afterimage_emit_timer": 0.0,
 		"trail_emit_timer": 0.0,
+		"air_wake_emit_timer": 0.0,
+		"last_motion_forward": Vector2.RIGHT,
 		"impact_feedback_timer": 0.0,
 		"impact_feedback_offset": Vector2.ZERO,
 		"impact_angle_offset": 0.0,

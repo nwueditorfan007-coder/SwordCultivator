@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="SwordVfxProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/sword_vfx_profile.gd" id="1_a2r8g"]
+
+[resource]
+resource_local_to_scene = true
+script = ExtResource("1_a2r8g")
+trail_duration = 0.19999999999999998
+trail_sample_interval = 0.01
+trail_min_speed = 260.0
+trail_base_half_width = 7.0
+trail_point_width_scale = 0.7
+trail_slice_width_scale = 1.1
+trail_recall_width_scale = 0.7
+trail_point_life_scale = 1.0
+trail_slice_life_scale = 1.2
+trail_recall_life_scale = 1.08
+air_wake_duration = 0.3
+air_wake_min_speed = 200.0
+air_wake_base_length = 47.0
+air_wake_base_width = 2.0
+air_wake_turn_threshold = 0.01
+air_wake_emit_interval_min = 0.012
+air_wake_emit_interval_max = 0.03
+front_speed_start = 0.5
+front_speed_span = 0.58
+front_length_min = 18.0
+front_length_max = 56.0
+front_width_min = 5.0
+front_width_max = 11.75
+front_point_pulse = 4.5
+front_recall_pulse = 3.0
+local_glow_ranged_idle = 0.1
+local_glow_point_base = 0.0
+local_glow_point_speed_scale = 0.56
+local_glow_slice_base = 0.26
+local_glow_slice_speed_scale = 0.42
+local_glow_recall_base = 0.21
+local_glow_recall_speed_scale = 0.38
+local_glow_array_outbound = 0.24
+local_glow_array_recall = 0.28
+local_glow_array_channel_base = 0.18
+local_glow_array_channel_hold_scale = 0.12
+local_glow_impact_bonus_scale = 0.42
+local_glow_tip_radius_min = 2.4
+local_glow_tip_radius_scale = 0.0
+local_glow_tip_radius_pulse = 1.4
+local_glow_guard_radius_min = 3.2
+local_glow_guard_radius_scale = 5.0
+local_glow_spine_width_min = 1.0
+local_glow_spine_width_scale = 1.5
+local_glow_spine_alpha_base = 0.08
+local_glow_spine_alpha_scale = 0.12
+local_glow_tip_alpha_base = 0.08
+local_glow_tip_alpha_scale = 0.12
+local_glow_guard_alpha_base = 0.06
+local_glow_guard_alpha_scale = 0.1
+local_glow_spine_line_alpha_base = 0.12
+local_glow_spine_line_alpha_scale = 0.14
+local_glow_spine_line_width_base = 1.1
+local_glow_spine_line_width_scale = 1.0
+return_catch_duration = 0.3
+return_catch_base_radius = 42.0

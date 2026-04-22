@@ -10,11 +10,14 @@ const GameStateFactory = preload("res://scripts/system/game_state_factory.gd")
 const HitRegistry = preload("res://scripts/combat/hit_registry.gd")
 const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
+const SwordVfxProfile = preload("res://scripts/vfx/sword_vfx_profile.gd")
 const TargetDescriptors = preload("res://scripts/combat/target_descriptors.gd")
 const TargetDescriptorRegistry = preload("res://scripts/combat/target_descriptor_registry.gd")
 const TargetEventSystem = preload("res://scripts/combat/target_event_system.gd")
 const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
 const TargetWritebackAdapters = preload("res://scripts/combat/target_writeback_adapters.gd")
+const DEFAULT_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_default.tres")
+const DEFAULT_LOOKDEV_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_lookdev.tres")
 
 enum CombatMode {
 	MELEE,
@@ -33,6 +36,64 @@ enum ArrayEnergyForecastLevel {
 	WARNING,
 	CRITICAL,
 }
+
+enum LookdevPreviewMode {
+	POINT,
+	SLICE,
+	RECALL,
+}
+
+const LOOKDEV_PANEL_TARGET_WIDTH := 320.0
+const LOOKDEV_PANEL_MARGIN := 16.0
+const LOOKDEV_CONTROLS := [
+	{
+		"title": "拖尾",
+		"items": [
+			{"prop": "trail_duration", "label": "拖尾持续", "min": 0.02, "max": 0.3, "step": 0.005},
+			{"prop": "trail_base_half_width", "label": "拖尾宽度", "min": 2.0, "max": 24.0, "step": 0.5},
+			{"prop": "trail_point_width_scale", "label": "点刺拖尾", "min": 0.2, "max": 1.4, "step": 0.02},
+			{"prop": "trail_slice_width_scale", "label": "连斩拖尾", "min": 0.4, "max": 1.8, "step": 0.02},
+			{"prop": "trail_recall_width_scale", "label": "回收拖尾", "min": 0.2, "max": 1.2, "step": 0.02},
+		],
+	},
+	{
+		"title": "气流",
+		"items": [
+			{"prop": "air_wake_duration", "label": "气流持续", "min": 0.02, "max": 0.3, "step": 0.005},
+			{"prop": "air_wake_min_speed", "label": "触发速度", "min": 200.0, "max": 1200.0, "step": 10.0},
+			{"prop": "air_wake_base_length", "label": "气流长度", "min": 4.0, "max": 48.0, "step": 1.0},
+			{"prop": "air_wake_base_width", "label": "气流宽度", "min": 2.0, "max": 18.0, "step": 0.5},
+			{"prop": "air_wake_turn_threshold", "label": "转向阈值", "min": 0.01, "max": 0.2, "step": 0.01},
+		],
+	},
+	{
+		"title": "前锋破空",
+		"items": [
+			{"prop": "front_speed_start", "label": "起效速度", "min": 0.0, "max": 0.5, "step": 0.01},
+			{"prop": "front_length_max", "label": "前锋长度", "min": 8.0, "max": 48.0, "step": 0.5},
+			{"prop": "front_width_max", "label": "前锋宽度", "min": 2.0, "max": 12.0, "step": 0.25},
+			{"prop": "front_point_pulse", "label": "点刺脉冲", "min": 0.0, "max": 4.5, "step": 0.1},
+			{"prop": "front_recall_pulse", "label": "回收脉冲", "min": 0.0, "max": 4.0, "step": 0.1},
+		],
+	},
+	{
+		"title": "剑体辉光",
+		"items": [
+			{"prop": "local_glow_point_base", "label": "点刺辉光", "min": 0.0, "max": 0.45, "step": 0.01},
+			{"prop": "local_glow_slice_base", "label": "连斩辉光", "min": 0.0, "max": 0.4, "step": 0.01},
+			{"prop": "local_glow_recall_base", "label": "回收辉光", "min": 0.0, "max": 0.35, "step": 0.01},
+			{"prop": "local_glow_tip_radius_scale", "label": "剑尖光团", "min": 0.0, "max": 5.0, "step": 0.1},
+			{"prop": "local_glow_spine_alpha_scale", "label": "剑脊亮度", "min": 0.0, "max": 0.16, "step": 0.01},
+		],
+	},
+	{
+		"title": "回收归阵",
+		"items": [
+			{"prop": "return_catch_duration", "label": "归位持续", "min": 0.02, "max": 0.35, "step": 0.01},
+			{"prop": "return_catch_base_radius", "label": "归位半径", "min": 8.0, "max": 48.0, "step": 1.0},
+		],
+	},
+]
 
 const ARENA_SIZE := Vector2(800.0, 600.0)
 const ARENA_ORIGIN := Vector2(240.0, 72.0)
@@ -107,9 +168,22 @@ const SWORD_TRAIL_MAX_POINTS := 12
 const SWORD_TRAIL_BASE_HALF_WIDTH := 11.0
 const SWORD_TRAIL_POINT_WIDTH_SCALE := 0.66
 const SWORD_TRAIL_SLICE_WIDTH_SCALE := 1.08
+const SWORD_TRAIL_RECALL_WIDTH_SCALE := 0.58
 const SWORD_TRAIL_FORWARD_OFFSET := 11.0
 const SWORD_TRAIL_POINT_LIFE_SCALE := 0.9
 const SWORD_TRAIL_SLICE_LIFE_SCALE := 1.12
+const SWORD_TRAIL_RECALL_LIFE_SCALE := 0.96
+const SWORD_AIR_WAKE_DURATION := 0.1
+const SWORD_AIR_WAKE_MIN_SPEED := 680.0
+const SWORD_AIR_WAKE_MAX_COUNT := 14
+const SWORD_AIR_WAKE_BASE_LENGTH := 24.0
+const SWORD_AIR_WAKE_BASE_WIDTH := 12.0
+const SWORD_AIR_WAKE_TURN_THRESHOLD := 0.12
+const SWORD_AIR_WAKE_EMIT_INTERVAL_MIN := 0.016
+const SWORD_AIR_WAKE_EMIT_INTERVAL_MAX := 0.042
+const SWORD_RETURN_CATCH_DURATION := 0.24
+const SWORD_RETURN_CATCH_MAX_COUNT := 8
+const SWORD_RETURN_CATCH_BASE_RADIUS := 30.0
 const SWORD_HIT_EFFECT_DURATION := 0.09
 const SWORD_HIT_EFFECT_MAX_COUNT := 18
 const SWORD_HIT_EFFECT_BASE_LENGTH := 18.0
@@ -143,6 +217,14 @@ const BOSS_HIT_REACTION_RETURN_SPEED := 92.0
 const BOSS_HIT_REACTION_MAX_OFFSET := 12.0
 const SILK_CONTACT_FEEDBACK_DURATION := 0.1
 const SILK_SEVER_FEEDBACK_DURATION := 0.18
+const SILK_CONTACT_SELF_FEEDBACK_POINT_INTERVAL := 0.12
+const SILK_CONTACT_SELF_FEEDBACK_SLICE_INTERVAL := 0.08
+const SILK_CONTACT_IMPACT_OFFSET_SCALE := 0.58
+const SILK_CONTACT_IMPACT_ANGLE_SCALE := 0.52
+const SILK_CONTACT_IMPACT_SCREEN_SHAKE_SCALE := 0.22
+const SILK_CONTACT_IMPACT_LOCAL_HIT_SCALE := 0.82
+const SILK_CONTACT_IMPACT_DURATION_SCALE := 0.72
+const SILK_CONTACT_IMPACT_SIDE_OFFSET_SCALE := 0.84
 const SWORD_IMPACT_FEEDBACK_DURATION := 0.18
 const SWORD_IMPACT_RETURN_SPEED := 150
 const SWORD_IMPACT_ANGLE_RETURN_SPEED := 5.2
@@ -353,6 +435,12 @@ const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
 [b]死亡后左键 重新开始[/b]
 力竭身亡后，在结算提示出现时点击左键即可重新开始本局。"""
 
+@export var sword_vfx_profile: SwordVfxProfile = DEFAULT_SWORD_VFX_PROFILE
+@export var lookdev_mode := false
+@export var lookdev_auto_cycle := true
+@export var lookdev_preview_mode: LookdevPreviewMode = LookdevPreviewMode.POINT
+@export_range(0.25, 3.0, 0.05) var lookdev_playback_speed := 1.0
+
 var player: Dictionary = {}
 var sword: Dictionary = {}
 var enemies: Array = []
@@ -361,6 +449,8 @@ var array_swords: Array = []
 var particles: Array = []
 var sword_afterimages: Array = []
 var sword_trail_points: Array = []
+var sword_air_wakes: Array = []
+var sword_return_catches: Array = []
 var sword_hit_effects: Array = []
 var boss: Dictionary = {}
 var hit_registry: HitRegistry = HitRegistry.new()
@@ -413,6 +503,21 @@ var right_mouse_held: bool = false
 var is_start_menu_active: bool = true
 var start_menu: Control = null
 var start_button: Button = null
+var lookdev_preview_time := 0.0
+var lookdev_preview_loop_index := -1
+var lookdev_preview_events: Dictionary = {}
+var lookdev_control_panel: PanelContainer = null
+var lookdev_slider_rows: Array = []
+var lookdev_reset_button: Button = null
+var lookdev_save_preview_button: Button = null
+var lookdev_save_game_button: Button = null
+var lookdev_source_sword_vfx_profile: SwordVfxProfile = null
+
+
+func get_sword_vfx_profile() -> SwordVfxProfile:
+	if sword_vfx_profile == null:
+		sword_vfx_profile = DEFAULT_SWORD_VFX_PROFILE
+	return sword_vfx_profile
 var debug_battle_mode: bool = false
 var debug_flags: Dictionary = {}
 var debug_calibration_mode: bool = false
@@ -458,6 +563,7 @@ const DEBUG_ENEMY_LAYOUT := [
 @onready var focus_status_label: Label = $CanvasLayer/FocusStatusLabel
 @onready var hint_label: Label = $CanvasLayer/HintLabel
 @onready var game_over_label: Label = $CanvasLayer/GameOverLabel
+@onready var canvas_layer: CanvasLayer = $CanvasLayer
 
 
 func _ready() -> void:
@@ -465,6 +571,9 @@ func _ready() -> void:
 	SwordArrayConfig.load_morph_distances_from_project()
 	_reset_game()
 	_apply_demo_art_label_style()
+	if lookdev_mode:
+		_enter_lookdev_mode()
+		return
 	_build_start_menu()
 	_show_start_menu()
 
@@ -509,6 +618,9 @@ func _style_demo_label(label: Label, font_size: int, font_color: Color, alignmen
 
 
 func _process(delta: float) -> void:
+	if lookdev_mode:
+		_process_lookdev(delta)
+		return
 	if is_start_menu_active:
 		queue_redraw()
 		return
@@ -599,6 +711,23 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if lookdev_mode:
+		if event is InputEventKey and event.pressed and not event.echo:
+			match event.keycode:
+				KEY_1:
+					lookdev_preview_mode = LookdevPreviewMode.POINT
+					_reset_lookdev_preview()
+				KEY_2:
+					lookdev_preview_mode = LookdevPreviewMode.SLICE
+					_reset_lookdev_preview()
+				KEY_3:
+					lookdev_preview_mode = LookdevPreviewMode.RECALL
+					_reset_lookdev_preview()
+				KEY_SPACE:
+					set_process(not is_processing())
+				KEY_R:
+					_reset_lookdev_preview()
+		return
 	if is_start_menu_active:
 		if event is InputEventMouseMotion:
 			mouse_world = _screen_to_world(event.position)
@@ -786,6 +915,190 @@ func _start_game_from_menu() -> void:
 	if start_menu != null:
 		start_menu.visible = false
 	_reset_game()
+
+
+func _enter_lookdev_mode() -> void:
+	is_start_menu_active = false
+	left_mouse_held = false
+	right_mouse_held = false
+	if start_menu != null:
+		start_menu.visible = false
+	var viewport := get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_layout_lookdev_control_panel):
+		viewport.size_changed.connect(_layout_lookdev_control_panel)
+	lookdev_source_sword_vfx_profile = sword_vfx_profile if sword_vfx_profile != null else DEFAULT_LOOKDEV_SWORD_VFX_PROFILE
+	sword_vfx_profile = lookdev_source_sword_vfx_profile.duplicate(true)
+	debug_flags["no_spawn"] = true
+	debug_flags["infinite_health"] = true
+	debug_flags["infinite_energy"] = true
+	_configure_lookdev_runtime()
+	_reset_lookdev_preview()
+	_create_lookdev_control_panel()
+	_update_ui()
+	queue_redraw()
+
+
+func _configure_lookdev_runtime() -> void:
+	player["health"] = PLAYER_MAX_HEALTH
+	player["energy"] = PLAYER_MAX_ENERGY
+	player["pos"] = ARENA_SIZE * Vector2(0.32, 0.54)
+	mouse_world = player["pos"] + Vector2(200.0, -80.0)
+	enemies.clear()
+	bullets.clear()
+	array_swords.clear()
+	enemy_packages.clear()
+	particles.clear()
+	sword_afterimages.clear()
+	sword_trail_points.clear()
+	sword_air_wakes.clear()
+	sword_return_catches.clear()
+	sword_hit_effects.clear()
+	boss.clear()
+	enemies_to_spawn = 0
+	wave_spawn_queue.clear()
+	spawn_timer = 9999.0
+	wave = 1
+	score = 0
+
+
+func _process_lookdev(delta: float) -> void:
+	if is_game_over:
+		is_game_over = false
+	var scaled_delta: float = delta * lookdev_playback_speed
+	elapsed_time += scaled_delta
+	lookdev_preview_time += scaled_delta
+
+	var is_flying_sword: bool = sword["state"] != SwordState.ORBITING
+	if is_flying_sword:
+		sword["time_slow_timer"] += scaled_delta
+	else:
+		sword["time_slow_timer"] = 0.0
+	_update_time_stop_visual(scaled_delta, is_flying_sword)
+	unsheath_flash_timer = max(unsheath_flash_timer - scaled_delta, 0.0)
+	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - scaled_delta, 0.0)
+	unsheath_press_flash_timer = max(unsheath_press_flash_timer - scaled_delta, 0.0)
+	unsheath_press_flash_repeat_timer = max(unsheath_press_flash_repeat_timer - scaled_delta, 0.0)
+
+	_drive_lookdev_preview()
+	_update_status_feedback(scaled_delta)
+	_update_focus_status_feedback(scaled_delta)
+	_update_action_feedback(scaled_delta)
+	_update_array_energy_feedback_state(scaled_delta)
+	_update_array_mode_confirm_feedback(scaled_delta)
+	_update_sword(scaled_delta)
+	_update_particles(scaled_delta)
+	_update_sword_hit_effects(scaled_delta)
+
+	screen_shake = lerpf(screen_shake, 0.0, min(scaled_delta * 10.0, 1.0))
+	_update_ui()
+	queue_redraw()
+
+
+func _reset_lookdev_preview() -> void:
+	lookdev_preview_time = 0.0
+	lookdev_preview_loop_index = -1
+	lookdev_preview_events.clear()
+	_reset_game()
+	_configure_lookdev_runtime()
+	sword["pos"] = player["pos"] + Vector2(34.0, -18.0)
+	sword["prev_pos"] = sword["pos"]
+	sword["angle"] = 0.0
+	sword["state"] = SwordState.ORBITING
+	player["mode"] = CombatMode.RANGED
+	status_message = "御剑特效预览"
+	status_message_timer = 0.0
+	hint_label.text = "1 点刺 | 2 连斩 | 3 回收 | Space 暂停/继续 | R 重播"
+
+
+func _drive_lookdev_preview() -> void:
+	var duration: float = _get_lookdev_preview_duration()
+	var loop_index: int = int(floor(lookdev_preview_time / maxf(duration, 0.001)))
+	if loop_index != lookdev_preview_loop_index:
+		lookdev_preview_loop_index = loop_index
+		lookdev_preview_events.clear()
+	if lookdev_auto_cycle and lookdev_preview_time >= duration * 3.0:
+		lookdev_preview_mode = (int(lookdev_preview_mode) + 1) % LookdevPreviewMode.size()
+		_reset_lookdev_preview()
+		return
+	var local_time: float = fmod(lookdev_preview_time, duration)
+	match lookdev_preview_mode:
+		LookdevPreviewMode.POINT:
+			_update_lookdev_point(local_time, duration)
+		LookdevPreviewMode.SLICE:
+			_update_lookdev_slice(local_time, duration)
+		LookdevPreviewMode.RECALL:
+			_update_lookdev_recall(local_time, duration)
+
+
+func _get_lookdev_preview_duration() -> float:
+	match lookdev_preview_mode:
+		LookdevPreviewMode.SLICE:
+			return 3.4
+		LookdevPreviewMode.RECALL:
+			return 2.4
+		_:
+			return 2.8
+
+
+func _update_lookdev_point(local_time: float, duration: float) -> void:
+	var player_pos: Vector2 = Vector2(player["pos"])
+	var prep_duration: float = duration * 0.18
+	var idle_start: float = duration * 0.82
+	var launch_pos: Vector2 = player_pos + Vector2(38.0, -24.0)
+	var target_pos: Vector2 = Vector2(ARENA_SIZE.x * 0.74, ARENA_SIZE.y * 0.3)
+	mouse_world = target_pos
+	if local_time < prep_duration:
+		sword["pos"] = player_pos.lerp(launch_pos, local_time / maxf(prep_duration, 0.001))
+		sword["prev_pos"] = sword["pos"]
+	elif local_time < idle_start and _consume_lookdev_event("point_start"):
+		_start_point_strike()
+	elif local_time >= idle_start and sword["state"] == SwordState.ORBITING:
+		sword["pos"] = player_pos.lerp(launch_pos, clampf((duration - local_time) / maxf(duration - idle_start, 0.001), 0.0, 1.0))
+		sword["prev_pos"] = sword["pos"]
+
+
+func _update_lookdev_slice(local_time: float, duration: float) -> void:
+	var player_pos: Vector2 = Vector2(player["pos"])
+	var prep_duration: float = duration * 0.16
+	var slice_end: float = prep_duration + duration * 0.62
+	var launch_pos: Vector2 = player_pos + Vector2(46.0, -26.0)
+	var curve_center: Vector2 = Vector2(ARENA_SIZE.x * 0.58, ARENA_SIZE.y * 0.46)
+	var radius_x: float = 180.0
+	var radius_y: float = 104.0
+	if local_time < prep_duration:
+		sword["pos"] = player_pos.lerp(launch_pos, local_time / maxf(prep_duration, 0.001))
+		sword["prev_pos"] = sword["pos"]
+	elif _consume_lookdev_event("slice_start"):
+		mouse_world = curve_center + Vector2(radius_x, 0.0)
+		_start_slicing()
+	if local_time >= prep_duration and local_time < slice_end:
+		var slice_ratio: float = (local_time - prep_duration) / maxf(slice_end - prep_duration, 0.001)
+		var angle: float = lerpf(-1.2, 2.55, slice_ratio) + sin(slice_ratio * TAU * 2.0) * 0.14
+		mouse_world = curve_center + Vector2(cos(angle) * radius_x, sin(angle) * radius_y)
+	elif local_time >= slice_end and sword["state"] == SwordState.SLICING:
+		sword["state"] = SwordState.RECALLING
+
+
+func _update_lookdev_recall(local_time: float, duration: float) -> void:
+	var player_pos: Vector2 = Vector2(player["pos"])
+	var start_pos: Vector2 = Vector2(ARENA_SIZE.x * 0.78, ARENA_SIZE.y * 0.28)
+	var end_pos: Vector2 = player_pos + Vector2(10.0, -10.0)
+	mouse_world = end_pos
+	if _consume_lookdev_event("recall_seed"):
+		sword["pos"] = start_pos
+		sword["prev_pos"] = start_pos
+		sword["state"] = SwordState.RECALLING
+		player["mode"] = CombatMode.RANGED
+		_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
+	if local_time < duration:
+		sword["target_pos"] = end_pos
+
+
+func _consume_lookdev_event(event_key: String) -> bool:
+	if lookdev_preview_events.has(event_key):
+		return false
+	lookdev_preview_events[event_key] = true
+	return true
 
 
 func _reset_game() -> void:
@@ -1682,6 +1995,7 @@ func _update_sword(delta: float) -> void:
 		0.0,
 		delta * SWORD_IMPACT_ANGLE_RETURN_SPEED
 	)
+	_update_sword_return_catches(delta)
 
 	if sword["state"] == SwordState.ORBITING:
 		if str(sword.get("attack_instance_id", "")) != "":
@@ -1697,6 +2011,7 @@ func _update_sword(delta: float) -> void:
 		sword["vel"] = Vector2.ZERO
 		sword["pos"] = sword["pos"].lerp(target, min(delta * 18.0, 1.0))
 		_update_sword_trail(delta, Vector2.ZERO)
+		_update_sword_air_wakes(delta, Vector2.ZERO)
 		_update_sword_afterimages(delta, Vector2.ZERO)
 		return
 
@@ -1723,6 +2038,13 @@ func _update_sword(delta: float) -> void:
 			sword["vel"] = to_player.normalized() * SWORD_RECALL_SPEED
 			sword["pos"] += sword["vel"] * delta
 		else:
+			var recall_direction: Vector2 = to_player.normalized()
+			if recall_direction.is_zero_approx():
+				recall_direction = Vector2.RIGHT.rotated(sword["angle"])
+			if recall_direction.is_zero_approx():
+				recall_direction = Vector2.RIGHT
+			_emit_sword_return_catch(player["pos"], recall_direction)
+			_create_particles(player["pos"], COLORS["array_sword_return"], 5)
 			sword["pos"] = player["pos"]
 			sword["vel"] = Vector2.ZERO
 			sword["state"] = SwordState.ORBITING
@@ -1736,6 +2058,7 @@ func _update_sword(delta: float) -> void:
 	if frame_velocity.length_squared() > 1.0:
 		sword["angle"] = frame_velocity.angle()
 	_update_sword_trail(delta, frame_velocity)
+	_update_sword_air_wakes(delta, frame_velocity)
 	_update_sword_afterimages(delta, frame_velocity)
 
 	_damage_enemies_with_sword(delta)
@@ -3123,6 +3446,7 @@ func _get_unsheath_press_flash_anchor(flash_direction: Vector2, anchor_lerp: flo
 
 
 func _update_sword_trail(delta: float, frame_velocity: Vector2) -> void:
+	var vfx: SwordVfxProfile = get_sword_vfx_profile()
 	var index: int = sword_trail_points.size() - 1
 	while index >= 0:
 		var trail_point: Dictionary = sword_trail_points[index]
@@ -3133,41 +3457,169 @@ func _update_sword_trail(delta: float, frame_velocity: Vector2) -> void:
 			sword_trail_points[index] = trail_point
 		index -= 1
 
-	if sword["state"] != SwordState.POINT_STRIKE and sword["state"] != SwordState.SLICING:
+	if sword["state"] != SwordState.POINT_STRIKE and sword["state"] != SwordState.SLICING and sword["state"] != SwordState.RECALLING:
 		sword["trail_emit_timer"] = 0.0
 		return
 
 	var emit_timer: float = max(float(sword.get("trail_emit_timer", 0.0)) - delta, 0.0)
-	if frame_velocity.length() < SWORD_TRAIL_MIN_SPEED:
+	var min_speed: float = float(vfx.trail_min_speed) * (0.82 if sword["state"] == SwordState.RECALLING else 1.0)
+	if frame_velocity.length() < min_speed:
 		sword["trail_emit_timer"] = emit_timer
 		return
 	if emit_timer > 0.0:
 		sword["trail_emit_timer"] = emit_timer
 		return
 
-	sword["trail_emit_timer"] = SWORD_TRAIL_SAMPLE_INTERVAL
+	sword["trail_emit_timer"] = float(vfx.trail_sample_interval)
 	_emit_sword_trail_point(frame_velocity)
 
 
 func _emit_sword_trail_point(frame_velocity: Vector2) -> void:
+	var vfx: SwordVfxProfile = get_sword_vfx_profile()
 	var direction: Vector2 = frame_velocity.normalized()
 	if direction.is_zero_approx():
 		direction = Vector2.RIGHT.rotated(sword["angle"])
-	var speed_ratio: float = clampf(frame_velocity.length() / SWORD_POINT_STRIKE_SPEED, 0.0, 1.0)
 	var is_slice: bool = sword["state"] == SwordState.SLICING
-	var width_scale: float = SWORD_TRAIL_SLICE_WIDTH_SCALE if is_slice else SWORD_TRAIL_POINT_WIDTH_SCALE
-	var life_scale: float = SWORD_TRAIL_SLICE_LIFE_SCALE if is_slice else SWORD_TRAIL_POINT_LIFE_SCALE
+	var is_recalling: bool = sword["state"] == SwordState.RECALLING
+	var speed_reference: float = SWORD_RECALL_SPEED if is_recalling else SWORD_POINT_STRIKE_SPEED
+	var speed_ratio: float = clampf(frame_velocity.length() / maxf(speed_reference, 0.001), 0.0, 1.0)
+	var width_scale: float = float(vfx.trail_point_width_scale)
+	var life_scale: float = float(vfx.trail_point_life_scale)
+	var style: String = "point"
+	if is_slice:
+		width_scale = float(vfx.trail_slice_width_scale)
+		life_scale = float(vfx.trail_slice_life_scale)
+		style = "slice"
+	elif is_recalling:
+		width_scale = float(vfx.trail_recall_width_scale)
+		life_scale = float(vfx.trail_recall_life_scale)
+		style = "recall"
+	var previous_forward: Vector2 = direction
+	if not sword_trail_points.is_empty():
+		var previous_point: Dictionary = sword_trail_points[sword_trail_points.size() - 1]
+		previous_forward = Vector2(previous_point.get("forward", direction))
+	if previous_forward.is_zero_approx():
+		previous_forward = direction
+	var turn_delta: float = wrapf(direction.angle() - previous_forward.angle(), -PI, PI)
+	var turn_strength: float = clampf(absf(turn_delta) / 0.52, 0.0, 1.0)
 	sword_trail_points.append({
-		"pos": sword["pos"] + direction * SWORD_TRAIL_FORWARD_OFFSET,
-		"life": SWORD_TRAIL_DURATION * life_scale,
-		"max_life": SWORD_TRAIL_DURATION * life_scale,
-		"half_width": lerpf(SWORD_TRAIL_BASE_HALF_WIDTH * 0.82, SWORD_TRAIL_BASE_HALF_WIDTH * 1.24, speed_ratio) * width_scale,
-		"alpha_scale": lerpf(0.76, 1.0, speed_ratio),
-		"style": "slice" if is_slice else "point",
+		"pos": sword["pos"] + direction * float(vfx.trail_forward_offset),
+		"life": float(vfx.trail_duration) * life_scale,
+		"max_life": float(vfx.trail_duration) * life_scale,
+		"half_width": lerpf(float(vfx.trail_base_half_width) * 0.82, float(vfx.trail_base_half_width) * 1.24, speed_ratio) * width_scale,
+		"alpha_scale": lerpf(0.7, 1.0, speed_ratio) * (0.86 if is_recalling else 1.0),
+		"style": style,
 		"forward": direction,
+		"speed_ratio": speed_ratio,
+		"turn_strength": turn_strength,
+		"turn_sign": 1.0 if turn_delta >= 0.0 else -1.0,
 	})
-	if sword_trail_points.size() > SWORD_TRAIL_MAX_POINTS:
+	if sword_trail_points.size() > int(vfx.trail_max_points):
 		sword_trail_points.remove_at(0)
+
+
+func _update_sword_air_wakes(delta: float, frame_velocity: Vector2) -> void:
+	var vfx: SwordVfxProfile = get_sword_vfx_profile()
+	var index: int = sword_air_wakes.size() - 1
+	while index >= 0:
+		var wake: Dictionary = sword_air_wakes[index]
+		wake["life"] = max(float(wake.get("life", 0.0)) - delta, 0.0)
+		if wake["life"] <= 0.0:
+			sword_air_wakes.remove_at(index)
+		else:
+			sword_air_wakes[index] = wake
+		index -= 1
+
+	if sword["state"] == SwordState.ORBITING:
+		sword["air_wake_emit_timer"] = 0.0
+		sword["last_motion_forward"] = Vector2.RIGHT.rotated(sword["angle"])
+		return
+
+	var current_forward: Vector2 = frame_velocity.normalized()
+	if current_forward.is_zero_approx():
+		current_forward = Vector2.RIGHT.rotated(sword["angle"])
+	if current_forward.is_zero_approx():
+		current_forward = Vector2.RIGHT
+	current_forward = current_forward.normalized()
+
+	var emit_timer: float = max(float(sword.get("air_wake_emit_timer", 0.0)) - delta, 0.0)
+	var speed: float = frame_velocity.length()
+	var previous_forward: Vector2 = Vector2(sword.get("last_motion_forward", current_forward))
+	if previous_forward.is_zero_approx():
+		previous_forward = current_forward
+	var turn_delta: float = wrapf(current_forward.angle() - previous_forward.angle(), -PI, PI)
+	var turn_strength: float = clampf(
+		(absf(turn_delta) - float(vfx.air_wake_turn_threshold)) / maxf(0.56 - float(vfx.air_wake_turn_threshold), 0.001),
+		0.0,
+		1.0
+	)
+	var can_emit: bool = speed >= float(vfx.air_wake_min_speed) and turn_strength > 0.0
+	if can_emit and emit_timer <= 0.0:
+		_emit_sword_air_wake(current_forward, turn_delta, turn_strength, speed)
+		sword["air_wake_emit_timer"] = lerpf(float(vfx.air_wake_emit_interval_max), float(vfx.air_wake_emit_interval_min), turn_strength)
+	else:
+		sword["air_wake_emit_timer"] = emit_timer
+	sword["last_motion_forward"] = current_forward
+
+
+func _emit_sword_air_wake(current_forward: Vector2, turn_delta: float, turn_strength: float, speed: float) -> void:
+	var vfx: SwordVfxProfile = get_sword_vfx_profile()
+	var turn_sign: float = 1.0 if turn_delta >= 0.0 else -1.0
+	var outward: Vector2 = current_forward.rotated(turn_sign * PI * 0.5)
+	var is_recalling: bool = sword["state"] == SwordState.RECALLING
+	var speed_reference: float = SWORD_RECALL_SPEED if is_recalling else SWORD_POINT_STRIKE_SPEED
+	var speed_ratio: float = clampf(speed / maxf(speed_reference, 0.001), 0.0, 1.0)
+	var center: Vector2 = sword["pos"] - current_forward * (8.0 + 6.0 * speed_ratio) + outward * (4.0 + 9.0 * turn_strength)
+	var wake_width_scale: float = float(vfx.trail_recall_width_scale) * 1.16 if is_recalling else 1.0
+	var wake_style: String = "point"
+	if is_recalling:
+		wake_style = "recall"
+	elif not sword_trail_points.is_empty():
+		wake_style = str(sword_trail_points[sword_trail_points.size() - 1].get("style", "point"))
+	sword_air_wakes.append({
+		"pos": center,
+		"life": float(vfx.air_wake_duration),
+		"max_life": float(vfx.air_wake_duration),
+		"forward": current_forward,
+		"outward": outward,
+		"turn_strength": turn_strength,
+		"speed_ratio": speed_ratio,
+		"length": float(vfx.air_wake_base_length) * lerpf(0.86, 1.32, speed_ratio) * lerpf(0.92, 1.26, turn_strength),
+		"width": float(vfx.air_wake_base_width) * wake_width_scale * lerpf(0.82, 1.18, turn_strength),
+		"style": wake_style,
+	})
+	if sword_air_wakes.size() > int(vfx.air_wake_max_count):
+		sword_air_wakes.remove_at(0)
+
+
+func _update_sword_return_catches(delta: float) -> void:
+	var index: int = sword_return_catches.size() - 1
+	while index >= 0:
+		var catch_effect: Dictionary = sword_return_catches[index]
+		catch_effect["life"] = max(float(catch_effect.get("life", 0.0)) - delta, 0.0)
+		if catch_effect["life"] <= 0.0:
+			sword_return_catches.remove_at(index)
+		else:
+			sword_return_catches[index] = catch_effect
+		index -= 1
+
+
+func _emit_sword_return_catch(catch_pos: Vector2, direction: Vector2) -> void:
+	var vfx: SwordVfxProfile = get_sword_vfx_profile()
+	var resolved_direction: Vector2 = direction
+	if resolved_direction.is_zero_approx():
+		resolved_direction = Vector2.RIGHT.rotated(sword["angle"])
+	if resolved_direction.is_zero_approx():
+		resolved_direction = Vector2.RIGHT
+	sword_return_catches.append({
+		"pos": catch_pos,
+		"forward": resolved_direction.normalized(),
+		"life": float(vfx.return_catch_duration),
+		"max_life": float(vfx.return_catch_duration),
+		"radius": float(vfx.return_catch_base_radius),
+	})
+	if sword_return_catches.size() > int(vfx.return_catch_max_count):
+		sword_return_catches.remove_at(0)
 
 
 func _update_sword_afterimages(delta: float, frame_velocity: Vector2) -> void:
@@ -3327,6 +3779,42 @@ func _trigger_silk_sever_hitstop() -> void:
 	_request_hitstop(SILK_SEVER_HITSTOP_DURATION)
 
 
+func _get_silk_contact_self_feedback_interval(attack_profile_id: String) -> float:
+	match attack_profile_id:
+		AttackProfiles.PROFILE_FLYING_SWORD_POINT:
+			return SILK_CONTACT_SELF_FEEDBACK_POINT_INTERVAL
+		AttackProfiles.PROFILE_FLYING_SWORD_SLICE:
+			return SILK_CONTACT_SELF_FEEDBACK_SLICE_INTERVAL
+		_:
+			return SILK_CONTACT_SELF_FEEDBACK_SLICE_INTERVAL
+
+
+# Silk sever still ticks continuously; only the heavy sword impact feedback is throttled.
+func _consume_silk_contact_self_feedback(target_id: String, attack_profile_id: String) -> bool:
+	if target_id == "":
+		return true
+	var attack_instance_id: String = str(sword.get("attack_instance_id", ""))
+	if attack_instance_id == "":
+		return true
+	var attack_instances: Dictionary = combat_runtime.get("attack_instances", {})
+	if not attack_instances.has(attack_instance_id):
+		return true
+	var attack_instance: Dictionary = attack_instances[attack_instance_id]
+	var runtime: Dictionary = attack_instance.get("runtime", {})
+	var silk_feedback_runtime: Dictionary = runtime.get("silk_contact_feedback", {})
+	var feedback_key: String = "%s::%s" % [attack_profile_id, target_id]
+	var feedback_interval: float = _get_silk_contact_self_feedback_interval(attack_profile_id)
+	var last_feedback_time: float = float(silk_feedback_runtime.get(feedback_key, -INF))
+	if elapsed_time - last_feedback_time < feedback_interval:
+		return false
+	silk_feedback_runtime[feedback_key] = elapsed_time
+	runtime["silk_contact_feedback"] = silk_feedback_runtime
+	attack_instance["runtime"] = runtime
+	attack_instances[attack_instance_id] = attack_instance
+	combat_runtime["attack_instances"] = attack_instances
+	return true
+
+
 func _trigger_sword_self_hit_feedback(contact_point: Vector2, attack_profile_id: String, target_kind := "") -> void:
 	var sword_forward: Vector2 = sword["vel"]
 	if sword_forward.is_zero_approx():
@@ -3366,8 +3854,13 @@ func _trigger_sword_self_hit_feedback(contact_point: Vector2, attack_profile_id:
 			feedback_duration = SWORD_SLICE_IMPACT_FEEDBACK_DURATION
 			force_max_rebound = true
 	if target_kind == "silk":
-		offset_distance *= 0.85
-		screen_shake_strength *= 0.92
+		offset_distance *= SILK_CONTACT_IMPACT_OFFSET_SCALE
+		angle_offset *= SILK_CONTACT_IMPACT_ANGLE_SCALE
+		screen_shake_strength *= SILK_CONTACT_IMPACT_SCREEN_SHAKE_SCALE
+		local_hit_intensity *= SILK_CONTACT_IMPACT_LOCAL_HIT_SCALE
+		feedback_duration *= SILK_CONTACT_IMPACT_DURATION_SCALE
+		side_offset_ratio *= SILK_CONTACT_IMPACT_SIDE_OFFSET_SCALE
+		force_max_rebound = false
 	var target_offset: Vector2 = - sword_forward * offset_distance + side_axis * (offset_distance * side_offset_ratio)
 	var new_offset: Vector2 = Vector2(sword.get("impact_feedback_offset", Vector2.ZERO)) + target_offset
 	if force_max_rebound:
@@ -3668,6 +4161,24 @@ func _set_game_over() -> void:
 
 
 func _update_ui() -> void:
+	if lookdev_mode:
+		health_label.text = "预览场景"
+		energy_label.text = "真实 Main 状态机"
+		wave_label.text = "模式 %s" % [_get_lookdev_mode_label()]
+		score_label.text = "点刺 / 连斩 / 回收 | 使用真实御剑逻辑与渲染"
+		mode_label.text = "御剑特效预览"
+		if status_message_timer > 0.0 and status_message != "":
+			status_label.text = status_message
+			status_label.modulate = status_message_color
+		else:
+			status_label.text = "权威预览"
+			status_label.modulate = Color("f1e3bc")
+		energy_label.modulate = Color("d7bb79")
+		score_label.modulate = Color("9cb0c2")
+		focus_status_label.visible = false
+		hint_label.text = "1 点刺 | 2 连斩 | 3 回收 | Space 暂停/继续 | R 重播"
+		game_over_label.visible = false
+		return
 	health_label.text = "生命 %.0f / %.0f" % [player["health"], PLAYER_MAX_HEALTH]
 	energy_label.text = "剑意 %.0f / %.0f" % [
 		player["energy"],
@@ -3773,6 +4284,207 @@ func _update_ui() -> void:
 	else:
 		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | F7 战斗调试 | F6 校准调试"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
+
+
+func _get_lookdev_mode_label() -> String:
+	match lookdev_preview_mode:
+		LookdevPreviewMode.SLICE:
+			return "连斩"
+		LookdevPreviewMode.RECALL:
+			return "回收"
+		_:
+			return "点刺"
+
+
+func _create_lookdev_control_panel() -> void:
+	if lookdev_control_panel != null:
+		lookdev_control_panel.queue_free()
+	lookdev_slider_rows.clear()
+
+	lookdev_control_panel = PanelContainer.new()
+	lookdev_control_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	canvas_layer.add_child(lookdev_control_panel)
+
+	var panel_margin := MarginContainer.new()
+	panel_margin.add_theme_constant_override("margin_left", 12)
+	panel_margin.add_theme_constant_override("margin_top", 12)
+	panel_margin.add_theme_constant_override("margin_right", 12)
+	panel_margin.add_theme_constant_override("margin_bottom", 12)
+	lookdev_control_panel.add_child(panel_margin)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_margin.add_child(scroll)
+
+	var root_vbox := VBoxContainer.new()
+	root_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root_vbox.add_theme_constant_override("separation", 8)
+	scroll.add_child(root_vbox)
+
+	var title := Label.new()
+	title.text = "御剑特效实时调参"
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color("f1e3bc"))
+	root_vbox.add_child(title)
+
+	var sub_title := Label.new()
+	sub_title.text = "这里拖动，直接影响真实 Main 预览"
+	sub_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub_title.add_theme_font_size_override("font_size", 13)
+	sub_title.add_theme_color_override("font_color", Color("9cb0c2"))
+	root_vbox.add_child(sub_title)
+
+	var button_row := HBoxContainer.new()
+	button_row.add_theme_constant_override("separation", 6)
+	root_vbox.add_child(button_row)
+
+	lookdev_reset_button = Button.new()
+	lookdev_reset_button.text = "恢复推荐值"
+	lookdev_reset_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lookdev_reset_button.pressed.connect(_reset_lookdev_vfx_profile)
+	button_row.add_child(lookdev_reset_button)
+
+	lookdev_save_preview_button = Button.new()
+	lookdev_save_preview_button.text = "保存预览"
+	lookdev_save_preview_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lookdev_save_preview_button.pressed.connect(_save_lookdev_profile_to_preview_resource)
+	button_row.add_child(lookdev_save_preview_button)
+
+	lookdev_save_game_button = Button.new()
+	lookdev_save_game_button.text = "保存到主游戏"
+	lookdev_save_game_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lookdev_save_game_button.pressed.connect(_save_lookdev_profile_to_game_resource)
+	root_vbox.add_child(lookdev_save_game_button)
+
+	for group_spec in LOOKDEV_CONTROLS:
+		var group_label := Label.new()
+		group_label.text = str(group_spec["title"])
+		group_label.add_theme_font_size_override("font_size", 16)
+		group_label.add_theme_color_override("font_color", Color("d7bb79"))
+		root_vbox.add_child(group_label)
+		for item in group_spec["items"]:
+			var row := _create_lookdev_slider_row(item)
+			root_vbox.add_child(row["container"])
+			lookdev_slider_rows.append(row)
+
+	_sync_lookdev_slider_rows_from_profile()
+	_layout_lookdev_control_panel()
+
+
+func _create_lookdev_slider_row(spec: Dictionary) -> Dictionary:
+	var container := VBoxContainer.new()
+	container.add_theme_constant_override("separation", 3)
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 6)
+	container.add_child(title_row)
+
+	var name_label := Label.new()
+	name_label.text = str(spec["label"])
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.add_theme_color_override("font_color", Color("e7dec3"))
+	title_row.add_child(name_label)
+
+	var value_label := Label.new()
+	value_label.custom_minimum_size = Vector2(60.0, 0.0)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.add_theme_color_override("font_color", Color("88d8ff"))
+	title_row.add_child(value_label)
+
+	var slider := HSlider.new()
+	slider.min_value = float(spec["min"])
+	slider.max_value = float(spec["max"])
+	slider.step = float(spec["step"])
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(_on_lookdev_slider_value_changed.bind(String(spec["prop"]), value_label, float(spec["step"])))
+	container.add_child(slider)
+
+	return {
+		"container": container,
+		"slider": slider,
+		"value_label": value_label,
+		"prop": String(spec["prop"]),
+		"step": float(spec["step"]),
+	}
+
+
+func _sync_lookdev_slider_rows_from_profile() -> void:
+	var profile: SwordVfxProfile = get_sword_vfx_profile()
+	for row_variant in lookdev_slider_rows:
+		var row: Dictionary = row_variant
+		var prop: String = str(row["prop"])
+		var slider: HSlider = row["slider"]
+		var value_label: Label = row["value_label"]
+		var step: float = float(row["step"])
+		var value: float = float(profile.get(prop))
+		slider.set_block_signals(true)
+		slider.value = value
+		slider.set_block_signals(false)
+		value_label.text = _format_lookdev_slider_value(value, step)
+
+
+func _on_lookdev_slider_value_changed(value: float, prop: String, value_label: Label, step: float) -> void:
+	get_sword_vfx_profile().set(prop, value)
+	value_label.text = _format_lookdev_slider_value(value, step)
+
+
+func _format_lookdev_slider_value(value: float, step: float) -> String:
+	if step >= 1.0:
+		return str(int(round(value)))
+	if step >= 0.1:
+		return "%.1f" % value
+	if step >= 0.01:
+		return "%.2f" % value
+	return "%.3f" % value
+
+
+func _reset_lookdev_vfx_profile() -> void:
+	sword_vfx_profile = lookdev_source_sword_vfx_profile.duplicate(true)
+	_sync_lookdev_slider_rows_from_profile()
+	_show_status_message("已恢复推荐值", Color("d7bb79"), 1.2)
+
+
+func _save_lookdev_profile_to_preview_resource() -> void:
+	var preview_path: String = lookdev_source_sword_vfx_profile.resource_path
+	_save_current_lookdev_profile(preview_path, "已保存到预览配置")
+
+
+func _save_lookdev_profile_to_game_resource() -> void:
+	var game_path: String = DEFAULT_SWORD_VFX_PROFILE.resource_path
+	_save_current_lookdev_profile(game_path, "已保存到主游戏默认配置")
+
+
+func _save_current_lookdev_profile(target_path: String, success_message: String) -> void:
+	if target_path == "":
+		_show_status_message("保存失败：目标路径为空", COLORS["health"], 1.8)
+		push_error("Lookdev save failed: empty target path.")
+		return
+	var save_profile: SwordVfxProfile = get_sword_vfx_profile().duplicate(true)
+	var save_error: Error = ResourceSaver.save(save_profile, target_path)
+	if save_error != OK:
+		_show_status_message("保存失败：%s" % str(save_error), COLORS["health"], 2.0)
+		push_error("Lookdev save failed for %s: %s" % [target_path, save_error])
+		return
+	if target_path == lookdev_source_sword_vfx_profile.resource_path:
+		lookdev_source_sword_vfx_profile = save_profile
+	_show_status_message(success_message, Color("88d8ff"), 1.6)
+
+
+func _layout_lookdev_control_panel() -> void:
+	if lookdev_control_panel == null:
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var panel_width: float = minf(LOOKDEV_PANEL_TARGET_WIDTH, viewport_size.x * 0.28)
+	panel_width = maxf(panel_width, 220.0)
+	lookdev_control_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	lookdev_control_panel.anchor_left = 1.0
+	lookdev_control_panel.anchor_right = 1.0
+	lookdev_control_panel.anchor_top = 0.0
+	lookdev_control_panel.anchor_bottom = 1.0
+	lookdev_control_panel.offset_left = -panel_width - LOOKDEV_PANEL_MARGIN
+	lookdev_control_panel.offset_right = -LOOKDEV_PANEL_MARGIN
+	lookdev_control_panel.offset_top = 88.0
+	lookdev_control_panel.offset_bottom = -LOOKDEV_PANEL_MARGIN
 
 
 func _format_distance_delta(delta: float) -> String:
@@ -4430,8 +5142,14 @@ func _apply_target_hit_feedback(
 		return
 	var target_kind: String = str(apply_result.get("target_kind", ""))
 	if damage_source == DAMAGE_SOURCE_FLYING_SWORD:
-		_trigger_sword_self_hit_feedback(contact_point, attack_profile_id, target_kind)
-		if attack_profile_id == AttackProfiles.PROFILE_FLYING_SWORD_POINT:
+		var should_emit_self_hit_feedback: bool = true
+		var should_queue_point_hitstop: bool = attack_profile_id == AttackProfiles.PROFILE_FLYING_SWORD_POINT
+		if target_kind == "silk":
+			should_emit_self_hit_feedback = _consume_silk_contact_self_feedback(target_id, attack_profile_id)
+			should_queue_point_hitstop = false
+		if should_emit_self_hit_feedback:
+			_trigger_sword_self_hit_feedback(contact_point, attack_profile_id, target_kind)
+		if should_queue_point_hitstop:
 			_queue_point_strike_hitstop_pulse()
 	var feedback_color: Color = _resolve_target_hit_feedback_color(target_id, target_kind, attack_profile_id, damage_source)
 	match target_kind:
@@ -5061,6 +5779,8 @@ func _enter_debug_calibration_mode() -> void:
 	particles.clear()
 	sword_afterimages.clear()
 	sword_trail_points.clear()
+	sword_air_wakes.clear()
+	sword_return_catches.clear()
 	sword_hit_effects.clear()
 	_clear_target_runtime_state("boss")
 	_clear_target_hurtboxes("boss")
