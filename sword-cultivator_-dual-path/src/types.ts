@@ -30,7 +30,6 @@ export interface Player extends Entity {
   maxEnergy: number;
   dashCooldown: number;
   attackCooldown: number;
-  ultimateCooldown: number;
   isDashing: boolean;
   dashTimer: number;
   leftClickTimer: number;

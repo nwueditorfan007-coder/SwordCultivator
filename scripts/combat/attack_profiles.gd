@@ -25,7 +25,6 @@ const PROFILE_ARRAY_RING := "array_ring"
 const PROFILE_ARRAY_FAN := "array_fan"
 const PROFILE_ARRAY_PIERCE := "array_pierce"
 const PROFILE_DEFLECTED_BULLET := "deflected_bullet"
-const PROFILE_ULTIMATE_PULSE := "ultimate_pulse"
 
 const _DEFAULT_PROFILE := {
 	"id": "",
@@ -163,19 +162,6 @@ const _PROFILES := {
 			CHANNEL_POISE: 6.0,
 			CHANNEL_SEVER: 0.0,
 		},
-	},
-	PROFILE_ULTIMATE_PULSE: {
-		"id": PROFILE_ULTIMATE_PULSE,
-		"tags": ["projectile", "ultimate", "aoe"],
-		"shape": {
-			"kind": "circle_overlap",
-		},
-		"channels": {
-			CHANNEL_HP: 50.0,
-			CHANNEL_POISE: 24.0,
-			CHANNEL_SEVER: 0.0,
-		},
-		"boss_window_mode": BOSS_WINDOW_BYPASS,
 	},
 }
 

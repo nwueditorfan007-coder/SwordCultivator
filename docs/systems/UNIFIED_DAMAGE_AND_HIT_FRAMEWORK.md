@@ -654,9 +654,8 @@ final_sever = raw_sever if hurtbox_kind == silk else 0
   - 写回结果已补充 `resource_before / resource_after / resource_max`
   这意味着后续 `part_break / guard_break / buildup_threshold / core_exposure` 已经有统一承载层，不需要每个表现点重新查上下文。
 - Boss 旧语义已经在新框架上恢复
-  - 非必杀攻击在闭窗期不会有效命中 Boss 血条
+  - 闭窗期不会有效命中 Boss 血条
   - Boss body 不再在闭窗期偷偷承受 HP 伤害
-  - 必杀仍可绕过窗口
 - 第一轮数值试探已经开始，但仍不属于“最终精修”
   - 飞剑连斩已先切到激进测试值
   - 剑阵能耗已改成按 `ring / fan / pierce` 三形态独立计费
@@ -748,7 +747,6 @@ final_sever = raw_sever if hurtbox_kind == silk else 0
 - 响应层复用同一份 `target binding`，不再在 `stagger / boss_vulnerable` 里重复查找目标
 - Boss 命中改为统一 `body / core` 路由辅助入口，而不是每个攻击点自己判断 `vulnerable`
 - Boss 脆弱窗口开启改为统一辅助函数，而不是在状态机与受击响应里分别直接改字段
-- 删除 `ultimate -> boss` 的调用侧临时倍率补丁
 - 后续新增武器只需加 profile 和 detection，不需新抄一套结算
 
 ### 阶段 7：扩展新流派

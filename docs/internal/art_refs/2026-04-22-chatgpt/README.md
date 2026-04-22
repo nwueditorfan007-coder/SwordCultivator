@@ -14,7 +14,7 @@
 | `ref-02-radial-sword-array.png` | `ChatGPT Image 2026年4月22日 16_25_02.png` | 中央阵心+环形飞剑库存、底部技能键位整合 |
 | `ref-03-long-diagonal-slash.png` | `ChatGPT Image 2026年4月22日 16_24_57.png` | 长距离主斩击、敌点分布与战场留白 |
 | `ref-04-fan-spread-volley.png` | `ChatGPT Image 2026年4月22日 16_24_53.png` | 扇形齐射、阵心轨道、轻量技能栏布局 |
-| `ref-05-single-target-kill-beam.png` | `ChatGPT Image 2026年4月22日 16_24_50.png` | 单体必杀高亮、红白对抗、伤害数字挂点 |
+| `ref-05-single-target-kill-beam.png` | `ChatGPT Image 2026年4月22日 16_24_50.png` | 单体爆发高亮、红白对抗、伤害数字挂点 |
 | `ref-06-scatter-field-control.png` | `ChatGPT Image 2026年4月22日 16_19_55.png` | 粒子星图背景、飞剑群扇面姿态、弱化 HUD 装饰 |
 | `ref-07-minimal-grid-layout.png` | `ChatGPT Image 2026年4月22日 16_19_42.png` | 最克制的版式骨架、左侧书法题签、网格化战场边框 |
 

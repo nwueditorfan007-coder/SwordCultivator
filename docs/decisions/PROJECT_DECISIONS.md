@@ -27,7 +27,7 @@
 
 - Puppet 是 Boss 机制体，不是普通敌人。
 - Puppet 不显示普通生命条。
-- Puppet 不能被飞剑、近战、剑阵或必杀当作普通敌人直接击杀。
+- Puppet 不能被飞剑、近战或剑阵当作普通敌人直接击杀。
 - Puppet 的主要死亡条件是对应 Silk 被切断。
 - 在 `Puppet Ambush` 阶段，清空有效丝线后 Boss 进入脆弱状态。
 

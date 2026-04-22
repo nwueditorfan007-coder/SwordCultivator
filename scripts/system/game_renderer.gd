@@ -27,12 +27,19 @@ const BULLET_EDGE_SHADE := 0.24
 const BULLET_CORE_HIGHLIGHT := 0.28
 const BULLET_SPECULAR_HIGHLIGHT := 0.52
 const BULLET_RENDER_SCALE := 1.24
+const ART_BG_DEEP := Color("02060d")
+const ART_BG := Color("06101c")
+const ART_ARENA := Color("08111d")
+const ART_ARENA_CORE := Color("0b1724")
+const ART_GRID := Color(0.42, 0.72, 0.9, 0.075)
+const ART_GOLD := Color("d7bb79")
+const ART_BLUE := Color("88d8ff")
+const ART_BLUE_CORE := Color("f6fbff")
+const ART_RED := Color("df5b66")
 
 
 static func draw_game(main: Node2D) -> void:
-	main.draw_rect(Rect2(Vector2.ZERO, main.get_viewport_rect().size), main._get_time_stop_world_color(main.COLORS["background"]), true)
-	main.draw_rect(main.ARENA_RECT, main._get_time_stop_world_color(Color("111111")), true)
-	main.draw_rect(main.ARENA_RECT, main._get_time_stop_world_color(Color("2e2e2e")), false, 3.0)
+	_draw_art_background(main)
 
 	var shake_offset: Vector2 = Vector2.ZERO
 	if main.screen_shake > 0.1:
@@ -40,19 +47,7 @@ static func draw_game(main: Node2D) -> void:
 	main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
 	var time_stop_strength: float = main._get_time_stop_visual_strength()
 
-	var x: int = 0
-	while x <= int(main.ARENA_SIZE.x):
-		var from: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), 0.0)
-		var to: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), main.ARENA_SIZE.y)
-		main.draw_line(from, to, main._get_time_stop_world_color(main.COLORS["grid"]), 1.0)
-		x += 50
-
-	var y: int = 0
-	while y <= int(main.ARENA_SIZE.y):
-		var from_y: Vector2 = main.ARENA_ORIGIN + Vector2(0.0, float(y))
-		var to_y: Vector2 = main.ARENA_ORIGIN + Vector2(main.ARENA_SIZE.x, float(y))
-		main.draw_line(from_y, to_y, main._get_time_stop_world_color(main.COLORS["grid"]), 1.0)
-		y += 50
+	_draw_art_tactical_grid(main)
 
 	for particle in main.particles:
 		var particle_color: Color = particle["color"]
@@ -173,7 +168,15 @@ static func draw_game(main: Node2D) -> void:
 			var death_feedback_color: Color = Color(enemy.get("death_feedback_color", enemy.get("hit_flash_color", Color.WHITE)))
 			enemy_color = enemy_color.lerp(death_feedback_color, 0.3 + 0.52 * enemy_death_ratio)
 		enemy_color.a *= enemy_alpha
-		main.draw_circle(enemy_screen_pos, enemy_radius, main._get_time_stop_world_color(enemy_color))
+		_draw_enemy_sigil(
+			main,
+			enemy_screen_pos,
+			enemy_radius,
+			main._get_time_stop_world_color(enemy_color),
+			color_key,
+			enemy_alpha,
+			is_enemy_dying
+		)
 		if not is_enemy_dying and str(enemy.get("support_source_id", "")) != "":
 			var support_pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 8.0))
 			var support_color: Color = _with_alpha(main.COLORS["silk"].lerp(main.COLORS["drape_priest"], 0.18), (0.24 + 0.18 * support_pulse) * enemy_alpha)
@@ -478,10 +481,157 @@ static func draw_game(main: Node2D) -> void:
 	_draw_unsheath_flash(main)
 	main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_arena_margin_mask(main)
-	main.draw_rect(main.ARENA_RECT, main._get_time_stop_world_color(Color("2e2e2e")), false, 3.0)
+	_draw_art_arena_frame(main)
 	if main._has_boss():
 		main._draw_boss_hud()
 	draw_hud_bars(main)
+
+
+static func _draw_art_background(main: Node2D) -> void:
+	var viewport_rect: Rect2 = main.get_viewport_rect()
+	var arena_rect: Rect2 = main.ARENA_RECT
+	var arena_center: Vector2 = arena_rect.get_center()
+	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
+	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.74), true)
+	main.draw_rect(arena_rect.grow(32.0), _with_alpha(ART_BLUE, 0.028), true)
+	main.draw_rect(arena_rect.grow(14.0), _with_alpha(ART_BG_DEEP, 0.58), true)
+	main.draw_rect(arena_rect, main._get_time_stop_world_color(ART_ARENA), true)
+	main.draw_rect(
+		Rect2(arena_rect.position + arena_rect.size * 0.08, arena_rect.size * 0.84),
+		main._get_time_stop_world_color(_with_alpha(ART_ARENA_CORE, 0.54)),
+		true
+	)
+	_draw_art_star_field(main, arena_rect)
+	_draw_art_orbit_field(main, arena_center)
+	_draw_art_mist_lines(main, arena_rect)
+
+
+static func _draw_art_star_field(main: Node2D, arena_rect: Rect2) -> void:
+	var star_count: int = 62
+	var star_index: int = 0
+	while star_index < star_count:
+		var x_ratio: float = fmod(float(star_index) * 0.6180339 + 0.13, 1.0)
+		var y_ratio: float = fmod(float(star_index * star_index) * 0.071 + float(star_index) * 0.173, 1.0)
+		var star_pos: Vector2 = arena_rect.position + Vector2(x_ratio * arena_rect.size.x, y_ratio * arena_rect.size.y)
+		var shimmer: float = 0.58 + 0.42 * sin(main.elapsed_time * (0.22 + float(star_index % 5) * 0.035) + float(star_index) * 1.71)
+		var star_color: Color = ART_GOLD.lerp(ART_BLUE_CORE, fmod(float(star_index) * 0.37, 1.0))
+		var star_alpha: float = (0.05 + 0.13 * shimmer) * (0.65 if star_index % 7 == 0 else 1.0)
+		main.draw_circle(star_pos, 0.9 + fmod(float(star_index) * 1.9, 2.2), main._get_time_stop_world_color(_with_alpha(star_color, star_alpha)))
+		if star_index % 13 == 0:
+			main.draw_line(
+				star_pos - Vector2(8.0, 0.0),
+				star_pos + Vector2(8.0, 0.0),
+				main._get_time_stop_world_color(_with_alpha(star_color, star_alpha * 0.34)),
+				1.0
+			)
+			main.draw_line(
+				star_pos - Vector2(0.0, 8.0),
+				star_pos + Vector2(0.0, 8.0),
+				main._get_time_stop_world_color(_with_alpha(star_color, star_alpha * 0.34)),
+				1.0
+			)
+		star_index += 1
+
+
+static func _draw_art_orbit_field(main: Node2D, arena_center: Vector2) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 0.42)
+	var radii := [82.0, 146.0, 224.0, 318.0, 430.0]
+	for radius_variant in radii:
+		var radius: float = float(radius_variant)
+		main.draw_arc(
+			arena_center,
+			radius,
+			0.0,
+			TAU,
+			96,
+			main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.035 + 0.025 * pulse)),
+			1.0
+		)
+	var orbit_index: int = 0
+	while orbit_index < 6:
+		var t: float = float(orbit_index) / 5.0
+		var orbit_radius: float = lerpf(118.0, 390.0, t)
+		var arc_angle: float = PI * (0.58 + 0.34 * t)
+		var angle: float = -PI * 0.22 + t * 0.82 + sin(main.elapsed_time * 0.12 + t * 2.3) * 0.08
+		main.draw_arc(
+			arena_center,
+			orbit_radius,
+			angle - arc_angle * 0.5,
+			angle + arc_angle * 0.5,
+			42,
+			main._get_time_stop_world_color(_with_alpha(ART_BLUE, 0.035 + 0.035 * (1.0 - t))),
+			1.0
+		)
+		orbit_index += 1
+
+
+static func _draw_art_mist_lines(main: Node2D, arena_rect: Rect2) -> void:
+	var line_index: int = 0
+	while line_index < 7:
+		var y_ratio: float = 0.14 + float(line_index) * 0.12
+		var y: float = arena_rect.position.y + arena_rect.size.y * y_ratio + sin(main.elapsed_time * 0.18 + float(line_index)) * 5.0
+		var start_x: float = arena_rect.position.x + 42.0 + fmod(float(line_index) * 139.0, arena_rect.size.x * 0.38)
+		var length: float = 120.0 + fmod(float(line_index) * 71.0, 190.0)
+		var color: Color = ART_BLUE.lerp(ART_GOLD, 0.35 + 0.08 * float(line_index % 3))
+		main.draw_line(
+			Vector2(start_x, y),
+			Vector2(minf(start_x + length, arena_rect.end.x - 38.0), y + sin(float(line_index) * 1.7) * 9.0),
+			main._get_time_stop_world_color(_with_alpha(color, 0.032)),
+			1.0
+		)
+		line_index += 1
+
+
+static func _draw_art_tactical_grid(main: Node2D) -> void:
+	var x: int = 0
+	while x <= int(main.ARENA_SIZE.x):
+		var alpha_scale: float = 1.0 if x % 100 == 0 else 0.52
+		var from: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), 0.0)
+		var to: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), main.ARENA_SIZE.y)
+		main.draw_line(from, to, main._get_time_stop_world_color(_with_alpha(ART_GRID, ART_GRID.a * alpha_scale)), 1.0)
+		x += 50
+
+	var y: int = 0
+	while y <= int(main.ARENA_SIZE.y):
+		var alpha_scale: float = 1.0 if y % 100 == 0 else 0.52
+		var from_y: Vector2 = main.ARENA_ORIGIN + Vector2(0.0, float(y))
+		var to_y: Vector2 = main.ARENA_ORIGIN + Vector2(main.ARENA_SIZE.x, float(y))
+		main.draw_line(from_y, to_y, main._get_time_stop_world_color(_with_alpha(ART_GRID, ART_GRID.a * alpha_scale)), 1.0)
+		y += 50
+
+
+static func _draw_art_arena_frame(main: Node2D) -> void:
+	var arena_rect: Rect2 = main.ARENA_RECT
+	var frame_color: Color = main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.34))
+	var soft_color: Color = main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.16))
+	main.draw_rect(arena_rect, main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.16)), false, 1.2)
+	main.draw_rect(arena_rect.grow(6.0), main._get_time_stop_world_color(_with_alpha(ART_BLUE, 0.045)), false, 1.0)
+	var corner_len: float = 56.0
+	var corners := [
+		arena_rect.position,
+		Vector2(arena_rect.end.x, arena_rect.position.y),
+		arena_rect.end,
+		Vector2(arena_rect.position.x, arena_rect.end.y),
+	]
+	for corner_index in range(corners.size()):
+		var corner: Vector2 = corners[corner_index]
+		var h_dir: float = 1.0 if corner_index == 0 or corner_index == 3 else -1.0
+		var v_dir: float = 1.0 if corner_index == 0 or corner_index == 1 else -1.0
+		main.draw_line(corner, corner + Vector2(corner_len * h_dir, 0.0), frame_color, 2.0)
+		main.draw_line(corner, corner + Vector2(0.0, corner_len * v_dir), frame_color, 2.0)
+		main.draw_circle(corner + Vector2(14.0 * h_dir, 14.0 * v_dir), 2.0, soft_color)
+	main.draw_line(
+		Vector2(arena_rect.position.x + arena_rect.size.x * 0.5 - 160.0, arena_rect.position.y - 16.0),
+		Vector2(arena_rect.position.x + arena_rect.size.x * 0.5 + 160.0, arena_rect.position.y - 16.0),
+		soft_color,
+		1.0
+	)
+	main.draw_line(
+		Vector2(arena_rect.position.x + arena_rect.size.x * 0.5 - 230.0, arena_rect.end.y + 16.0),
+		Vector2(arena_rect.position.x + arena_rect.size.x * 0.5 + 230.0, arena_rect.end.y + 16.0),
+		soft_color,
+		1.0
+	)
 
 
 static func _get_channeled_array_sword_color(main: Node2D, base_color: Color) -> Color:
@@ -500,6 +650,64 @@ static func _get_channeled_array_sword_color(main: Node2D, base_color: Color) ->
 	elif energy_ratio <= 0.18:
 		color = color.lerp(main.COLORS["health"], 0.22 + 0.18 * pulse)
 	return color
+
+
+static func _draw_enemy_sigil(
+	main: Node2D,
+	center: Vector2,
+	radius: float,
+	enemy_color: Color,
+	enemy_type: String,
+	enemy_alpha: float,
+	is_dying: bool
+) -> void:
+	var pulse: float = 0.78 + 0.22 * sin(main.elapsed_time * 3.2 + center.x * 0.013 + center.y * 0.007)
+	var core_color: Color = enemy_color.lerp(ART_RED, 0.22)
+	var ring_color: Color = _with_alpha(core_color, (0.42 + 0.18 * pulse) * enemy_alpha)
+	var fill_color: Color = _with_alpha(core_color, (0.18 + 0.08 * pulse) * enemy_alpha)
+	if is_dying:
+		fill_color.a *= 0.7
+		ring_color.a *= 0.85
+	main.draw_circle(center, radius * 0.94, fill_color)
+	main.draw_arc(center, radius + 1.2, 0.0, TAU, 28, ring_color, 1.7)
+	main.draw_arc(center, radius * 0.56, 0.0, TAU, 20, _with_alpha(ART_BLUE_CORE, 0.08 * enemy_alpha), 1.0)
+	match enemy_type:
+		main.TANK:
+			_draw_enemy_diamond(main, center, radius * 0.82, _with_alpha(core_color, 0.66 * enemy_alpha), 2.0)
+			main.draw_line(center - Vector2(radius * 0.54, 0.0), center + Vector2(radius * 0.54, 0.0), _with_alpha(ART_BLUE_CORE, 0.18 * enemy_alpha), 1.2)
+		main.CASTER:
+			_draw_enemy_diamond(main, center, radius * 0.76, _with_alpha(core_color, 0.58 * enemy_alpha), 1.6)
+			main.draw_arc(center, radius * 0.62, -PI * 0.15, PI * 1.15, 24, _with_alpha(ART_GOLD, 0.24 * enemy_alpha), 1.2)
+		main.HEAVY:
+			_draw_enemy_diamond(main, center, radius * 0.9, _with_alpha(core_color, 0.72 * enemy_alpha), 2.2)
+			main.draw_arc(center, radius * 0.72, 0.0, TAU, 6, _with_alpha(core_color.lerp(Color.BLACK, 0.15), 0.55 * enemy_alpha), 1.4)
+		main.RING_LEECH:
+			main.draw_arc(center, radius * 0.72, 0.0, TAU, 18, _with_alpha(core_color, 0.62 * enemy_alpha), 1.5)
+			main.draw_circle(center, radius * 0.16, _with_alpha(ART_BLUE_CORE, 0.62 * enemy_alpha))
+		main.DRAPE_PRIEST:
+			_draw_enemy_diamond(main, center, radius * 0.78, _with_alpha(ART_BLUE, 0.48 * enemy_alpha), 1.6)
+			main.draw_line(center + Vector2(0.0, -radius * 0.7), center + Vector2(0.0, radius * 0.7), _with_alpha(ART_BLUE_CORE, 0.46 * enemy_alpha), 1.2)
+		main.MIRROR_NEEDLER:
+			_draw_enemy_diamond(main, center, radius * 0.78, _with_alpha(ART_BLUE_CORE, 0.52 * enemy_alpha), 1.5)
+			main.draw_line(center - Vector2(radius * 0.48, radius * 0.48), center + Vector2(radius * 0.48, radius * 0.48), _with_alpha(core_color, 0.46 * enemy_alpha), 1.2)
+			main.draw_line(center - Vector2(radius * 0.48, -radius * 0.48), center + Vector2(radius * 0.48, -radius * 0.48), _with_alpha(core_color, 0.46 * enemy_alpha), 1.2)
+		main.PUPPET:
+			_draw_enemy_diamond(main, center, radius * 0.86, _with_alpha(enemy_color.lerp(ART_GOLD, 0.18), 0.58 * enemy_alpha), 1.8)
+			main.draw_arc(center, radius * 0.58, PI * 0.12, PI * 1.88, 24, _with_alpha(ART_GOLD, 0.24 * enemy_alpha), 1.2)
+		_:
+			_draw_enemy_diamond(main, center, radius * 0.7, _with_alpha(core_color, 0.56 * enemy_alpha), 1.6)
+			main.draw_circle(center, radius * 0.14, _with_alpha(ART_BLUE_CORE, 0.58 * enemy_alpha))
+
+
+static func _draw_enemy_diamond(main: Node2D, center: Vector2, radius: float, color: Color, width: float) -> void:
+	var top: Vector2 = center + Vector2(0.0, -radius)
+	var right: Vector2 = center + Vector2(radius, 0.0)
+	var bottom: Vector2 = center + Vector2(0.0, radius)
+	var left: Vector2 = center + Vector2(-radius, 0.0)
+	main.draw_line(top, right, color, width)
+	main.draw_line(right, bottom, color, width)
+	main.draw_line(bottom, left, color, width)
+	main.draw_line(left, top, color, width)
 
 
 static func _draw_bullet_shape(
@@ -918,6 +1126,7 @@ static func _draw_time_stop_wash(main: Node2D) -> void:
 	)
 	_draw_time_stop_frame_corners(main, frame_rect, strength)
 	_draw_time_stop_focus_field(main, strength)
+	_draw_time_stop_orbit_ticks(main, strength)
 
 
 static func _draw_time_stop_frame_corners(main: Node2D, frame_rect: Rect2, strength: float) -> void:
@@ -969,6 +1178,21 @@ static func _draw_time_stop_focus_field(main: Node2D, strength: float) -> void:
 	main.draw_line(center + Vector2.LEFT * ray_gap, center + Vector2.LEFT * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
 	main.draw_line(center + Vector2.UP * ray_gap, center + Vector2.UP * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
 	main.draw_line(center + Vector2.DOWN * ray_gap, center + Vector2.DOWN * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
+
+
+static func _draw_time_stop_orbit_ticks(main: Node2D, strength: float) -> void:
+	var center: Vector2 = main._to_screen(main.player["pos"])
+	var tick_color: Color = _with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.05 + 0.12 * strength)
+	var tick_count: int = 16
+	var tick_index: int = 0
+	while tick_index < tick_count:
+		var angle: float = float(tick_index) / float(tick_count) * TAU + main.elapsed_time * 0.08
+		var direction: Vector2 = Vector2.RIGHT.rotated(angle)
+		var side: Vector2 = direction.rotated(PI * 0.5)
+		var radius: float = main.PLAYER_RADIUS + 48.0 + 18.0 * sin(float(tick_index) * 1.7)
+		var tick_center: Vector2 = center + direction * radius
+		main.draw_line(tick_center - side * 4.0, tick_center + side * (4.0 + 6.0 * strength), tick_color, 1.0)
+		tick_index += 1
 
 
 static func _draw_time_stop_sword_focus(main: Node2D, sword_pos: Vector2, forward: Vector2, strength: float) -> void:
@@ -1385,6 +1609,7 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 		var cut_width: float = float(hit_effect.get("width", main.SWORD_HIT_EFFECT_BASE_WIDTH)) * (0.62 + 0.34 * intensity)
 		var spark_count: int = int(hit_effect.get("spark_count", main.SWORD_HIT_EFFECT_SPARK_COUNT))
 		var seed: float = float(hit_effect.get("seed", 0.0))
+		_draw_hit_contact_glyph(main, center, forward, effect_color, style, intensity)
 		if style == "sever":
 			var sever_from: Vector2 = main._to_screen(hit_effect.get("from", hit_effect["pos"]))
 			var sever_to: Vector2 = main._to_screen(hit_effect.get("to", hit_effect["pos"]))
@@ -1532,6 +1757,35 @@ static func _draw_sword_hit_effects(main: Node2D) -> void:
 			spark_index += 1
 
 
+static func _draw_hit_contact_glyph(
+	main: Node2D,
+	center: Vector2,
+	forward: Vector2,
+	effect_color: Color,
+	style: String,
+	intensity: float
+) -> void:
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var radius: float = 5.0 + 9.0 * intensity
+	var glyph_color: Color = effect_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.42)
+	var ring_alpha: float = 0.08 + 0.16 * intensity
+	main.draw_arc(center, radius, 0.0, TAU, 20, _with_alpha(glyph_color, ring_alpha), 1.0 + 0.7 * intensity)
+	if style == "point":
+		main.draw_line(center - forward * radius * 0.8, center + forward * radius * 1.35, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.18 + 0.22 * intensity), 1.0)
+		main.draw_line(center - side * radius * 0.36, center + side * radius * 0.36, _with_alpha(glyph_color, 0.1 + 0.14 * intensity), 0.9)
+	elif style == "deflect":
+		main.draw_line(center - side * radius, center + side * radius, _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.2 + 0.2 * intensity), 1.2)
+		main.draw_arc(center, radius * 0.78, -PI * 0.2, PI * 1.2, 18, _with_alpha(glyph_color, 0.12 + 0.14 * intensity), 1.0)
+	else:
+		var diamond := PackedVector2Array([
+			center + forward * radius,
+			center + side * radius * 0.62,
+			center - forward * radius * 0.72,
+			center - side * radius * 0.62,
+		])
+		_try_draw_polyline_closed(main, diamond, _with_alpha(glyph_color, 0.1 + 0.16 * intensity), 1.0 + 0.6 * intensity)
+
+
 static func _draw_unsheath_press_flash(main: Node2D) -> void:
 	var remaining: float = main._get_unsheath_press_flash_progress()
 	if remaining <= 0.0:
@@ -1670,7 +1924,7 @@ static func _is_player_owned_effect_color(main: Node2D, color: Color) -> bool:
 static func _draw_arena_margin_mask(main: Node2D) -> void:
 	var viewport_rect: Rect2 = main.get_viewport_rect()
 	var arena_rect: Rect2 = main.ARENA_RECT
-	var mask_color: Color = main._get_time_stop_world_color(main.COLORS["background"])
+	var mask_color: Color = main._get_time_stop_world_color(ART_BG_DEEP.lerp(ART_BG, 0.22))
 	var top_height: float = maxf(arena_rect.position.y - viewport_rect.position.y, 0.0)
 	var bottom_height: float = maxf(viewport_rect.end.y - arena_rect.end.y, 0.0)
 	var left_width: float = maxf(arena_rect.position.x - viewport_rect.position.x, 0.0)
@@ -1686,22 +1940,33 @@ static func _draw_arena_margin_mask(main: Node2D) -> void:
 
 
 static func draw_hud_bars(main: Node2D) -> void:
-	var health_bar_rect: Rect2 = Rect2(Vector2(28.0, 24.0), Vector2(260.0, 18.0))
-	var energy_bar_rect: Rect2 = Rect2(Vector2(28.0, 52.0), Vector2(260.0, 12.0))
-	main.draw_rect(health_bar_rect, Color("1d1d1d"), true)
-	main.draw_rect(Rect2(health_bar_rect.position, Vector2(health_bar_rect.size.x * (main.player["health"] / main.PLAYER_MAX_HEALTH), health_bar_rect.size.y)), main.COLORS["health"], true)
-	main.draw_rect(energy_bar_rect, Color("1d1d1d"), true)
+	var viewport_size: Vector2 = main.get_viewport_rect().size
+	var health_bar_rect: Rect2 = Rect2(Vector2(96.0, 44.0), Vector2(218.0, 8.0))
+	var energy_bar_rect: Rect2 = Rect2(Vector2(96.0, 76.0), Vector2(204.0, 7.0))
+	_draw_hud_top_banner(main, viewport_size)
+	_draw_hud_mode_badge(main, Vector2(viewport_size.x - 62.0, 52.0), 35.0)
+	_draw_hud_lotus(main, Vector2(54.0, 53.0), 25.0)
+	_draw_hud_metric_bar(
+		main,
+		health_bar_rect,
+		float(main.player["health"]) / maxf(main.PLAYER_MAX_HEALTH, 1.0),
+		main.COLORS["health"].lerp(ART_BLUE_CORE, 0.12),
+		main.COLORS["health"],
+		0.95
+	)
 	var energy_fill_color: Color = main.COLORS["energy"]
 	if bool(main.player.get("array_is_firing", false)):
 		energy_fill_color = energy_fill_color.lerp(ARRAY_CHANNEL_EDGE_COLOR, 0.35)
-		main.draw_rect(
-			Rect2(energy_bar_rect.position - Vector2(2.0, 2.0), energy_bar_rect.size + Vector2(4.0, 4.0)),
-			_with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.18),
-			false,
-			2.0
-		)
+		main.draw_rect(Rect2(energy_bar_rect.position - Vector2(2.0, 2.0), energy_bar_rect.size + Vector2(4.0, 4.0)), _with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.18), false, 2.0)
 		_draw_array_channel_flames(main, energy_bar_rect)
-	main.draw_rect(Rect2(energy_bar_rect.position, Vector2(energy_bar_rect.size.x * (main.player["energy"] / main.PLAYER_MAX_ENERGY), energy_bar_rect.size.y)), energy_fill_color, true)
+	_draw_hud_metric_bar(
+		main,
+		energy_bar_rect,
+		float(main.player["energy"]) / maxf(main.PLAYER_MAX_ENERGY, 1.0),
+		energy_fill_color.lerp(ART_BLUE_CORE, 0.08),
+		energy_fill_color,
+		0.88
+	)
 	if main.energy_gain_feedback_timer > 0.0 and main.energy_gain_feedback_strength > 0.0:
 		var gain_ratio: float = clampf(
 			float(main.energy_gain_feedback_timer) / maxf(main.ENERGY_GAIN_FEEDBACK_DURATION, 0.001),
@@ -1724,6 +1989,70 @@ static func draw_hud_bars(main: Node2D) -> void:
 			_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.08 + 0.16 * gain_strength),
 			true
 		)
+	_draw_hud_bottom_frame(main, viewport_size)
+
+
+static func _draw_hud_top_banner(main: Node2D, viewport_size: Vector2) -> void:
+	var center_x: float = viewport_size.x * 0.5
+	var y: float = 38.0
+	var width: float = 350.0
+	var banner_rect := Rect2(Vector2(center_x - width * 0.5, 21.0), Vector2(width, 34.0))
+	main.draw_rect(banner_rect.grow_individual(12.0, 2.0, 12.0, 2.0), _with_alpha(ART_BG_DEEP, 0.34), true)
+	main.draw_rect(banner_rect, _with_alpha(ART_GOLD, 0.13), false, 1.2)
+	main.draw_line(Vector2(center_x - width * 0.5 - 56.0, y), Vector2(center_x - width * 0.5 - 12.0, y), _with_alpha(ART_GOLD, 0.38), 1.1)
+	main.draw_line(Vector2(center_x + width * 0.5 + 12.0, y), Vector2(center_x + width * 0.5 + 56.0, y), _with_alpha(ART_GOLD, 0.38), 1.1)
+	main.draw_circle(Vector2(center_x - width * 0.5 - 20.0, y), 2.0, _with_alpha(ART_GOLD, 0.58))
+	main.draw_circle(Vector2(center_x + width * 0.5 + 20.0, y), 2.0, _with_alpha(ART_GOLD, 0.58))
+
+
+static func _draw_hud_mode_badge(main: Node2D, center: Vector2, radius: float) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 1.4)
+	main.draw_circle(center, radius + 10.0, _with_alpha(ART_BLUE, 0.055 + 0.025 * pulse))
+	main.draw_arc(center, radius, 0.0, TAU, 40, _with_alpha(ART_GOLD, 0.56), 1.7)
+	main.draw_arc(center, radius - 10.0, PI * 0.18, PI * 1.88, 30, _with_alpha(ART_BLUE, 0.22), 1.1)
+	main.draw_line(center + Vector2(0.0, -radius - 8.0), center + Vector2(0.0, radius + 8.0), _with_alpha(ART_GOLD, 0.14), 1.0)
+
+
+static func _draw_hud_lotus(main: Node2D, center: Vector2, radius: float) -> void:
+	var pulse: float = 0.92 + 0.08 * sin(main.elapsed_time * 1.2)
+	var petal_index: int = 0
+	while petal_index < 5:
+		var angle: float = -PI * 0.5 + (float(petal_index) - 2.0) * 0.34
+		var tip: Vector2 = center + Vector2.RIGHT.rotated(angle) * radius * 0.95
+		var left: Vector2 = center + Vector2.RIGHT.rotated(angle + 0.5) * radius * 0.56
+		var right: Vector2 = center + Vector2.RIGHT.rotated(angle - 0.5) * radius * 0.56
+		_try_draw_colored_polygon(main, PackedVector2Array([left, tip, right]), _with_alpha(ART_GOLD, 0.15 * pulse))
+		main.draw_line(left, tip, _with_alpha(ART_GOLD, 0.45), 1.1)
+		main.draw_line(tip, right, _with_alpha(ART_GOLD, 0.45), 1.1)
+		petal_index += 1
+	main.draw_arc(center, radius * 1.24, 0.0, TAU, 30, _with_alpha(ART_BLUE, 0.15), 1.1)
+	main.draw_arc(center, radius * 1.58, PI * 0.18, PI * 0.82, 18, _with_alpha(ART_BLUE, 0.2), 1.0)
+
+
+static func _draw_hud_metric_bar(
+	main: Node2D,
+	bar_rect: Rect2,
+	fill_ratio: float,
+	core_color: Color,
+	accent_color: Color,
+	alpha_scale: float
+) -> void:
+	var ratio: float = clampf(fill_ratio, 0.0, 1.0)
+	main.draw_rect(bar_rect.grow_individual(0.0, 2.0, 32.0, 2.0), _with_alpha(ART_BG_DEEP, 0.54), true)
+	main.draw_rect(bar_rect.grow_individual(0.0, 2.0, 32.0, 2.0), _with_alpha(ART_GOLD, 0.18 * alpha_scale), false, 1.0)
+	var fill_rect := Rect2(bar_rect.position, Vector2(bar_rect.size.x * ratio, bar_rect.size.y))
+	main.draw_rect(fill_rect, _with_alpha(accent_color, 0.22 * alpha_scale), true)
+	main.draw_rect(Rect2(fill_rect.position, Vector2(fill_rect.size.x, maxf(fill_rect.size.y - 2.0, 1.0))), _with_alpha(core_color, 0.78 * alpha_scale), true)
+	if fill_rect.size.x > 8.0:
+		main.draw_rect(Rect2(fill_rect.end - Vector2(8.0, 0.0), Vector2(8.0, fill_rect.size.y)), _with_alpha(core_color.lerp(Color.WHITE, 0.32), 0.86 * alpha_scale), true)
+	main.draw_line(bar_rect.position + Vector2(0.0, -8.0), bar_rect.position + Vector2(bar_rect.size.x + 48.0, -8.0), _with_alpha(ART_GOLD, 0.16 * alpha_scale), 1.0)
+
+
+static func _draw_hud_bottom_frame(main: Node2D, viewport_size: Vector2) -> void:
+	var y: float = viewport_size.y - 37.0
+	main.draw_rect(Rect2(Vector2(0.0, y - 20.0), Vector2(viewport_size.x, 44.0)), _with_alpha(ART_BG_DEEP, 0.34), true)
+	main.draw_line(Vector2(48.0, y - 14.0), Vector2(viewport_size.x - 48.0, y - 14.0), _with_alpha(ART_GOLD, 0.2), 1.0)
+	main.draw_line(Vector2(260.0, y + 16.0), Vector2(viewport_size.x - 260.0, y + 16.0), _with_alpha(ART_BLUE, 0.08), 1.0)
 
 
 static func _draw_energy_gain_pulse(main: Node2D, player_pos: Vector2) -> void:
@@ -1823,6 +2152,16 @@ static func _try_draw_colored_polygon(main: Node2D, points: PackedVector2Array, 
 	if not _is_valid_fill_polygon(points):
 		return
 	main.draw_colored_polygon(points, color)
+
+
+static func _try_draw_polyline_closed(main: Node2D, points: PackedVector2Array, color: Color, width: float) -> void:
+	if points.size() < 2:
+		return
+	var point_index: int = 0
+	while point_index < points.size():
+		var next_index: int = (point_index + 1) % points.size()
+		main.draw_line(points[point_index], points[next_index], color, width)
+		point_index += 1
 
 
 static func _with_alpha(color: Color, alpha: float) -> Color:

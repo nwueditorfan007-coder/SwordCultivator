@@ -92,7 +92,7 @@ import {
   BOSS_COLORS
 } from './constants';
 import { SwordState, BulletState, BossState } from './types';
-import { Sword as SwordIcon, Shield, Zap, Target, RefreshCw, Play, Skull, Magnet } from 'lucide-react';
+import { Sword as SwordIcon, Shield, Zap, Target, Play, Skull, Magnet } from 'lucide-react';
 
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,7 +112,6 @@ const App: React.FC = () => {
     mode: CombatMode.MELEE,
     swordState: SwordState.ORBITING,
     dashCooldown: 0,
-    ultimateCooldown: 0,
   });
 
   // Game state ref for performance
@@ -129,7 +128,6 @@ const App: React.FC = () => {
       maxEnergy: PLAYER_MAX_ENERGY,
       dashCooldown: 0,
       attackCooldown: 0,
-      ultimateCooldown: 0,
       isDashing: false,
       dashTimer: 0,
       leftClickTimer: 0,
@@ -177,7 +175,6 @@ const App: React.FC = () => {
         maxEnergy: PLAYER_MAX_ENERGY,
         dashCooldown: 0,
         attackCooldown: 0,
-        ultimateCooldown: 0,
         isDashing: false,
         dashTimer: 0,
         leftClickTimer: 0,
@@ -218,7 +215,6 @@ const App: React.FC = () => {
       mode: CombatMode.MELEE,
       swordState: SwordState.ORBITING,
       dashCooldown: 0,
-      ultimateCooldown: 0,
     });
   };
 
@@ -627,7 +623,6 @@ const App: React.FC = () => {
     }
 
     if (player.attackCooldown > 0) player.attackCooldown -= dt;
-    if (player.ultimateCooldown > 0) player.ultimateCooldown -= dt;
 
     player.pos.x += player.vel.x * playerSpeedDt;
     player.pos.y += player.vel.y * playerSpeedDt;
@@ -737,25 +732,6 @@ const App: React.FC = () => {
           b.health -= SWORD_RANGED_DAMAGE * (sword.state === SwordState.POINT_STRIKE ? 1.5 : 0.5) * dt;
           createParticle(sword.pos, BOSS_COLORS.BODY, 2);
         }
-      }
-    }
-
-    // Ultimate Skill (Q)
-    if (keys.current['q'] && player.energy >= 100 && player.ultimateCooldown <= 0) {
-      player.energy = 0;
-      player.ultimateCooldown = 300;
-      gameState.current.screenShake = 15;
-      
-      // Clear all bullets and damage all enemies
-      bullets.length = 0;
-      enemies.forEach(e => {
-        if (e.type !== EnemyType.PUPPET) e.health -= 50;
-        createParticle(e.pos, COLORS.ENERGY, 20);
-      });
-      
-      // Visual effect
-      for (let i = 0; i < 50; i++) {
-        createParticle(player.pos, COLORS.ENERGY, 1);
       }
     }
 
@@ -1114,7 +1090,6 @@ const App: React.FC = () => {
       mode: player.mode,
       swordState: sword.state,
       dashCooldown: player.dashCooldown,
-      ultimateCooldown: player.ultimateCooldown,
     });
 
     if (gameState.current.screenShake > 0) gameState.current.screenShake *= 0.9;
@@ -1533,15 +1508,6 @@ const App: React.FC = () => {
             <Magnet size={20} />
             <div className="absolute -bottom-5 text-[8px] font-bold text-neutral-500 uppercase">空格 吸收</div>
           </div>
-          <div className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center relative ${uiState.energy < 100 ? 'bg-neutral-900 border-neutral-800 text-neutral-600' : 'bg-yellow-500/20 border-yellow-500 text-yellow-500 animate-pulse'}`}>
-            <RefreshCw size={20} />
-            {uiState.energy < 100 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-bold">
-                {Math.floor(uiState.energy)}%
-              </div>
-            )}
-            <div className="absolute -bottom-5 text-[8px] font-bold text-neutral-500 uppercase">Q 必杀</div>
-          </div>
         </div>
 
         {/* Game Over Screen */}
@@ -1599,7 +1565,6 @@ const App: React.FC = () => {
             <li>WASD：移动</li>
             <li>右键：御剑 (点按/长按)</li>
             <li>空格：长按吸收冻结弹幕 (耗能)</li>
-            <li>Q：必杀 (100% 剑意)</li>
           </ul>
         </div>
       </div>

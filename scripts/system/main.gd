@@ -187,7 +187,6 @@ const DAMAGE_SOURCE_NONE := ""
 const DAMAGE_SOURCE_MELEE := "melee"
 const DAMAGE_SOURCE_FLYING_SWORD := "flying_sword"
 const DAMAGE_SOURCE_ARRAY_SWORD := "array_sword"
-const DAMAGE_SOURCE_ULTIMATE := "ultimate"
 const DAMAGE_SOURCE_SYSTEM := "system"
 
 const WAVE_BASE_ENEMIES := 3
@@ -340,7 +339,7 @@ const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
 角色、近战挥剑、御剑目标和剑阵方向都会参考鼠标位置。鼠标离角色越近越偏环阵，中距离变为扇阵，远距离变为刺阵。
 
 [b]左键点击 近战挥剑[/b]
-立即朝鼠标方向斩击，适合处理贴脸敌人和弹开敌弹。命中敌人或成功弹反敌弹会回复剑意，是维持后续剑阵和必杀的主要来源。
+立即朝鼠标方向斩击，适合处理贴脸敌人和弹开敌弹。命中敌人或成功弹反敌弹会回复剑意，是维持后续剑阵的主要来源。
 
 [b]左键长按 剑阵压制[/b]
 按住约 0.1 秒后持续发射飞剑。近距离环阵守身，中距离扇阵横扫，远距离刺阵穿线。每把飞剑会消耗剑意，剑意不足或飞剑未回收时会中断。
@@ -350,9 +349,6 @@ const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
 
 [b]右键长按 御剑连斩[/b]
 按住超过短按阈值后进入连斩，拖动鼠标让飞剑追随并切割路径；松开右键后飞剑召回。适合持续切割移动中的目标或清理一片压力。
-
-[b]Q 必杀[/b]
-剑意满 100 时可释放。释放会清除敌弹并对场上敌人造成爆发伤害，之后剑意归零。
 
 [b]死亡后左键 重新开始[/b]
 力竭身亡后，在结算提示出现时点击左键即可重新开始本局。"""
@@ -468,8 +464,48 @@ func _ready() -> void:
 	randomize()
 	SwordArrayConfig.load_morph_distances_from_project()
 	_reset_game()
+	_apply_demo_art_label_style()
 	_build_start_menu()
 	_show_start_menu()
+
+
+func _apply_demo_art_label_style() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	_style_demo_label(health_label, 18, Color("f1e3bc"), HORIZONTAL_ALIGNMENT_LEFT)
+	_style_demo_label(energy_label, 17, Color("d7bb79"), HORIZONTAL_ALIGNMENT_LEFT)
+	_style_demo_label(wave_label, 17, Color("f1e3bc"), HORIZONTAL_ALIGNMENT_LEFT)
+	_style_demo_label(score_label, 16, Color("9cb0c2"), HORIZONTAL_ALIGNMENT_LEFT)
+	_style_demo_label(status_label, 24, Color("f1e3bc"), HORIZONTAL_ALIGNMENT_CENTER)
+	_style_demo_label(mode_label, 22, Color("f1e3bc"), HORIZONTAL_ALIGNMENT_CENTER)
+	_style_demo_label(focus_status_label, 22, Color("f1e3bc"), HORIZONTAL_ALIGNMENT_CENTER)
+	_style_demo_label(hint_label, 18, Color("9cb0c2"), HORIZONTAL_ALIGNMENT_CENTER)
+	_style_demo_label(game_over_label, 34, Color("f1e3bc"), HORIZONTAL_ALIGNMENT_CENTER)
+	health_label.position = Vector2(96.0, 16.0)
+	health_label.size = Vector2(260.0, 24.0)
+	energy_label.position = Vector2(96.0, 48.0)
+	energy_label.size = Vector2(260.0, 24.0)
+	wave_label.position = Vector2(96.0, 86.0)
+	wave_label.size = Vector2(260.0, 24.0)
+	score_label.position = Vector2(96.0, 112.0)
+	score_label.size = Vector2(520.0, 96.0)
+	status_label.position = Vector2(viewport_size.x * 0.5 - 220.0, 24.0)
+	status_label.size = Vector2(440.0, 36.0)
+	mode_label.position = Vector2(viewport_size.x - 116.0, 34.0)
+	mode_label.size = Vector2(108.0, 52.0)
+	hint_label.position = Vector2(220.0, viewport_size.y - 36.0)
+	hint_label.size = Vector2(viewport_size.x - 440.0, 28.0)
+	game_over_label.position = Vector2(viewport_size.x * 0.5 - 280.0, viewport_size.y * 0.5 - 120.0)
+	game_over_label.size = Vector2(560.0, 240.0)
+
+
+func _style_demo_label(label: Label, font_size: int, font_color: Color, alignment: HorizontalAlignment) -> void:
+	label.horizontal_alignment = alignment
+	label.clip_text = false
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", font_color)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.68))
+	label.add_theme_constant_override("shadow_offset_x", 0)
+	label.add_theme_constant_override("shadow_offset_y", 2)
 
 
 func _process(delta: float) -> void:
@@ -552,7 +588,6 @@ func _process(delta: float) -> void:
 	_update_particles(bullet_time_delta)
 	_update_sword_hit_effects(delta)
 	_update_wave(delta)
-	_try_cast_ultimate()
 	_apply_debug_runtime_overrides()
 
 	if player["health"] <= 0.0:
@@ -633,7 +668,7 @@ func _build_start_menu() -> void:
 
 	var backdrop := ColorRect.new()
 	backdrop.name = "Backdrop"
-	backdrop.color = Color(0.02, 0.024, 0.03, 0.94)
+	backdrop.color = Color(0.012, 0.024, 0.042, 0.88)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
 	start_menu.add_child(backdrop)
@@ -646,7 +681,7 @@ func _build_start_menu() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
 	panel.custom_minimum_size = Vector2(860.0, 620.0)
-	panel.add_theme_stylebox_override("panel", _make_start_menu_style(Color("10141c"), Color("38bdf8"), 1, 8))
+	panel.add_theme_stylebox_override("panel", _make_start_menu_style(Color(0.03, 0.055, 0.09, 0.92), Color("d7bb79"), 1, 8))
 	center.add_child(panel)
 
 	var margins := MarginContainer.new()
@@ -666,7 +701,9 @@ func _build_start_menu() -> void:
 	title_label.text = "剑修试炼"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 46)
-	title_label.add_theme_color_override("font_color", Color("f8fafc"))
+	title_label.add_theme_color_override("font_color", Color("f1e3bc"))
+	title_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.72))
+	title_label.add_theme_constant_override("shadow_offset_y", 2)
 	content.add_child(title_label)
 
 	var subtitle_label := Label.new()
@@ -674,7 +711,7 @@ func _build_start_menu() -> void:
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	subtitle_label.add_theme_font_size_override("font_size", 18)
-	subtitle_label.add_theme_color_override("font_color", Color("cbd5e1"))
+	subtitle_label.add_theme_color_override("font_color", Color("9cb0c2"))
 	content.add_child(subtitle_label)
 
 	start_button = Button.new()
@@ -683,25 +720,25 @@ func _build_start_menu() -> void:
 	start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	start_button.focus_mode = Control.FOCUS_ALL
 	start_button.add_theme_font_size_override("font_size", 24)
-	start_button.add_theme_color_override("font_color", Color("111827"))
-	start_button.add_theme_color_override("font_hover_color", Color("020617"))
-	start_button.add_theme_color_override("font_pressed_color", Color("020617"))
-	start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color("facc15"), Color("fde68a"), 1, 6))
-	start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color("fde68a"), Color("f8fafc"), 1, 6))
-	start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color("fbbf24"), Color("fef3c7"), 1, 6))
+	start_button.add_theme_color_override("font_color", Color("f1e3bc"))
+	start_button.add_theme_color_override("font_hover_color", Color("f6fbff"))
+	start_button.add_theme_color_override("font_pressed_color", Color("f6fbff"))
+	start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.09, 0.13, 0.16, 0.94), Color("d7bb79"), 1, 6))
+	start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.11, 0.18, 0.22, 0.98), Color("88d8ff"), 1, 6))
+	start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.13, 0.16, 0.13, 0.98), Color("f1e3bc"), 1, 6))
 	start_button.pressed.connect(_start_game_from_menu)
 	content.add_child(start_button)
 
 	var divider := ColorRect.new()
 	divider.custom_minimum_size = Vector2(0.0, 1.0)
-	divider.color = Color(0.56, 0.75, 0.9, 0.28)
+	divider.color = Color(0.84, 0.74, 0.5, 0.28)
 	content.add_child(divider)
 
 	var guide_title := Label.new()
 	guide_title.text = "操作说明"
 	guide_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	guide_title.add_theme_font_size_override("font_size", 26)
-	guide_title.add_theme_color_override("font_color", Color("e0f2fe"))
+	guide_title.add_theme_color_override("font_color", Color("f1e3bc"))
 	content.add_child(guide_title)
 
 	var guide_label := RichTextLabel.new()
@@ -715,7 +752,7 @@ func _build_start_menu() -> void:
 	guide_label.selection_enabled = false
 	guide_label.add_theme_font_size_override("normal_font_size", 18)
 	guide_label.add_theme_font_size_override("bold_font_size", 18)
-	guide_label.add_theme_color_override("default_color", Color("e5e7eb"))
+	guide_label.add_theme_color_override("default_color", Color("d8e2ea"))
 	content.add_child(guide_label)
 
 
@@ -2877,58 +2914,6 @@ func _update_wave(delta: float) -> void:
 	enemies_to_spawn = max(enemies_to_spawn - spawned_enemy_count, 0)
 
 
-func _try_cast_ultimate() -> void:
-	if not Input.is_action_just_pressed("ultimate"):
-		return
-	if not _has_debug_flag("infinite_energy") and player["energy"] < PLAYER_MAX_ENERGY:
-		return
-
-	if _has_debug_flag("infinite_energy"):
-		player["energy"] = PLAYER_MAX_ENERGY
-	else:
-		player["energy"] = 0.0
-	screen_shake = max(screen_shake, 14.0)
-	var index: int = bullets.size() - 1
-	while index >= 0:
-		_remove_bullet(index)
-		index -= 1
-	var ultimate_attack_instance: Dictionary = _build_attack_instance(AttackProfiles.PROFILE_ULTIMATE_PULSE, "player", "ultimate")
-	var ultimate_attack_instance_id: String = str(ultimate_attack_instance.get("id", ""))
-	var ultimate_attack_profile_id: String = str(ultimate_attack_instance.get("profile_id", AttackProfiles.PROFILE_ULTIMATE_PULSE))
-	for enemy in enemies:
-		if enemy["type"] == PUPPET:
-			continue
-		var hurtbox: Dictionary = _get_enemy_primary_hurtbox(enemy)
-		var enemy_id: String = str(hurtbox.get("target_id", ""))
-		var hurtbox_id: String = str(hurtbox.get("hurtbox_id", ""))
-		var target_profile_id: String = str(hurtbox.get("target_profile_id", ""))
-		if enemy_id == "" or hurtbox_id == "" or target_profile_id == "":
-			continue
-		var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
-			ultimate_attack_instance_id,
-			ultimate_attack_profile_id,
-			enemy["pos"],
-			enemy_id,
-			hurtbox_id,
-			target_profile_id,
-			DAMAGE_SOURCE_ULTIMATE
-		)
-		if not bool(attack_result.get("allowed", false)):
-			continue
-		_create_particles(enemy["pos"], COLORS["energy"], 12)
-	if _has_boss():
-		var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
-			ultimate_attack_instance_id,
-			ultimate_attack_profile_id,
-			boss["pos"],
-			DAMAGE_SOURCE_ULTIMATE
-		)
-		if bool(boss_hit_result.get("allowed", false)):
-			_create_particles(boss["pos"], COLORS["energy"], 18)
-	_clear_attack_instance(ultimate_attack_instance_id)
-	_create_particles(player["pos"], COLORS["energy"], 24)
-
-
 func _perform_melee_attack() -> void:
 	player["attack_cooldown"] = SWORD_MELEE_COOLDOWN
 	player["attack_flash_timer"] = MELEE_ATTACK_FLASH_DURATION
@@ -3784,9 +3769,9 @@ func _update_ui() -> void:
 	if debug_calibration_mode:
 		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
 	elif debug_battle_mode:
-		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击必杀 | 4 停刷怪 | 5 清敌弹 | F7 退出 | F6 校准"
+		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击击杀 | 4 停刷怪 | 5 清敌弹 | F7 退出 | F6 校准"
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | Q 必杀 | F7 战斗调试 | F6 校准调试"
+		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | F7 战斗调试 | F6 校准调试"
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
@@ -4194,9 +4179,7 @@ func _get_boss_hit_context(attack_profile_id := "", damage_source := DAMAGE_SOUR
 	}
 
 
-func _should_bypass_boss_window(attack_profile_id: String, damage_source := DAMAGE_SOURCE_NONE) -> bool:
-	if damage_source == DAMAGE_SOURCE_ULTIMATE:
-		return true
+func _should_bypass_boss_window(attack_profile_id: String, _damage_source := DAMAGE_SOURCE_NONE) -> bool:
 	if attack_profile_id == "":
 		return false
 	var attack_profile: Dictionary = _get_attack_profile(attack_profile_id)
@@ -4509,8 +4492,6 @@ func _get_target_hit_reaction_distance(attack_profile_id: String, damage_source:
 			reaction_distance = 4.0
 		AttackProfiles.PROFILE_DEFLECTED_BULLET:
 			reaction_distance = 5.0
-		AttackProfiles.PROFILE_ULTIMATE_PULSE:
-			reaction_distance = 0.0
 		_:
 			if damage_source == DAMAGE_SOURCE_MELEE:
 				reaction_distance = 6.6
@@ -5049,7 +5030,7 @@ func _get_debug_status_suffix() -> String:
 	if _has_debug_flag("infinite_energy"):
 		active_flags.append("无限剑意")
 	if _has_debug_flag("one_hit_kill"):
-		active_flags.append("一击必杀")
+		active_flags.append("一击击杀")
 	if _has_debug_flag("no_spawn"):
 		active_flags.append("停刷怪")
 	return " | %s" % ("已启用" if active_flags.is_empty() else " / ".join(active_flags))

@@ -107,7 +107,6 @@ Controls
 - Right mouse tap: point strike
 - Right mouse hold: slicing sword
 - Space: absorb frozen bullets
-- Q: ultimate
 
 Notes
 - This is a portable playtest build, not a formal installer.
