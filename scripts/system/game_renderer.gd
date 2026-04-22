@@ -23,6 +23,10 @@ const UNSHEATH_FLASH_DIRECTIONAL_FRONT_SCALE := 0.3
 const UNSHEATH_FLASH_DIRECTIONAL_BACK_SCALE := 0.12
 const UNSHEATH_FLASH_TIP_LENGTH_SCALE := 0.18
 const UNSHEATH_FLASH_TIP_WIDTH_SCALE := 0.07
+const BULLET_EDGE_SHADE := 0.24
+const BULLET_CORE_HIGHLIGHT := 0.28
+const BULLET_SPECULAR_HIGHLIGHT := 0.52
+const BULLET_RENDER_SCALE := 1.24
 
 
 static func draw_game(main: Node2D) -> void:
@@ -63,7 +67,8 @@ static func draw_game(main: Node2D) -> void:
 	for bullet in main.bullets:
 		var bullet_pos: Vector2 = main._to_screen(bullet["pos"])
 		var bullet_color: Color = bullet["color"]
-		var bullet_radius: float = bullet["radius"]
+		var bullet_radius: float = bullet["radius"] * BULLET_RENDER_SCALE
+		var bullet_family: String = str(bullet.get("family", main.BULLET_FAMILY_NEEDLE))
 		if bullet["state"] == "deflected":
 			bullet_color = main.COLORS["melee_sword"]
 			bullet_radius *= 1.15
@@ -75,7 +80,76 @@ static func draw_game(main: Node2D) -> void:
 					bullet_radius + 2.6 + 2.0 * time_stop_strength,
 					_with_alpha(TIME_STOP_FRAME_COLOR, 0.05 + 0.12 * time_stop_strength)
 				)
-		main.draw_circle(bullet_pos, bullet_radius, bullet_color)
+		_draw_bullet_shape(
+			main,
+			bullet_pos,
+			Vector2(bullet.get("vel", Vector2.RIGHT)),
+			bullet_radius,
+			bullet_color,
+			bullet_family,
+			bullet["state"] == "deflected"
+		)
+
+	for package_variant in main.enemy_packages.values():
+		var package: Dictionary = package_variant
+		if str(package.get("type", "")) != main.ENEMY_PACKAGE_RING_LEECH_CLOSE:
+			continue
+		var package_phase: String = str(package.get("phase", ""))
+		if package_phase == "" or package_phase == main.ENEMY_PACKAGE_PHASE_BREAK:
+			continue
+		var slot_count: int = max(int(package.get("slot_count", 0)), 0)
+		if slot_count < 3:
+			continue
+		var slot_positions: Array = []
+		slot_positions.resize(slot_count)
+		var active_slot_count: int = 0
+		for member_id_variant in package.get("member_ids", []):
+			var member: Variant = main._find_enemy_by_id(str(member_id_variant))
+			if member == null or bool(member.get("is_dying", false)):
+				continue
+			var slot_index: int = int(member.get("package_slot_index", -1))
+			if slot_index < 0 or slot_index >= slot_count:
+				continue
+			slot_positions[slot_index] = main._to_screen(
+				Vector2(member.get("pos", Vector2.ZERO)) + Vector2(member.get("hit_reaction_offset", Vector2.ZERO))
+			)
+			active_slot_count += 1
+		if active_slot_count < 3:
+			continue
+		var pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 8.0))
+		var link_alpha: float = 0.14
+		var link_width: float = 1.7
+		match package_phase:
+			main.ENEMY_PACKAGE_PHASE_COLLAPSE:
+				link_alpha = 0.22
+				link_width = 2.1
+			main.ENEMY_PACKAGE_PHASE_ENGAGE:
+				link_alpha = 0.18
+				link_width = 1.9
+		var link_color: Color = _with_alpha(main.COLORS["ring_leech"], link_alpha * pulse)
+		var slot_index: int = 0
+		while slot_index < slot_count:
+			var next_index: int = (slot_index + 1) % slot_count
+			var from_slot: Variant = slot_positions[slot_index]
+			var to_slot: Variant = slot_positions[next_index]
+			if typeof(from_slot) == TYPE_VECTOR2 and typeof(to_slot) == TYPE_VECTOR2:
+				main.draw_line(from_slot, to_slot, main._get_time_stop_world_color(link_color), link_width)
+			slot_index += 1
+
+	for enemy in main.enemies:
+		if str(enemy.get("type", "")) != main.DRAPE_PRIEST:
+			continue
+		var target_id: String = str(enemy.get("support_target_id", ""))
+		if target_id == "":
+			continue
+		var target: Variant = main._find_enemy_by_id(target_id)
+		if target == null or bool(target.get("is_dying", false)):
+			continue
+		var link_pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 6.0))
+		var link_color: Color = _with_alpha(main.COLORS["silk"].lerp(main.COLORS["drape_priest"], 0.18), 0.28 + 0.2 * link_pulse)
+		var link_from: Vector2 = main._to_screen(Vector2(enemy.get("pos", Vector2.ZERO)) + Vector2(enemy.get("hit_reaction_offset", Vector2.ZERO)))
+		var link_to: Vector2 = main._to_screen(Vector2(target.get("pos", Vector2.ZERO)) + Vector2(target.get("hit_reaction_offset", Vector2.ZERO)))
+		main.draw_line(link_from, link_to, main._get_time_stop_world_color(link_color), 3.6)
 
 	for enemy in main.enemies:
 		var color_key: String = enemy["type"]
@@ -100,6 +174,68 @@ static func draw_game(main: Node2D) -> void:
 			enemy_color = enemy_color.lerp(death_feedback_color, 0.3 + 0.52 * enemy_death_ratio)
 		enemy_color.a *= enemy_alpha
 		main.draw_circle(enemy_screen_pos, enemy_radius, main._get_time_stop_world_color(enemy_color))
+		if not is_enemy_dying and str(enemy.get("support_source_id", "")) != "":
+			var support_pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 8.0))
+			var support_color: Color = _with_alpha(main.COLORS["silk"].lerp(main.COLORS["drape_priest"], 0.18), (0.24 + 0.18 * support_pulse) * enemy_alpha)
+			main.draw_arc(
+				enemy_screen_pos,
+				enemy_radius + 5.8,
+				0.0,
+				TAU,
+				22,
+				main._get_time_stop_world_color(support_color),
+				2.2
+			)
+		if color_key == main.RING_LEECH:
+			var leech_to_player: Vector2 = Vector2(main.player.get("pos", Vector2.ZERO)) - Vector2(enemy.get("pos", Vector2.ZERO))
+			if leech_to_player.length() <= main.RING_LEECH_FIRE_DISTANCE + 12.0:
+				var leech_dir: Vector2 = leech_to_player.normalized()
+				if leech_dir.is_zero_approx():
+					leech_dir = Vector2.RIGHT
+				var fang_color: Color = _with_alpha(main.COLORS["ring_leech"], 0.28 * enemy_alpha)
+				var fang_left: Vector2 = enemy_screen_pos + leech_dir.rotated(0.55) * (enemy_radius + 1.0)
+				var fang_right: Vector2 = enemy_screen_pos + leech_dir.rotated(-0.55) * (enemy_radius + 1.0)
+				var fang_tip: Vector2 = enemy_screen_pos + leech_dir * (enemy_radius + 8.0)
+				main.draw_line(fang_left, fang_tip, main._get_time_stop_world_color(fang_color), 1.8)
+				main.draw_line(fang_right, fang_tip, main._get_time_stop_world_color(fang_color), 1.8)
+		if color_key == main.MIRROR_NEEDLER:
+			var vulnerable_ratio: float = clampf(float(enemy.get("mirror_vulnerable_timer", 0.0)) / maxf(main.MIRROR_NEEDLER_VULNERABLE_DURATION, 0.001), 0.0, 1.0)
+			var charge_timer: float = float(enemy.get("charge_timer", 0.0))
+			var charge_progress: float = 1.0 - clampf(charge_timer / maxf(main.MIRROR_NEEDLER_CHARGE_DURATION, 0.001), 0.0, 1.0)
+			if vulnerable_ratio > 0.0:
+				var break_color: Color = _with_alpha(main.COLORS["melee_sword"], (0.18 + 0.18 * vulnerable_ratio) * enemy_alpha)
+				main.draw_arc(
+					enemy_screen_pos,
+					enemy_radius + 5.2 + 1.6 * vulnerable_ratio,
+					0.0,
+					TAU,
+					24,
+					main._get_time_stop_world_color(break_color),
+					2.0
+				)
+			else:
+				var shell_color: Color = _with_alpha(Color.WHITE, 0.3 * enemy_alpha)
+				main.draw_arc(
+					enemy_screen_pos,
+					enemy_radius + 4.8,
+					0.0,
+					TAU,
+					24,
+					main._get_time_stop_world_color(shell_color),
+					2.0
+				)
+			if charge_timer > 0.0:
+				var charge_color: Color = _with_alpha(main.COLORS["melee_sword"], (0.22 + 0.3 * charge_progress) * enemy_alpha)
+				var charge_angle: float = PI * (0.4 + 0.45 * charge_progress)
+				main.draw_arc(
+					enemy_screen_pos,
+					enemy_radius + 8.5 - 2.0 * charge_progress,
+					- charge_angle,
+					charge_angle,
+					18,
+					main._get_time_stop_world_color(charge_color),
+					2.1
+				)
 		if enemy_flash_ratio > 0.0:
 			main.draw_circle(
 				enemy_screen_pos,
@@ -364,6 +500,202 @@ static func _get_channeled_array_sword_color(main: Node2D, base_color: Color) ->
 	elif energy_ratio <= 0.18:
 		color = color.lerp(main.COLORS["health"], 0.22 + 0.18 * pulse)
 	return color
+
+
+static func _draw_bullet_shape(
+	main: Node2D,
+	bullet_pos: Vector2,
+	velocity: Vector2,
+	bullet_radius: float,
+	bullet_color: Color,
+	bullet_family: String,
+	is_deflected: bool
+) -> void:
+	var forward: Vector2 = velocity.normalized()
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	if is_deflected:
+		_draw_deflected_bullet(main, bullet_pos, forward, side, bullet_radius, bullet_color)
+		return
+	match bullet_family:
+		main.BULLET_FAMILY_WEAVE:
+			_draw_weave_bullet(main, bullet_pos, forward, side, bullet_radius, bullet_color)
+		main.BULLET_FAMILY_FANG:
+			_draw_fang_bullet(main, bullet_pos, forward, side, bullet_radius, bullet_color)
+		main.BULLET_FAMILY_CORE:
+			_draw_core_bullet(main, bullet_pos, forward, side, bullet_radius, bullet_color)
+		_:
+			_draw_needle_bullet(main, bullet_pos, forward, side, bullet_radius, bullet_color)
+
+
+static func _draw_needle_bullet(
+	main: Node2D,
+	center: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	radius: float,
+	bullet_color: Color
+) -> void:
+	var body := PackedVector2Array([
+		center + forward * radius * 1.8,
+		center + side * radius * 0.55,
+		center - forward * radius * 1.15,
+		center - side * radius * 0.55,
+	])
+	_try_draw_colored_polygon(main, body, bullet_color)
+	main.draw_line(
+		center - forward * radius * 1.45,
+		center - forward * radius * 0.4,
+		_with_alpha(bullet_color.lerp(Color.BLACK, BULLET_EDGE_SHADE), 0.44),
+		maxf(radius * 0.18, 1.0)
+	)
+	main.draw_line(
+		center - forward * radius * 0.82,
+		center + forward * radius * 1.1,
+		_with_alpha(bullet_color.lerp(Color.WHITE, BULLET_SPECULAR_HIGHLIGHT), 0.78),
+		maxf(radius * 0.16, 1.0)
+	)
+
+
+static func _draw_weave_bullet(
+	main: Node2D,
+	center: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	radius: float,
+	bullet_color: Color
+) -> void:
+	var body := PackedVector2Array([
+		center + forward * radius * 1.05,
+		center + forward * radius * 0.28 + side * radius * 0.82,
+		center - forward * radius * 0.95,
+		center + forward * radius * 0.28 - side * radius * 0.82,
+	])
+	_try_draw_colored_polygon(main, body, _with_alpha(bullet_color, 0.96))
+	main.draw_arc(
+		center,
+		radius * 0.96,
+		0.0,
+		TAU,
+		14,
+		_with_alpha(bullet_color.lerp(Color.BLACK, BULLET_EDGE_SHADE), 0.4),
+		maxf(radius * 0.12, 1.0)
+	)
+	main.draw_line(
+		center - side * radius * 0.92,
+		center + side * radius * 0.92,
+		_with_alpha(bullet_color.lerp(Color.WHITE, BULLET_CORE_HIGHLIGHT), 0.62),
+		maxf(radius * 0.12, 1.0)
+	)
+	main.draw_line(
+		center - forward * radius * 0.78,
+		center + forward * radius * 0.78,
+		_with_alpha(bullet_color.lerp(Color.WHITE, BULLET_SPECULAR_HIGHLIGHT), 0.44),
+		maxf(radius * 0.1, 1.0)
+	)
+
+
+static func _draw_fang_bullet(
+	main: Node2D,
+	center: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	radius: float,
+	bullet_color: Color
+) -> void:
+	var body := PackedVector2Array([
+		center + forward * radius * 1.5,
+		center - forward * radius * 0.22 + side * radius * 0.96,
+		center - forward * radius * 0.78,
+		center - forward * radius * 0.22 - side * radius * 0.96,
+	])
+	_try_draw_colored_polygon(main, body, bullet_color)
+	main.draw_line(
+		center - forward * radius * 0.42 + side * radius * 0.54,
+		center - forward * radius * 1.2 + side * radius * 0.16,
+		_with_alpha(bullet_color.lerp(Color.BLACK, BULLET_EDGE_SHADE), 0.42),
+		maxf(radius * 0.14, 1.0)
+	)
+	main.draw_line(
+		center - forward * radius * 0.42 - side * radius * 0.54,
+		center - forward * radius * 1.2 - side * radius * 0.16,
+		_with_alpha(bullet_color.lerp(Color.BLACK, BULLET_EDGE_SHADE), 0.42),
+		maxf(radius * 0.14, 1.0)
+	)
+	main.draw_line(
+		center - forward * radius * 0.35,
+		center + forward * radius * 0.98,
+		_with_alpha(bullet_color.lerp(Color.WHITE, BULLET_SPECULAR_HIGHLIGHT), 0.66),
+		maxf(radius * 0.14, 1.0)
+	)
+
+
+static func _draw_core_bullet(
+	main: Node2D,
+	center: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	radius: float,
+	bullet_color: Color
+) -> void:
+	var shell := PackedVector2Array([
+		center + forward * radius * 1.04,
+		center + forward * radius * 0.32 + side * radius * 0.96,
+		center - forward * radius * 0.76 + side * radius * 0.7,
+		center - forward * radius * 0.96,
+		center - forward * radius * 0.76 - side * radius * 0.7,
+		center + forward * radius * 0.32 - side * radius * 0.96,
+	])
+	_try_draw_colored_polygon(main, shell, bullet_color)
+	main.draw_circle(
+		center,
+		radius * 0.42,
+		_with_alpha(bullet_color.lerp(Color.WHITE, BULLET_CORE_HIGHLIGHT), 0.92)
+	)
+	main.draw_arc(
+		center,
+		radius * 0.9,
+		0.0,
+		TAU,
+		18,
+		_with_alpha(bullet_color.lerp(Color.BLACK, BULLET_EDGE_SHADE), 0.46),
+		maxf(radius * 0.12, 1.2)
+	)
+	main.draw_line(
+		center - forward * radius * 0.22,
+		center + forward * radius * 0.78,
+		_with_alpha(bullet_color.lerp(Color.WHITE, BULLET_SPECULAR_HIGHLIGHT), 0.74),
+		maxf(radius * 0.15, 1.2)
+	)
+
+
+static func _draw_deflected_bullet(
+	main: Node2D,
+	center: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	radius: float,
+	bullet_color: Color
+) -> void:
+	var blade := PackedVector2Array([
+		center + forward * radius * 1.45,
+		center - forward * radius * 0.12 + side * radius * 0.58,
+		center - forward * radius * 1.15,
+		center - forward * radius * 0.12 - side * radius * 0.58,
+	])
+	_try_draw_colored_polygon(main, blade, bullet_color)
+	main.draw_line(
+		center - forward * radius * 1.28,
+		center + forward * radius * 1.08,
+		_with_alpha(bullet_color.lerp(Color.WHITE, 0.42), 0.82),
+		maxf(radius * 0.14, 1.0)
+	)
+	main.draw_circle(
+		center - forward * radius * 0.18,
+		radius * 0.24,
+		_with_alpha(bullet_color.lerp(Color.WHITE, 0.18), 0.72)
+	)
 
 
 static func _draw_ambient_array_presence(main: Node2D, player_pos: Vector2, hold_ratio: float) -> void:

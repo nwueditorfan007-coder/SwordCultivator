@@ -45,14 +45,32 @@ static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> v
 				var fan_index: int = -3
 				while fan_index <= 3:
 					var angle: float = PI * 0.5 + float(fan_index) * 0.25
-					main._spawn_bullet(main.boss["pos"], Vector2(cos(angle), sin(angle)) * 240.0, "small", main.boss["id"], main.COLORS["silk"])
+					main._spawn_bullet(
+						main.boss["pos"],
+						Vector2(cos(angle), sin(angle)) * 240.0,
+						"small",
+						main.boss["id"],
+						main.COLORS["bullet"],
+						{
+							"family": main.BULLET_FAMILY_WEAVE,
+						}
+					)
 					fan_index += 1
 		main.BOSS_NEEDLE_RETURN:
 			if int(floor(main.boss["state_timer"] * 20.0)) % 4 == 0:
 				var ring_angle: float = randf_range(0.0, TAU)
 				var spawn_pos: Vector2 = main.player["pos"] + Vector2.RIGHT.rotated(ring_angle) * 400.0
 				var shot_dir: Vector2 = (main.player["pos"] - spawn_pos).normalized()
-				main._spawn_bullet(spawn_pos, shot_dir * 360.0, "small", main.boss["id"], main.COLORS["silk"])
+				main._spawn_bullet(
+					spawn_pos,
+					shot_dir * 360.0,
+					"small",
+					main.boss["id"],
+					main.COLORS["bullet"],
+					{
+						"family": main.BULLET_FAMILY_NEEDLE,
+					}
+				)
 		main.BOSS_SILK_CAGE:
 			if int(floor(main.boss["state_timer"] * 5.0)) % 5 == 0 and count_active_silks(main) < 3:
 				spawn_puppets(main, 1)

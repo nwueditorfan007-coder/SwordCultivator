@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07111f"/>
+      <stop offset="55%" stop-color="#0a1629"/>
+      <stop offset="100%" stop-color="#040912"/>
+    </linearGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="55%" r="45%">
+      <stop offset="0%" stop-color="#163b63" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#0c1e36" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#07111f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="goldFade" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d8bb75" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#d8bb75" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <style>
+      .title { fill:#f2dfb2; font: 700 34px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .label { fill:#d8bb75; font: 700 20px "Microsoft YaHei UI", "Segoe UI", sans-serif; letter-spacing: 1px; }
+      .note { fill:#9fb7cf; font: 16px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .minor { fill:#6f8599; font: 14px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .frame { stroke:#c9aa67; stroke-width:2; fill:none; opacity:0.55; }
+      .thin { stroke:#c9aa67; stroke-width:1.2; fill:none; opacity:0.32; }
+      .enemy { stroke:#cf4f5a; stroke-width:2; fill:none; opacity:0.9; }
+      .hud { stroke:#d8bb75; stroke-width:2; fill:none; opacity:0.72; }
+      .safe { stroke:#77c8ff; stroke-width:1.5; stroke-dasharray:8 8; fill:none; opacity:0.8; }
+      .danger { stroke:#ff6b75; stroke-width:1.5; stroke-dasharray:5 7; fill:none; opacity:0.7; }
+      .swordMain { stroke:#d8f5ff; stroke-width:10; stroke-linecap:round; opacity:0.95; }
+      .swordGlow { stroke:#7fd7ff; stroke-width:22; stroke-linecap:round; opacity:0.18; filter:url(#softGlow); }
+      .swordMinor { stroke:#b8efff; stroke-width:4.5; stroke-linecap:round; opacity:0.82; }
+      .callout { stroke:#88aeca; stroke-width:1.2; fill:none; opacity:0.8; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#centerGlow)"/>
+
+  <text x="80" y="70" class="title">主视觉母版构图板 V1</text>
+  <text x="80" y="104" class="note">目标：定义单屏俯视战斗母版的构图重心、留白关系、HUD 占位和战场仪式感。</text>
+
+  <rect x="70" y="130" width="1460" height="720" rx="16" class="frame"/>
+  <rect x="240" y="200" width="1120" height="520" rx="22" class="safe"/>
+  <rect x="410" y="250" width="780" height="420" rx="26" class="thin"/>
+
+  <circle cx="785" cy="500" r="190" class="thin"/>
+  <circle cx="785" cy="500" r="260" class="thin"/>
+  <circle cx="785" cy="500" r="320" class="thin"/>
+  <circle cx="785" cy="500" r="44" fill="url(#goldFade)"/>
+  <circle cx="785" cy="500" r="14" fill="#f4e8c8"/>
+  <circle cx="785" cy="500" r="28" class="hud"/>
+  <circle cx="785" cy="500" r="62" class="thin"/>
+
+  <path d="M785 500 C 880 445 1035 330 1260 150" class="swordGlow"/>
+  <path d="M785 500 C 880 445 1035 330 1260 150" class="swordMain"/>
+
+  <path d="M785 500 C 715 450 640 380 575 300" class="swordMinor"/>
+  <path d="M785 500 C 680 485 575 465 445 438" class="swordMinor"/>
+  <path d="M785 500 C 705 525 600 560 500 620" class="swordMinor"/>
+  <path d="M785 500 C 845 450 910 390 985 332" class="swordMinor"/>
+  <path d="M785 500 C 880 520 975 555 1085 610" class="swordMinor"/>
+  <path d="M785 500 C 800 410 820 345 855 255" class="swordMinor"/>
+
+  <circle cx="1120" cy="230" r="24" class="enemy"/>
+  <circle cx="1218" cy="368" r="19" class="enemy"/>
+  <circle cx="1185" cy="575" r="22" class="enemy"/>
+  <circle cx="510" cy="235" r="18" class="enemy"/>
+  <circle cx="470" cy="620" r="16" class="enemy"/>
+
+  <path d="M1088 230 L1152 230 M1120 198 L1120 262" class="enemy"/>
+  <path d="M1218 340 L1218 396 M1190 368 L1246 368" class="enemy"/>
+  <path d="M1185 548 L1185 602 M1158 575 L1212 575" class="enemy"/>
+  <path d="M510 207 L510 263 M484 235 L536 235" class="enemy"/>
+  <path d="M470 598 L470 642 M448 620 L492 620" class="enemy"/>
+
+  <rect x="98" y="168" width="330" height="140" rx="18" class="hud"/>
+  <text x="118" y="196" class="label">HUD 资源区</text>
+  <text x="118" y="225" class="minor">保留左上资源，但做成法器嵌件</text>
+  <text x="118" y="248" class="minor">亮度低于飞剑</text>
+  <text x="118" y="271" class="minor">不准像网页面板</text>
+
+  <rect x="580" y="150" width="420" height="52" rx="16" class="hud"/>
+  <text x="602" y="182" class="label">顶部题字 / 标题区</text>
+
+  <rect x="1320" y="158" width="118" height="122" rx="20" class="hud"/>
+  <text x="1338" y="190" class="label">模式徽记</text>
+  <text x="1338" y="214" class="minor">单个强识别印章</text>
+
+  <rect x="478" y="744" width="640" height="74" rx="22" class="hud"/>
+  <text x="504" y="776" class="label">底部技能盘 / 操作提示</text>
+  <text x="504" y="801" class="minor">轻阵盘结构，不能过厚</text>
+
+  <rect x="124" y="328" width="96" height="250" rx="18" class="thin"/>
+  <rect x="1380" y="328" width="96" height="250" rx="18" class="thin"/>
+  <text x="122" y="606" class="minor">侧边题字区</text>
+  <text x="1363" y="606" class="minor">侧边题字区</text>
+
+  <path d="M240 200 L410 250" class="callout"/>
+  <text x="98" y="360" class="label">中央安全战斗区</text>
+  <text x="98" y="387" class="note">这里必须承受飞剑、敌弹、伤害数值和技能读感。</text>
+  <text x="98" y="411" class="note">背景、书法字、云纹都必须为这里让开。</text>
+
+  <path d="M1230 170 L1260 150" class="callout"/>
+  <text x="1268" y="130" class="label">主剑势</text>
+  <text x="1268" y="154" class="note">全画面唯一最高亮度轴线。</text>
+
+  <path d="M1138 230 L1286 230" class="callout"/>
+  <text x="1296" y="235" class="label">敌方符标</text>
+  <text x="1296" y="259" class="note">只做威胁节点，不急着画复杂怪物。</text>
+
+  <ellipse cx="790" cy="500" rx="520" ry="300" class="danger"/>
+  <text x="1054" y="690" class="label">背景纹样活动边界</text>
+  <text x="1054" y="716" class="note">装饰可在边缘聚集，不能压进中心战斗区。</text>
+
+  <text x="80" y="876" class="minor">建议先用此构图板约束主视觉出图，再反推背景、HUD、敌方符标与 Godot 合成规则。</text>
+</svg>

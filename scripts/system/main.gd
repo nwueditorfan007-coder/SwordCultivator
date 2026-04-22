@@ -59,6 +59,10 @@ const BULLET_SPEED := 2.5 * 60.0
 const BULLET_LARGE_SPEED := 1.5 * 60.0
 const BULLET_DAMAGE := 10.0
 const BULLET_LARGE_DAMAGE := 25.0
+const BULLET_FAMILY_NEEDLE := "needle"
+const BULLET_FAMILY_WEAVE := "weave"
+const BULLET_FAMILY_FANG := "fang"
+const BULLET_FAMILY_CORE := "core"
 
 const BULLET_TIME_START_MULTIPLIER := 0.1
 const BULLET_TIME_RECOVERY_DURATION := 2.0
@@ -195,7 +199,19 @@ const SHOOTER := "shooter"
 const TANK := "tank"
 const CASTER := "caster"
 const HEAVY := "heavy"
+const RING_LEECH := "ring_leech"
+const DRAPE_PRIEST := "drape_priest"
+const MIRROR_NEEDLER := "mirror_needler"
 const PUPPET := "puppet"
+
+const SPAWN_ENTRY_ENEMY := "enemy"
+const SPAWN_ENTRY_PACKAGE := "package"
+
+const ENEMY_PACKAGE_RING_LEECH_CLOSE := "ring_leech_close"
+const ENEMY_PACKAGE_PHASE_ASSEMBLE := "assemble"
+const ENEMY_PACKAGE_PHASE_COLLAPSE := "collapse"
+const ENEMY_PACKAGE_PHASE_ENGAGE := "engage"
+const ENEMY_PACKAGE_PHASE_BREAK := "break"
 
 const BOSS_IDLE := "idle"
 const BOSS_THOUSAND_SILKS := "thousand_silks"
@@ -222,6 +238,62 @@ const HEAVY_HEALTH := 60.0
 const HEAVY_SPEED := 1.0 * 60.0
 const HEAVY_COOLDOWN := 150.0 / 60.0
 
+const RING_LEECH_RADIUS := 18.0
+const RING_LEECH_HEALTH := 18.0
+const RING_LEECH_SPEED := 2.35 * 60.0
+const RING_LEECH_COOLDOWN := 72.0 / 60.0
+const RING_LEECH_BULLET_SPEED := 2.1 * 60.0
+const RING_LEECH_BULLET_DAMAGE := 7.0
+const RING_LEECH_ORBIT_DISTANCE := 86.0
+const RING_LEECH_ORBIT_ANGULAR_SPEED := 2.2
+const RING_LEECH_FIRE_DISTANCE := 170.0
+const RING_LEECH_SPREAD_ANGLE := 0.3
+const RING_LEECH_PACKAGE_DEFAULT_COUNT := 10
+const RING_LEECH_PACKAGE_MIN_COUNT := 6
+const RING_LEECH_PACKAGE_MAX_COUNT := 9
+const RING_LEECH_PACKAGE_SPAWN_RADIUS := 320.0
+const RING_LEECH_PACKAGE_ENGAGE_RADIUS := 114.0
+const RING_LEECH_PACKAGE_ENGAGE_RADIUS_SWAY := 12.0
+const RING_LEECH_PACKAGE_ASSEMBLE_DURATION := 0.22
+const RING_LEECH_PACKAGE_COLLAPSE_DURATION := 0.82
+const RING_LEECH_PACKAGE_ENGAGE_DURATION := 1.75
+const RING_LEECH_PACKAGE_BREAK_MEMBER_THRESHOLD := 3
+const RING_LEECH_PACKAGE_ASSEMBLE_ROTATION_SPEED := 0.2
+const RING_LEECH_PACKAGE_COLLAPSE_ROTATION_SPEED := 0.48
+const RING_LEECH_PACKAGE_ENGAGE_ROTATION_SPEED := 1.18
+const RING_LEECH_PACKAGE_COLLAPSE_FIRE_PROGRESS := 0.8
+
+const DRAPE_PRIEST_RADIUS := 22.0
+const DRAPE_PRIEST_HEALTH := 32.0
+const DRAPE_PRIEST_SPEED := 0.95 * 60.0
+const DRAPE_PRIEST_SUPPORT_RANGE := 240.0
+const DRAPE_PRIEST_APPROACH_DISTANCE := 330.0
+const DRAPE_PRIEST_RETREAT_DISTANCE := 245.0
+const DRAPE_PRIEST_SUPPORT_DAMAGE_MULTIPLIER := 0.38
+const DRAPE_PRIEST_RELINK_COOLDOWN := 2.8
+const DRAPE_PRIEST_THREAD_CONTACT_RADIUS := 5.0
+const DRAPE_PRIEST_THREAD_STAGGER_DURATION := 0.75
+const DRAPE_PRIEST_BOLT_COOLDOWN := 156.0 / 60.0
+const DRAPE_PRIEST_BOLT_SPEED := 2.0 * 60.0
+const DRAPE_PRIEST_BOLT_DAMAGE := 8.0
+
+const MIRROR_NEEDLER_RADIUS := 24.0
+const MIRROR_NEEDLER_HEALTH := 50.0
+const MIRROR_NEEDLER_SPEED := 1.15 * 60.0
+const MIRROR_NEEDLER_COOLDOWN := 192.0 / 60.0
+const MIRROR_NEEDLER_CHARGE_DURATION := 48.0 / 60.0
+const MIRROR_NEEDLER_BULLET_SPEED := 1.1 * 60.0
+const MIRROR_NEEDLER_BULLET_DAMAGE := 22.0
+const MIRROR_NEEDLER_BULLET_RADIUS := 18.0
+const MIRROR_NEEDLER_MIN_DISTANCE := 220.0
+const MIRROR_NEEDLER_MAX_DISTANCE := 320.0
+const MIRROR_NEEDLER_SHELL_DAMAGE_MULTIPLIER := 0.58
+const MIRROR_NEEDLER_CHARGE_DAMAGE_MULTIPLIER := 1.12
+const MIRROR_NEEDLER_VULNERABLE_DURATION := 1.45
+const MIRROR_NEEDLER_AFTER_FIRE_VULNERABLE_DURATION := 0.55
+const MIRROR_NEEDLER_BREAK_STAGGER_DURATION := 0.95
+const MIRROR_NEEDLER_BREAK_RECOVERY := 0.6
+
 const PUPPET_RADIUS := 25.0
 const PUPPET_HEALTH := 200.0
 const PUPPET_SPEED := 2.0 * 60.0
@@ -245,8 +317,11 @@ const COLORS := {
 	"tank": Color("ef4444"),
 	"caster": Color("dc2626"),
 	"heavy": Color("991b1b"),
+	"ring_leech": Color("fb7185"),
+	"drape_priest": Color("38bdf8"),
+	"mirror_needler": Color("e5e7eb"),
 	"puppet": Color("a78bfa"),
-	"bullet": Color.WHITE,
+	"bullet": Color("f5efe6"),
 	"frozen": Color("00ffff"),
 	"array_sword": Color("7dd3fc"),
 	"array_sword_return": Color("facc15"),
@@ -276,9 +351,11 @@ var target_descriptor_registry: TargetDescriptorRegistry = TargetDescriptorRegis
 var target_event_system: TargetEventSystem = TargetEventSystem.new()
 var target_writeback_adapters: TargetWritebackAdapters = TargetWritebackAdapters.new()
 var combat_runtime: Dictionary = {}
+var enemy_packages: Dictionary = {}
 
 var wave: int = 1
 var enemies_to_spawn: int = WAVE_BASE_ENEMIES
+var wave_spawn_queue: Array = []
 var spawn_timer: float = 0.0
 var score: int = 0
 var is_game_over: bool = false
@@ -1505,6 +1582,8 @@ func _damage_enemies_with_sword(delta: float) -> void:
 		var effect_color: Color = COLORS["ranged_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24)
 		_emit_sword_hit_effect(contact_point, swing_direction, effect_color)
 
+	_update_drape_priest_threads(delta)
+
 	if _has_boss():
 		_update_silk_damage(delta)
 		var boss_contact: Dictionary = detection_result.get("boss_contact", {})
@@ -1527,10 +1606,15 @@ func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> v
 		return
 	if bool(enemy.get("is_dying", false)):
 		return
+	var resolved_damage: float = damage
+	if not _has_debug_flag("one_hit_kill"):
+		resolved_damage *= maxf(float(enemy.get("damage_taken_multiplier", 1.0)), 0.0)
+	if resolved_damage <= 0.0 and not _has_debug_flag("one_hit_kill"):
+		return
 	if _has_debug_flag("one_hit_kill"):
 		enemy["health"] = 0.0
 	else:
-		enemy["health"] = max(enemy["health"] - damage, 0.0)
+		enemy["health"] = maxf(float(enemy.get("health", 0.0)) - resolved_damage, 0.0)
 	enemy["last_damage_source"] = damage_source
 	if enemy["health"] <= 0.0:
 		_begin_enemy_death(enemy)
@@ -1561,6 +1645,495 @@ func _finalize_enemy_death(enemy: Dictionary, index: int) -> void:
 	enemies.remove_at(index)
 
 
+func _reset_enemy_runtime_modifiers() -> void:
+	for enemy in enemies:
+		enemy["support_source_id"] = ""
+		var enemy_type: String = str(enemy.get("type", ""))
+		match enemy_type:
+			MIRROR_NEEDLER:
+				if float(enemy.get("mirror_vulnerable_timer", 0.0)) > 0.0:
+					enemy["damage_taken_multiplier"] = 1.0
+				elif float(enemy.get("charge_timer", 0.0)) > 0.0:
+					enemy["damage_taken_multiplier"] = MIRROR_NEEDLER_CHARGE_DAMAGE_MULTIPLIER
+				else:
+					enemy["damage_taken_multiplier"] = MIRROR_NEEDLER_SHELL_DAMAGE_MULTIPLIER
+			_:
+				enemy["damage_taken_multiplier"] = 1.0
+
+
+func _clamp_enemy_to_arena(enemy: Dictionary) -> void:
+	var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
+	var clamp_min: Vector2 = Vector2.ONE * enemy_radius
+	var clamp_max: Vector2 = ARENA_SIZE - clamp_min
+	enemy["pos"] = Vector2(enemy.get("pos", Vector2.ZERO)).clamp(clamp_min, clamp_max)
+
+
+func _clear_enemy_package_state(enemy: Dictionary) -> void:
+	var enemy_pos: Vector2 = Vector2(enemy.get("pos", Vector2.ZERO))
+	enemy["package_id"] = ""
+	enemy["package_type"] = ""
+	enemy["package_phase"] = ""
+	enemy["package_slot_index"] = -1
+	enemy["package_slot_count"] = 0
+	enemy["package_desired_pos"] = enemy_pos
+	enemy["package_center"] = enemy_pos
+	enemy["package_radius"] = 0.0
+	enemy["package_fire_enabled"] = false
+	enemy["package_speed_multiplier"] = 1.0
+
+
+func _collect_active_package_member_ids(package: Dictionary) -> Array:
+	var active_member_ids: Array = []
+	for member_id_variant in package.get("member_ids", []):
+		var member_id: String = str(member_id_variant)
+		if member_id == "":
+			continue
+		var member_variant: Variant = _find_enemy_by_id(member_id)
+		if member_variant == null:
+			continue
+		var member: Dictionary = member_variant
+		if bool(member.get("is_dying", false)):
+			continue
+		if float(member.get("health", 0.0)) <= 0.0:
+			continue
+		active_member_ids.append(member_id)
+	return active_member_ids
+
+
+func _release_enemy_package(package: Dictionary) -> void:
+	for member_id_variant in package.get("member_ids", []):
+		var member_variant: Variant = _find_enemy_by_id(str(member_id_variant))
+		if member_variant == null:
+			continue
+		var member: Dictionary = member_variant
+		_clear_enemy_package_state(member)
+		if str(member.get("type", "")) == RING_LEECH:
+			member["orbit_angle"] = (Vector2(member.get("pos", Vector2.ZERO)) - player["pos"]).angle()
+			member["orbit_direction"] = 1.0 if randf() < 0.5 else -1.0
+			member["shoot_cooldown"] = maxf(
+				float(member.get("shoot_cooldown", 0.0)),
+				randf_range(0.08, RING_LEECH_COOLDOWN * 0.55)
+			)
+
+
+func _get_ring_leech_package_slot_position(center: Vector2, rotation_angle: float, slot_count: int, slot_index: int, radius: float) -> Vector2:
+	var resolved_slot_count: int = max(slot_count, 1)
+	var slot_angle: float = rotation_angle + (TAU / float(resolved_slot_count)) * float(slot_index)
+	var slot_pos: Vector2 = center + Vector2.RIGHT.rotated(slot_angle) * radius
+	var clamp_margin: Vector2 = Vector2.ONE * RING_LEECH_RADIUS
+	return slot_pos.clamp(clamp_margin, ARENA_SIZE - clamp_margin)
+
+
+func _update_ring_leech_package(package: Dictionary, delta: float) -> bool:
+	var active_member_ids: Array = package.get("member_ids", [])
+	var member_count: int = active_member_ids.size()
+	if member_count <= 0:
+		return false
+	var break_member_threshold: int = max(
+		int(package.get("break_member_threshold", RING_LEECH_PACKAGE_BREAK_MEMBER_THRESHOLD)),
+		RING_LEECH_PACKAGE_BREAK_MEMBER_THRESHOLD
+	)
+	if member_count < break_member_threshold:
+		package["phase"] = ENEMY_PACKAGE_PHASE_BREAK
+	var phase: String = str(package.get("phase", ENEMY_PACKAGE_PHASE_ASSEMBLE))
+	var phase_timer: float = maxf(float(package.get("phase_timer", 0.0)) - delta, 0.0)
+	if phase == ENEMY_PACKAGE_PHASE_ASSEMBLE and phase_timer <= 0.0:
+		phase = ENEMY_PACKAGE_PHASE_COLLAPSE
+		phase_timer = RING_LEECH_PACKAGE_COLLAPSE_DURATION
+	elif phase == ENEMY_PACKAGE_PHASE_COLLAPSE and phase_timer <= 0.0:
+		phase = ENEMY_PACKAGE_PHASE_ENGAGE
+		phase_timer = RING_LEECH_PACKAGE_ENGAGE_DURATION
+	elif phase == ENEMY_PACKAGE_PHASE_ENGAGE and phase_timer <= 0.0:
+		phase = ENEMY_PACKAGE_PHASE_BREAK
+	package["phase"] = phase
+	package["phase_timer"] = phase_timer
+	if phase == ENEMY_PACKAGE_PHASE_BREAK:
+		return false
+
+	var package_center: Vector2 = Vector2(package.get("center", player["pos"]))
+	var follow_speed: float = 1.2
+	match phase:
+		ENEMY_PACKAGE_PHASE_COLLAPSE:
+			follow_speed = 1.85
+		ENEMY_PACKAGE_PHASE_ENGAGE:
+			follow_speed = 2.35
+	package_center = package_center.lerp(player["pos"], min(delta * follow_speed, 1.0))
+	package["center"] = package_center
+
+	var rotation_angle: float = float(package.get("rotation_angle", 0.0))
+	var rotation_direction: float = float(package.get("rotation_direction", 1.0))
+	var current_radius: float = RING_LEECH_PACKAGE_SPAWN_RADIUS
+	var fire_enabled: bool = false
+	var speed_multiplier: float = 0.9
+	match phase:
+		ENEMY_PACKAGE_PHASE_ASSEMBLE:
+			current_radius = RING_LEECH_PACKAGE_SPAWN_RADIUS
+			rotation_angle = wrapf(
+				rotation_angle + rotation_direction * RING_LEECH_PACKAGE_ASSEMBLE_ROTATION_SPEED * delta,
+				- PI,
+				PI
+			)
+		ENEMY_PACKAGE_PHASE_COLLAPSE:
+			var collapse_progress: float = 1.0 - clampf(
+				phase_timer / maxf(RING_LEECH_PACKAGE_COLLAPSE_DURATION, 0.001),
+				0.0,
+				1.0
+			)
+			var collapse_eased: float = collapse_progress * collapse_progress * (3.0 - 2.0 * collapse_progress)
+			current_radius = lerpf(RING_LEECH_PACKAGE_SPAWN_RADIUS, RING_LEECH_PACKAGE_ENGAGE_RADIUS, collapse_eased)
+			rotation_angle = wrapf(
+				rotation_angle + rotation_direction * RING_LEECH_PACKAGE_COLLAPSE_ROTATION_SPEED * delta,
+				- PI,
+				PI
+			)
+			fire_enabled = collapse_progress >= RING_LEECH_PACKAGE_COLLAPSE_FIRE_PROGRESS
+			speed_multiplier = 1.18 + 0.14 * collapse_progress
+		ENEMY_PACKAGE_PHASE_ENGAGE:
+			current_radius = RING_LEECH_PACKAGE_ENGAGE_RADIUS + sin(elapsed_time * 4.0) * RING_LEECH_PACKAGE_ENGAGE_RADIUS_SWAY
+			rotation_angle = wrapf(
+				rotation_angle + rotation_direction * RING_LEECH_PACKAGE_ENGAGE_ROTATION_SPEED * delta,
+				- PI,
+				PI
+			)
+			fire_enabled = true
+			speed_multiplier = 1.06
+	package["rotation_angle"] = rotation_angle
+	package["current_radius"] = current_radius
+
+	var slot_count: int = max(int(package.get("slot_count", member_count)), 1)
+	for member_id_variant in active_member_ids:
+		var member_variant: Variant = _find_enemy_by_id(str(member_id_variant))
+		if member_variant == null:
+			continue
+		var member: Dictionary = member_variant
+		var slot_index: int = int(member.get("package_slot_index", -1))
+		if slot_index < 0:
+			slot_index = active_member_ids.find(str(member_id_variant))
+			member["package_slot_index"] = slot_index
+		var desired_pos: Vector2 = _get_ring_leech_package_slot_position(
+			package_center,
+			rotation_angle,
+			slot_count,
+			slot_index,
+			current_radius
+		)
+		member["package_id"] = str(package.get("id", ""))
+		member["package_type"] = ENEMY_PACKAGE_RING_LEECH_CLOSE
+		member["package_phase"] = phase
+		member["package_slot_count"] = slot_count
+		member["package_desired_pos"] = desired_pos
+		member["package_center"] = package_center
+		member["package_radius"] = current_radius
+		member["package_fire_enabled"] = fire_enabled
+		member["package_speed_multiplier"] = speed_multiplier
+		member["orbit_angle"] = (desired_pos - package_center).angle()
+		member["orbit_direction"] = rotation_direction
+	return true
+
+
+func _update_enemy_packages(delta: float) -> void:
+	if enemy_packages.is_empty():
+		return
+	var package_ids: Array = enemy_packages.keys()
+	for package_id_variant in package_ids:
+		var package_id: String = str(package_id_variant)
+		var package: Dictionary = enemy_packages.get(package_id, {})
+		if package.is_empty():
+			enemy_packages.erase(package_id)
+			continue
+		package["member_ids"] = _collect_active_package_member_ids(package)
+		if package["member_ids"].is_empty():
+			enemy_packages.erase(package_id)
+			continue
+		var should_keep: bool = true
+		match str(package.get("type", "")):
+			ENEMY_PACKAGE_RING_LEECH_CLOSE:
+				should_keep = _update_ring_leech_package(package, delta)
+			_:
+				should_keep = false
+		if should_keep:
+			enemy_packages[package_id] = package
+			continue
+		_release_enemy_package(package)
+		enemy_packages.erase(package_id)
+
+
+func _can_receive_drape_priest_support(candidate: Dictionary, priest_id: String) -> bool:
+	if str(candidate.get("id", "")) == priest_id:
+		return false
+	if bool(candidate.get("is_dying", false)):
+		return false
+	if float(candidate.get("health", 0.0)) <= 0.0:
+		return false
+	var candidate_type: String = str(candidate.get("type", ""))
+	return candidate_type != PUPPET and candidate_type != DRAPE_PRIEST
+
+
+func _pick_drape_priest_target(priest: Dictionary) -> Dictionary:
+	var best_target := {}
+	var best_score := INF
+	var priest_id: String = str(priest.get("id", ""))
+	for candidate in enemies:
+		if not _can_receive_drape_priest_support(candidate, priest_id):
+			continue
+		var score: float = Vector2(candidate.get("pos", Vector2.ZERO)).distance_to(player["pos"])
+		score += Vector2(candidate.get("pos", Vector2.ZERO)).distance_to(Vector2(priest.get("pos", Vector2.ZERO))) * 0.35
+		match str(candidate.get("type", "")):
+			TANK:
+				score -= 48.0
+			HEAVY:
+				score -= 26.0
+			MIRROR_NEEDLER:
+				score -= 12.0
+		if score < best_score:
+			best_score = score
+			best_target = candidate
+	return best_target
+
+
+func _get_drape_priest_target(priest: Dictionary) -> Dictionary:
+	var target_id: String = str(priest.get("support_target_id", ""))
+	if target_id == "":
+		return {}
+	var target: Variant = _find_enemy_by_id(target_id)
+	if target == null:
+		priest["support_target_id"] = ""
+		return {}
+	var target_enemy: Dictionary = target
+	if not _can_receive_drape_priest_support(target_enemy, str(priest.get("id", ""))):
+		priest["support_target_id"] = ""
+		return {}
+	return target_enemy
+
+
+func _apply_drape_priest_support(priest: Dictionary) -> Dictionary:
+	if float(priest.get("support_relink_timer", 0.0)) > 0.0:
+		priest["support_target_id"] = ""
+		return {}
+	var target: Dictionary = _get_drape_priest_target(priest)
+	if not target.is_empty() and Vector2(priest.get("pos", Vector2.ZERO)).distance_to(Vector2(target.get("pos", Vector2.ZERO))) > DRAPE_PRIEST_SUPPORT_RANGE * 1.25:
+		priest["support_target_id"] = ""
+		target = {}
+	if target.is_empty():
+		target = _pick_drape_priest_target(priest)
+	if target.is_empty():
+		priest["support_target_id"] = ""
+		return {}
+	priest["support_target_id"] = str(target.get("id", ""))
+	target["damage_taken_multiplier"] = minf(float(target.get("damage_taken_multiplier", 1.0)), DRAPE_PRIEST_SUPPORT_DAMAGE_MULTIPLIER)
+	target["support_source_id"] = str(priest.get("id", ""))
+	return target
+
+
+func _sever_drape_priest_thread(priest: Dictionary, target: Dictionary, contact_point: Vector2) -> void:
+	if priest.is_empty() or target.is_empty():
+		return
+	priest["support_target_id"] = ""
+	priest["support_relink_timer"] = DRAPE_PRIEST_RELINK_COOLDOWN
+	priest["stagger_timer"] = maxf(float(priest.get("stagger_timer", 0.0)), DRAPE_PRIEST_THREAD_STAGGER_DURATION)
+	target["stagger_timer"] = maxf(float(target.get("stagger_timer", 0.0)), DRAPE_PRIEST_THREAD_STAGGER_DURATION)
+	_emit_silk_sever_effect(Vector2(priest.get("pos", contact_point)), Vector2(target.get("pos", contact_point)), contact_point)
+	_create_particles(contact_point, COLORS["silk"], 14)
+	screen_shake = max(screen_shake, 4.8)
+	_trigger_silk_sever_hitstop()
+
+
+func _update_drape_priest_threads(_delta: float) -> void:
+	var is_sword_attack_active: bool = sword["state"] == SwordState.SLICING or sword["state"] == SwordState.POINT_STRIKE
+	if not is_sword_attack_active:
+		return
+	for enemy_variant in enemies:
+		var priest: Dictionary = enemy_variant
+		if str(priest.get("type", "")) != DRAPE_PRIEST:
+			continue
+		var target: Dictionary = _get_drape_priest_target(priest)
+		if target.is_empty():
+			continue
+		var thread_from: Vector2 = Vector2(priest.get("pos", Vector2.ZERO))
+		var thread_to: Vector2 = Vector2(target.get("pos", Vector2.ZERO))
+		if GameBossController.dist_to_segment(sword["pos"], thread_from, thread_to) > float(sword.get("radius", SWORD_RADIUS)) + DRAPE_PRIEST_THREAD_CONTACT_RADIUS:
+			continue
+		var contact_point: Vector2 = HitDetection.closest_point_on_segment(sword["pos"], thread_from, thread_to)
+		_sever_drape_priest_thread(priest, target, contact_point)
+		return
+
+
+func _fire_ring_leech_spread(enemy: Dictionary, aim_direction: Vector2) -> void:
+	if aim_direction.is_zero_approx():
+		aim_direction = Vector2.RIGHT
+	for angle_offset_variant in [-RING_LEECH_SPREAD_ANGLE, -RING_LEECH_SPREAD_ANGLE * 0.45, 0.0, RING_LEECH_SPREAD_ANGLE * 0.45, RING_LEECH_SPREAD_ANGLE]:
+		var angle_offset: float = float(angle_offset_variant)
+		_spawn_bullet(
+			enemy["pos"],
+			aim_direction.rotated(angle_offset) * RING_LEECH_BULLET_SPEED,
+			"small",
+			str(enemy.get("id", "")),
+			COLORS["bullet"],
+			{
+				"damage": RING_LEECH_BULLET_DAMAGE,
+				"family": BULLET_FAMILY_FANG,
+				"source_enemy_type": RING_LEECH,
+			}
+		)
+
+
+func _update_ring_leech_package_member(enemy: Dictionary, to_player: Vector2, distance: float, delta: float) -> bool:
+	var package_id: String = str(enemy.get("package_id", ""))
+	if package_id == "" or not enemy_packages.has(package_id):
+		return false
+	var package_phase: String = str(enemy.get("package_phase", ""))
+	if package_phase == "":
+		return false
+	var move_direction: Vector2 = Vector2(enemy.get("package_desired_pos", enemy.get("pos", Vector2.ZERO))) - enemy["pos"]
+	if distance < PLAYER_RADIUS + float(enemy.get("radius", RING_LEECH_RADIUS)) + 12.0:
+		var push_weight: float = 0.55 if package_phase == ENEMY_PACKAGE_PHASE_COLLAPSE else 0.85
+		move_direction -= to_player.normalized() * push_weight
+	var step_scale: float = 1.0
+	match package_phase:
+		ENEMY_PACKAGE_PHASE_ASSEMBLE:
+			step_scale = 0.82
+		ENEMY_PACKAGE_PHASE_COLLAPSE:
+			step_scale = 1.2
+		ENEMY_PACKAGE_PHASE_ENGAGE:
+			step_scale = 1.0
+	var max_step: float = RING_LEECH_SPEED * float(enemy.get("package_speed_multiplier", 1.0)) * step_scale * delta
+	if not move_direction.is_zero_approx():
+		var catchup_scale: float = clampf(move_direction.length() / maxf(float(enemy.get("package_radius", 1.0)), 1.0), 0.72, 1.35)
+		enemy["pos"] += move_direction.limit_length(max_step * catchup_scale)
+	_clamp_enemy_to_arena(enemy)
+	enemy["shoot_cooldown"] -= delta
+	if not bool(enemy.get("package_fire_enabled", false)):
+		return true
+	var fire_distance: float = maxf(RING_LEECH_FIRE_DISTANCE, float(enemy.get("package_radius", RING_LEECH_ORBIT_DISTANCE)) + 20.0)
+	if enemy["shoot_cooldown"] > 0.0 or distance > fire_distance:
+		return true
+	enemy["shoot_cooldown"] = RING_LEECH_COOLDOWN
+	_fire_ring_leech_spread(enemy, to_player.normalized())
+	return true
+
+
+func _update_ring_leech_enemy(enemy: Dictionary, to_player: Vector2, distance: float, delta: float) -> void:
+	if _update_ring_leech_package_member(enemy, to_player, distance, delta):
+		return
+	var move_direction: Vector2 = Vector2.ZERO
+	if distance > RING_LEECH_ORBIT_DISTANCE + 24.0:
+		move_direction = to_player.normalized()
+		enemy["orbit_angle"] = (enemy["pos"] - player["pos"]).angle()
+	else:
+		var orbit_angle: float = float(enemy.get("orbit_angle", (enemy["pos"] - player["pos"]).angle()))
+		var orbit_direction: float = float(enemy.get("orbit_direction", 1.0))
+		orbit_angle = wrapf(orbit_angle + orbit_direction * RING_LEECH_ORBIT_ANGULAR_SPEED * delta, -PI, PI)
+		enemy["orbit_angle"] = orbit_angle
+		var desired_pos: Vector2 = player["pos"] + Vector2.RIGHT.rotated(orbit_angle) * RING_LEECH_ORBIT_DISTANCE
+		move_direction = desired_pos - enemy["pos"]
+	if distance < PLAYER_RADIUS + float(enemy.get("radius", RING_LEECH_RADIUS)) + 10.0:
+		move_direction -= to_player.normalized() * 0.75
+	if not move_direction.is_zero_approx():
+		enemy["pos"] += move_direction.normalized() * RING_LEECH_SPEED * delta
+	_clamp_enemy_to_arena(enemy)
+	enemy["shoot_cooldown"] -= delta
+	if enemy["shoot_cooldown"] > 0.0 or distance > RING_LEECH_FIRE_DISTANCE:
+		return
+	enemy["shoot_cooldown"] = RING_LEECH_COOLDOWN
+	_fire_ring_leech_spread(enemy, to_player.normalized())
+
+
+func _update_drape_priest_enemy(enemy: Dictionary, to_player: Vector2, distance: float, delta: float) -> void:
+	enemy["support_relink_timer"] = maxf(float(enemy.get("support_relink_timer", 0.0)) - delta, 0.0)
+	var target: Dictionary = _apply_drape_priest_support(enemy)
+	var move_direction: Vector2 = Vector2.ZERO
+	if distance < DRAPE_PRIEST_RETREAT_DISTANCE:
+		move_direction -= to_player.normalized()
+	elif distance > DRAPE_PRIEST_APPROACH_DISTANCE:
+		move_direction += to_player.normalized()
+	if not target.is_empty():
+		var to_target: Vector2 = Vector2(target.get("pos", enemy["pos"])) - enemy["pos"]
+		var target_distance: float = to_target.length()
+		if target_distance > DRAPE_PRIEST_SUPPORT_RANGE * 0.92:
+			move_direction += to_target.normalized() * 0.85
+		elif target_distance < DRAPE_PRIEST_SUPPORT_RANGE * 0.55:
+			move_direction -= to_target.normalized() * 0.3
+	if not move_direction.is_zero_approx():
+		enemy["pos"] += move_direction.normalized() * DRAPE_PRIEST_SPEED * delta
+	_clamp_enemy_to_arena(enemy)
+	enemy["shoot_cooldown"] -= delta
+	if enemy["shoot_cooldown"] > 0.0 or distance > DRAPE_PRIEST_APPROACH_DISTANCE + 24.0:
+		return
+	enemy["shoot_cooldown"] = DRAPE_PRIEST_BOLT_COOLDOWN
+	var bolt_direction: Vector2 = to_player.normalized()
+	if bolt_direction.is_zero_approx():
+		bolt_direction = Vector2.RIGHT
+	_spawn_bullet(
+		enemy["pos"],
+		bolt_direction * DRAPE_PRIEST_BOLT_SPEED,
+		"small",
+		str(enemy.get("id", "")),
+		COLORS["bullet"],
+		{
+			"damage": DRAPE_PRIEST_BOLT_DAMAGE,
+			"family": BULLET_FAMILY_NEEDLE,
+			"source_enemy_type": DRAPE_PRIEST,
+		}
+	)
+
+
+func _break_mirror_needler_shell(enemy: Dictionary) -> void:
+	var was_protected: bool = float(enemy.get("mirror_vulnerable_timer", 0.0)) <= 0.0
+	enemy["mirror_vulnerable_timer"] = maxf(float(enemy.get("mirror_vulnerable_timer", 0.0)), MIRROR_NEEDLER_VULNERABLE_DURATION)
+	enemy["damage_taken_multiplier"] = 1.0
+	enemy["charge_timer"] = 0.0
+	enemy["shoot_cooldown"] = maxf(float(enemy.get("shoot_cooldown", 0.0)), MIRROR_NEEDLER_BREAK_RECOVERY)
+	enemy["stagger_timer"] = maxf(float(enemy.get("stagger_timer", 0.0)), MIRROR_NEEDLER_BREAK_STAGGER_DURATION)
+	if was_protected:
+		screen_shake = max(screen_shake, 4.5)
+		_create_particles(enemy["pos"], COLORS["melee_sword"], 10)
+
+
+func _update_mirror_needler_enemy(enemy: Dictionary, to_player: Vector2, distance: float, delta: float) -> void:
+	var charge_timer: float = float(enemy.get("charge_timer", 0.0))
+	if charge_timer > 0.0:
+		charge_timer = maxf(charge_timer - delta, 0.0)
+		enemy["charge_timer"] = charge_timer
+		if charge_timer <= 0.0:
+			var shot_direction: Vector2 = to_player.normalized()
+			if shot_direction.is_zero_approx():
+				shot_direction = Vector2.RIGHT
+			_spawn_bullet(
+				enemy["pos"],
+				shot_direction * MIRROR_NEEDLER_BULLET_SPEED,
+				"large",
+				str(enemy.get("id", "")),
+				COLORS["bullet"],
+				{
+					"damage": MIRROR_NEEDLER_BULLET_DAMAGE,
+					"family": BULLET_FAMILY_CORE,
+					"radius": MIRROR_NEEDLER_BULLET_RADIUS,
+					"source_owner_id": str(enemy.get("id", "")),
+					"source_enemy_type": MIRROR_NEEDLER,
+				}
+			)
+			enemy["mirror_vulnerable_timer"] = maxf(float(enemy.get("mirror_vulnerable_timer", 0.0)), MIRROR_NEEDLER_AFTER_FIRE_VULNERABLE_DURATION)
+			enemy["shoot_cooldown"] = MIRROR_NEEDLER_COOLDOWN
+		return
+	enemy["shoot_cooldown"] -= delta
+	if float(enemy.get("mirror_vulnerable_timer", 0.0)) <= 0.0 and enemy["shoot_cooldown"] <= 0.0:
+		enemy["charge_timer"] = MIRROR_NEEDLER_CHARGE_DURATION
+		return
+	enemy["move_timer"] -= delta
+	if enemy["move_timer"] <= 0.0:
+		enemy["move_timer"] = randf_range(0.8, 1.4)
+		var current_strafe: float = float(enemy.get("strafe_dir", 1.0))
+		enemy["strafe_dir"] = - current_strafe if randf() < 0.72 else (1.0 if randf() < 0.5 else -1.0)
+	var move_direction: Vector2 = to_player.orthogonal().normalized() * float(enemy.get("strafe_dir", 1.0))
+	if distance > MIRROR_NEEDLER_MAX_DISTANCE:
+		move_direction += to_player.normalized() * 0.85
+	elif distance < MIRROR_NEEDLER_MIN_DISTANCE:
+		move_direction -= to_player.normalized() * 1.1
+	if not move_direction.is_zero_approx():
+		enemy["pos"] += move_direction.normalized() * MIRROR_NEEDLER_SPEED * delta
+	_clamp_enemy_to_arena(enemy)
+
+
 func _update_enemy_visual_feedback(enemy: Dictionary, delta: float) -> void:
 	enemy["hit_flash_timer"] = maxf(float(enemy.get("hit_flash_timer", 0.0)) - delta, 0.0)
 	enemy["hit_reaction_timer"] = maxf(float(enemy.get("hit_reaction_timer", 0.0)) - delta, 0.0)
@@ -1577,6 +2150,8 @@ func _update_enemy_visual_feedback(enemy: Dictionary, delta: float) -> void:
 
 
 func _update_enemies(delta: float) -> void:
+	_reset_enemy_runtime_modifiers()
+	_update_enemy_packages(delta)
 	var index: int = enemies.size() - 1
 	while index >= 0:
 		var enemy: Dictionary = enemies[index]
@@ -1602,6 +2177,8 @@ func _update_enemies(delta: float) -> void:
 			_begin_enemy_death(enemy)
 			index -= 1
 			continue
+		if enemy.has("mirror_vulnerable_timer"):
+			enemy["mirror_vulnerable_timer"] = maxf(float(enemy.get("mirror_vulnerable_timer", 0.0)) - delta, 0.0)
 		enemy["stagger_timer"] = maxf(float(enemy.get("stagger_timer", 0.0)) - delta, 0.0)
 		_update_enemy_visual_feedback(enemy, delta)
 		if float(enemy.get("stagger_timer", 0.0)) > 0.0:
@@ -1619,7 +2196,17 @@ func _update_enemies(delta: float) -> void:
 				enemy["shoot_cooldown"] -= delta
 				if enemy["shoot_cooldown"] <= 0.0:
 					enemy["shoot_cooldown"] = SHOOTER_COOLDOWN
-					_spawn_bullet(enemy["pos"], to_player.normalized() * BULLET_SPEED, "small", enemy["id"], COLORS["bullet"])
+					_spawn_bullet(
+						enemy["pos"],
+						to_player.normalized() * BULLET_SPEED,
+						"small",
+						enemy["id"],
+						COLORS["bullet"],
+						{
+							"family": BULLET_FAMILY_NEEDLE,
+							"source_enemy_type": SHOOTER,
+						}
+					)
 			TANK:
 				enemy["pos"] += to_player.normalized() * TANK_SPEED * delta
 				if distance < enemy["radius"] + PLAYER_RADIUS:
@@ -1638,14 +2225,40 @@ func _update_enemies(delta: float) -> void:
 					var spoke: int = 0
 					while spoke < 8:
 						var angle: float = (TAU / 8.0) * float(spoke)
-						_spawn_bullet(enemy["pos"], Vector2.RIGHT.rotated(angle) * BULLET_SPEED * 0.7, "small", enemy["id"], COLORS["caster"])
+						_spawn_bullet(
+							enemy["pos"],
+							Vector2.RIGHT.rotated(angle) * BULLET_SPEED * 0.7,
+							"small",
+							enemy["id"],
+							COLORS["bullet"],
+							{
+								"family": BULLET_FAMILY_WEAVE,
+								"source_enemy_type": CASTER,
+							}
+						)
 						spoke += 1
 			HEAVY:
 				enemy["pos"] += to_player.normalized() * HEAVY_SPEED * delta
 				enemy["shoot_cooldown"] -= delta
 				if enemy["shoot_cooldown"] <= 0.0:
 					enemy["shoot_cooldown"] = HEAVY_COOLDOWN
-					_spawn_bullet(enemy["pos"], to_player.normalized() * BULLET_LARGE_SPEED, "large", enemy["id"], COLORS["heavy"])
+					_spawn_bullet(
+						enemy["pos"],
+						to_player.normalized() * BULLET_LARGE_SPEED,
+						"large",
+						enemy["id"],
+						COLORS["bullet"],
+						{
+							"family": BULLET_FAMILY_CORE,
+							"source_enemy_type": HEAVY,
+						}
+					)
+			RING_LEECH:
+				_update_ring_leech_enemy(enemy, to_player, distance, delta)
+			DRAPE_PRIEST:
+				_update_drape_priest_enemy(enemy, to_player, distance, delta)
+			MIRROR_NEEDLER:
+				_update_mirror_needler_enemy(enemy, to_player, distance, delta)
 			PUPPET:
 				if not _has_boss() or not _is_silk_active(enemy["id"]):
 					enemy["last_damage_source"] = DAMAGE_SOURCE_SYSTEM
@@ -1987,6 +2600,10 @@ func _deflected_bullet_hits_enemy(bullet: Dictionary) -> bool:
 	)
 	for contact_variant in detection_result.get("contacts", []):
 		var contact: Dictionary = contact_variant
+		var enemy_entity: Variant = contact.get("entity", null)
+		if enemy_entity != null and str(enemy_entity.get("type", "")) == MIRROR_NEEDLER:
+			if str(bullet.get("source_enemy_type", "")) == MIRROR_NEEDLER and str(bullet.get("source_owner_id", "")) == str(contact.get("target_id", "")):
+				_break_mirror_needler_shell(enemy_entity)
 		var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
 			attack_instance_id,
 			attack_profile_id,
@@ -2059,30 +2676,36 @@ func _update_wave(delta: float) -> void:
 		boss.clear()
 		score += 5000
 		enemies_to_spawn = WAVE_BASE_ENEMIES + wave * 2
+		_prepare_wave_spawn_queue()
 		spawn_timer = 0.5
 		return
 
 	if enemies_to_spawn <= 0 and enemies.is_empty():
 		wave += 1
 		if wave % BOSS_WAVE_INTERVAL == 0:
+			wave_spawn_queue.clear()
 			_spawn_boss()
 			spawn_timer = 0.6
 			return
 		enemies_to_spawn = WAVE_BASE_ENEMIES + wave * 2
+		_prepare_wave_spawn_queue()
 		spawn_timer = 0.6
 
 	if enemies_to_spawn <= 0 or _has_boss():
 		return
 	if _has_debug_flag("no_spawn"):
 		return
+	if wave_spawn_queue.is_empty():
+		_prepare_wave_spawn_queue()
 
 	spawn_timer -= delta
 	if spawn_timer > 0.0:
 		return
 
-	spawn_timer = SPAWN_INTERVAL
-	_spawn_enemy(_roll_enemy_type())
-	enemies_to_spawn -= 1
+	var next_spawn_entry: Variant = wave_spawn_queue.pop_front() if not wave_spawn_queue.is_empty() else _roll_spawn_entry(enemies_to_spawn)
+	var spawned_enemy_count: int = max(_spawn_wave_entry(next_spawn_entry), 1)
+	spawn_timer = SPAWN_INTERVAL * (1.0 + 0.12 * float(spawned_enemy_count - 1))
+	enemies_to_spawn = max(enemies_to_spawn - spawned_enemy_count, 0)
 
 
 func _try_cast_ultimate() -> void:
@@ -2761,6 +3384,18 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 		"is_dying": false,
 		"death_feedback_timer": 0.0,
 		"death_feedback_color": Color.WHITE,
+		"damage_taken_multiplier": 1.0,
+		"support_source_id": "",
+		"package_id": "",
+		"package_type": "",
+		"package_phase": "",
+		"package_slot_index": - 1,
+		"package_slot_count": 0,
+		"package_desired_pos": spawn_pos,
+		"package_center": spawn_pos,
+		"package_radius": 0.0,
+		"package_fire_enabled": false,
+		"package_speed_multiplier": 1.0,
 	}
 	match enemy_type:
 		PUPPET:
@@ -2786,6 +3421,32 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 			enemy["max_health"] = HEAVY_HEALTH
 			enemy["score"] = 40
 			enemy["shoot_cooldown"] = randf_range(0.4, HEAVY_COOLDOWN)
+		RING_LEECH:
+			enemy["radius"] = RING_LEECH_RADIUS
+			enemy["health"] = RING_LEECH_HEALTH
+			enemy["max_health"] = RING_LEECH_HEALTH
+			enemy["score"] = 25
+			enemy["shoot_cooldown"] = randf_range(0.2, RING_LEECH_COOLDOWN)
+			enemy["orbit_angle"] = randf_range(-PI, PI)
+			enemy["orbit_direction"] = 1.0 if randf() < 0.5 else -1.0
+		DRAPE_PRIEST:
+			enemy["radius"] = DRAPE_PRIEST_RADIUS
+			enemy["health"] = DRAPE_PRIEST_HEALTH
+			enemy["max_health"] = DRAPE_PRIEST_HEALTH
+			enemy["score"] = 35
+			enemy["shoot_cooldown"] = randf_range(0.4, DRAPE_PRIEST_BOLT_COOLDOWN)
+			enemy["support_target_id"] = ""
+			enemy["support_relink_timer"] = 0.0
+		MIRROR_NEEDLER:
+			enemy["radius"] = MIRROR_NEEDLER_RADIUS
+			enemy["health"] = MIRROR_NEEDLER_HEALTH
+			enemy["max_health"] = MIRROR_NEEDLER_HEALTH
+			enemy["score"] = 45
+			enemy["shoot_cooldown"] = randf_range(0.6, MIRROR_NEEDLER_COOLDOWN)
+			enemy["move_timer"] = randf_range(0.3, 1.0)
+			enemy["strafe_dir"] = 1.0 if randf() < 0.5 else -1.0
+			enemy["charge_timer"] = 0.0
+			enemy["mirror_vulnerable_timer"] = 0.0
 		_:
 			enemy["shoot_cooldown"] = randf_range(0.4, SHOOTER_COOLDOWN)
 	enemies.append(enemy)
@@ -2793,15 +3454,20 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 	return enemy
 
 
-func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, owner_id: String, color: Color) -> void:
+func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, owner_id: String, color: Color, extra := {}) -> void:
+	var base_radius: float = BULLET_LARGE_RADIUS if bullet_type == "large" else BULLET_RADIUS
+	var base_damage: float = BULLET_LARGE_DAMAGE if bullet_type == "large" else BULLET_DAMAGE
 	bullets.append({
 		"id": _next_id("bullet"),
 		"pos": position,
 		"vel": velocity,
-		"radius": BULLET_LARGE_RADIUS if bullet_type == "large" else BULLET_RADIUS,
-		"damage": BULLET_LARGE_DAMAGE if bullet_type == "large" else BULLET_DAMAGE,
+		"radius": float(extra.get("radius", base_radius)),
+		"damage": float(extra.get("damage", base_damage)),
+		"family": str(extra.get("family", BULLET_FAMILY_NEEDLE)),
 		"type": bullet_type,
 		"owner_id": owner_id,
+		"source_owner_id": str(extra.get("source_owner_id", owner_id)),
+		"source_enemy_type": str(extra.get("source_enemy_type", "")),
 		"color": color,
 		"state": "normal",
 		"attack_instance_id": "",
@@ -3093,14 +3759,202 @@ func _roll_spawn_position() -> Vector2:
 
 
 func _roll_enemy_type() -> String:
-	var roll: float = randf()
-	if roll > 0.9:
-		return HEAVY
-	if roll > 0.8:
-		return CASTER
-	if roll > 0.6:
-		return TANK
-	return SHOOTER
+	var enemy_weights := [
+		{"type": SHOOTER, "weight": 0.44},
+		{"type": TANK, "weight": 0.2},
+		{"type": CASTER, "weight": 0.16},
+		{"type": HEAVY, "weight": 0.11},
+	]
+	if wave >= 2:
+		enemy_weights.append({"type": RING_LEECH, "weight": 0.16})
+	if wave >= 3:
+		enemy_weights.append({"type": DRAPE_PRIEST, "weight": 0.05})
+	if wave >= 4:
+		enemy_weights.append({"type": MIRROR_NEEDLER, "weight": 0.06})
+	return _roll_weighted_enemy_type(enemy_weights)
+
+
+func _make_enemy_spawn_entry(enemy_type: String) -> Dictionary:
+	return {
+		"kind": SPAWN_ENTRY_ENEMY,
+		"enemy_type": enemy_type,
+		"cost": 1,
+	}
+
+
+func _make_package_spawn_entry(package_type: String, cost: int, extra := {}) -> Dictionary:
+	var entry := {
+		"kind": SPAWN_ENTRY_PACKAGE,
+		"package_type": package_type,
+		"cost": max(cost, 1),
+	}
+	for key_variant in extra.keys():
+		entry[key_variant] = extra[key_variant]
+	return entry
+
+
+func _make_ring_leech_package_entry(member_count := RING_LEECH_PACKAGE_DEFAULT_COUNT) -> Dictionary:
+	var resolved_count: int = clampi(member_count, RING_LEECH_PACKAGE_MIN_COUNT, RING_LEECH_PACKAGE_MAX_COUNT)
+	return _make_package_spawn_entry(
+		ENEMY_PACKAGE_RING_LEECH_CLOSE,
+		resolved_count,
+		{
+			"member_count": resolved_count,
+		}
+	)
+
+
+func _get_spawn_entry_cost(entry_variant: Variant) -> int:
+	if typeof(entry_variant) == TYPE_DICTIONARY:
+		return max(int((entry_variant as Dictionary).get("cost", 1)), 1)
+	return 1
+
+
+func _roll_spawn_entry(remaining_enemy_count: int, wave_index := wave) -> Dictionary:
+	if wave_index >= 3 and remaining_enemy_count >= RING_LEECH_PACKAGE_MIN_COUNT:
+		var package_chance: float = 0.1
+		if wave_index >= 5:
+			package_chance = 0.14
+		if randf() < package_chance:
+			var max_member_count: int = mini(remaining_enemy_count, RING_LEECH_PACKAGE_MAX_COUNT)
+			var min_member_count: int = mini(RING_LEECH_PACKAGE_MIN_COUNT, max_member_count)
+			return _make_ring_leech_package_entry(randi_range(min_member_count, max_member_count))
+	return _make_enemy_spawn_entry(_roll_enemy_type())
+
+
+func _spawn_ring_leech_package(entry: Dictionary) -> int:
+	var member_count: int = clampi(
+		int(entry.get("member_count", RING_LEECH_PACKAGE_DEFAULT_COUNT)),
+		RING_LEECH_PACKAGE_MIN_COUNT,
+		RING_LEECH_PACKAGE_MAX_COUNT
+	)
+	if member_count <= 0:
+		return 0
+	var package_center: Vector2 = Vector2(player.get("pos", ARENA_SIZE * 0.5))
+	var rotation_angle: float = randf_range(-PI, PI)
+	var rotation_direction: float = 1.0 if randf() < 0.5 else -1.0
+	var package_id: String = _next_id("enemy_package")
+	var package := {
+		"id": package_id,
+		"type": ENEMY_PACKAGE_RING_LEECH_CLOSE,
+		"phase": ENEMY_PACKAGE_PHASE_ASSEMBLE,
+		"phase_timer": RING_LEECH_PACKAGE_ASSEMBLE_DURATION,
+		"center": package_center,
+		"rotation_angle": rotation_angle,
+		"rotation_direction": rotation_direction,
+		"slot_count": member_count,
+		"initial_member_count": member_count,
+		"current_radius": RING_LEECH_PACKAGE_SPAWN_RADIUS,
+		"break_member_threshold": max(member_count - 2, RING_LEECH_PACKAGE_BREAK_MEMBER_THRESHOLD),
+		"member_ids": [],
+	}
+	var slot_index: int = 0
+	while slot_index < member_count:
+		var enemy: Dictionary = _spawn_enemy(RING_LEECH)
+		var spawn_pos: Vector2 = _get_ring_leech_package_slot_position(
+			package_center,
+			rotation_angle,
+			member_count,
+			slot_index,
+			RING_LEECH_PACKAGE_SPAWN_RADIUS
+		)
+		enemy["pos"] = spawn_pos
+		enemy["shoot_cooldown"] = RING_LEECH_COOLDOWN * float(slot_index) / float(max(member_count, 1)) + randf_range(0.0, 0.18)
+		enemy["orbit_angle"] = (spawn_pos - package_center).angle()
+		enemy["orbit_direction"] = rotation_direction
+		enemy["package_id"] = package_id
+		enemy["package_type"] = ENEMY_PACKAGE_RING_LEECH_CLOSE
+		enemy["package_phase"] = ENEMY_PACKAGE_PHASE_ASSEMBLE
+		enemy["package_slot_index"] = slot_index
+		enemy["package_slot_count"] = member_count
+		enemy["package_desired_pos"] = spawn_pos
+		enemy["package_center"] = package_center
+		enemy["package_radius"] = RING_LEECH_PACKAGE_SPAWN_RADIUS
+		enemy["package_fire_enabled"] = false
+		enemy["package_speed_multiplier"] = 0.9
+		package["member_ids"].append(str(enemy.get("id", "")))
+		slot_index += 1
+	enemy_packages[package_id] = package
+	return member_count
+
+
+func _spawn_enemy_package(entry: Dictionary) -> int:
+	match str(entry.get("package_type", "")):
+		ENEMY_PACKAGE_RING_LEECH_CLOSE:
+			return _spawn_ring_leech_package(entry)
+	return 0
+
+
+func _spawn_wave_entry(entry_variant: Variant) -> int:
+	if typeof(entry_variant) != TYPE_DICTIONARY:
+		_spawn_enemy(str(entry_variant))
+		return 1
+	var entry: Dictionary = entry_variant
+	match str(entry.get("kind", SPAWN_ENTRY_ENEMY)):
+		SPAWN_ENTRY_PACKAGE:
+			var spawned_count: int = _spawn_enemy_package(entry)
+			if spawned_count > 0:
+				return spawned_count
+	_spawn_enemy(str(entry.get("enemy_type", SHOOTER)))
+	return 1
+
+
+func _prepare_wave_spawn_queue() -> void:
+	wave_spawn_queue = _build_wave_spawn_queue(wave, enemies_to_spawn)
+
+
+func _build_wave_spawn_queue(wave_index: int, enemy_count: int) -> Array:
+	var queue: Array = []
+	if enemy_count <= 0:
+		return queue
+	var remaining_enemy_count: int = enemy_count
+	match wave_index:
+		2:
+			if remaining_enemy_count >= RING_LEECH_PACKAGE_DEFAULT_COUNT:
+				var leech_ring_entry: Dictionary = _make_ring_leech_package_entry(RING_LEECH_PACKAGE_DEFAULT_COUNT)
+				queue.append(leech_ring_entry)
+				remaining_enemy_count -= _get_spawn_entry_cost(leech_ring_entry)
+			if remaining_enemy_count > 0:
+				queue.append(_make_enemy_spawn_entry(SHOOTER))
+				remaining_enemy_count -= 1
+		3:
+			for enemy_type in [DRAPE_PRIEST, TANK, SHOOTER]:
+				if remaining_enemy_count <= 0:
+					break
+				queue.append(_make_enemy_spawn_entry(str(enemy_type)))
+				remaining_enemy_count -= 1
+		4:
+			for enemy_type in [MIRROR_NEEDLER, SHOOTER, HEAVY]:
+				if remaining_enemy_count <= 0:
+					break
+				queue.append(_make_enemy_spawn_entry(str(enemy_type)))
+				remaining_enemy_count -= 1
+	while remaining_enemy_count > 0:
+		var next_entry: Dictionary = _roll_spawn_entry(remaining_enemy_count, wave_index)
+		var next_cost: int = min(_get_spawn_entry_cost(next_entry), remaining_enemy_count)
+		if next_cost <= 0:
+			next_entry = _make_enemy_spawn_entry(SHOOTER)
+			next_cost = 1
+		queue.append(next_entry)
+		remaining_enemy_count -= next_cost
+	return queue
+
+
+func _roll_weighted_enemy_type(weighted_entries: Array) -> String:
+	var total_weight := 0.0
+	for entry_variant in weighted_entries:
+		var entry: Dictionary = entry_variant
+		total_weight += maxf(float(entry.get("weight", 0.0)), 0.0)
+	if total_weight <= 0.0:
+		return SHOOTER
+	var roll: float = randf() * total_weight
+	var running_weight := 0.0
+	for entry_variant in weighted_entries:
+		var entry: Dictionary = entry_variant
+		running_weight += maxf(float(entry.get("weight", 0.0)), 0.0)
+		if roll <= running_weight:
+			return str(entry.get("type", SHOOTER))
+	return str(weighted_entries.back().get("type", SHOOTER))
 
 
 func _is_inside_extended_bounds(position: Vector2) -> bool:
@@ -4053,6 +4907,7 @@ func _enter_debug_calibration_mode() -> void:
 	bullets.clear()
 	array_swords.clear()
 	enemies.clear()
+	enemy_packages.clear()
 	particles.clear()
 	sword_afterimages.clear()
 	sword_trail_points.clear()
@@ -4063,6 +4918,7 @@ func _enter_debug_calibration_mode() -> void:
 	wave = 0
 	score = 0
 	enemies_to_spawn = 0
+	wave_spawn_queue.clear()
 	spawn_timer = 9999.0
 	_spawn_debug_calibration_enemies()
 	_rebuild_array_sword_pool()
@@ -4084,6 +4940,7 @@ func _ensure_debug_calibration_state() -> void:
 
 func _spawn_debug_calibration_enemies() -> void:
 	enemies.clear()
+	enemy_packages.clear()
 	for enemy_pos in DEBUG_ENEMY_LAYOUT:
 		var enemy: Dictionary = _spawn_enemy(SHOOTER)
 		enemy["pos"] = enemy_pos

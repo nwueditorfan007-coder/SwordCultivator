@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="980" viewBox="0 0 1680 980">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06101c"/>
+      <stop offset="100%" stop-color="#0b1627"/>
+    </linearGradient>
+    <style>
+      .title { fill:#f2dfb2; font: 700 34px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .sub { fill:#92a6bb; font: 16px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .panelTitle { fill:#d8bb75; font: 700 21px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .panelNote { fill:#92a6bb; font: 15px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+      .frame { fill:url(#bg); stroke:#c8aa68; stroke-width:2; rx:18; opacity:0.96; }
+      .gold { stroke:#d8bb75; stroke-width:1.8; fill:none; opacity:0.8; }
+      .thin { stroke:#d8bb75; stroke-width:1.1; fill:none; opacity:0.32; }
+      .blue { stroke:#86d8ff; stroke-width:1.6; fill:none; opacity:0.9; }
+      .red { stroke:#dc5863; stroke-width:1.5; fill:none; opacity:0.72; }
+      .fillBlue { fill:#7bcfff; opacity:0.2; }
+      .fillGold { fill:#d8bb75; opacity:0.12; }
+      .fillRed { fill:#e06067; opacity:0.14; }
+      .label { fill:#6e8297; font: 13px "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="1680" height="980" fill="#050a12"/>
+  <text x="60" y="70" class="title">HUD 三方向线框板 V1</text>
+  <text x="60" y="102" class="sub">A 保读感，B 做主推，C 抬上限。三套都保留同一套信息结构，只调整法器感、密度和装饰力度。</text>
+
+  <!-- Panel A -->
+  <g transform="translate(50,150)">
+    <rect x="0" y="0" width="500" height="760" class="frame"/>
+    <text x="24" y="36" class="panelTitle">A. 极简天仪版</text>
+    <text x="24" y="62" class="panelNote">最克制，优先保护战斗读感与留白。</text>
+
+    <rect x="24" y="86" width="452" height="254" rx="16" class="thin"/>
+    <text x="170" y="210" class="label">中央战斗区最大</text>
+
+    <circle cx="70" cy="112" r="18" class="gold"/>
+    <rect x="100" y="98" width="180" height="18" rx="9" class="gold"/>
+    <rect x="100" y="128" width="150" height="12" rx="6" class="blue"/>
+    <text x="24" y="168" class="label">左上资源区最轻</text>
+
+    <rect x="166" y="98" width="168" height="26" rx="12" class="thin"/>
+    <text x="182" y="116" class="label">顶部题字最简</text>
+
+    <circle cx="432" cy="112" r="24" class="gold"/>
+    <text x="394" y="168" class="label">右上单印章</text>
+
+    <rect x="96" y="312" width="308" height="34" rx="16" class="thin"/>
+    <text x="168" y="333" class="label">底部技能盘很轻</text>
+
+    <rect x="36" y="220" width="26" height="150" rx="12" class="thin"/>
+    <rect x="438" y="220" width="26" height="150" rx="12" class="thin"/>
+    <text x="20" y="392" class="label">侧边题字极弱</text>
+
+    <circle cx="250" cy="210" r="88" class="thin"/>
+    <circle cx="250" cy="210" r="58" class="thin"/>
+    <path d="M250 210 C 300 180 346 142 394 96" class="blue"/>
+    <path d="M250 210 C 202 188 164 164 132 128" class="blue"/>
+    <circle cx="378" cy="124" r="14" class="red"/>
+    <circle cx="350" cy="254" r="12" class="red"/>
+    <circle cx="152" cy="146" r="10" class="red"/>
+
+    <text x="24" y="712" class="panelNote">适合第一版直接落地。</text>
+    <text x="24" y="736" class="panelNote">风险最低，但上限感最弱。</text>
+  </g>
+
+  <!-- Panel B -->
+  <g transform="translate(590,150)">
+    <rect x="0" y="0" width="500" height="760" class="frame"/>
+    <text x="24" y="36" class="panelTitle">B. 平衡法器版</text>
+    <text x="24" y="62" class="panelNote">主推方向，气质、信息、完成度最平衡。</text>
+
+    <rect x="24" y="86" width="452" height="254" rx="16" class="thin"/>
+    <text x="168" y="210" class="label">战斗区仍有明显留白</text>
+
+    <circle cx="68" cy="112" r="22" class="gold"/>
+    <path d="M68 92 L68 132 M48 112 L88 112" class="gold"/>
+    <rect x="104" y="96" width="196" height="20" rx="10" class="gold"/>
+    <rect x="104" y="126" width="170" height="14" rx="7" class="blue"/>
+    <text x="24" y="172" class="label">资源条嵌在法器结构里</text>
+
+    <rect x="150" y="92" width="202" height="34" rx="16" class="gold"/>
+    <path d="M146 109 L108 109 M356 109 L394 109" class="thin"/>
+    <text x="188" y="115" class="label">顶部题字更完整</text>
+
+    <circle cx="430" cy="112" r="28" class="gold"/>
+    <circle cx="430" cy="112" r="16" class="thin"/>
+    <text x="394" y="168" class="label">右上法印</text>
+
+    <rect x="86" y="302" width="328" height="48" rx="20" class="gold"/>
+    <circle cx="148" cy="326" r="18" class="thin"/>
+    <circle cx="208" cy="326" r="18" class="thin"/>
+    <circle cx="268" cy="326" r="18" class="thin"/>
+    <circle cx="352" cy="326" r="26" class="gold"/>
+    <text x="158" y="382" class="label">底部技能盘具备主次关系</text>
+
+    <rect x="36" y="198" width="38" height="182" rx="16" class="thin"/>
+    <rect x="426" y="198" width="38" height="182" rx="16" class="thin"/>
+    <path d="M56 198 L56 380" class="thin"/>
+    <path d="M446 198 L446 380" class="thin"/>
+    <text x="18" y="404" class="label">两侧题字与角饰适中</text>
+
+    <circle cx="250" cy="210" r="104" class="thin"/>
+    <circle cx="250" cy="210" r="72" class="thin"/>
+    <circle cx="250" cy="210" r="32" class="gold"/>
+    <path d="M250 210 C 328 168 382 128 432 88" class="blue"/>
+    <path d="M250 210 C 200 170 156 132 122 96" class="blue"/>
+    <path d="M250 210 C 188 224 142 242 98 276" class="blue"/>
+    <circle cx="408" cy="106" r="14" class="red"/>
+    <circle cx="382" cy="250" r="12" class="red"/>
+    <circle cx="126" cy="108" r="11" class="red"/>
+
+    <text x="24" y="712" class="panelNote">推荐作为 demo 首版 HUD 基线。</text>
+    <text x="24" y="736" class="panelNote">后续最容易继续升级。</text>
+  </g>
+
+  <!-- Panel C -->
+  <g transform="translate(1130,150)">
+    <rect x="0" y="0" width="500" height="760" class="frame"/>
+    <text x="24" y="36" class="panelTitle">C. 华丽星图版</text>
+    <text x="24" y="62" class="panelNote">用于探索上限密度和更强仪式感。</text>
+
+    <rect x="24" y="86" width="452" height="254" rx="16" class="thin"/>
+    <text x="156" y="210" class="label">战斗区仍要保住，不得被装饰挤碎</text>
+
+    <circle cx="66" cy="112" r="24" class="gold"/>
+    <circle cx="66" cy="112" r="34" class="thin"/>
+    <rect x="106" y="94" width="204" height="22" rx="11" class="gold"/>
+    <rect x="106" y="126" width="176" height="14" rx="7" class="blue"/>
+    <text x="24" y="172" class="label">左上更完整，但仍要轻</text>
+
+    <rect x="136" y="88" width="228" height="40" rx="18" class="gold"/>
+    <path d="M124 108 L86 108 M376 108 L414 108" class="gold"/>
+    <path d="M104 88 C 130 72 164 68 202 68" class="thin"/>
+    <path d="M396 88 C 370 72 336 68 298 68" class="thin"/>
+    <text x="178" y="116" class="label">题字更有仪式感</text>
+
+    <circle cx="432" cy="112" r="30" class="gold"/>
+    <circle cx="432" cy="112" r="42" class="thin"/>
+    <path d="M432 78 L432 146 M398 112 L466 112" class="thin"/>
+    <text x="378" y="172" class="label">模式徽记更复杂</text>
+
+    <rect x="76" y="294" width="348" height="60" rx="24" class="gold"/>
+    <circle cx="138" cy="324" r="18" class="thin"/>
+    <circle cx="198" cy="324" r="18" class="thin"/>
+    <circle cx="258" cy="324" r="18" class="thin"/>
+    <circle cx="334" cy="324" r="22" class="thin"/>
+    <circle cx="390" cy="324" r="28" class="gold"/>
+    <text x="142" y="386" class="label">技能盘更像小阵盘</text>
+
+    <rect x="28" y="186" width="50" height="198" rx="18" class="thin"/>
+    <rect x="422" y="186" width="50" height="198" rx="18" class="thin"/>
+    <path d="M42 182 C 24 160 24 136 42 118" class="thin"/>
+    <path d="M458 182 C 476 160 476 136 458 118" class="thin"/>
+    <text x="16" y="410" class="label">侧边题字 + 云纹更强</text>
+
+    <circle cx="250" cy="210" r="112" class="thin"/>
+    <circle cx="250" cy="210" r="82" class="thin"/>
+    <circle cx="250" cy="210" r="40" class="gold"/>
+    <path d="M250 210 C 334 156 388 116 436 82" class="blue"/>
+    <path d="M250 210 C 176 178 126 144 84 110" class="blue"/>
+    <path d="M250 210 C 202 246 158 280 114 312" class="blue"/>
+    <path d="M250 210 C 296 246 342 274 396 312" class="blue"/>
+    <circle cx="412" cy="94" r="15" class="red"/>
+    <circle cx="384" cy="268" r="12" class="red"/>
+    <circle cx="106" cy="124" r="12" class="red"/>
+    <circle cx="128" cy="292" r="10" class="red"/>
+
+    <text x="24" y="712" class="panelNote">用于探索上限，不宜直接无改动实装。</text>
+    <text x="24" y="736" class="panelNote">一旦战斗区被压缩，就必须回调密度。</text>
+  </g>
+</svg>

@@ -18,6 +18,7 @@ static func reset_runtime(main: Node) -> void:
 	main.wave = 1
 	main.score = 0
 	main.enemies_to_spawn = main.WAVE_BASE_ENEMIES
+	main.wave_spawn_queue = []
 	main.spawn_timer = 0.2
 	main.screen_shake = 0.0
 	main.is_game_over = false
@@ -121,6 +122,7 @@ static func reset_runtime(main: Node) -> void:
 		"attack_instances": {},
 		"target_states": {},
 	}
+	main.enemy_packages = {}
 	main.game_over_label.visible = false
 	main._rebuild_array_sword_pool()
 	main._update_ui()
