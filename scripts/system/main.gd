@@ -333,6 +333,30 @@ const COLORS := {
 	"silk_main": Color("ef4444"),
 }
 
+const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
+在场地内走位、躲开敌弹、拉开或压近敌人。移动本身不消耗剑意，适合先把敌人带到有利距离再出剑。
+
+[b]鼠标移动 瞄准/控距[/b]
+角色、近战挥剑、御剑目标和剑阵方向都会参考鼠标位置。鼠标离角色越近越偏环阵，中距离变为扇阵，远距离变为刺阵。
+
+[b]左键点击 近战挥剑[/b]
+立即朝鼠标方向斩击，适合处理贴脸敌人和弹开敌弹。命中敌人或成功弹反敌弹会回复剑意，是维持后续剑阵和必杀的主要来源。
+
+[b]左键长按 剑阵压制[/b]
+按住约 0.1 秒后持续发射飞剑。近距离环阵守身，中距离扇阵横扫，远距离刺阵穿线。每把飞剑会消耗剑意，剑意不足或飞剑未回收时会中断。
+
+[b]右键短按 御剑点刺[/b]
+按下后快速松开，飞剑会刺向鼠标位置；飞剑离身期间会触发子弹时间，适合点杀远处目标、穿过弹幕空隙或打断一条直线上的威胁。
+
+[b]右键长按 御剑连斩[/b]
+按住超过短按阈值后进入连斩，拖动鼠标让飞剑追随并切割路径；松开右键后飞剑召回。适合持续切割移动中的目标或清理一片压力。
+
+[b]Q 必杀[/b]
+剑意满 100 时可释放。释放会清除敌弹并对场上敌人造成爆发伤害，之后剑意归零。
+
+[b]死亡后左键 重新开始[/b]
+力竭身亡后，在结算提示出现时点击左键即可重新开始本局。"""
+
 var player: Dictionary = {}
 var sword: Dictionary = {}
 var enemies: Array = []
@@ -390,6 +414,9 @@ var hitstop_gap_timer: float = 0.0
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
+var is_start_menu_active: bool = true
+var start_menu: Control = null
+var start_button: Button = null
 var debug_battle_mode: bool = false
 var debug_flags: Dictionary = {}
 var debug_calibration_mode: bool = false
@@ -441,9 +468,14 @@ func _ready() -> void:
 	randomize()
 	SwordArrayConfig.load_morph_distances_from_project()
 	_reset_game()
+	_build_start_menu()
+	_show_start_menu()
 
 
 func _process(delta: float) -> void:
+	if is_start_menu_active:
+		queue_redraw()
+		return
 	if is_game_over:
 		queue_redraw()
 		return
@@ -532,6 +564,13 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_start_menu_active:
+		if event is InputEventMouseMotion:
+			mouse_world = _screen_to_world(event.position)
+		elif event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE:
+				_start_game_from_menu()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if _handle_debug_key_input(event):
 			return
@@ -580,6 +619,136 @@ func _draw() -> void:
 
 func _draw_hud_bars() -> void:
 	GameRenderer.draw_hud_bars(self )
+
+
+func _build_start_menu() -> void:
+	if start_menu != null:
+		return
+
+	start_menu = Control.new()
+	start_menu.name = "StartMenu"
+	start_menu.mouse_filter = Control.MOUSE_FILTER_STOP
+	start_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	$CanvasLayer.add_child(start_menu)
+
+	var backdrop := ColorRect.new()
+	backdrop.name = "Backdrop"
+	backdrop.color = Color(0.02, 0.024, 0.03, 0.94)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	start_menu.add_child(backdrop)
+
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	start_menu.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.name = "MenuPanel"
+	panel.custom_minimum_size = Vector2(860.0, 620.0)
+	panel.add_theme_stylebox_override("panel", _make_start_menu_style(Color("10141c"), Color("38bdf8"), 1, 8))
+	center.add_child(panel)
+
+	var margins := MarginContainer.new()
+	margins.add_theme_constant_override("margin_left", 34)
+	margins.add_theme_constant_override("margin_top", 26)
+	margins.add_theme_constant_override("margin_right", 34)
+	margins.add_theme_constant_override("margin_bottom", 28)
+	panel.add_child(margins)
+
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	margins.add_child(content)
+
+	var title_label := Label.new()
+	title_label.text = "剑修试炼"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 46)
+	title_label.add_theme_color_override("font_color", Color("f8fafc"))
+	content.add_child(title_label)
+
+	var subtitle_label := Label.new()
+	subtitle_label.text = "御剑成阵，近守远破。先看操作，再入试炼。"
+	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	subtitle_label.add_theme_font_size_override("font_size", 18)
+	subtitle_label.add_theme_color_override("font_color", Color("cbd5e1"))
+	content.add_child(subtitle_label)
+
+	start_button = Button.new()
+	start_button.text = "开始游戏"
+	start_button.custom_minimum_size = Vector2(0.0, 54.0)
+	start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	start_button.focus_mode = Control.FOCUS_ALL
+	start_button.add_theme_font_size_override("font_size", 24)
+	start_button.add_theme_color_override("font_color", Color("111827"))
+	start_button.add_theme_color_override("font_hover_color", Color("020617"))
+	start_button.add_theme_color_override("font_pressed_color", Color("020617"))
+	start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color("facc15"), Color("fde68a"), 1, 6))
+	start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color("fde68a"), Color("f8fafc"), 1, 6))
+	start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color("fbbf24"), Color("fef3c7"), 1, 6))
+	start_button.pressed.connect(_start_game_from_menu)
+	content.add_child(start_button)
+
+	var divider := ColorRect.new()
+	divider.custom_minimum_size = Vector2(0.0, 1.0)
+	divider.color = Color(0.56, 0.75, 0.9, 0.28)
+	content.add_child(divider)
+
+	var guide_title := Label.new()
+	guide_title.text = "操作说明"
+	guide_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	guide_title.add_theme_font_size_override("font_size", 26)
+	guide_title.add_theme_color_override("font_color", Color("e0f2fe"))
+	content.add_child(guide_title)
+
+	var guide_label := RichTextLabel.new()
+	guide_label.bbcode_enabled = true
+	guide_label.text = START_MENU_OPERATION_TEXT
+	guide_label.custom_minimum_size = Vector2(0.0, 350.0)
+	guide_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	guide_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	guide_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guide_label.scroll_active = true
+	guide_label.selection_enabled = false
+	guide_label.add_theme_font_size_override("normal_font_size", 18)
+	guide_label.add_theme_font_size_override("bold_font_size", 18)
+	guide_label.add_theme_color_override("default_color", Color("e5e7eb"))
+	content.add_child(guide_label)
+
+
+func _make_start_menu_style(background_color: Color, border_color: Color, border_width: int, corner_radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background_color
+	style.border_color = border_color
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(corner_radius)
+	return style
+
+
+func _show_start_menu() -> void:
+	is_start_menu_active = true
+	left_mouse_held = false
+	right_mouse_held = false
+	if start_menu != null:
+		start_menu.visible = true
+		start_menu.move_to_front()
+	if start_button != null:
+		start_button.grab_focus()
+	queue_redraw()
+
+
+func _start_game_from_menu() -> void:
+	if not is_start_menu_active:
+		return
+	is_start_menu_active = false
+	left_mouse_held = false
+	right_mouse_held = false
+	if start_menu != null:
+		start_menu.visible = false
+	_reset_game()
 
 
 func _reset_game() -> void:
