@@ -73,22 +73,23 @@ const TURN_BURST_THRESHOLD := 0.34
 
 @export_group("剑气补层调试")
 @export var 剑气补层启用 := true
-@export_range(0.0, 2.0, 0.01) var 剑气补层整体强度 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气薄雾长度倍率 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气薄雾宽度倍率 := 1.0
-@export_range(0.0, 2.0, 0.01) var 剑气上刃外散强度 := 1.0
-@export_range(0.0, 2.0, 0.01) var 剑气下刃外散强度 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气后外散距离倍率 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气后外散角度倍率 := 1.0
-@export_range(0.0, 1.2, 0.01) var 剑气贴刃距离倍率 := 0.24
-@export_range(0.0, 4.0, 0.1) var 剑气起喷外移 := 0.6
-@export_range(0.0, 2.0, 0.01) var 剑气薄雾透明度倍率 := 1.0
-@export_range(0.0, 2.0, 0.01) var 剑气粒子数量倍率 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气粒子速度倍率 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气粒子尺寸倍率 := 1.0
-@export_range(0.2, 2.0, 0.01) var 剑气粒子散射倍率 := 1.0
-@export_range(0.0, 2.0, 0.01) var 剑气尾雾强度倍率 := 1.0
-@export_range(0.0, 2.0, 0.01) var 剑气前雾强度倍率 := 1.0
+@export_range(0.0, 4.0, 0.01) var 剑气补层整体强度 := 1.0
+@export_range(0.1, 4.0, 0.01) var 剑气薄雾长度倍率 := 1.0
+@export_range(0.1, 4.0, 0.01) var 剑气薄雾宽度倍率 := 1.0
+@export_range(0.0, 4.0, 0.01) var 剑气上刃外散强度 := 1.0
+@export_range(0.0, 4.0, 0.01) var 剑气下刃外散强度 := 1.0
+@export_range(-64.0, 64.0, 0.1) var 剑气沿剑身前后偏移 := 0.0
+@export_range(0.1, 4.0, 0.01) var 剑气后外散距离倍率 := 1.0
+@export_range(0.1, 4.0, 0.01) var 剑气后外散角度倍率 := 1.0
+@export_range(0.0, 2.5, 0.01) var 剑气贴刃距离倍率 := 0.24
+@export_range(0.0, 16.0, 0.1) var 剑气起喷外移 := 0.6
+@export_range(0.0, 4.0, 0.01) var 剑气薄雾透明度倍率 := 1.0
+@export_range(0.0, 4.0, 0.01) var 剑气粒子数量倍率 := 1.0
+@export_range(0.1, 4.0, 0.01) var 剑气粒子速度倍率 := 1.0
+@export_range(0.1, 4.0, 0.01) var 剑气粒子尺寸倍率 := 1.0
+@export_range(0.1, 4.0, 0.01) var 剑气粒子散射倍率 := 1.0
+@export_range(0.0, 4.0, 0.01) var 剑气尾雾强度倍率 := 1.0
+@export_range(0.0, 4.0, 0.01) var 剑气前雾强度倍率 := 1.0
 
 var main: Node2D = null
 
@@ -1049,6 +1050,7 @@ func _configure_segment_backscatter_particles(
 		return
 
 	var edge_anchor: Vector2 = root.lerp(tip, along)
+	edge_anchor += visual_forward * (剑气沿剑身前后偏移 * scale)
 	edge_anchor += normal * _sample_body_flow_half_width(along, scale) * 剑气贴刃距离倍率 * (0.9 + 0.06 * segment_bias)
 	var scatter_dir: Vector2 = (
 		-visual_forward * (0.92 + 0.18 * speed_ratio) * 剑气后外散距离倍率
