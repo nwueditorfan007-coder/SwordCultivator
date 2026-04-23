@@ -5,3 +5,6 @@
 [node name="SwordVfxAuthoritativeLookdev" unique_id=1297927967 instance=ExtResource("1_main")]
 lookdev_mode = true
 lookdev_preview_mode = 1
+
+[node name="SwordFlightFx" parent="." index="0" unique_id=1718008480]
+"扭曲启用" = false

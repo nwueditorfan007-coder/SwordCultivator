@@ -358,7 +358,7 @@ static func _get_band_launch_origin_from_geometry(
 				return SwordArrayBandFamily.get_spear_launch_origin_from_geometry(geometry, bullet_pos)
 			return bullet_pos
 		SwordArrayConfig.MODE_PIERCE:
-			return SwordArrayBandFamily.get_pierce_launch_origin_from_geometry(geometry, bullet_pos)
+			return _get_adjusted_pierce_launch_origin(main, geometry, bullet_pos)
 		_:
 			return bullet_pos
 
@@ -472,6 +472,24 @@ static func _get_fan_fire_target_from_geometry(main: Node, state_source, geometr
 		bullet_pos,
 		main.player["pos"]
 	)
+
+
+static func _get_adjusted_pierce_launch_origin(main: Node, geometry: Dictionary, bullet_pos: Vector2) -> Vector2:
+	var launch_origin: Vector2 = SwordArrayBandFamily.get_pierce_launch_origin_from_geometry(geometry, bullet_pos)
+	var profile: Dictionary = SwordArrayConfig.get_profile(SwordArrayConfig.MODE_PIERCE)
+	var desired_distance: float = maxf(float(profile.get("sortie_launch_player_distance", 0.0)), 0.0)
+	if desired_distance <= 0.0:
+		return launch_origin
+	var player_pos: Vector2 = main.player["pos"]
+	var from_player: Vector2 = launch_origin - player_pos
+	if from_player.is_zero_approx():
+		from_player = geometry.get("tip", player_pos) - player_pos
+	if from_player.is_zero_approx():
+		from_player = _get_aim_vector(main)
+	var launch_distance: float = from_player.length()
+	if launch_distance <= desired_distance:
+		return launch_origin
+	return player_pos + from_player.normalized() * desired_distance
 
 
 static func get_preview_data(main: Node, state_source, formation_ratio := 1.0) -> Dictionary:
@@ -888,7 +906,11 @@ static func get_fire_effect(main: Node, state_source, fire_count: int) -> Dictio
 					clampf(0.52 + preview_blend * 0.18 + tip_focus * 0.22, 0.0, 1.0)
 				)
 		SwordArrayConfig.MODE_PIERCE:
-			effect["position"] = geometry.get("tip", effect["position"])
+			effect["position"] = _get_adjusted_pierce_launch_origin(
+				main,
+				geometry,
+				geometry.get("tip", effect["position"])
+			)
 	return effect
 
 

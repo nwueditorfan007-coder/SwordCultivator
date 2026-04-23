@@ -24,6 +24,10 @@ const FIRED_DAMAGE := 100.0
 const FIRED_GUIDANCE_DURATION := 0.24
 const FIRED_GUIDANCE_TURN_RATE := 9.5
 const FIRED_GUIDANCE_MAX_DISTANCE := 240.0
+const RING_SORTIE_RANGE_SCALE := 0.7
+const RING_ACTIVE_RADIUS := 68.0
+const RING_SORTIE_TARGET_DISTANCE := (RING_ACTIVE_RADIUS + 124.0) * RING_SORTIE_RANGE_SCALE
+const PIERCE_SORTIE_LAUNCH_PLAYER_DISTANCE := 132.0
 
 const RING_THRESHOLD := 160.0
 const FAN_THRESHOLD := 420.0
@@ -41,7 +45,7 @@ static var _morph_distance_overrides := {
 
 const MODE_PROFILES := {
 	MODE_RING: {
-		"ring_radius": 68.0,
+		"ring_radius": RING_ACTIVE_RADIUS,
 		"idle_ring_radius": 44.0,
 		"slot_count": 10,
 		"fire_interval": 0.30,
@@ -55,11 +59,11 @@ const MODE_PROFILES := {
 		"fire_particles_cap": 20,
 		"fire_offset": 0.0,
 		"fire_shake": 2.2,
-		"sortie_target_offset": 124.0,
-		"sortie_max_distance": 190.0,
-		"sortie_guidance_max_distance": 88.0,
-		"sortie_min_distance": 80.0,
-		"sortie_hit_follow_through_distance": 44.0,
+		"sortie_target_offset": RING_SORTIE_TARGET_DISTANCE - RING_ACTIVE_RADIUS,
+		"sortie_max_distance": 190.0 * RING_SORTIE_RANGE_SCALE,
+		"sortie_guidance_max_distance": 88.0 * RING_SORTIE_RANGE_SCALE,
+		"sortie_min_distance": 80.0 * RING_SORTIE_RANGE_SCALE,
+		"sortie_hit_follow_through_distance": 44.0 * RING_SORTIE_RANGE_SCALE,
 		"sortie_hit_radius_bonus": 22.0,
 		"sortie_penetration_targets": 1,
 		"sortie_rehit_cooldown": 0.16,
@@ -128,6 +132,7 @@ const MODE_PROFILES := {
 		"fire_particles_cap": 22,
 		"fire_offset": 72.0,
 		"fire_shake": 2.8,
+		"sortie_launch_player_distance": PIERCE_SORTIE_LAUNCH_PLAYER_DISTANCE,
 		"sortie_target_offset": 180.0,
 		"sortie_max_distance": 620.0,
 		"sortie_guidance_max_distance": 320.0,

@@ -65,6 +65,7 @@ static func reset_runtime(main: Node) -> void:
 		"array_release_progress": 0.0,
 		"array_packet_remainder": 0.0,
 		"array_fire_index": 0,
+		"array_selected_mode": SwordArrayConfig.MODE_RING,
 		"array_mode": SwordArrayConfig.MODE_RING,
 		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"array_fire_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),

@@ -43,6 +43,13 @@ enum LookdevPreviewMode {
 	RECALL,
 }
 
+const ARRAY_TOGGLE_MODES := [
+	SwordArrayConfig.MODE_RING,
+	SwordArrayConfig.MODE_PIERCE,
+]
+const ARRAY_CONTROL_SCHEME_DISTANCE := "distance_aim"
+const ARRAY_CONTROL_SCHEME_MANUAL := "space_toggle"
+
 const LOOKDEV_PANEL_TARGET_WIDTH := 320.0
 const LOOKDEV_PANEL_MARGIN := 16.0
 const LOOKDEV_CONTROLS := [
@@ -498,6 +505,30 @@ const COLORS := {
 const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
 在场地内走位、躲开敌弹、拉开或压近敌人。移动本身不消耗剑意，适合先把敌人带到有利距离再出剑。
 
+[b]鼠标移动 瞄准[/b]
+角色、近战挥剑、御剑目标和剑阵方向都会参考鼠标位置。剑阵发射朝向也会跟随鼠标，方便你边走位边控线。
+
+[b]Space 切换剑阵[/b]
+在环阵和贯穿阵之间切换。环阵更适合近身护体和群组解压，贯穿阵更适合远端破线和窗口输出。
+
+[b]左键点击 近战挥剑[/b]
+立即朝鼠标方向斩击，适合处理贴脸敌人和弹开敌弹。命中敌人或成功弹反敌弹会回复剑意，是维持后续剑阵的主要来源。
+
+[b]左键长按 剑阵压制[/b]
+按住约 0.1 秒后持续发射飞剑。当前选中的剑阵会决定飞剑的发射方式。每把飞剑会消耗剑意，剑意不足或飞剑未回收时会中断。
+
+[b]右键短按 御剑点刺[/b]
+按下后快速松开，飞剑会刺向鼠标位置；飞剑离身期间会触发子弹时间，适合点杀远处目标、穿过弹幕空隙或打断一条直线上的威胁。
+
+[b]右键长按 御剑连斩[/b]
+按住超过短按阈值后进入连斩，拖动鼠标让飞剑追随并切割路径；松开右键后飞剑召回。适合持续切割移动中的目标或清理一片压力。
+
+[b]死亡后左键 重新开始[/b]
+力竭身亡后，在结算提示出现时点击左键即可重新开始本局。"""
+
+const START_MENU_OPERATION_TEXT_DISTANCE := """[b]WASD 移动[/b]
+在场地内走位、躲开敌弹、拉开或压近敌人。移动本身不消耗剑意，适合先把敌人带到有利距离再出剑。
+
 [b]鼠标移动 瞄准/控距[/b]
 角色、近战挥剑、御剑目标和剑阵方向都会参考鼠标位置。鼠标离角色越近越偏环阵，中距离变为扇阵，远距离变为刺阵。
 
@@ -587,9 +618,13 @@ var hitstop_gap_timer: float = 0.0
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
+var array_control_scheme: String = ARRAY_CONTROL_SCHEME_DISTANCE
 var is_start_menu_active: bool = true
 var start_menu: Control = null
 var start_button: Button = null
+var start_menu_scheme_button: Button = null
+var start_menu_guide_label: RichTextLabel = null
+var operation_scheme_button: Button = null
 var lookdev_preview_time := 0.0
 var lookdev_preview_loop_index := -1
 var lookdev_preview_events: Dictionary = {}
@@ -759,7 +794,9 @@ func _ready() -> void:
 	if lookdev_mode:
 		_enter_lookdev_mode()
 		return
+	_build_operation_scheme_button()
 	_build_start_menu()
+	_update_array_control_scheme_ui()
 	_show_start_menu()
 
 
@@ -800,6 +837,25 @@ func _style_demo_label(label: Label, font_size: int, font_color: Color, alignmen
 	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.68))
 	label.add_theme_constant_override("shadow_offset_x", 0)
 	label.add_theme_constant_override("shadow_offset_y", 2)
+
+
+func _build_operation_scheme_button() -> void:
+	if operation_scheme_button != null:
+		return
+	operation_scheme_button = Button.new()
+	operation_scheme_button.name = "OperationSchemeButton"
+	operation_scheme_button.focus_mode = Control.FOCUS_NONE
+	operation_scheme_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	operation_scheme_button.custom_minimum_size = Vector2(196.0, 34.0)
+	operation_scheme_button.add_theme_font_size_override("font_size", 14)
+	operation_scheme_button.add_theme_color_override("font_color", Color("d8e2ea"))
+	operation_scheme_button.add_theme_color_override("font_hover_color", Color("f6fbff"))
+	operation_scheme_button.add_theme_color_override("font_pressed_color", Color("f6fbff"))
+	operation_scheme_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.06, 0.09, 0.13, 0.9), Color("7fa7c0"), 1, 6))
+	operation_scheme_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.08, 0.13, 0.18, 0.96), Color("88d8ff"), 1, 6))
+	operation_scheme_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.11, 0.16, 0.13, 0.98), Color("f1e3bc"), 1, 6))
+	operation_scheme_button.pressed.connect(_toggle_array_control_scheme)
+	canvas_layer.add_child(operation_scheme_button)
 
 
 func _process(delta: float) -> void:
@@ -923,6 +979,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if _handle_debug_key_input(event):
 			return
+		if event.keycode == KEY_SPACE:
+			_toggle_selected_array_mode()
+			return
 	if event is InputEventMouseMotion:
 		mouse_world = _screen_to_world(event.position)
 		if debug_calibration_mode and debug_dragging_player:
@@ -1028,6 +1087,21 @@ func _build_start_menu() -> void:
 	subtitle_label.add_theme_color_override("font_color", Color("9cb0c2"))
 	content.add_child(subtitle_label)
 
+	start_menu_scheme_button = Button.new()
+	start_menu_scheme_button.text = "操作方案"
+	start_menu_scheme_button.custom_minimum_size = Vector2(0.0, 42.0)
+	start_menu_scheme_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	start_menu_scheme_button.focus_mode = Control.FOCUS_NONE
+	start_menu_scheme_button.add_theme_font_size_override("font_size", 18)
+	start_menu_scheme_button.add_theme_color_override("font_color", Color("d8e2ea"))
+	start_menu_scheme_button.add_theme_color_override("font_hover_color", Color("f6fbff"))
+	start_menu_scheme_button.add_theme_color_override("font_pressed_color", Color("f6fbff"))
+	start_menu_scheme_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.06, 0.09, 0.13, 0.9), Color("7fa7c0"), 1, 6))
+	start_menu_scheme_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.08, 0.13, 0.18, 0.96), Color("88d8ff"), 1, 6))
+	start_menu_scheme_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.11, 0.16, 0.13, 0.98), Color("f1e3bc"), 1, 6))
+	start_menu_scheme_button.pressed.connect(_toggle_array_control_scheme)
+	content.add_child(start_menu_scheme_button)
+
 	start_button = Button.new()
 	start_button.text = "开始游戏"
 	start_button.custom_minimum_size = Vector2(0.0, 54.0)
@@ -1055,19 +1129,19 @@ func _build_start_menu() -> void:
 	guide_title.add_theme_color_override("font_color", Color("f1e3bc"))
 	content.add_child(guide_title)
 
-	var guide_label := RichTextLabel.new()
-	guide_label.bbcode_enabled = true
-	guide_label.text = START_MENU_OPERATION_TEXT
-	guide_label.custom_minimum_size = Vector2(0.0, 350.0)
-	guide_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	guide_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	guide_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	guide_label.scroll_active = true
-	guide_label.selection_enabled = false
-	guide_label.add_theme_font_size_override("normal_font_size", 18)
-	guide_label.add_theme_font_size_override("bold_font_size", 18)
-	guide_label.add_theme_color_override("default_color", Color("d8e2ea"))
-	content.add_child(guide_label)
+	start_menu_guide_label = RichTextLabel.new()
+	start_menu_guide_label.bbcode_enabled = true
+	start_menu_guide_label.text = START_MENU_OPERATION_TEXT
+	start_menu_guide_label.custom_minimum_size = Vector2(0.0, 350.0)
+	start_menu_guide_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	start_menu_guide_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	start_menu_guide_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	start_menu_guide_label.scroll_active = true
+	start_menu_guide_label.selection_enabled = false
+	start_menu_guide_label.add_theme_font_size_override("normal_font_size", 18)
+	start_menu_guide_label.add_theme_font_size_override("bold_font_size", 18)
+	start_menu_guide_label.add_theme_color_override("default_color", Color("d8e2ea"))
+	content.add_child(start_menu_guide_label)
 
 
 func _make_start_menu_style(background_color: Color, border_color: Color, border_width: int, corner_radius: int) -> StyleBoxFlat:
@@ -1083,6 +1157,7 @@ func _show_start_menu() -> void:
 	is_start_menu_active = true
 	left_mouse_held = false
 	right_mouse_held = false
+	_update_array_control_scheme_ui()
 	if start_menu != null:
 		start_menu.visible = true
 		start_menu.move_to_front()
@@ -1855,6 +1930,131 @@ func _get_array_mode_confirm_strength() -> float:
 	return clampf(array_mode_confirm_timer / ARRAY_MODE_CONFIRM_DURATION, 0.0, 1.0)
 
 
+func _get_array_control_scheme() -> String:
+	return ARRAY_CONTROL_SCHEME_MANUAL if array_control_scheme == ARRAY_CONTROL_SCHEME_MANUAL else ARRAY_CONTROL_SCHEME_DISTANCE
+
+
+func _get_array_control_scheme_display_name(scheme := "") -> String:
+	var resolved_scheme: String = _get_array_control_scheme() if scheme == "" else scheme
+	return "Space切阵" if resolved_scheme == ARRAY_CONTROL_SCHEME_MANUAL else "距离控阵"
+
+
+func _get_array_control_scheme_color(scheme := "") -> Color:
+	var resolved_scheme: String = _get_array_control_scheme() if scheme == "" else scheme
+	if resolved_scheme == ARRAY_CONTROL_SCHEME_MANUAL:
+		return Color(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_PIERCE).get("accent_color", Color("88d8ff")))
+	return Color("d7bb79")
+
+
+func _get_current_operation_guide_text() -> String:
+	return START_MENU_OPERATION_TEXT if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL else START_MENU_OPERATION_TEXT_DISTANCE
+
+
+func _update_array_control_scheme_ui() -> void:
+	var scheme_name: String = _get_array_control_scheme_display_name()
+	if start_menu_scheme_button != null:
+		start_menu_scheme_button.text = "操作方案：%s" % scheme_name
+	if start_menu_guide_label != null:
+		start_menu_guide_label.text = _get_current_operation_guide_text()
+	if operation_scheme_button != null:
+		operation_scheme_button.text = "操作：%s" % scheme_name
+		operation_scheme_button.visible = not lookdev_mode and not is_start_menu_active and not debug_calibration_mode
+		var viewport_size: Vector2 = get_viewport_rect().size
+		operation_scheme_button.position = Vector2(viewport_size.x - 208.0, 92.0)
+		operation_scheme_button.size = Vector2(196.0, 34.0)
+
+
+func _can_toggle_array_control_scheme() -> bool:
+	if lookdev_mode or debug_calibration_mode:
+		return false
+	if is_start_menu_active:
+		return true
+	return not left_mouse_held and not bool(player.get("array_is_firing", false))
+
+
+func _set_array_control_scheme(scheme: String) -> void:
+	array_control_scheme = ARRAY_CONTROL_SCHEME_MANUAL if scheme == ARRAY_CONTROL_SCHEME_MANUAL else ARRAY_CONTROL_SCHEME_DISTANCE
+	if array_control_scheme == ARRAY_CONTROL_SCHEME_MANUAL:
+		var current_mode: String = str(player.get("array_mode", SwordArrayConfig.MODE_RING))
+		if current_mode == SwordArrayConfig.MODE_RING or current_mode == SwordArrayConfig.MODE_PIERCE:
+			player["array_selected_mode"] = current_mode
+		else:
+			player["array_selected_mode"] = _normalize_array_selected_mode(str(player.get("array_selected_mode", SwordArrayConfig.MODE_RING)))
+	_refresh_sword_array_live_state()
+	_update_array_control_scheme_ui()
+	_update_ui()
+
+
+func _toggle_array_control_scheme() -> void:
+	if not _can_toggle_array_control_scheme():
+		_show_focus_status_message(
+			"松开剑阵后再切换操作方案",
+			Color("f1b46b"),
+			minf(FOCUS_STATUS_DURATION, 0.55)
+		)
+		return
+	var next_scheme: String = ARRAY_CONTROL_SCHEME_MANUAL
+	if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL:
+		next_scheme = ARRAY_CONTROL_SCHEME_DISTANCE
+	_set_array_control_scheme(next_scheme)
+	if not is_start_menu_active:
+		var scheme_name: String = _get_array_control_scheme_display_name(next_scheme)
+		var scheme_color: Color = _get_array_control_scheme_color(next_scheme)
+		_show_status_message("操作方案已切换：%s" % scheme_name, scheme_color, 0.8)
+		_show_focus_status_message(scheme_name, scheme_color, minf(FOCUS_STATUS_DURATION, 0.55))
+
+
+func _uses_manual_array_mode_toggle() -> bool:
+	return _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL and not debug_calibration_mode
+
+
+func _normalize_array_selected_mode(mode: String) -> String:
+	return SwordArrayConfig.MODE_PIERCE if mode == SwordArrayConfig.MODE_PIERCE else SwordArrayConfig.MODE_RING
+
+
+func _get_selected_array_mode() -> String:
+	return _normalize_array_selected_mode(
+		str(player.get("array_selected_mode", player.get("array_mode", SwordArrayConfig.MODE_RING)))
+	)
+
+
+func _build_locked_array_state(mode: String, _aim_distance: float) -> Dictionary:
+	var locked_mode: String = _normalize_array_selected_mode(mode)
+	var state: Dictionary = SwordArrayConfig.get_mode_state(locked_mode)
+	var distances: Dictionary = SwordArrayConfig.get_morph_distances()
+	var max_distance: float = maxf(float(distances.get("fan_to_pierce_end", SwordArrayConfig.FAN_TO_PIERCE_END)), 1.0)
+	var canonical_distance: float = 0.0
+	match locked_mode:
+		SwordArrayConfig.MODE_PIERCE:
+			canonical_distance = float(distances.get("fan_to_pierce_end", SwordArrayConfig.FAN_TO_PIERCE_END))
+		SwordArrayConfig.MODE_FAN:
+			canonical_distance = float(distances.get("fan_stable_end", SwordArrayConfig.FAN_STABLE_END))
+		_:
+			canonical_distance = float(distances.get("ring_stable_end", SwordArrayConfig.RING_STABLE_END))
+	state["distance_ratio"] = clampf(canonical_distance / max_distance, 0.0, 1.0)
+	return state
+
+
+func _get_array_mode_display_name(mode: String) -> String:
+	return "贯穿阵" if _normalize_array_selected_mode(mode) == SwordArrayConfig.MODE_PIERCE else "环阵"
+
+
+func _toggle_selected_array_mode() -> void:
+	if is_game_over or lookdev_mode or is_start_menu_active or not _uses_manual_array_mode_toggle():
+		return
+	var current_mode: String = _get_selected_array_mode()
+	var next_mode: String = ARRAY_TOGGLE_MODES[1] if current_mode == ARRAY_TOGGLE_MODES[0] else ARRAY_TOGGLE_MODES[0]
+	player["array_selected_mode"] = next_mode
+	player["array_confirm_observed_stable_mode"] = next_mode
+	_refresh_sword_array_live_state()
+	_trigger_array_mode_confirm(next_mode)
+	_show_focus_status_message(
+		_get_array_mode_display_name(next_mode),
+		Color(SwordArrayConfig.get_profile(next_mode).get("accent_color", Color.WHITE)),
+		minf(FOCUS_STATUS_DURATION, 0.55)
+	)
+
+
 func _get_sword_array_formation_ratio() -> float:
 	if bool(player.get("array_is_firing", false)):
 		return 1.0
@@ -1881,8 +2081,16 @@ func _update_array_morph_control(delta: float) -> void:
 func _refresh_sword_array_live_state() -> void:
 	var raw_distance: float = float(player.get("array_raw_aim_distance", player["pos"].distance_to(mouse_world)))
 	var control_distance: float = float(player.get("array_control_distance", raw_distance))
-	var visual_state: Dictionary = SwordArrayConfig.get_morph_state_for_distance(raw_distance)
-	var fire_state: Dictionary = SwordArrayConfig.get_control_morph_state_for_distance(control_distance)
+	var visual_state: Dictionary = {}
+	var fire_state: Dictionary = {}
+	if _uses_manual_array_mode_toggle():
+		var selected_mode: String = _get_selected_array_mode()
+		player["array_selected_mode"] = selected_mode
+		visual_state = _build_locked_array_state(selected_mode, raw_distance)
+		fire_state = _build_locked_array_state(selected_mode, control_distance)
+	else:
+		visual_state = SwordArrayConfig.get_morph_state_for_distance(raw_distance)
+		fire_state = SwordArrayConfig.get_control_morph_state_for_distance(control_distance)
 	player["array_morph_state"] = visual_state
 	player["array_fire_morph_state"] = fire_state
 	player["array_mode"] = fire_state["dominant_mode"]
@@ -4418,6 +4626,7 @@ func _set_game_over() -> void:
 
 
 func _update_ui() -> void:
+	_update_array_control_scheme_ui()
 	if lookdev_mode:
 		health_label.text = "预览场景"
 		energy_label.text = "真实 Main 状态机"
@@ -4539,7 +4748,10 @@ func _update_ui() -> void:
 	elif debug_battle_mode:
 		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击击杀 | 4 停刷怪 | 5 清敌弹 | %s | F7 退出 | F6 校准" % _get_sword_hover_preset_shortcut_hint()
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | %s | F7 战斗调试 | F6 校准调试" % _get_sword_hover_preset_shortcut_hint()
+		if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL:
+			hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | Space 切换环/贯 | 点击右上切操作方案 | %s | F7 战斗调试 | F6 校准调试" % _get_sword_hover_preset_shortcut_hint()
+		else:
+			hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | 鼠标距离切三阵 | 点击右上切操作方案 | %s | F7 战斗调试 | F6 校准调试" % _get_sword_hover_preset_shortcut_hint()
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
@@ -4751,7 +4963,7 @@ func _format_distance_delta(delta: float) -> String:
 
 
 func _get_sword_array_mode() -> String:
-	return SwordArrayController.get_mode(self )
+	return _get_array_batch_mode()
 
 
 func _get_sword_array_direction(fire_index: int, volley_count := -1, burst_step := 0, total_count := -1) -> Vector2:
