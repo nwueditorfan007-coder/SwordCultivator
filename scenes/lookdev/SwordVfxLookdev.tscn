@@ -1,6 +1,11 @@
 [gd_scene format=3 uid="uid://bu50awtjtxn6w"]
 
-[ext_resource type="Script" uid="uid://cipmvibkuhe7" path="res://scripts/lookdev/sword_vfx_lookdev.gd" id="1_ykn6s"]
+[ext_resource type="Script" path="res://scripts/lookdev/sword_vfx_lookdev.gd" id="1_ykn6s"]
+[ext_resource type="Script" uid="uid://d23o6qr4240c3" path="res://scripts/vfx/sword_flight_fx.gd" id="2_swordflightfx"]
 
 [node name="SwordVfxLookdev" type="Node2D" unique_id=1452562626]
 script = ExtResource("1_ykn6s")
+
+[node name="SwordFlightFx" type="Node2D" parent="." unique_id=1718008481]
+script = ExtResource("2_swordflightfx")
+"扭曲启用" = false

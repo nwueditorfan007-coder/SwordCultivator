@@ -15,6 +15,14 @@ class_name SwordVfxProfile
 @export_range(0.3, 1.6, 0.02) var trail_point_life_scale := 0.9
 @export_range(0.3, 1.8, 0.02) var trail_slice_life_scale := 1.12
 @export_range(0.3, 1.6, 0.02) var trail_recall_life_scale := 0.96
+@export_range(0.4, 2.0, 0.02) var node_trail_width_base_scale := 1.08
+@export_range(0.4, 2.4, 0.02) var node_trail_halo_width_scale := 1.28
+@export_range(0.2, 1.4, 0.02) var node_trail_ribbon_width_scale := 0.62
+@export_range(0.05, 0.6, 0.01) var node_trail_core_width_scale := 0.16
+@export_range(0.0, 0.4, 0.01) var node_trail_warm_width_scale := 0.08
+@export_range(4.0, 36.0, 0.5) var node_trail_head_clearance_point := 18.0
+@export_range(4.0, 40.0, 0.5) var node_trail_head_clearance_slice := 21.0
+@export_range(4.0, 32.0, 0.5) var node_trail_head_clearance_recall := 14.0
 
 
 @export_group("气流")
@@ -72,6 +80,17 @@ class_name SwordVfxProfile
 @export_range(0.0, 0.4, 0.01) var local_glow_spine_line_alpha_scale := 0.1
 @export_range(0.2, 4.0, 0.05) var local_glow_spine_line_width_base := 0.9
 @export_range(0.0, 4.0, 0.05) var local_glow_spine_line_width_scale := 0.8
+
+
+@export_group("剑体流光")
+@export_range(0.0, 1.0, 0.01) var body_flow_idle_strength := 0.14
+@export_range(0.0, 1.0, 0.01) var body_flow_speed_strength := 0.48
+@export_range(0.0, 1.0, 0.01) var body_flow_turn_strength := 0.18
+@export_range(0.4, 2.2, 0.02) var body_flow_shell_width_scale := 1.02
+@export_range(0.2, 1.4, 0.02) var body_flow_core_width_scale := 0.72
+@export_range(0.5, 8.0, 0.05) var body_flow_scroll_speed := 2.8
+@export_range(2.0, 20.0, 0.1) var body_flow_band_density := 6.4
+@export_range(-0.4, 0.8, 0.01) var body_flow_tip_bias := 0.2
 
 
 @export_group("回收归阵")

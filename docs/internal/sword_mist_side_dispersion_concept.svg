@@ -1,0 +1,146 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="140" y1="80" x2="1460" y2="820" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#08111D"/>
+      <stop offset="0.54" stop-color="#0B1828"/>
+      <stop offset="1" stop-color="#050A12"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F2438" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#0A1623" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#86DCFF"/>
+      <stop offset="0.48" stop-color="#F6FCFF"/>
+      <stop offset="1" stop-color="#73CBFF"/>
+    </linearGradient>
+    <linearGradient id="mistUp" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#A6EEFF" stop-opacity="0"/>
+      <stop offset="0.28" stop-color="#BEF8FF" stop-opacity="0.52"/>
+      <stop offset="0.68" stop-color="#95D9FF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#86DCFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="mistDown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A6EEFF" stop-opacity="0"/>
+      <stop offset="0.28" stop-color="#BEF8FF" stop-opacity="0.52"/>
+      <stop offset="0.68" stop-color="#95D9FF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#86DCFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blurXL" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <filter id="blurL" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="blurS" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect x="140" y="96" width="1320" height="708" rx="28" fill="url(#panel)" stroke="#DAB66D" stroke-opacity="0.2"/>
+
+  <g opacity="0.34">
+    <path d="M170 170H1430" stroke="#DAB66D" stroke-opacity="0.24"/>
+    <path d="M170 740H1430" stroke="#DAB66D" stroke-opacity="0.24"/>
+    <path d="M260 126V774" stroke="#6CA7D8" stroke-opacity="0.12"/>
+    <path d="M1340 126V774" stroke="#6CA7D8" stroke-opacity="0.12"/>
+  </g>
+
+  <text x="190" y="162" fill="#F5D99A" font-size="34" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-weight="700">更新后的方向：雾从剑刃两侧向外散，不是从剑柄后方拖出去</text>
+  <text x="191" y="206" fill="#C4DCEC" font-size="20" font-family="Microsoft YaHei, PingFang SC, sans-serif">读感应该像剑刃在“蒸发”出剑气，边缘往上和往下同时逸散，近剑体更浓，离开后逐渐虚掉</text>
+
+  <g transform="translate(255 446)">
+    <ellipse cx="580" cy="0" rx="360" ry="58" fill="#7FDFFF" fill-opacity="0.06" filter="url(#blurXL)"/>
+
+    <path d="M378 -20
+             C412 -112 462 -170 528 -198
+             C608 -230 700 -230 782 -194
+             C846 -166 902 -120 944 -36"
+          stroke="url(#mistUp)" stroke-width="78" stroke-linecap="round" filter="url(#blurXL)"/>
+
+    <path d="M396 18
+             C430 110 486 162 560 196
+             C642 232 734 232 816 194
+             C882 164 936 112 972 28"
+          stroke="url(#mistDown)" stroke-width="78" stroke-linecap="round" filter="url(#blurXL)"/>
+
+    <path d="M452 -18
+             C474 -88 518 -136 578 -162
+             C646 -190 724 -190 792 -160
+             C844 -138 892 -94 930 -28"
+          stroke="url(#mistUp)" stroke-width="42" stroke-linecap="round" filter="url(#blurL)" opacity="0.95"/>
+
+    <path d="M466 18
+             C490 88 536 138 596 166
+             C664 198 742 198 806 168
+             C860 142 908 94 944 30"
+          stroke="url(#mistDown)" stroke-width="42" stroke-linecap="round" filter="url(#blurL)" opacity="0.95"/>
+
+    <path d="M492 -10
+             C526 -54 582 -82 648 -88
+             C720 -94 792 -76 850 -32"
+          stroke="#BFF8FF" stroke-opacity="0.42" stroke-width="16" stroke-linecap="round" filter="url(#blurS)"/>
+
+    <path d="M502 10
+             C538 52 594 80 662 86
+             C734 92 804 74 860 32"
+          stroke="#A5E4FF" stroke-opacity="0.36" stroke-width="16" stroke-linecap="round" filter="url(#blurS)"/>
+
+    <g opacity="0.94">
+      <path d="M420 -16 L876 -16 L1000 0 L876 16 L420 16 Z" fill="url(#blade)"/>
+      <path d="M360 -22 L422 -16 L422 16 L360 22 L308 0 Z" fill="#8CDAFF" fill-opacity="0.72"/>
+      <path d="M304 -12 L322 -12 L322 12 L304 12 Z" fill="#556175"/>
+      <path d="M284 -20 L308 -8 L308 8 L284 20 L244 0 Z" fill="#87D8FF" fill-opacity="0.72"/>
+      <path d="M426 0 L926 0" stroke="#FFFFFF" stroke-opacity="0.84" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M432 -10 L884 -14" stroke="#96E5FF" stroke-opacity="0.36" stroke-width="2" stroke-linecap="round"/>
+      <path d="M432 10 L884 14" stroke="#96E5FF" stroke-opacity="0.22" stroke-width="2" stroke-linecap="round"/>
+    </g>
+
+    <g opacity="0.6">
+      <circle cx="548" cy="-114" r="3.2" fill="#E8FFFF"/>
+      <circle cx="632" cy="-162" r="2.2" fill="#D2FAFF"/>
+      <circle cx="760" cy="-166" r="2.8" fill="#D2FAFF"/>
+      <circle cx="850" cy="-116" r="2.1" fill="#BBF2FF"/>
+      <circle cx="570" cy="122" r="3.1" fill="#E8FFFF"/>
+      <circle cx="668" cy="166" r="2.2" fill="#D2FAFF"/>
+      <circle cx="782" cy="170" r="2.7" fill="#D2FAFF"/>
+      <circle cx="876" cy="122" r="2.0" fill="#BBF2FF"/>
+    </g>
+
+    <g opacity="0.18">
+      <path d="M350 0H164" stroke="#F27D7D" stroke-width="10" stroke-linecap="round"/>
+      <path d="M176 -22 L330 22" stroke="#F27D7D" stroke-width="8" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g>
+    <circle cx="468" cy="322" r="7" fill="#8FE9FF"/>
+    <circle cx="468" cy="322" r="16" stroke="#8FE9FF" stroke-opacity="0.26"/>
+    <path d="M468 340V410" stroke="#8FE9FF" stroke-opacity="0.72" stroke-width="2"/>
+    <text x="390" y="286" fill="#EAF8FF" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-weight="700">上刃外散</text>
+    <text x="300" y="446" fill="#B8D1E6" font-size="18" font-family="Microsoft YaHei, PingFang SC, sans-serif">从上边刃缘被顶开，先细后散</text>
+  </g>
+
+  <g>
+    <circle cx="472" cy="596" r="7" fill="#8FE9FF"/>
+    <circle cx="472" cy="596" r="16" stroke="#8FE9FF" stroke-opacity="0.26"/>
+    <path d="M472 578V510" stroke="#8FE9FF" stroke-opacity="0.72" stroke-width="2"/>
+    <text x="390" y="654" fill="#EAF8FF" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-weight="700">下刃外散</text>
+    <text x="292" y="686" fill="#B8D1E6" font-size="18" font-family="Microsoft YaHei, PingFang SC, sans-serif">下边同样出雾，形成双侧呼吸感</text>
+  </g>
+
+  <g>
+    <circle cx="1184" cy="448" r="7" fill="#8FE9FF"/>
+    <circle cx="1184" cy="448" r="16" stroke="#8FE9FF" stroke-opacity="0.26"/>
+    <path d="M1100 448H1166" stroke="#8FE9FF" stroke-opacity="0.72" stroke-width="2"/>
+    <text x="1210" y="440" fill="#EAF8FF" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-weight="700">两侧同时散开</text>
+    <text x="1210" y="472" fill="#B8D1E6" font-size="18" font-family="Microsoft YaHei, PingFang SC, sans-serif">不是后拖型尾雾，而是围着剑刃边缘往外呼开</text>
+  </g>
+
+  <g>
+    <rect x="182" y="710" width="1236" height="60" rx="14" fill="#0C1D2D" fill-opacity="0.72" stroke="#DAB66D" stroke-opacity="0.16"/>
+    <text x="210" y="746" fill="#F1D793" font-size="22" font-family="Microsoft YaHei, PingFang SC, sans-serif">实现提示</text>
+    <text x="338" y="746" fill="#C6DBEC" font-size="20" font-family="Microsoft YaHei, PingFang SC, sans-serif">雾层应该锚在剑身中段与两条刃缘法线方向，扩散主方向接近垂直于剑身，不要把能量重心放在剑柄后拖尾</text>
+  </g>
+</svg>

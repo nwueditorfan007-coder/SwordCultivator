@@ -45,6 +45,7 @@ const SWORD_HIT_EFFECT_POINT_WIDTH_SCALE := MainScript.SWORD_HIT_EFFECT_POINT_WI
 const SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE := MainScript.SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE
 const SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE := MainScript.SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE
 const SWORD_HIT_EFFECT_SPARK_COUNT := MainScript.SWORD_HIT_EFFECT_SPARK_COUNT
+const SWORD_IMPACT_FEEDBACK_DURATION := MainScript.SWORD_IMPACT_FEEDBACK_DURATION
 const COLORS := MainScript.COLORS
 const LOOKDEV_CORE_COLOR := Color("fff6e5")
 const LOOKDEV_WARM_COLOR := Color("ffd39b")
@@ -88,6 +89,19 @@ const LOOKDEV_CONTROLS := [
 			{"prop": "local_glow_recall_base", "label": "回收辉光", "min": 0.0, "max": 0.35, "step": 0.01},
 			{"prop": "local_glow_tip_radius_scale", "label": "剑尖光团", "min": 0.0, "max": 5.0, "step": 0.1},
 			{"prop": "local_glow_spine_alpha_scale", "label": "剑脊亮度", "min": 0.0, "max": 0.16, "step": 0.01},
+		],
+	},
+	{
+		"title": "剑体流光",
+		"items": [
+			{"prop": "body_flow_idle_strength", "label": "常驻强度", "min": 0.0, "max": 0.5, "step": 0.01},
+			{"prop": "body_flow_speed_strength", "label": "速度增益", "min": 0.0, "max": 1.0, "step": 0.01},
+			{"prop": "body_flow_turn_strength", "label": "转向增益", "min": 0.0, "max": 0.6, "step": 0.01},
+			{"prop": "body_flow_shell_width_scale", "label": "流带摆幅", "min": 0.4, "max": 2.2, "step": 0.02},
+			{"prop": "body_flow_core_width_scale", "label": "流带宽度", "min": 0.2, "max": 1.4, "step": 0.02},
+			{"prop": "body_flow_scroll_speed", "label": "流动速度", "min": 0.5, "max": 8.0, "step": 0.05},
+			{"prop": "body_flow_band_density", "label": "流纹密度", "min": 2.0, "max": 20.0, "step": 0.1},
+			{"prop": "body_flow_tip_bias", "label": "剑尖偏置", "min": -0.4, "max": 0.8, "step": 0.01},
 		],
 	},
 	{
@@ -155,6 +169,22 @@ func get_sword_vfx_profile() -> SwordVfxProfile:
 	if sword_vfx_profile == null:
 		sword_vfx_profile = DEFAULT_SWORD_VFX_PROFILE
 	return sword_vfx_profile
+
+
+func _use_node_sword_flight_vfx() -> bool:
+	return get_node_or_null("SwordFlightFx") != null
+
+
+func _get_sword_visual_position() -> Vector2:
+	return Vector2(sword.get("pos", ARENA_SIZE * 0.5))
+
+
+func _get_sword_visual_angle() -> float:
+	return float(sword.get("angle", 0.0))
+
+
+func _get_sword_hover_blend() -> float:
+	return 0.0
 
 
 func _process(delta: float) -> void:

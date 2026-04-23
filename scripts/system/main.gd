@@ -50,10 +50,24 @@ const LOOKDEV_CONTROLS := [
 		"title": "拖尾",
 		"items": [
 			{"prop": "trail_duration", "label": "拖尾持续", "min": 0.02, "max": 0.3, "step": 0.005},
+			{"prop": "trail_sample_interval", "label": "采样间隔", "min": 0.004, "max": 0.05, "step": 0.001},
+			{"prop": "trail_max_points", "label": "轨迹点数", "min": 4.0, "max": 32.0, "step": 1.0},
+			{"prop": "trail_forward_offset", "label": "前推距离", "min": 0.0, "max": 24.0, "step": 0.5},
 			{"prop": "trail_base_half_width", "label": "拖尾宽度", "min": 2.0, "max": 24.0, "step": 0.5},
 			{"prop": "trail_point_width_scale", "label": "点刺拖尾", "min": 0.2, "max": 1.4, "step": 0.02},
 			{"prop": "trail_slice_width_scale", "label": "连斩拖尾", "min": 0.4, "max": 1.8, "step": 0.02},
 			{"prop": "trail_recall_width_scale", "label": "回收拖尾", "min": 0.2, "max": 1.2, "step": 0.02},
+			{"prop": "trail_point_life_scale", "label": "点刺寿命", "min": 0.3, "max": 1.6, "step": 0.02},
+			{"prop": "trail_slice_life_scale", "label": "连斩寿命", "min": 0.3, "max": 1.8, "step": 0.02},
+			{"prop": "trail_recall_life_scale", "label": "回收寿命", "min": 0.3, "max": 1.6, "step": 0.02},
+			{"prop": "node_trail_width_base_scale", "label": "节点基础宽", "min": 0.4, "max": 2.0, "step": 0.02},
+			{"prop": "node_trail_halo_width_scale", "label": "节点外晕宽", "min": 0.4, "max": 2.4, "step": 0.02},
+			{"prop": "node_trail_ribbon_width_scale", "label": "节点中层宽", "min": 0.2, "max": 1.4, "step": 0.02},
+			{"prop": "node_trail_core_width_scale", "label": "节点核心宽", "min": 0.05, "max": 0.6, "step": 0.01},
+			{"prop": "node_trail_warm_width_scale", "label": "暖芯宽度", "min": 0.0, "max": 0.4, "step": 0.01},
+			{"prop": "node_trail_head_clearance_point", "label": "点刺净空", "min": 4.0, "max": 36.0, "step": 0.5},
+			{"prop": "node_trail_head_clearance_slice", "label": "连斩净空", "min": 4.0, "max": 40.0, "step": 0.5},
+			{"prop": "node_trail_head_clearance_recall", "label": "回收净空", "min": 4.0, "max": 32.0, "step": 0.5},
 		],
 	},
 	{
@@ -87,6 +101,19 @@ const LOOKDEV_CONTROLS := [
 		],
 	},
 	{
+		"title": "剑体流光",
+		"items": [
+			{"prop": "body_flow_idle_strength", "label": "常驻强度", "min": 0.0, "max": 0.5, "step": 0.01},
+			{"prop": "body_flow_speed_strength", "label": "速度增益", "min": 0.0, "max": 1.0, "step": 0.01},
+			{"prop": "body_flow_turn_strength", "label": "转向增益", "min": 0.0, "max": 0.6, "step": 0.01},
+			{"prop": "body_flow_shell_width_scale", "label": "流带摆幅", "min": 0.4, "max": 2.2, "step": 0.02},
+			{"prop": "body_flow_core_width_scale", "label": "流带宽度", "min": 0.2, "max": 1.4, "step": 0.02},
+			{"prop": "body_flow_scroll_speed", "label": "流动速度", "min": 0.5, "max": 8.0, "step": 0.05},
+			{"prop": "body_flow_band_density", "label": "流纹密度", "min": 2.0, "max": 20.0, "step": 0.1},
+			{"prop": "body_flow_tip_bias", "label": "剑尖偏置", "min": -0.4, "max": 0.8, "step": 0.01},
+		],
+	},
+	{
 		"title": "回收归阵",
 		"items": [
 			{"prop": "return_catch_duration", "label": "归位持续", "min": 0.02, "max": 0.35, "step": 0.01},
@@ -113,6 +140,60 @@ const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
 const SWORD_ORBIT_DISTANCE := 25.0
 const SWORD_SLICE_MIN_HIT_SPEED := 90.0
+const SWORD_HOVER_PRESETS := [
+	{
+		"name": "稳悬",
+		"enter_speed": 76.0,
+		"exit_speed": 156.0,
+		"enter_delay": 0.08,
+		"blend_in_duration": 0.2,
+		"blend_out_duration": 0.12,
+		"float_amplitude": 4.4,
+		"drift_amplitude": 0.8,
+		"float_frequency": 1.2,
+		"drift_frequency": 0.72,
+		"angle_amplitude": 0.03,
+	},
+	{
+		"name": "均衡",
+		"enter_speed": 84.0,
+		"exit_speed": 180.0,
+		"enter_delay": 0.06,
+		"blend_in_duration": 0.14,
+		"blend_out_duration": 0.08,
+		"float_amplitude": 6.0,
+		"drift_amplitude": 1.3,
+		"float_frequency": 1.55,
+		"drift_frequency": 0.95,
+		"angle_amplitude": 0.055,
+	},
+	{
+		"name": "灵动",
+		"enter_speed": 92.0,
+		"exit_speed": 210.0,
+		"enter_delay": 0.05,
+		"blend_in_duration": 0.12,
+		"blend_out_duration": 0.07,
+		"float_amplitude": 7.0,
+		"drift_amplitude": 1.9,
+		"float_frequency": 1.8,
+		"drift_frequency": 1.12,
+		"angle_amplitude": 0.075,
+	},
+	{
+		"name": "仙逸",
+		"enter_speed": 80.0,
+		"exit_speed": 168.0,
+		"enter_delay": 0.09,
+		"blend_in_duration": 0.22,
+		"blend_out_duration": 0.12,
+		"float_amplitude": 8.2,
+		"drift_amplitude": 1.1,
+		"float_frequency": 1.08,
+		"drift_frequency": 0.68,
+		"angle_amplitude": 0.04,
+	},
+]
 
 const BULLET_RADIUS := 5.0
 const BULLET_LARGE_RADIUS := 12.0
@@ -436,6 +517,12 @@ const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
 力竭身亡后，在结算提示出现时点击左键即可重新开始本局。"""
 
 @export var sword_vfx_profile: SwordVfxProfile = DEFAULT_SWORD_VFX_PROFILE
+@export var use_node_sword_flight_vfx := true
+@export_group("Hover Preset")
+@export_enum("稳悬", "均衡", "灵动", "仙逸") var sword_hover_preset := 1
+@export var sword_hover_preset_next_key: Key = KEY_NONE
+@export var sword_hover_preset_previous_key: Key = KEY_NONE
+@export_group("")
 @export var lookdev_mode := false
 @export var lookdev_auto_cycle := true
 @export var lookdev_preview_mode: LookdevPreviewMode = LookdevPreviewMode.POINT
@@ -518,6 +605,103 @@ func get_sword_vfx_profile() -> SwordVfxProfile:
 	if sword_vfx_profile == null:
 		sword_vfx_profile = DEFAULT_SWORD_VFX_PROFILE
 	return sword_vfx_profile
+
+
+func _use_node_sword_flight_vfx() -> bool:
+	return use_node_sword_flight_vfx and get_node_or_null("SwordFlightFx") != null
+
+
+func _get_sword_visual_position() -> Vector2:
+	return (
+		Vector2(sword.get("pos", Vector2.ZERO))
+		+ Vector2(sword.get("impact_feedback_offset", Vector2.ZERO))
+		+ Vector2(sword.get("hover_visual_offset", Vector2.ZERO))
+	)
+
+
+func _get_sword_visual_angle() -> float:
+	return (
+		float(sword.get("angle", 0.0))
+		+ float(sword.get("impact_angle_offset", 0.0))
+		+ float(sword.get("hover_visual_angle_offset", 0.0))
+	)
+
+
+func _get_sword_hover_blend() -> float:
+	return float(sword.get("hover_idle_blend", 0.0))
+
+
+func _get_sword_hover_preset_data() -> Dictionary:
+	if SWORD_HOVER_PRESETS.is_empty():
+		return {}
+	var preset_index := clampi(sword_hover_preset, 0, SWORD_HOVER_PRESETS.size() - 1)
+	return SWORD_HOVER_PRESETS[preset_index]
+
+
+func _get_sword_hover_preset_name() -> String:
+	var preset_data := _get_sword_hover_preset_data()
+	return str(preset_data.get("name", "均衡"))
+
+
+func _matches_configured_key(event: InputEventKey, keycode: Key) -> bool:
+	return keycode != KEY_NONE and event.keycode == keycode
+
+
+func _get_keycode_label(keycode: Key) -> String:
+	if keycode == KEY_NONE:
+		return ""
+	return OS.get_keycode_string(keycode)
+
+
+func _get_sword_hover_preset_shortcut_hint() -> String:
+	var key_parts: Array[String] = []
+	var next_label := _get_keycode_label(sword_hover_preset_next_key)
+	if next_label != "":
+		key_parts.append(next_label)
+	var previous_label := _get_keycode_label(sword_hover_preset_previous_key)
+	if previous_label != "":
+		key_parts.append(previous_label)
+	if key_parts.is_empty():
+		return "检查器设置浮空预设键"
+	return "%s 切浮空预设" % " / ".join(key_parts)
+
+
+func _cycle_sword_hover_preset(direction: int) -> void:
+	if SWORD_HOVER_PRESETS.is_empty():
+		return
+	sword_hover_preset = int(posmod(sword_hover_preset + direction, SWORD_HOVER_PRESETS.size()))
+	_show_status_message("浮空预设：%s" % _get_sword_hover_preset_name(), Color("88d8ff"), 1.2)
+
+
+func _setup_sword_flight_vfx_environment() -> void:
+	if not _use_node_sword_flight_vfx():
+		return
+	var viewport := get_viewport()
+	if viewport != null:
+		viewport.use_hdr_2d = true
+	var glow_environment := get_node_or_null("SwordFlightGlowEnvironment") as WorldEnvironment
+	if glow_environment == null:
+		glow_environment = WorldEnvironment.new()
+		glow_environment.name = "SwordFlightGlowEnvironment"
+		add_child(glow_environment)
+		move_child(glow_environment, 0)
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_CANVAS
+	environment.background_canvas_max_layer = 0
+	environment.glow_enabled = true
+	environment.glow_normalized = true
+	environment.glow_intensity = 0.72
+	environment.glow_strength = 1.18
+	environment.glow_bloom = 0.14
+	environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
+	environment.glow_hdr_threshold = 0.72
+	environment.glow_hdr_scale = 1.42
+	environment.glow_map_strength = 0.0
+	environment.set("glow_levels/1", 0.18)
+	environment.set("glow_levels/2", 0.12)
+	environment.set("glow_levels/3", 0.08)
+	environment.set("glow_levels/4", 0.04)
+	glow_environment.environment = environment
 var debug_battle_mode: bool = false
 var debug_flags: Dictionary = {}
 var debug_calibration_mode: bool = false
@@ -569,6 +753,7 @@ const DEBUG_ENEMY_LAYOUT := [
 func _ready() -> void:
 	randomize()
 	SwordArrayConfig.load_morph_distances_from_project()
+	_setup_sword_flight_vfx_environment()
 	_reset_game()
 	_apply_demo_art_label_style()
 	if lookdev_mode:
@@ -2010,6 +2195,7 @@ func _update_sword(delta: float) -> void:
 		var target: Vector2 = player["pos"] + orbit_direction * SWORD_ORBIT_DISTANCE
 		sword["vel"] = Vector2.ZERO
 		sword["pos"] = sword["pos"].lerp(target, min(delta * 18.0, 1.0))
+		_update_sword_hover(delta, Vector2.ZERO)
 		_update_sword_trail(delta, Vector2.ZERO)
 		_update_sword_air_wakes(delta, Vector2.ZERO)
 		_update_sword_afterimages(delta, Vector2.ZERO)
@@ -2057,11 +2243,82 @@ func _update_sword(delta: float) -> void:
 	var frame_velocity: Vector2 = (sword["pos"] - sword["prev_pos"]) / maxf(delta, 0.001)
 	if frame_velocity.length_squared() > 1.0:
 		sword["angle"] = frame_velocity.angle()
+	_update_sword_hover(delta, frame_velocity)
 	_update_sword_trail(delta, frame_velocity)
 	_update_sword_air_wakes(delta, frame_velocity)
 	_update_sword_afterimages(delta, frame_velocity)
 
 	_damage_enemies_with_sword(delta)
+
+
+func _update_sword_hover(delta: float, frame_velocity: Vector2) -> void:
+	var hover_preset := _get_sword_hover_preset_data()
+	if hover_preset.is_empty():
+		sword["hover_idle_candidate_time"] = 0.0
+		sword["hover_idle_active"] = false
+		sword["hover_idle_blend"] = 0.0
+		sword["hover_visual_offset"] = Vector2.ZERO
+		sword["hover_visual_angle_offset"] = 0.0
+		return
+
+	var can_hover: bool = sword["state"] == SwordState.SLICING and right_mouse_held
+	var hover_candidate_time: float = float(sword.get("hover_idle_candidate_time", 0.0))
+	var hover_idle_active: bool = bool(sword.get("hover_idle_active", false))
+	var hover_elapsed_time: float = float(sword.get("hover_elapsed_time", 0.0)) + delta
+	var speed: float = frame_velocity.length()
+
+	if can_hover:
+		if hover_idle_active:
+			if speed >= float(hover_preset.get("exit_speed", 180.0)):
+				hover_idle_active = false
+				hover_candidate_time = 0.0
+		else:
+			if speed <= float(hover_preset.get("enter_speed", 84.0)):
+				hover_candidate_time += delta
+				if hover_candidate_time >= float(hover_preset.get("enter_delay", 0.06)):
+					hover_idle_active = true
+			else:
+				hover_candidate_time = 0.0
+	else:
+		hover_idle_active = false
+		hover_candidate_time = 0.0
+
+	var hover_blend := move_toward(
+		float(sword.get("hover_idle_blend", 0.0)),
+		1.0 if hover_idle_active else 0.0,
+		delta / maxf(
+			float(hover_preset.get("blend_in_duration", 0.14)) if hover_idle_active else float(hover_preset.get("blend_out_duration", 0.08)),
+			0.001
+		)
+	)
+
+	sword["hover_idle_candidate_time"] = hover_candidate_time
+	sword["hover_idle_active"] = hover_idle_active
+	sword["hover_idle_blend"] = hover_blend
+	sword["hover_elapsed_time"] = hover_elapsed_time
+
+	if hover_blend <= 0.001:
+		sword["hover_visual_offset"] = Vector2.ZERO
+		sword["hover_visual_angle_offset"] = 0.0
+		return
+
+	var forward: Vector2 = frame_velocity.normalized()
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+	if forward.is_zero_approx():
+		forward = Vector2(sword.get("last_motion_forward", Vector2.RIGHT))
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	forward = forward.normalized()
+
+	var side: Vector2 = forward.orthogonal()
+	var phase: float = float(sword.get("hover_phase", 0.0))
+	var float_phase: float = hover_elapsed_time * TAU * float(hover_preset.get("float_frequency", 1.55)) + phase
+	var drift_phase: float = hover_elapsed_time * TAU * float(hover_preset.get("drift_frequency", 0.95)) + phase * 1.37
+	var hover_offset: Vector2 = side * sin(float_phase) * float(hover_preset.get("float_amplitude", 6.0))
+	hover_offset += forward * cos(drift_phase) * float(hover_preset.get("drift_amplitude", 1.3))
+	sword["hover_visual_offset"] = hover_offset * hover_blend
+	sword["hover_visual_angle_offset"] = sin(drift_phase + 0.4) * float(hover_preset.get("angle_amplitude", 0.055)) * hover_blend
 
 
 func _damage_enemies_with_sword(delta: float) -> void:
@@ -4280,9 +4537,9 @@ func _update_ui() -> void:
 	if debug_calibration_mode:
 		hint_label.text = "校准模式 | WASD 移动 | 中键拖拽玩家 | 1~4 记录距离 | P 保存 | L 读取 | R 重置 | F6 退出"
 	elif debug_battle_mode:
-		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击击杀 | 4 停刷怪 | 5 清敌弹 | F7 退出 | F6 校准"
+		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击击杀 | 4 停刷怪 | 5 清敌弹 | %s | F7 退出 | F6 校准" % _get_sword_hover_preset_shortcut_hint()
 	else:
-		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | F7 战斗调试 | F6 校准调试"
+		hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | %s | F7 战斗调试 | F6 校准调试" % _get_sword_hover_preset_shortcut_hint()
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
@@ -5573,6 +5830,12 @@ func _handle_debug_key_input(event: InputEventKey) -> bool:
 		if debug_calibration_mode:
 			return true
 		_toggle_debug_battle_mode()
+		return true
+	if _matches_configured_key(event, sword_hover_preset_next_key):
+		_cycle_sword_hover_preset(1)
+		return true
+	if _matches_configured_key(event, sword_hover_preset_previous_key):
+		_cycle_sword_hover_preset(-1)
 		return true
 	if debug_calibration_mode:
 		var aim_distance: float = player["pos"].distance_to(mouse_world)

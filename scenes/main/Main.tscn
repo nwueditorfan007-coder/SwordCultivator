@@ -1,9 +1,41 @@
 [gd_scene format=3 uid="uid://c4yhx0nq4v5ew"]
 
 [ext_resource type="Script" uid="uid://csb61sc78v6gj" path="res://scripts/system/main.gd" id="1_82ptl"]
+[ext_resource type="Script" uid="uid://d23o6qr4240c3" path="res://scripts/vfx/sword_flight_fx.gd" id="2_swordflightfx"]
 
 [node name="Main" type="Node2D" unique_id=2035086712]
 script = ExtResource("1_82ptl")
+sword_hover_preset = 3
+
+[node name="SwordFlightFx" type="Node2D" parent="." unique_id=1718008480]
+script = ExtResource("2_swordflightfx")
+"扭曲速度阈值" = 0.0
+"扭曲转向阈值" = 0.0
+"扭曲前移基础" = 5.0
+"扭曲纵向尺寸基础" = 1.5
+"扭曲强度基础" = 0.0116
+"扭曲强度转向系数" = 0.02
+"扭曲透明度基础" = 1.5
+"扭曲透明度速度系数" = 1.5
+"扭曲流动基础" = 8.0
+"剑体流带摆幅倍率" = 0.52
+"剑体流带宽度倍率" = 3.0
+"剑体流动速度倍率" = 0.5
+"剑体流纹密度倍率" = 0.2
+"剑体翻绕强度倍率" = 1.5
+"剑体流光向后延伸" = 16.3
+"副流透明度倍率" = 2.0
+"剑尖流光透明度倍率" = 1.5899999999999999
+"贴身底辉强度倍率" = 2.0
+"贴身底辉宽度倍率" = 2.0
+"剑气补层整体强度" = 0.77
+"剑气薄雾长度倍率" = 0.74
+"剑气薄雾宽度倍率" = 2.0
+"剑气上刃外散强度" = 2.0
+"剑气下刃外散强度" = 2.0
+"剑气后外散距离倍率" = 2.0
+"剑气后外散角度倍率" = 0.81
+"剑气薄雾透明度倍率" = 0.76
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=855900825]
 

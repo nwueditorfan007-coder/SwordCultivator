@@ -1,0 +1,103 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#07101d"/>
+      <stop offset="100%" stop-color="#0b1930"/>
+    </linearGradient>
+    <linearGradient id="divider" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d7bb79" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#d7bb79" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#d7bb79" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="swordCore" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f5fbff"/>
+      <stop offset="60%" stop-color="#9ee7ff"/>
+      <stop offset="100%" stop-color="#d7bb79"/>
+    </linearGradient>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5ed6ff" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#b8f1ff" stop-opacity="0.82"/>
+    </linearGradient>
+    <linearGradient id="flowA" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6edbff" stop-opacity="0"/>
+      <stop offset="25%" stop-color="#78e5ff" stop-opacity="0.12"/>
+      <stop offset="52%" stop-color="#effcff" stop-opacity="0.85"/>
+      <stop offset="78%" stop-color="#7fe3ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#6edbff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flowB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8ce8ff" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#8ce8ff" stop-opacity="0.16"/>
+      <stop offset="62%" stop-color="#f9ffff" stop-opacity="0.52"/>
+      <stop offset="100%" stop-color="#8ce8ff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="tipGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#98e9ff" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#98e9ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="fineGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect x="797" y="80" width="6" height="740" rx="3" fill="url(#divider)"/>
+
+  <text x="220" y="110" fill="#f1e3bc" font-size="42" font-family="Microsoft YaHei, PingFang SC, sans-serif">当前做出来的感觉</text>
+  <text x="210" y="155" fill="#7ea1bd" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif">更像“发光外壳 / 能量茧”</text>
+
+  <text x="980" y="110" fill="#f1e3bc" font-size="42" font-family="Microsoft YaHei, PingFang SC, sans-serif">我本来想要的感觉</text>
+  <text x="980" y="155" fill="#7ea1bd" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif">更像“丝绸 / 水流 / 贴着剑体绕行的剑气”</text>
+
+  <g transform="translate(185 460) rotate(-18)">
+    <path d="M40 10 L500 10 L560 0 L500 -10 L40 -10 Q0 -10 0 0 Q0 10 40 10 Z" fill="url(#shell)" filter="url(#softGlow)"/>
+    <path d="M25 5 L505 5 L555 0 L505 -5 L25 -5 Q10 -5 10 0 Q10 5 25 5 Z" fill="none" stroke="#8de7ff" stroke-width="3" stroke-opacity="0.9"/>
+    <path d="M70 0 L520 0" stroke="url(#swordCore)" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="520" cy="0" r="26" fill="url(#tipGlow)" filter="url(#fineGlow)"/>
+    <text x="160" y="-55" fill="#d7bb79" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif">整体被读成一个稳定外轮廓</text>
+    <line x1="250" y1="-36" x2="170" y2="-8" stroke="#d7bb79" stroke-width="2"/>
+    <text x="110" y="70" fill="#9cb0c2" font-size="22" font-family="Microsoft YaHei, PingFang SC, sans-serif">边缘像壳，不像流</text>
+    <line x1="210" y1="55" x2="160" y2="14" stroke="#9cb0c2" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(965 468) rotate(-18)">
+    <path d="M78 -24 C135 -56 228 -58 310 -38 C382 -20 456 -7 534 -9" fill="none" stroke="url(#flowA)" stroke-width="18" stroke-linecap="round" filter="url(#softGlow)"/>
+    <path d="M54 19 C145 8 230 -25 298 -22 C376 -20 434 13 505 12" fill="none" stroke="url(#flowB)" stroke-width="14" stroke-linecap="round" filter="url(#softGlow)"/>
+    <path d="M10 0 L452 0 L512 -8 L566 0 L512 8 L452 0" fill="none" stroke="#8be4ff" stroke-width="4" stroke-opacity="0.38"/>
+    <path d="M65 0 L514 0" stroke="url(#swordCore)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M90 -12 C202 -22 290 -12 390 -3" fill="none" stroke="#bff4ff" stroke-opacity="0.32" stroke-width="3" stroke-linecap="round"/>
+    <path d="M120 16 C220 3 300 13 420 7" fill="none" stroke="#74dbff" stroke-opacity="0.26" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="520" cy="0" r="22" fill="url(#tipGlow)" filter="url(#fineGlow)"/>
+    <circle cx="150" cy="-18" r="4" fill="#d7bb79" opacity="0.9"/>
+    <circle cx="178" cy="-10" r="3" fill="#f7ffff" opacity="0.86"/>
+    <circle cx="222" cy="18" r="4" fill="#8be4ff" opacity="0.78"/>
+    <circle cx="292" cy="-18" r="3" fill="#f7ffff" opacity="0.9"/>
+    <circle cx="342" cy="15" r="3" fill="#8be4ff" opacity="0.7"/>
+    <circle cx="408" cy="-15" r="4" fill="#d7bb79" opacity="0.82"/>
+    <text x="55" y="-82" fill="#d7bb79" font-size="24" font-family="Microsoft YaHei, PingFang SC, sans-serif">不是外壳，而是两三条薄流在绕着剑身滑</text>
+    <line x1="350" y1="-62" x2="285" y2="-33" stroke="#d7bb79" stroke-width="2"/>
+    <text x="182" y="76" fill="#9cb0c2" font-size="22" font-family="Microsoft YaHei, PingFang SC, sans-serif">局部有小粒子 / 薄雾，但只当辅料</text>
+    <line x1="326" y1="60" x2="345" y2="18" stroke="#9cb0c2" stroke-width="2"/>
+  </g>
+
+  <text x="165" y="760" fill="#f1e3bc" font-size="28" font-family="Microsoft YaHei, PingFang SC, sans-serif">关键词：</text>
+  <text x="275" y="760" fill="#88d8ff" font-size="28" font-family="Microsoft YaHei, PingFang SC, sans-serif">发光壳层、稳定轮廓、像被包住</text>
+
+  <text x="966" y="760" fill="#f1e3bc" font-size="28" font-family="Microsoft YaHei, PingFang SC, sans-serif">关键词：</text>
+  <text x="1078" y="760" fill="#88d8ff" font-size="28" font-family="Microsoft YaHei, PingFang SC, sans-serif">薄流、扰动、贴体绕行、像水和丝绸</text>
+
+  <text x="355" y="820" fill="#7ea1bd" font-size="22" font-family="Microsoft YaHei, PingFang SC, sans-serif">这不是我现在想继续保留的方向</text>
+  <text x="1090" y="820" fill="#7ea1bd" font-size="22" font-family="Microsoft YaHei, PingFang SC, sans-serif">这才是我理解里更对味的方向</text>
+</svg>

@@ -114,6 +114,13 @@ static func reset_runtime(main: Node) -> void:
 		"impact_feedback_timer": 0.0,
 		"impact_feedback_offset": Vector2.ZERO,
 		"impact_angle_offset": 0.0,
+		"hover_idle_candidate_time": 0.0,
+		"hover_idle_active": false,
+		"hover_idle_blend": 0.0,
+		"hover_elapsed_time": 0.0,
+		"hover_phase": randf() * TAU,
+		"hover_visual_offset": Vector2.ZERO,
+		"hover_visual_angle_offset": 0.0,
 	}
 	main.hit_registry = HitRegistry.new()
 	main.hurtbox_registry = HurtboxRegistry.new()
