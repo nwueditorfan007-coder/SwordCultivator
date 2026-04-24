@@ -85,6 +85,7 @@ static func reset_runtime(main: Node) -> void:
 	main.visual_time_stop_strength = 0.0
 	main.visual_time_stop_hold_timer = 0.0
 	main.visual_time_stop_entry_pulse_timer = 0.0
+	main.visual_time_stop_ink_break_timer = 0.0
 	main.unsheath_flash_timer = 0.0
 	main.unsheath_flash_origin = main.ARENA_SIZE * 0.5
 	main.unsheath_flash_direction = Vector2.RIGHT

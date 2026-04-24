@@ -33,6 +33,8 @@ git checkout -b feature/sword-array-tuning
    项目准备继续收敛到的目标方向，不代表已全部落地。
 3. `docs/systems/`
    各系统的定稿或准定稿方案。
+4. `docs/systems/TIME_STOP_INK_ASSET_PIPELINE.md`
+   御剑时停水墨效果的素材清单、生成提示词、接入点与 GitHub 上传前检查清单。
 
 ## Godot 报错协作
 
@@ -72,4 +74,11 @@ powershell -ExecutionPolicy Bypass -File .\tools\start_godot_with_log.ps1 -Mode 
 
 # 启动后等待 Godot 退出，再把退出码回传到终端
 powershell -ExecutionPolicy Bypass -File .\tools\start_godot_with_log.ps1 -Wait
+
+# headless 校验现在默认会等待退出，避免残留后台 Godot 进程
+powershell -ExecutionPolicy Bypass -File .\tools\start_godot_with_log.ps1 -Mode run -Headless -ExtraArgs '--quit-after','2'
+
+# 只有明确需要后台运行的 headless 任务时，才加 -Detach
+powershell -ExecutionPolicy Bypass -File .\tools\start_godot_with_log.ps1 -Mode run -Headless -Detach -ExtraArgs '--quit-after','2'
 ```
+

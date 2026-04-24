@@ -3,3 +3,5 @@
 /android/
 .codex/godot/
 /dist/
+.codex/config.toml
+.codex_tmp/

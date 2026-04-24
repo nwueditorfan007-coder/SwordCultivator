@@ -18,6 +18,7 @@ const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
 const TargetWritebackAdapters = preload("res://scripts/combat/target_writeback_adapters.gd")
 const DEFAULT_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_default.tres")
 const DEFAULT_LOOKDEV_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_lookdev.tres")
+const TIME_STOP_INK_WASH_SHADER = preload("res://resources/vfx/time_stop_ink_wash.gdshader")
 
 enum CombatMode {
 	MELEE,
@@ -49,6 +50,7 @@ const ARRAY_TOGGLE_MODES := [
 ]
 const ARRAY_CONTROL_SCHEME_DISTANCE := "distance_aim"
 const ARRAY_CONTROL_SCHEME_MANUAL := "space_toggle"
+const ARRAY_RING_SWITCH_STRIKE_VISUAL_BLEND := 0.62
 
 const LOOKDEV_PANEL_TARGET_WIDTH := 320.0
 const LOOKDEV_PANEL_MARGIN := 16.0
@@ -554,6 +556,33 @@ const START_MENU_OPERATION_TEXT_DISTANCE := """[b]WASD 移动[/b]
 @export var sword_hover_preset_next_key: Key = KEY_NONE
 @export var sword_hover_preset_previous_key: Key = KEY_NONE
 @export_group("")
+@export_group("时停水墨后处理")
+@export var 时停分层水墨启用 := true
+@export_range(0.0, 1.5, 0.01) var 时停背景墨化强度 := 1.15
+@export_range(0.0, 1.5, 0.01) var 时停背景冷蓝雾 := 0.16
+@export_range(0.0, 1.0, 0.01) var 时停背景暗角 := 0.42
+@export_range(0.0, 1.0, 0.01) var 时停宣纸覆盖 := 0.72
+@export_range(0.0, 2.0, 0.01) var 时停背景笔触强度 := 1.55
+@export_range(0.0, 2.0, 0.01) var 时停目标墨斑强度 := 1.35
+@export var 时停破墨启用 := true
+@export_range(0.08, 1.2, 0.01) var 时停破墨持续时间 := 0.42
+@export_range(0.0, 2.0, 0.01) var 时停破墨强度 := 1.35
+@export_range(0.2, 2.4, 0.01) var 时停破墨长度倍率 := 1.0
+@export_range(0.2, 2.4, 0.01) var 时停破墨宽度倍率 := 1.25
+@export_range(0.0, 2.0, 0.01) var 时停破墨墨滴倍率 := 1.4
+@export_range(0.0, 1.0, 0.01) var 时停对象冻结描边 := 0.55
+@export var 时停全屏滤镜预览启用 := false
+@export_range(0.0, 0.08, 0.001) var 时停水墨显示阈值 := 0.008
+@export_range(0.0, 2.0, 0.01) var 时停水墨强度倍率 := 1.12
+@export_range(0.2, 2.0, 0.01) var 时停水墨强度曲线 := 0.78
+@export_range(0.0, 2.0, 0.01) var 时停水墨进入脉冲倍率 := 1.0
+@export_range(0.0, 2.0, 0.01) var 时停水墨对比 := 0.62
+@export_range(0.0, 0.3, 0.001) var 时停宣纸颗粒 := 0.092
+@export_range(0.0, 1.0, 0.01) var 时停边缘暗角 := 0.52
+@export_range(0.0, 1.5, 0.01) var 时停飞剑目标保色 := 0.86
+@export var 时停冷墨颜色 := Color(0.66, 0.82, 1.0, 1.0)
+@export var 时停宣纸颜色 := Color(0.78, 0.83, 0.88, 1.0)
+@export_group("")
 @export var lookdev_mode := false
 @export var lookdev_auto_cycle := true
 @export var lookdev_preview_mode: LookdevPreviewMode = LookdevPreviewMode.POINT
@@ -744,6 +773,9 @@ var debug_dragging_player: bool = false
 var visual_time_stop_strength: float = 0.0
 var visual_time_stop_hold_timer: float = 0.0
 var visual_time_stop_entry_pulse_timer: float = 0.0
+var visual_time_stop_ink_break_timer: float = 0.0
+var time_stop_ink_overlay: ColorRect = null
+var time_stop_ink_material: ShaderMaterial = null
 var unsheath_flash_timer: float = 0.0
 var unsheath_flash_origin: Vector2 = ARENA_SIZE * 0.5
 var unsheath_flash_direction: Vector2 = Vector2.RIGHT
@@ -789,6 +821,7 @@ func _ready() -> void:
 	randomize()
 	SwordArrayConfig.load_morph_distances_from_project()
 	_setup_sword_flight_vfx_environment()
+	_setup_time_stop_ink_overlay()
 	_reset_game()
 	_apply_demo_art_label_style()
 	if lookdev_mode:
@@ -827,6 +860,62 @@ func _apply_demo_art_label_style() -> void:
 	hint_label.size = Vector2(viewport_size.x - 440.0, 28.0)
 	game_over_label.position = Vector2(viewport_size.x * 0.5 - 280.0, viewport_size.y * 0.5 - 120.0)
 	game_over_label.size = Vector2(560.0, 240.0)
+	if time_stop_ink_overlay != null:
+		time_stop_ink_overlay.move_to_front()
+		canvas_layer.move_child(time_stop_ink_overlay, 0)
+
+
+func _setup_time_stop_ink_overlay() -> void:
+	if time_stop_ink_overlay != null:
+		return
+	time_stop_ink_material = ShaderMaterial.new()
+	time_stop_ink_material.shader = TIME_STOP_INK_WASH_SHADER
+	time_stop_ink_material.set_shader_parameter("strength", 0.0)
+	time_stop_ink_material.set_shader_parameter("entry_pulse", 0.0)
+	time_stop_ink_material.set_shader_parameter("center_uv", Vector2(0.5, 0.5))
+	_apply_time_stop_ink_tuning_parameters()
+	time_stop_ink_overlay = ColorRect.new()
+	time_stop_ink_overlay.name = "TimeStopInkWash"
+	time_stop_ink_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	time_stop_ink_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	time_stop_ink_overlay.color = Color.WHITE
+	time_stop_ink_overlay.material = time_stop_ink_material
+	time_stop_ink_overlay.visible = false
+	canvas_layer.add_child(time_stop_ink_overlay)
+	canvas_layer.move_child(time_stop_ink_overlay, 0)
+	var viewport := get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_resize_time_stop_ink_overlay):
+		viewport.size_changed.connect(_resize_time_stop_ink_overlay)
+	_resize_time_stop_ink_overlay()
+
+
+func _resize_time_stop_ink_overlay() -> void:
+	if time_stop_ink_overlay == null:
+		return
+	time_stop_ink_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	time_stop_ink_overlay.offset_left = 0.0
+	time_stop_ink_overlay.offset_top = 0.0
+	time_stop_ink_overlay.offset_right = 0.0
+	time_stop_ink_overlay.offset_bottom = 0.0
+
+
+func _hide_time_stop_ink_overlay() -> void:
+	if time_stop_ink_overlay != null:
+		time_stop_ink_overlay.visible = false
+	if time_stop_ink_material != null:
+		time_stop_ink_material.set_shader_parameter("strength", 0.0)
+		time_stop_ink_material.set_shader_parameter("entry_pulse", 0.0)
+
+
+func _apply_time_stop_ink_tuning_parameters() -> void:
+	if time_stop_ink_material == null:
+		return
+	time_stop_ink_material.set_shader_parameter("ink_contrast", 时停水墨对比)
+	time_stop_ink_material.set_shader_parameter("paper_grain", 时停宣纸颗粒)
+	time_stop_ink_material.set_shader_parameter("vignette_strength", 时停边缘暗角)
+	time_stop_ink_material.set_shader_parameter("focus_restore_strength", 时停飞剑目标保色)
+	time_stop_ink_material.set_shader_parameter("cold_ink_color", Vector3(时停冷墨颜色.r, 时停冷墨颜色.g, 时停冷墨颜色.b))
+	time_stop_ink_material.set_shader_parameter("paper_color", Vector3(时停宣纸颜色.r, 时停宣纸颜色.g, 时停宣纸颜色.b))
 
 
 func _style_demo_label(label: Label, font_size: int, font_color: Color, alignment: HorizontalAlignment) -> void:
@@ -880,6 +969,7 @@ func _process(delta: float) -> void:
 	else:
 		sword["time_slow_timer"] = 0.0
 	_update_time_stop_visual(delta, is_flying_sword)
+	_update_time_stop_ink_overlay()
 	unsheath_flash_timer = max(unsheath_flash_timer - delta, 0.0)
 	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - delta, 0.0)
 	unsheath_press_flash_timer = max(unsheath_press_flash_timer - delta, 0.0)
@@ -1157,6 +1247,7 @@ func _show_start_menu() -> void:
 	is_start_menu_active = true
 	left_mouse_held = false
 	right_mouse_held = false
+	_hide_time_stop_ink_overlay()
 	_update_array_control_scheme_ui()
 	if start_menu != null:
 		start_menu.visible = true
@@ -1234,6 +1325,7 @@ func _process_lookdev(delta: float) -> void:
 	else:
 		sword["time_slow_timer"] = 0.0
 	_update_time_stop_visual(scaled_delta, is_flying_sword)
+	_update_time_stop_ink_overlay()
 	unsheath_flash_timer = max(unsheath_flash_timer - scaled_delta, 0.0)
 	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - scaled_delta, 0.0)
 	unsheath_press_flash_timer = max(unsheath_press_flash_timer - scaled_delta, 0.0)
@@ -1363,6 +1455,7 @@ func _consume_lookdev_event(event_key: String) -> bool:
 
 func _reset_game() -> void:
 	GameStateFactory.reset_runtime(self )
+	_hide_time_stop_ink_overlay()
 	action_failure_cooldowns.clear()
 	energy_feedback_timer = 0.0
 	energy_feedback_color = Color.WHITE
@@ -1419,12 +1512,14 @@ func _update_time_stop_visual(delta: float, is_flying_sword: bool) -> void:
 	var had_visual_presence: bool = _has_time_stop_visual_presence()
 	visual_time_stop_hold_timer = max(visual_time_stop_hold_timer - delta, 0.0)
 	visual_time_stop_entry_pulse_timer = max(visual_time_stop_entry_pulse_timer - delta, 0.0)
+	visual_time_stop_ink_break_timer = max(visual_time_stop_ink_break_timer - delta, 0.0)
 	var target_strength: float = 0.0
 	if is_flying_sword:
 		target_strength = _get_time_stop_gameplay_strength() * TIME_STOP_VISUAL_MAX_STRENGTH
 		visual_time_stop_hold_timer = TIME_STOP_VISUAL_RELEASE_HOLD
 		if not had_visual_presence:
 			visual_time_stop_entry_pulse_timer = TIME_STOP_VISUAL_ENTRY_PULSE_DURATION
+			visual_time_stop_ink_break_timer = 时停破墨持续时间
 	elif visual_time_stop_hold_timer > 0.0 and TIME_STOP_VISUAL_RELEASE_HOLD > 0.0:
 		var hold_ratio: float = clampf(visual_time_stop_hold_timer / TIME_STOP_VISUAL_RELEASE_HOLD, 0.0, 1.0)
 		target_strength = TIME_STOP_VISUAL_HOLD_FLOOR * hold_ratio
@@ -1455,6 +1550,56 @@ func _get_time_stop_entry_pulse_strength() -> float:
 		return 0.0
 	var pulse_ratio: float = clampf(visual_time_stop_entry_pulse_timer / TIME_STOP_VISUAL_ENTRY_PULSE_DURATION, 0.0, 1.0)
 	return pow(pulse_ratio, 1.6)
+
+
+func _get_time_stop_ink_break_strength() -> float:
+	if 时停破墨持续时间 <= 0.0:
+		return 0.0
+	var ratio: float = clampf(visual_time_stop_ink_break_timer / 时停破墨持续时间, 0.0, 1.0)
+	return sin(ratio * PI) * pow(ratio, 0.24)
+
+
+func _get_time_stop_ink_break_progress() -> float:
+	if 时停破墨持续时间 <= 0.0:
+		return 1.0
+	return 1.0 - clampf(visual_time_stop_ink_break_timer / 时停破墨持续时间, 0.0, 1.0)
+
+
+func _update_time_stop_ink_overlay() -> void:
+	if time_stop_ink_overlay == null or time_stop_ink_material == null:
+		return
+	if not 时停全屏滤镜预览启用:
+		_hide_time_stop_ink_overlay()
+		return
+	var strength: float = _get_time_stop_visual_strength()
+	var entry_pulse: float = clampf(_get_time_stop_entry_pulse_strength() * 时停水墨进入脉冲倍率, 0.0, 1.0)
+	var visible_strength: float = maxf(strength, entry_pulse)
+	time_stop_ink_overlay.visible = visible_strength > 时停水墨显示阈值 and not is_start_menu_active
+	if not time_stop_ink_overlay.visible:
+		_hide_time_stop_ink_overlay()
+		return
+	var shaped_strength: float = clampf(pow(strength, 时停水墨强度曲线) * 时停水墨强度倍率, 0.0, 1.0)
+	var focus_screen_pos: Vector2 = _get_time_stop_focus_screen_position()
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var center_uv: Vector2 = Vector2(0.5, 0.5)
+	if viewport_size.x > 0.0 and viewport_size.y > 0.0:
+		center_uv = Vector2(
+			clampf(focus_screen_pos.x / viewport_size.x, 0.0, 1.0),
+			clampf(focus_screen_pos.y / viewport_size.y, 0.0, 1.0)
+		)
+	_apply_time_stop_ink_tuning_parameters()
+	time_stop_ink_material.set_shader_parameter("strength", shaped_strength)
+	time_stop_ink_material.set_shader_parameter("entry_pulse", entry_pulse)
+	time_stop_ink_material.set_shader_parameter("center_uv", center_uv)
+
+
+func _get_time_stop_focus_screen_position() -> Vector2:
+	var sword_state: int = int(sword.get("state", SwordState.ORBITING))
+	if sword_state != SwordState.ORBITING:
+		var sword_pos: Vector2 = _get_sword_visual_position()
+		var player_pos: Vector2 = Vector2(player.get("pos", ARENA_SIZE * 0.5))
+		return _to_screen(player_pos.lerp(sword_pos, 0.48))
+	return _to_screen(Vector2(player.get("pos", ARENA_SIZE * 0.5)))
 
 
 func _get_time_stop_world_color(color: Color) -> Color:
@@ -2044,15 +2189,68 @@ func _toggle_selected_array_mode() -> void:
 		return
 	var current_mode: String = _get_selected_array_mode()
 	var next_mode: String = ARRAY_TOGGLE_MODES[1] if current_mode == ARRAY_TOGGLE_MODES[0] else ARRAY_TOGGLE_MODES[0]
+	var ready_source_snapshot: Array = []
+	if current_mode == SwordArrayConfig.MODE_PIERCE and next_mode == SwordArrayConfig.MODE_RING:
+		ready_source_snapshot = _build_array_sword_source_snapshot()
 	player["array_selected_mode"] = next_mode
 	player["array_confirm_observed_stable_mode"] = next_mode
 	_refresh_sword_array_live_state()
+	if current_mode == SwordArrayConfig.MODE_PIERCE and next_mode == SwordArrayConfig.MODE_RING:
+		_trigger_ring_switch_strike(current_mode, ready_source_snapshot)
 	_trigger_array_mode_confirm(next_mode)
 	_show_focus_status_message(
 		_get_array_mode_display_name(next_mode),
 		Color(SwordArrayConfig.get_profile(next_mode).get("accent_color", Color.WHITE)),
 		minf(FOCUS_STATUS_DURATION, 0.55)
 	)
+
+
+func _build_array_mode_switch_strike_state(from_mode: String, to_mode: String) -> Dictionary:
+	var normalized_from_mode: String = _normalize_array_selected_mode(from_mode)
+	var normalized_to_mode: String = _normalize_array_selected_mode(to_mode)
+	var target_state: Dictionary = _build_locked_array_state(
+		normalized_to_mode,
+		float(player.get("array_control_distance", player["pos"].distance_to(mouse_world)))
+	)
+	target_state["dominant_mode"] = normalized_to_mode
+	target_state["visual_from_mode"] = normalized_from_mode
+	target_state["visual_to_mode"] = normalized_to_mode
+	target_state["visual_blend"] = ARRAY_RING_SWITCH_STRIKE_VISUAL_BLEND
+	target_state["preset_from"] = SwordArrayConfig.get_default_preset_for_mode(normalized_from_mode)
+	target_state["preset_to"] = SwordArrayConfig.get_default_preset_for_mode(normalized_to_mode)
+	target_state["preset_blend"] = ARRAY_RING_SWITCH_STRIKE_VISUAL_BLEND
+	return SwordArrayConfig.complete_morph_state(target_state)
+
+
+func _trigger_ring_switch_strike(previous_mode: String, source_snapshot: Array) -> void:
+	if not bool(player.get("array_is_firing", false)) or source_snapshot.is_empty():
+		return
+	var ring_switch_state: Dictionary = _build_array_mode_switch_strike_state(previous_mode, SwordArrayConfig.MODE_RING)
+	var slot_count: int = _get_current_array_sword_capacity()
+	var fired_count: int = 0
+	for source_variant in source_snapshot:
+		var source: Dictionary = source_variant
+		var sword_id: String = str(source.get("id", ""))
+		var array_sword: Dictionary = _get_array_sword_by_id(sword_id)
+		if array_sword.is_empty() or String(array_sword.get("state", "")) != "ready":
+			continue
+		var slot_index: int = int(array_sword.get("slot_index", 0))
+		var ring_anchor: Vector2 = _get_array_sword_slot_position(slot_index, 1.0)
+		_fire_single_array_sword(
+			sword_id,
+			slot_index,
+			slot_count,
+			0,
+			slot_count,
+			"",
+			SwordArrayConfig.MODE_RING,
+			Vector2(source.get("pos", array_sword["pos"])),
+			ring_anchor,
+			ring_switch_state
+		)
+		fired_count += 1
+	if fired_count > 0:
+		_emit_sword_array_fire_effect(ring_switch_state, fired_count)
 
 
 func _get_sword_array_formation_ratio() -> float:
@@ -4418,23 +4616,56 @@ func _get_array_sword_by_id(sword_id: String) -> Dictionary:
 	return {}
 
 
-func _fire_single_array_sword(sword_id: String, volley_fire_index: int, volley_fire_count: int, burst_step: int, total_count_before_fire: int, batch_id := "") -> void:
+func _fire_single_array_sword(
+	sword_id: String,
+	volley_fire_index: int,
+	volley_fire_count: int,
+	burst_step: int,
+	total_count_before_fire: int,
+	batch_id := "",
+	override_mode := "",
+	override_launch_origin = null,
+	override_target_anchor = null,
+	override_state_source = null
+) -> void:
 	if sword_id == "":
 		return
 	var array_sword: Dictionary = _get_array_sword_by_id(sword_id)
 	if array_sword.is_empty() or String(array_sword.get("state", "")) != "ready":
 		return
-	var travel_mode: String = _get_array_batch_mode()
-	var launch_origin: Vector2 = SwordArrayController.get_fire_launch_origin(
+	var travel_mode: String = str(override_mode)
+	if travel_mode == "":
+		travel_mode = _get_array_batch_mode()
+	var fire_state_source = _get_sword_array_fire_state()
+	if typeof(override_state_source) == TYPE_DICTIONARY:
+		var override_state: Dictionary = override_state_source
+		if not override_state.is_empty():
+			fire_state_source = override_state
+	var launch_origin: Vector2 = array_sword["pos"]
+	if typeof(override_launch_origin) == TYPE_VECTOR2:
+		launch_origin = override_launch_origin
+	else:
+		launch_origin = SwordArrayController.get_fire_launch_origin(
+			self ,
+			fire_state_source,
+			volley_fire_index,
+			array_sword["pos"],
+			volley_fire_count,
+			burst_step,
+			total_count_before_fire
+		)
+	var target_anchor: Vector2 = launch_origin
+	if typeof(override_target_anchor) == TYPE_VECTOR2:
+		target_anchor = override_target_anchor
+	var target_point: Vector2 = SwordArrayController.get_fire_target(
 		self ,
-		_get_sword_array_fire_state(),
+		fire_state_source,
 		volley_fire_index,
-		array_sword["pos"],
+		target_anchor,
 		volley_fire_count,
 		burst_step,
 		total_count_before_fire
 	)
-	var target_point: Vector2 = _get_sword_array_target(volley_fire_index, launch_origin, volley_fire_count, burst_step, total_count_before_fire)
 	var direction: Vector2 = target_point - launch_origin
 	if direction.is_zero_approx():
 		direction = mouse_world - player["pos"]

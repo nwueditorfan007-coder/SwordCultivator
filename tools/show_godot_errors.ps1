@@ -7,9 +7,60 @@ param(
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
+$metaPath = Join-Path $projectDir ".codex\godot\latest-session.json"
+
+function Get-LatestSessionInfo {
+    if (-not (Test-Path $metaPath)) {
+        return $null
+    }
+
+    try {
+        return Get-Content $metaPath -Raw | ConvertFrom-Json
+    }
+    catch {
+        return $null
+    }
+}
+
+function Resolve-DefaultLogPath {
+    param(
+        [switch]$WaitForFreshSession,
+        [datetime]$NotBefore = [datetime]::MinValue
+    )
+
+    while ($true) {
+        $sessionInfo = Get-LatestSessionInfo
+        if ($sessionInfo -and $sessionInfo.log_path) {
+            $startedAt = $null
+            try {
+                $startedAt = [datetime]$sessionInfo.started_at
+            }
+            catch {
+                $startedAt = $null
+            }
+
+            if (-not $WaitForFreshSession -or $null -eq $startedAt -or $startedAt -ge $NotBefore.AddSeconds(-2)) {
+                return [string]$sessionInfo.log_path
+            }
+        }
+
+        if (-not $WaitForFreshSession) {
+            break
+        }
+
+        Start-Sleep -Milliseconds 300
+    }
+
+    return Join-Path $projectDir ".codex\godot\latest.log"
+}
 
 if (-not $LogPath) {
-    $LogPath = Join-Path $projectDir ".codex\godot\latest.log"
+    if ($Watch) {
+        $LogPath = Resolve-DefaultLogPath -WaitForFreshSession -NotBefore (Get-Date)
+    }
+    else {
+        $LogPath = Resolve-DefaultLogPath
+    }
 }
 
 $patterns = @(

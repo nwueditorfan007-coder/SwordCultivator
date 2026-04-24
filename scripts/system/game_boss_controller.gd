@@ -101,7 +101,7 @@ static func draw_boss_world(main: Node2D) -> void:
 			var from_pos: Vector2 = main._to_screen(from_world)
 			var to_pos: Vector2 = main._to_screen(to_world)
 			var silk_color: Color = main.COLORS["silk_main"] if silk["is_main"] else main.COLORS["silk"]
-			main.draw_line(from_pos, to_pos, main._get_time_stop_world_color(silk_color), 3.0 if silk["is_main"] else 1.0)
+			main.draw_line(from_pos, to_pos, silk_color, 3.0 if silk["is_main"] else 1.0)
 			var contact_feedback_timer: float = float(silk.get("contact_feedback_timer", 0.0))
 			if contact_feedback_timer > 0.0:
 				var contact_strength: float = clampf(contact_feedback_timer / maxf(main.SILK_CONTACT_FEEDBACK_DURATION, 0.001), 0.0, 1.0)
@@ -114,13 +114,13 @@ static func draw_boss_world(main: Node2D) -> void:
 				main.draw_line(
 					contact_pos - contact_axis * contact_half_length,
 					contact_pos + contact_axis * contact_half_length,
-					main._get_time_stop_world_color(contact_color),
+					contact_color,
 					1.4 + 1.8 * contact_strength
 				)
 				main.draw_circle(
 					contact_pos,
 					2.6 + 2.8 * contact_strength,
-					main._get_time_stop_world_color(Color.WHITE)
+					Color.WHITE
 				)
 		var cut_feedback_timer: float = float(silk.get("cut_feedback_timer", 0.0))
 		if cut_feedback_timer > 0.0:
@@ -143,19 +143,19 @@ static func draw_boss_world(main: Node2D) -> void:
 			main.draw_line(
 				from_screen,
 				main._to_screen(cut_center_world - cut_axis * gap_size - retract_axis * retract_distance),
-				main._get_time_stop_world_color(cut_color),
+				cut_color,
 				1.6 + 2.2 * cut_strength
 			)
 			main.draw_line(
 				main._to_screen(cut_center_world + cut_axis * gap_size + retract_axis * retract_distance),
 				to_screen,
-				main._get_time_stop_world_color(cut_color),
+				cut_color,
 				1.6 + 2.2 * cut_strength
 			)
 			main.draw_circle(
 				center_screen,
 				4.0 + 4.0 * cut_strength,
-				main._get_time_stop_world_color(Color(1.0, 1.0, 1.0, 0.12 + 0.12 * cut_strength))
+				Color(1.0, 1.0, 1.0, 0.12 + 0.12 * cut_strength)
 			)
 		silk_index += 1
 
@@ -165,14 +165,25 @@ static func draw_boss_world(main: Node2D) -> void:
 		var boss_flash_color: Color = Color(main.boss.get("hit_flash_color", Color.WHITE))
 		boss_color = boss_color.lerp(boss_flash_color, 0.42 + 0.34 * boss_hit_flash_ratio)
 	var boss_pos: Vector2 = main._to_screen(main.boss["pos"] + boss_visual_offset)
-	main.draw_circle(boss_pos, main.boss["radius"], main._get_time_stop_world_color(boss_color))
+	main.draw_circle(boss_pos, main.boss["radius"], boss_color)
+	var time_stop_strength: float = main._get_time_stop_visual_strength() * float(main.时停对象冻结描边)
+	if time_stop_strength > 0.001:
+		main.draw_arc(
+			boss_pos,
+			main.boss["radius"] + 5.0 + 3.0 * time_stop_strength,
+			0.0,
+			TAU,
+			36,
+			Color(0.7, 0.9, 1.0, 0.08 + 0.14 * time_stop_strength),
+			1.4 + 1.4 * time_stop_strength
+		)
 	if boss_hit_flash_ratio > 0.0:
 		main.draw_circle(
 			boss_pos,
 			main.boss["radius"] + 2.0 + 3.5 * boss_hit_flash_ratio,
-			main._get_time_stop_world_color(Color(1.0, 1.0, 1.0, 0.06 + 0.12 * boss_hit_flash_ratio))
+			Color(1.0, 1.0, 1.0, 0.06 + 0.12 * boss_hit_flash_ratio)
 		)
-	main.draw_arc(boss_pos, main.boss["radius"] + 8.0, 0.0, TAU, 32, main._get_time_stop_world_color(Color.WHITE), 2.0)
+	main.draw_arc(boss_pos, main.boss["radius"] + 8.0, 0.0, TAU, 32, Color.WHITE, 2.0)
 	if boss_hit_flash_ratio > 0.0:
 		var boss_ring_color: Color = Color(main.boss.get("hit_flash_color", Color.WHITE))
 		boss_ring_color.a = 0.24 + 0.24 * boss_hit_flash_ratio
@@ -182,7 +193,7 @@ static func draw_boss_world(main: Node2D) -> void:
 			0.0,
 			TAU,
 			32,
-			main._get_time_stop_world_color(boss_ring_color),
+			boss_ring_color,
 			1.8 + 2.0 * boss_hit_flash_ratio
 		)
 
@@ -190,13 +201,13 @@ static func draw_boss_world(main: Node2D) -> void:
 static func draw_boss_hud(main: Node2D) -> void:
 	var bar_width: float = 400.0
 	var bar_rect: Rect2 = Rect2(Vector2((main.ARENA_SIZE.x - bar_width) * 0.5 + main.ARENA_ORIGIN.x, 40.0), Vector2(bar_width, 10.0))
-	main.draw_rect(bar_rect, main._get_time_stop_world_color(Color(0.0, 0.0, 0.0, 0.5)), true)
+	main.draw_rect(bar_rect, Color(0.0, 0.0, 0.0, 0.5), true)
 	main.draw_rect(
 		Rect2(bar_rect.position, Vector2(bar_width * (main.boss["health"] / main.boss["max_health"]), bar_rect.size.y)),
-		main._get_time_stop_world_color(main.COLORS["boss_body"]),
+		main.COLORS["boss_body"],
 		true
 	)
-	main.draw_rect(bar_rect, main._get_time_stop_world_color(Color.WHITE), false, 1.0)
+	main.draw_rect(bar_rect, Color.WHITE, false, 1.0)
 
 
 static func update_silk_damage(main: Node, delta: float) -> void:

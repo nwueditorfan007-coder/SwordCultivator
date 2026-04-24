@@ -6,6 +6,11 @@
 [node name="Main" type="Node2D" unique_id=2035086712]
 script = ExtResource("1_82ptl")
 sword_hover_preset = 3
+"时停分层水墨启用" = false
+"时停背景暗角" = 1.0
+"时停全屏滤镜预览启用" = true
+"时停冷墨颜色" = Color(0.44952887, 0.4342661, 0.43497428, 1)
+"时停宣纸颜色" = Color(0.86586535, 0.74883556, 0.5885365, 1)
 
 [node name="SwordFlightFx" type="Node2D" parent="." unique_id=1718008480]
 script = ExtResource("2_swordflightfx")

@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111d"/>
+      <stop offset="0.55" stop-color="#0b1522"/>
+      <stop offset="1" stop-color="#03070c"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d7dde2" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#7f91a5" stop-opacity="0.76"/>
+      <stop offset="1" stop-color="#dbe5ee" stop-opacity="0.92"/>
+    </linearGradient>
+    <radialGradient id="blueGlow" cx="50%" cy="50%" r="55%">
+      <stop offset="0" stop-color="#f8fdff" stop-opacity="1"/>
+      <stop offset="0.35" stop-color="#81dcff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#0c4d78" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="redGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="paperNoise" width="80" height="80" patternUnits="userSpaceOnUse">
+      <rect width="80" height="80" fill="#e7edf2" opacity="0.04"/>
+      <circle cx="9" cy="14" r="1.2" fill="#1d2630" opacity="0.12"/>
+      <circle cx="42" cy="23" r="0.9" fill="#1d2630" opacity="0.09"/>
+      <circle cx="66" cy="61" r="1.4" fill="#1d2630" opacity="0.10"/>
+      <path d="M5 54 C22 47, 37 61, 74 44" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d7bb79"/>
+    </marker>
+    <style>
+      .title { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; font-size: 42px; fill: #f1e3bc; font-weight: 700; letter-spacing: 4px; }
+      .subtitle { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; font-size: 18px; fill: #94a8ba; }
+      .label { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; font-size: 22px; fill: #f1e3bc; font-weight: 700; }
+      .small { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; font-size: 15px; fill: #b7c4d0; }
+      .tiny { font-family: 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; font-size: 13px; fill: #8ea0b1; }
+      .goldLine { stroke:#d7bb79; stroke-opacity:0.55; stroke-width:2; fill:none; }
+      .panel { fill:#07111d; stroke:#bd9d5a; stroke-width:1.5; stroke-opacity:0.65; rx:10; }
+      .layerBox { fill:#0b1624; stroke:#d7bb79; stroke-width:1.2; stroke-opacity:0.45; rx:12; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="920" fill="url(#bg)"/>
+  <rect width="1600" height="920" fill="url(#paperNoise)" opacity="0.7"/>
+  <path d="M0 795 C210 750, 390 840, 640 795 C910 745, 1080 850, 1600 768 L1600 920 L0 920 Z" fill="#02060d" opacity="0.74"/>
+  <path d="M0 0 H1600 V920 H0 Z" fill="none" stroke="#d7bb79" stroke-opacity="0.14" stroke-width="3"/>
+
+  <text x="54" y="76" class="title">时停水墨效果 · 分层改造示意</text>
+  <text x="58" y="112" class="subtitle">目标：背景破墨冻结，战斗对象保色，UI 完全不被后处理污染</text>
+  <path d="M52 134 H548" class="goldLine"/>
+
+  <!-- Left: current problem -->
+  <rect x="64" y="168" width="440" height="620" class="panel"/>
+  <text x="96" y="213" class="label">当前问题：全屏滤镜</text>
+  <text x="96" y="244" class="small">所有画面元素先被绘制，再一起失色</text>
+
+  <rect x="104" y="290" width="360" height="60" class="layerBox"/>
+  <text x="130" y="328" class="small">UI / Boss 血条</text>
+  <rect x="104" y="365" width="360" height="60" class="layerBox"/>
+  <text x="130" y="403" class="small">飞剑 / 目标 / 剑轨</text>
+  <rect x="104" y="440" width="360" height="60" class="layerBox"/>
+  <text x="130" y="478" class="small">怪物 / Boss / 弹幕</text>
+  <rect x="104" y="515" width="360" height="60" class="layerBox"/>
+  <text x="130" y="553" class="small">背景 / 地形 / 氛围</text>
+  <path d="M284 586 V626" stroke="#d7bb79" stroke-width="2" marker-end="url(#arrow)" opacity="0.75"/>
+  <rect x="104" y="642" width="360" height="74" rx="12" fill="#ccd6df" opacity="0.72" stroke="#ffffff" stroke-opacity="0.35"/>
+  <text x="130" y="674" class="small" fill="#15202b">全屏水墨后处理</text>
+  <text x="130" y="700" class="tiny" fill="#263544">结果：怪物和 UI 也被灰掉</text>
+
+  <!-- Center: desired render stack -->
+  <rect x="580" y="168" width="440" height="620" class="panel"/>
+  <text x="612" y="213" class="label">目标：正确分层</text>
+  <text x="612" y="244" class="small">水墨只吃背景，战斗信息浮在上层</text>
+
+  <rect x="620" y="286" width="360" height="58" rx="12" fill="#17202d" stroke="#f1e3bc" stroke-opacity="0.65"/>
+  <text x="648" y="322" class="small">最上层 UI / Boss 血条：正常彩色</text>
+  <rect x="620" y="356" width="360" height="58" rx="12" fill="#0b2740" stroke="#88d8ff" stroke-opacity="0.65"/>
+  <text x="648" y="392" class="small">飞剑 / 剑轨 / 目标红点：保色高亮</text>
+  <rect x="620" y="426" width="360" height="58" rx="12" fill="#24141a" stroke="#df5b66" stroke-opacity="0.55"/>
+  <text x="648" y="462" class="small">怪物 / Boss / 弹幕：保色 + 冻结描边</text>
+  <rect x="620" y="496" width="360" height="58" rx="12" fill="url(#ink)" stroke="#d8e2ea" stroke-opacity="0.6"/>
+  <text x="648" y="532" class="small" fill="#19212a">破墨裂纹 / 墨滴 / 冷蓝雾</text>
+  <rect x="620" y="566" width="360" height="58" rx="12" fill="#aeb9c2" opacity="0.56" stroke="#d8e2ea" stroke-opacity="0.45"/>
+  <text x="648" y="602" class="small" fill="#18222c">背景层：灰白水墨化</text>
+  <path d="M800 650 V710" stroke="#d7bb79" stroke-width="2" marker-end="url(#arrow)" opacity="0.75"/>
+  <text x="660" y="744" class="small">最终画面：环境静止，战斗读屏清楚</text>
+
+  <!-- Right: visual sketch -->
+  <rect x="1096" y="168" width="440" height="620" class="panel"/>
+  <text x="1128" y="213" class="label">入场：破墨动态</text>
+  <text x="1128" y="244" class="small">沿飞剑方向撕开，不是柔和圆形淡入</text>
+
+  <rect x="1132" y="285" width="368" height="350" rx="8" fill="#0a111b" stroke="#d7bb79" stroke-opacity="0.35"/>
+  <path d="M1132 585 C1195 545, 1255 590, 1308 548 C1375 495, 1426 574, 1500 526 V635 H1132 Z" fill="#b7c2cb" opacity="0.22"/>
+  <path d="M1168 368 C1210 339, 1260 378, 1303 343 C1354 302, 1404 340, 1466 316" stroke="#d8e2ea" stroke-opacity="0.14" stroke-width="18" fill="none"/>
+  <path d="M1174 520 C1250 485, 1354 501, 1480 466" stroke="#d8e2ea" stroke-opacity="0.11" stroke-width="12" fill="none"/>
+
+  <!-- UI unaffected mock -->
+  <rect x="1162" y="304" width="300" height="15" rx="7" fill="#241017" stroke="#d7bb79" stroke-opacity="0.55"/>
+  <rect x="1165" y="307" width="220" height="9" rx="5" fill="#df5b66"/>
+  <text x="1252" y="336" class="tiny">Boss 血条保持彩色</text>
+
+  <!-- Monster / target colored -->
+  <circle cx="1434" cy="423" r="18" fill="#df5b66" filter="url(#redGlow)"/>
+  <circle cx="1434" cy="423" r="29" fill="none" stroke="#df5b66" stroke-opacity="0.42" stroke-width="3"/>
+  <circle cx="1376" cy="522" r="13" fill="#df5b66" opacity="0.95" filter="url(#redGlow)"/>
+  <text x="1392" y="565" class="tiny">怪物不失色</text>
+
+  <!-- Player and sword line -->
+  <circle cx="1205" cy="555" r="18" fill="#f1e3bc" opacity="0.9"/>
+  <circle cx="1205" cy="555" r="34" fill="none" stroke="#88d8ff" stroke-opacity="0.55" stroke-width="3"/>
+  <path d="M1218 544 C1278 495, 1320 458, 1410 404" stroke="#88d8ff" stroke-width="9" stroke-linecap="round" opacity="0.35" filter="url(#softGlow)"/>
+  <path d="M1218 544 C1278 495, 1320 458, 1410 404" stroke="#f8fdff" stroke-width="3" stroke-linecap="round" filter="url(#softGlow)"/>
+  <polygon points="1410,404 1440,388 1424,417" fill="#f8fdff" filter="url(#softGlow)"/>
+
+  <!-- Ink rupture jagged line -->
+  <path d="M1192 560 L1238 528 L1266 532 L1298 493 L1326 501 L1358 455 L1384 464 L1428 406" fill="none" stroke="#e8edf1" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.34"/>
+  <path d="M1180 572 C1226 536, 1257 557, 1284 512 C1300 486, 1332 515, 1356 474 C1375 442, 1402 453, 1442 390" fill="none" stroke="#0a0e13" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+  <path d="M1186 569 L1220 548 L1211 576 L1252 535 L1274 552 L1290 516 L1322 525 L1342 484 L1374 498 L1400 444 L1434 420" fill="none" stroke="#d8e2ea" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Ink droplets -->
+  <circle cx="1260" cy="486" r="7" fill="#101821" opacity="0.72"/>
+  <circle cx="1306" cy="542" r="4" fill="#101821" opacity="0.62"/>
+  <circle cx="1348" cy="430" r="9" fill="#101821" opacity="0.65"/>
+  <circle cx="1394" cy="474" r="5" fill="#101821" opacity="0.6"/>
+  <circle cx="1240" cy="590" r="3" fill="#d8e2ea" opacity="0.55"/>
+
+  <text x="1148" y="680" class="small">1. 剑光压暗</text>
+  <text x="1148" y="710" class="small">2. 裂墨线沿飞剑方向撕开</text>
+  <text x="1148" y="740" class="small">3. 背景水墨化，战斗对象保色</text>
+
+  <!-- Footer -->
+  <path d="M170 844 H1430" stroke="#d7bb79" stroke-opacity="0.32" stroke-width="2"/>
+  <text x="360" y="878" class="small">实现策略：停止全屏统一失色 → 改为背景水墨层 + 破墨入场层 + 战斗保色层 + UI 顶层</text>
+</svg>

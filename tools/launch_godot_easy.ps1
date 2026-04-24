@@ -5,6 +5,7 @@ param(
     [switch]$NoWatcher,
     [switch]$Wait,
     [switch]$Headless,
+    [switch]$Detach,
     [string[]]$ExtraArgs = @()
 )
 
@@ -28,9 +29,15 @@ function Start-WatcherWindow {
 }
 
 if (-not $NoWatcher) {
+    if ($Headless -or $Wait) {
+        $NoWatcher = $true
+    }
+}
+
+if (-not $NoWatcher) {
     Start-WatcherWindow -ProjectRoot $projectDir -WatcherPath $watchScript
     Start-Sleep -Milliseconds 400
 }
 
-& $startScript -Mode $Mode -Wait:$Wait -Headless:$Headless -ExtraArgs $ExtraArgs
+& $startScript -Mode $Mode -Wait:$Wait -Headless:$Headless -Detach:$Detach -ExtraArgs $ExtraArgs
 exit $LASTEXITCODE

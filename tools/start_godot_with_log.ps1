@@ -5,6 +5,7 @@ param(
     [string]$GodotPath,
     [switch]$Wait,
     [switch]$Headless,
+    [switch]$Detach,
     [string[]]$ExtraArgs = @()
 )
 
@@ -13,6 +14,8 @@ $projectDir = Split-Path -Parent $scriptDir
 $logDir = Join-Path $projectDir ".codex\godot"
 $latestLogPath = Join-Path $logDir "latest.log"
 $metaPath = Join-Path $logDir "latest-session.json"
+$sessionId = "{0}-{1}" -f (Get-Date -Format "yyyyMMdd-HHmmss"), $PID
+$sessionLogPath = Join-Path $logDir ("session-{0}.log" -f $sessionId)
 
 function Get-ConfiguredGodotPath {
     param([string]$ProjectRoot)
@@ -85,6 +88,88 @@ function Quote-Argument {
     return $Value
 }
 
+function Expand-ExtraArguments {
+    param([string[]]$Values)
+
+    $expanded = New-Object System.Collections.Generic.List[string]
+
+    foreach ($value in $Values) {
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            continue
+        }
+
+        $trimmed = $value.Trim()
+        if ($trimmed.Length -ge 4 -and $trimmed.StartsWith("'") -and $trimmed.EndsWith("'") -and $trimmed.Contains("','")) {
+            $segments = $trimmed.Substring(1, $trimmed.Length - 2) -split "','"
+            foreach ($segment in $segments) {
+                if (-not [string]::IsNullOrWhiteSpace($segment)) {
+                    $expanded.Add($segment)
+                }
+            }
+            continue
+        }
+
+        if ($trimmed.Length -ge 4 -and $trimmed.StartsWith('"') -and $trimmed.EndsWith('"') -and $trimmed.Contains('","')) {
+            $segments = $trimmed.Substring(1, $trimmed.Length - 2) -split '","'
+            foreach ($segment in $segments) {
+                if (-not [string]::IsNullOrWhiteSpace($segment)) {
+                    $expanded.Add($segment)
+                }
+            }
+            continue
+        }
+
+        $expanded.Add($value)
+    }
+
+    return $expanded.ToArray()
+}
+
+function Normalize-CommandLineText {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return ""
+    }
+
+    return ($Value.ToLowerInvariant() -replace "\\", "/")
+}
+
+function Stop-StaleHeadlessGodotProcesses {
+    param(
+        [string]$ProjectRoot,
+        [TimeSpan]$OlderThan
+    )
+
+    $normalizedProjectRoot = Normalize-CommandLineText -Value $ProjectRoot
+    $cutoff = (Get-Date).Add(-$OlderThan)
+
+    $staleProcesses = Get-CimInstance Win32_Process -Filter "Name = 'Godot_v4.6.1-stable_win64.exe'" | Where-Object {
+        $commandLine = $_.CommandLine
+        if ([string]::IsNullOrWhiteSpace($commandLine) -or $null -eq $_.CreationDate) {
+            return $false
+        }
+
+        $normalizedCommandLine = Normalize-CommandLineText -Value $commandLine
+        $isSameProject = $normalizedCommandLine.Contains($normalizedProjectRoot)
+        $isHeadless = $normalizedCommandLine.Contains("--headless")
+        $isShortLived = $normalizedCommandLine.Contains("--quit-after") -or $normalizedCommandLine.Contains("--script")
+        $isOldEnough = $_.CreationDate -lt $cutoff
+
+        return $isSameProject -and $isHeadless -and $isShortLived -and $isOldEnough
+    }
+
+    foreach ($process in $staleProcesses) {
+        try {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+            Write-Host ("Cleaned stale headless Godot PID {0}" -f $process.ProcessId) -ForegroundColor Yellow
+        }
+        catch {
+            Write-Warning ("Failed to clean stale headless Godot PID {0}: {1}" -f $process.ProcessId, $_.Exception.Message)
+        }
+    }
+}
+
 $candidateGodotPaths = @(
     $GodotPath,
     (Get-ConfiguredGodotPath -ProjectRoot $projectDir),
@@ -98,38 +183,63 @@ if (-not $resolvedGodotPath) {
 }
 
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
-Set-Content -Path $latestLogPath -Value "" -Encoding UTF8
+$normalizedExtraArgs = Expand-ExtraArguments -Values $ExtraArgs
+$shouldWait = [bool]($Wait -or ($Headless -and -not $Detach))
+
+if ($Headless) {
+    Stop-StaleHeadlessGodotProcesses -ProjectRoot $projectDir -OlderThan ([TimeSpan]::FromMinutes(5))
+}
+
+Set-Content -Path $sessionLogPath -Value "" -Encoding UTF8
+try {
+    Set-Content -Path $latestLogPath -Value ("Current Godot session log:`r`n{0}`r`n" -f $sessionLogPath) -Encoding UTF8
+}
+catch {
+    Write-Warning ("Could not update latest.log pointer: {0}" -f $_.Exception.Message)
+}
 
 $sessionInfo = [ordered]@{
     started_at = (Get-Date).ToString("s")
     mode = $Mode
     headless = [bool]$Headless
+    wait = $shouldWait
+    detached = [bool](-not $shouldWait)
     project_dir = $projectDir
     godot_path = $resolvedGodotPath
+    log_path = $sessionLogPath
+    extra_args = $normalizedExtraArgs
 }
 $sessionInfo | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
 
-$arguments = @("--path", $projectDir, "--log-file", $latestLogPath)
+$arguments = @("--path", $projectDir, "--log-file", $sessionLogPath)
 if ($Mode -eq "editor") {
     $arguments += "--editor"
 }
 if ($Headless) {
     $arguments += "--headless"
 }
-if ($ExtraArgs.Count -gt 0) {
-    $arguments += $ExtraArgs
+if ($normalizedExtraArgs.Count -gt 0) {
+    $arguments += $normalizedExtraArgs
 }
-
-$argumentString = ($arguments | ForEach-Object { Quote-Argument $_ }) -join " "
+$startProcessArguments = $arguments | ForEach-Object { Quote-Argument $_ }
 
 Write-Host "Godot: $resolvedGodotPath"
 Write-Host "Mode : $Mode"
-Write-Host "Log  : $latestLogPath"
-
-if ($Wait) {
-    & $resolvedGodotPath @arguments
-    exit $LASTEXITCODE
+Write-Host "Log  : $sessionLogPath"
+if ($Headless -and -not $Wait -and -not $Detach) {
+    Write-Host "Headless run defaults to waiting. Use -Detach to run it in the background." -ForegroundColor Yellow
 }
 
-$process = Start-Process -FilePath $resolvedGodotPath -ArgumentList $argumentString -WorkingDirectory $projectDir -PassThru
+if ($shouldWait) {
+    & $resolvedGodotPath @arguments
+    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+    $sessionInfo.finished_at = (Get-Date).ToString("s")
+    $sessionInfo.exit_code = $exitCode
+    $sessionInfo | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
+    exit $exitCode
+}
+
+$process = Start-Process -FilePath $resolvedGodotPath -ArgumentList $startProcessArguments -WorkingDirectory $projectDir -PassThru
+$sessionInfo.pid = $process.Id
+$sessionInfo | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
 Write-Host "PID  : $($process.Id)"

@@ -48,11 +48,11 @@ static func draw_game(main: Node2D) -> void:
 	var time_stop_strength: float = main._get_time_stop_visual_strength()
 
 	_draw_art_tactical_grid(main)
+	_draw_time_stop_background_ink(main)
+	_draw_time_stop_ink_break(main)
 
 	for particle in main.particles:
 		var particle_color: Color = particle["color"]
-		if not _is_player_owned_effect_color(main, particle_color):
-			particle_color = main._get_time_stop_world_color(particle_color)
 		particle_color.a = particle["life"] / particle["max_life"]
 		main.draw_circle(main._to_screen(particle["pos"]), particle["size"], particle_color)
 
@@ -68,7 +68,6 @@ static func draw_game(main: Node2D) -> void:
 			bullet_color = main.COLORS["melee_sword"]
 			bullet_radius *= 1.15
 		else:
-			bullet_color = main._get_time_stop_world_color(bullet_color)
 			if time_stop_strength > 0.001:
 				main.draw_circle(
 					bullet_pos,
@@ -98,7 +97,7 @@ static func draw_game(main: Node2D) -> void:
 		var link_color: Color = _with_alpha(main.COLORS["silk"].lerp(main.COLORS["drape_priest"], 0.18), 0.28 + 0.2 * link_pulse)
 		var link_from: Vector2 = main._to_screen(Vector2(enemy.get("pos", Vector2.ZERO)) + Vector2(enemy.get("hit_reaction_offset", Vector2.ZERO)))
 		var link_to: Vector2 = main._to_screen(Vector2(target.get("pos", Vector2.ZERO)) + Vector2(target.get("hit_reaction_offset", Vector2.ZERO)))
-		main.draw_line(link_from, link_to, main._get_time_stop_world_color(link_color), 3.6)
+		main.draw_line(link_from, link_to, link_color, 3.6)
 
 	for enemy in main.enemies:
 		var color_key: String = enemy["type"]
@@ -111,6 +110,7 @@ static func draw_game(main: Node2D) -> void:
 		var enemy_color: Color = main.COLORS[color_key]
 		var enemy_radius: float = float(enemy["radius"])
 		var enemy_alpha: float = 1.0
+		_draw_time_stop_target_ink_blot(main, enemy_screen_pos, enemy_radius)
 		if is_enemy_dying:
 			enemy_radius *= lerpf(1.08, 0.62, enemy_death_progress)
 			enemy_alpha = 1.0 - pow(enemy_death_progress, 1.35)
@@ -126,11 +126,12 @@ static func draw_game(main: Node2D) -> void:
 			main,
 			enemy_screen_pos,
 			enemy_radius,
-			main._get_time_stop_world_color(enemy_color),
+			enemy_color,
 			color_key,
 			enemy_alpha,
 			is_enemy_dying
 		)
+		_draw_time_stop_actor_freeze_outline(main, enemy_screen_pos, enemy_radius, enemy_alpha)
 		if not is_enemy_dying and str(enemy.get("support_source_id", "")) != "":
 			var support_pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 8.0))
 			var support_color: Color = _with_alpha(main.COLORS["silk"].lerp(main.COLORS["drape_priest"], 0.18), (0.24 + 0.18 * support_pulse) * enemy_alpha)
@@ -140,7 +141,7 @@ static func draw_game(main: Node2D) -> void:
 				0.0,
 				TAU,
 				22,
-				main._get_time_stop_world_color(support_color),
+				support_color,
 				2.2
 			)
 		if color_key == main.RING_LEECH:
@@ -153,8 +154,8 @@ static func draw_game(main: Node2D) -> void:
 				var fang_left: Vector2 = enemy_screen_pos + leech_dir.rotated(0.55) * (enemy_radius + 1.0)
 				var fang_right: Vector2 = enemy_screen_pos + leech_dir.rotated(-0.55) * (enemy_radius + 1.0)
 				var fang_tip: Vector2 = enemy_screen_pos + leech_dir * (enemy_radius + 8.0)
-				main.draw_line(fang_left, fang_tip, main._get_time_stop_world_color(fang_color), 1.8)
-				main.draw_line(fang_right, fang_tip, main._get_time_stop_world_color(fang_color), 1.8)
+				main.draw_line(fang_left, fang_tip, fang_color, 1.8)
+				main.draw_line(fang_right, fang_tip, fang_color, 1.8)
 		if color_key == main.MIRROR_NEEDLER:
 			var vulnerable_ratio: float = clampf(float(enemy.get("mirror_vulnerable_timer", 0.0)) / maxf(main.MIRROR_NEEDLER_VULNERABLE_DURATION, 0.001), 0.0, 1.0)
 			var charge_timer: float = float(enemy.get("charge_timer", 0.0))
@@ -167,7 +168,7 @@ static func draw_game(main: Node2D) -> void:
 					0.0,
 					TAU,
 					24,
-					main._get_time_stop_world_color(break_color),
+					break_color,
 					2.0
 				)
 			else:
@@ -178,7 +179,7 @@ static func draw_game(main: Node2D) -> void:
 					0.0,
 					TAU,
 					24,
-					main._get_time_stop_world_color(shell_color),
+					shell_color,
 					2.0
 				)
 			if charge_timer > 0.0:
@@ -190,14 +191,14 @@ static func draw_game(main: Node2D) -> void:
 					- charge_angle,
 					charge_angle,
 					18,
-					main._get_time_stop_world_color(charge_color),
+					charge_color,
 					2.1
 				)
 		if enemy_flash_ratio > 0.0:
 			main.draw_circle(
 				enemy_screen_pos,
 				enemy_radius + 1.5 + 2.0 * enemy_flash_ratio,
-				main._get_time_stop_world_color(_with_alpha(Color.WHITE, (0.08 + 0.16 * enemy_flash_ratio) * enemy_alpha))
+				_with_alpha(Color.WHITE, (0.08 + 0.16 * enemy_flash_ratio) * enemy_alpha)
 			)
 		if time_stop_strength > 0.001:
 			main.draw_arc(
@@ -218,7 +219,7 @@ static func draw_game(main: Node2D) -> void:
 				0.0,
 				TAU,
 				24,
-				main._get_time_stop_world_color(enemy_ring_color),
+				enemy_ring_color,
 				1.4 + 1.8 * enemy_flash_ratio
 			)
 		if is_enemy_dying:
@@ -230,16 +231,16 @@ static func draw_game(main: Node2D) -> void:
 				0.0,
 				TAU,
 				24,
-				main._get_time_stop_world_color(death_ring_color),
+				death_ring_color,
 				1.6 + 1.8 * enemy_death_ratio
 			)
 		if not is_enemy_dying and enemy["type"] != main.PUPPET:
 			var health_ratio: float = max(enemy["health"], 0.0) / enemy["max_health"]
 			var bar_pos: Vector2 = enemy_screen_pos + Vector2(-enemy_radius, -enemy_radius - 10.0)
-			main.draw_rect(Rect2(bar_pos, Vector2(enemy_radius * 2.0, 4.0)), main._get_time_stop_world_color(Color("2f2f2f")), true)
+			main.draw_rect(Rect2(bar_pos, Vector2(enemy_radius * 2.0, 4.0)), Color("2f2f2f"), true)
 			main.draw_rect(
 				Rect2(bar_pos, Vector2(enemy_radius * 2.0 * health_ratio, 4.0)),
-				main._get_time_stop_world_color(main.COLORS["health"]),
+				main.COLORS["health"],
 				true
 			)
 		elif not is_enemy_dying and enemy.get("melee_timer", 0.0) > 0.0:
@@ -586,9 +587,11 @@ static func _draw_art_mist_lines(main: Node2D, arena_rect: Rect2) -> void:
 
 
 static func _draw_art_tactical_grid(main: Node2D) -> void:
+	var time_stop_strength: float = main._get_time_stop_visual_strength()
+	var time_stop_grid_fade: float = 1.0 - 0.72 * time_stop_strength
 	var x: int = 0
 	while x <= int(main.ARENA_SIZE.x):
-		var alpha_scale: float = 1.0 if x % 100 == 0 else 0.52
+		var alpha_scale: float = (1.0 if x % 100 == 0 else 0.52) * time_stop_grid_fade
 		var from: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), 0.0)
 		var to: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), main.ARENA_SIZE.y)
 		main.draw_line(from, to, main._get_time_stop_world_color(_with_alpha(ART_GRID, ART_GRID.a * alpha_scale)), 1.0)
@@ -596,11 +599,263 @@ static func _draw_art_tactical_grid(main: Node2D) -> void:
 
 	var y: int = 0
 	while y <= int(main.ARENA_SIZE.y):
-		var alpha_scale: float = 1.0 if y % 100 == 0 else 0.52
+		var alpha_scale: float = (1.0 if y % 100 == 0 else 0.52) * time_stop_grid_fade
 		var from_y: Vector2 = main.ARENA_ORIGIN + Vector2(0.0, float(y))
 		var to_y: Vector2 = main.ARENA_ORIGIN + Vector2(main.ARENA_SIZE.x, float(y))
 		main.draw_line(from_y, to_y, main._get_time_stop_world_color(_with_alpha(ART_GRID, ART_GRID.a * alpha_scale)), 1.0)
 		y += 50
+
+
+static func _draw_time_stop_background_ink(main: Node2D) -> void:
+	if not bool(main.时停分层水墨启用):
+		return
+	var strength: float = clampf(main._get_time_stop_visual_strength() * float(main.时停背景墨化强度), 0.0, 1.0)
+	var pulse: float = maxf(main._get_time_stop_entry_pulse_strength(), main._get_time_stop_ink_break_strength())
+	if strength <= 0.001 and pulse <= 0.001:
+		return
+	var arena_rect: Rect2 = main.ARENA_RECT
+	var paper_alpha: float = clampf((0.24 + 0.46 * strength + 0.12 * pulse) * float(main.时停宣纸覆盖), 0.0, 0.82)
+	var cool_alpha: float = (0.03 + 0.08 * strength) * float(main.时停背景冷蓝雾)
+	main.draw_rect(arena_rect, _with_alpha(Color(0.76, 0.79, 0.8), paper_alpha), true)
+	main.draw_rect(arena_rect, _with_alpha(Color(0.91, 0.92, 0.9), 0.12 * strength), true)
+	_draw_time_stop_large_brush_field(main, arena_rect, strength, pulse)
+	main.draw_rect(arena_rect, _with_alpha(ART_BLUE, cool_alpha), true)
+	_draw_time_stop_paper_grain(main, arena_rect, strength)
+	_draw_time_stop_vignette(main, arena_rect, strength)
+
+
+static func _draw_time_stop_paper_grain(main: Node2D, arena_rect: Rect2, strength: float) -> void:
+	var alpha: float = clampf(0.05 + 0.15 * strength, 0.0, 0.22)
+	var blot_count: int = 18
+	var blot_index: int = 0
+	while blot_index < blot_count:
+		var x_ratio: float = _stable_noise(blot_index, 1.7)
+		var y_ratio: float = _stable_noise(blot_index, 8.4)
+		var center: Vector2 = arena_rect.position + Vector2(x_ratio * arena_rect.size.x, y_ratio * arena_rect.size.y)
+		var radius: float = lerpf(22.0, 82.0, _stable_noise(blot_index, 3.2)) * (0.65 + 0.55 * strength)
+		var tone: float = _stable_noise(blot_index, 9.1)
+		var color: Color = Color(0.06, 0.075, 0.09, alpha * (0.35 + 0.65 * tone)) if tone > 0.45 else Color(0.82, 0.88, 0.92, alpha * 0.45)
+		_draw_irregular_ink_poly(main, center, radius, blot_index, color)
+		blot_index += 1
+	var line_index: int = 0
+	while line_index < 8:
+		var y: float = arena_rect.position.y + arena_rect.size.y * _stable_noise(line_index, 14.0)
+		var start_x: float = arena_rect.position.x + arena_rect.size.x * _stable_noise(line_index, 15.0) * 0.35
+		var length: float = arena_rect.size.x * lerpf(0.18, 0.52, _stable_noise(line_index, 16.0))
+		main.draw_line(
+			Vector2(start_x, y),
+			Vector2(minf(start_x + length, arena_rect.end.x), y + lerpf(-18.0, 18.0, _stable_noise(line_index, 17.0))),
+			_with_alpha(Color(0.86, 0.92, 0.96), alpha * 0.36),
+			1.0 + strength
+		)
+		line_index += 1
+
+
+static func _draw_time_stop_large_brush_field(main: Node2D, arena_rect: Rect2, strength: float, pulse: float) -> void:
+	var brush_strength: float = clampf((strength + pulse * 0.65) * float(main.时停背景笔触强度), 0.0, 2.0)
+	if brush_strength <= 0.001:
+		return
+	var center: Vector2 = arena_rect.get_center()
+	var focus: Vector2 = main._get_time_stop_focus_screen_position()
+	var axis: Vector2 = focus - center
+	if axis.length_squared() <= 4.0:
+		axis = Vector2.RIGHT
+	axis = axis.normalized()
+	var side: Vector2 = axis.rotated(PI * 0.5)
+	var sweep_count: int = 9
+	var sweep_index: int = 0
+	while sweep_index < sweep_count:
+		var t: float = float(sweep_index) / maxf(float(sweep_count - 1), 1.0)
+		var lane: float = lerpf(-0.82, 0.82, t)
+		var start: Vector2 = center - axis * arena_rect.size.x * (0.52 + 0.08 * _stable_noise(sweep_index, 30.0)) + side * lane * arena_rect.size.y * 0.48
+		var end: Vector2 = center + axis * arena_rect.size.x * (0.42 + 0.1 * _stable_noise(sweep_index, 31.0)) + side * (lane * 0.18 + lerpf(-0.28, 0.28, _stable_noise(sweep_index, 32.0))) * arena_rect.size.y
+		var width: float = lerpf(18.0, 62.0, _stable_noise(sweep_index, 33.0)) * (0.7 + 0.45 * brush_strength)
+		var dark_color: Color = _with_alpha(Color(0.12, 0.15, 0.17), (0.035 + 0.07 * _stable_noise(sweep_index, 34.0)) * brush_strength)
+		_draw_brush_stroke(main, start, end, width, sweep_index, dark_color)
+		if sweep_index % 3 == 0:
+			_draw_brush_stroke(main, start + side * width * 0.42, end - side * width * 0.24, width * 0.32, sweep_index + 50, _with_alpha(Color(0.86, 0.9, 0.91), 0.035 * brush_strength))
+		sweep_index += 1
+	var ring_count: int = 5
+	var ring_index: int = 0
+	while ring_index < ring_count:
+		var radius: float = lerpf(120.0, 430.0, float(ring_index) / maxf(float(ring_count - 1), 1.0))
+		var start_angle: float = -PI * 0.78 + float(ring_index) * 0.42
+		var end_angle: float = start_angle + PI * (0.72 + 0.18 * _stable_noise(ring_index, 35.0))
+		main.draw_arc(center + axis * 20.0, radius, start_angle, end_angle, 72, _with_alpha(Color(0.08, 0.1, 0.11), 0.045 * brush_strength), 5.0 + 3.0 * brush_strength)
+		ring_index += 1
+
+
+static func _draw_brush_stroke(main: Node2D, start: Vector2, end: Vector2, half_width: float, seed: int, color: Color) -> void:
+	if color.a <= 0.001:
+		return
+	var axis: Vector2 = end - start
+	if axis.length_squared() <= 1.0:
+		return
+	var forward: Vector2 = axis.normalized()
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var segment_count: int = 12
+	var top := PackedVector2Array()
+	var bottom := PackedVector2Array()
+	var index: int = 0
+	while index <= segment_count:
+		var t: float = float(index) / float(segment_count)
+		var taper: float = sin(t * PI)
+		var center: Vector2 = start.lerp(end, t) + side * sin(t * TAU * 1.7 + float(seed)) * half_width * 0.18 * taper
+		var local_width: float = half_width * (0.18 + 0.82 * taper) * (0.68 + 0.42 * _stable_noise(seed * 31 + index, 36.0))
+		top.append(center + side * local_width)
+		bottom.append(center - side * local_width * (0.72 + 0.35 * _stable_noise(seed * 37 + index, 37.0)))
+		index += 1
+	var poly := PackedVector2Array()
+	for point in top:
+		poly.append(point)
+	index = bottom.size() - 1
+	while index >= 0:
+		poly.append(bottom[index])
+		index -= 1
+	_try_draw_colored_polygon(main, poly, color)
+
+
+static func _draw_time_stop_vignette(main: Node2D, arena_rect: Rect2, strength: float) -> void:
+	var vignette_alpha: float = clampf(strength * float(main.时停背景暗角), 0.0, 0.9)
+	if vignette_alpha <= 0.001:
+		return
+	var edge_color: Color = _with_alpha(Color(0.0, 0.012, 0.024), 0.12 * vignette_alpha)
+	var ring_index: int = 0
+	while ring_index < 5:
+		var grow: float = 4.0 + float(ring_index) * 18.0
+		main.draw_rect(arena_rect.grow(grow), edge_color, false, 12.0 + float(ring_index) * 10.0)
+		ring_index += 1
+
+
+static func _draw_time_stop_actor_freeze_outline(main: Node2D, center: Vector2, radius: float, alpha_scale := 1.0) -> void:
+	var strength: float = main._get_time_stop_visual_strength() * float(main.时停对象冻结描边)
+	if strength <= 0.001:
+		return
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 5.0 + center.x * 0.017)
+	main.draw_arc(
+		center,
+		radius + 4.0 + 2.0 * pulse,
+		0.0,
+		TAU,
+		28,
+		_with_alpha(TIME_STOP_FRAME_COLOR, (0.07 + 0.12 * strength) * alpha_scale),
+		1.1 + 1.4 * strength
+	)
+	main.draw_arc(
+		center,
+		radius + 9.0 + 3.0 * strength,
+		-PI * 0.12,
+		PI * 1.28,
+		26,
+		_with_alpha(TIME_STOP_FRAME_CORE_COLOR, (0.035 + 0.08 * strength) * alpha_scale),
+		0.9 + 0.8 * strength
+	)
+
+
+static func _draw_time_stop_target_ink_blot(main: Node2D, center: Vector2, radius: float) -> void:
+	var strength: float = main._get_time_stop_visual_strength() * float(main.时停目标墨斑强度)
+	if strength <= 0.001:
+		return
+	var seed: int = int(center.x * 0.37 + center.y * 0.61)
+	_draw_irregular_ink_poly(main, center, radius * (2.0 + 0.6 * strength), seed, _with_alpha(Color(0.01, 0.012, 0.015), 0.12 + 0.18 * strength))
+	_draw_irregular_ink_poly(main, center + Vector2(radius * 0.22, -radius * 0.18), radius * (1.35 + 0.4 * strength), seed + 7, _with_alpha(Color(0.18, 0.19, 0.19), 0.08 + 0.1 * strength))
+	var spike_count: int = 10
+	var spike_index: int = 0
+	while spike_index < spike_count:
+		var angle: float = float(spike_index) / float(spike_count) * TAU + _stable_noise(seed + spike_index, 40.0) * 0.4
+		var direction: Vector2 = Vector2.RIGHT.rotated(angle)
+		var start: Vector2 = center + direction * radius * 0.9
+		var end: Vector2 = center + direction * radius * lerpf(1.35, 2.7, _stable_noise(seed + spike_index, 41.0))
+		main.draw_line(start, end, _with_alpha(Color(0.0, 0.0, 0.0), (0.08 + 0.12 * strength) * _stable_noise(seed + spike_index, 42.0)), 1.2 + 1.8 * strength)
+		spike_index += 1
+
+
+static func _draw_time_stop_ink_break(main: Node2D) -> void:
+	if not bool(main.时停分层水墨启用) or not bool(main.时停破墨启用):
+		return
+	var pulse: float = clampf(main._get_time_stop_ink_break_strength(), 0.0, 1.0)
+	if pulse <= 0.001:
+		return
+	var progress: float = clampf(main._get_time_stop_ink_break_progress(), 0.0, 1.0)
+	var strength: float = clampf(float(main.时停破墨强度), 0.0, 2.0)
+	var player_pos: Vector2 = main._to_screen(Vector2(main.player.get("pos", main.ARENA_SIZE * 0.5)))
+	var focus_pos: Vector2 = main._get_time_stop_focus_screen_position()
+	var forward: Vector2 = focus_pos - player_pos
+	if forward.length_squared() <= 4.0:
+		forward = main._to_screen(main.mouse_world) - player_pos
+	if forward.length_squared() <= 4.0:
+		forward = Vector2.RIGHT
+	forward = forward.normalized()
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var center: Vector2 = player_pos.lerp(focus_pos, 0.48)
+	var length: float = (360.0 + 740.0 * smoothstep(0.0, 1.0, progress)) * float(main.时停破墨长度倍率)
+	var width: float = (34.0 + 128.0 * sin(progress * PI)) * float(main.时停破墨宽度倍率)
+	var start: Vector2 = center - forward * length * 0.36
+	var end: Vector2 = center + forward * length * 0.64
+	var points: Array[Vector2] = []
+	var segment_count: int = 10
+	var segment_index: int = 0
+	while segment_index <= segment_count:
+		var t: float = float(segment_index) / float(segment_count)
+		var jag: float = (sin(t * TAU * 2.7 + 0.9) * 0.55 + sin(t * TAU * 5.1 + 2.1) * 0.28)
+		var taper: float = sin(t * PI)
+		points.append(start.lerp(end, t) + side * jag * width * taper)
+		segment_index += 1
+	var dark_alpha: float = (0.38 + 0.44 * pulse) * strength
+	var paper_alpha: float = (0.38 + 0.42 * pulse) * strength
+	_draw_ink_break_poly(main, points, side, width * 1.05, _with_alpha(Color(0.005, 0.007, 0.01), dark_alpha))
+	_draw_ink_break_poly(main, points, side, width * 0.62, _with_alpha(Color(0.88, 0.92, 0.93), paper_alpha))
+	_draw_ink_break_poly(main, points, side, width * 0.18, _with_alpha(Color(0.96, 0.99, 1.0), 0.26 * pulse * strength))
+	_draw_ink_break_lines(main, points, pulse, strength)
+	_draw_ink_break_droplets(main, points, forward, side, width, pulse, strength * float(main.时停破墨墨滴倍率))
+
+
+static func _draw_ink_break_poly(main: Node2D, points: Array[Vector2], side: Vector2, half_width: float, color: Color) -> void:
+	if points.size() < 2 or half_width <= 0.0 or color.a <= 0.001:
+		return
+	var poly := PackedVector2Array()
+	var point_count: int = points.size()
+	var index: int = 0
+	while index < point_count:
+		var t: float = float(index) / maxf(float(point_count - 1), 1.0)
+		var local_width: float = half_width * (0.22 + 0.78 * sin(t * PI)) * (0.72 + 0.28 * _stable_noise(index, half_width * 0.13))
+		poly.append(points[index] + side * local_width)
+		index += 1
+	index = point_count - 1
+	while index >= 0:
+		var t_back: float = float(index) / maxf(float(point_count - 1), 1.0)
+		var local_width_back: float = half_width * (0.2 + 0.76 * sin(t_back * PI)) * (0.72 + 0.28 * _stable_noise(index, half_width * 0.27 + 3.0))
+		poly.append(points[index] - side * local_width_back)
+		index -= 1
+	_try_draw_colored_polygon(main, poly, color)
+
+
+static func _draw_ink_break_lines(main: Node2D, points: Array[Vector2], pulse: float, strength: float) -> void:
+	var index: int = 0
+	while index < points.size() - 1:
+		main.draw_line(points[index], points[index + 1], _with_alpha(Color(0.0, 0.0, 0.0), (0.34 + 0.3 * pulse) * strength), 4.5 + 5.0 * pulse)
+		main.draw_line(points[index], points[index + 1], _with_alpha(Color(0.9, 0.97, 1.0), (0.18 + 0.24 * pulse) * strength), 1.5 + 2.0 * pulse)
+		index += 1
+
+
+static func _draw_ink_break_droplets(main: Node2D, points: Array[Vector2], forward: Vector2, side: Vector2, width: float, pulse: float, strength: float) -> void:
+	if strength <= 0.001:
+		return
+	var droplet_count: int = 18
+	var droplet_index: int = 0
+	while droplet_index < droplet_count:
+		var point_index: int = int(floor(_stable_noise(droplet_index, 20.0) * float(max(points.size() - 1, 1))))
+		var t: float = _stable_noise(droplet_index, 21.0)
+		var side_sign: float = -1.0 if _stable_noise(droplet_index, 22.0) < 0.5 else 1.0
+		var offset: float = lerpf(width * 0.28, width * 1.25, _stable_noise(droplet_index, 23.0)) * side_sign
+		var forward_offset: float = lerpf(-26.0, 34.0, _stable_noise(droplet_index, 24.0))
+		var pos: Vector2 = points[point_index] + side * offset + forward * forward_offset
+		var radius: float = lerpf(2.0, 10.0, _stable_noise(droplet_index, 25.0)) * (0.55 + 0.55 * pulse)
+		var color: Color = Color(0.02, 0.026, 0.032, (0.12 + 0.34 * pulse) * strength)
+		if t > 0.72:
+			color = Color(0.82, 0.9, 0.96, (0.08 + 0.16 * pulse) * strength)
+		_draw_irregular_ink_poly(main, pos, radius, droplet_index + 100, color)
+		droplet_index += 1
 
 
 static func _draw_art_arena_frame(main: Node2D) -> void:
@@ -1090,7 +1345,7 @@ static func _draw_puppet_attack_telegraph(main: Node2D, enemy: Dictionary, enemy
 			attack_angle - 0.5,
 			attack_angle + 0.5,
 			28,
-			main._get_time_stop_world_color(Color(1.0, 0.0, 0.0, 0.55)),
+			Color(1.0, 0.0, 0.0, 0.55),
 			2.0
 		)
 		main.draw_arc(
@@ -1099,7 +1354,7 @@ static func _draw_puppet_attack_telegraph(main: Node2D, enemy: Dictionary, enemy
 			attack_angle - 0.5,
 			attack_angle + 0.5,
 			28,
-			main._get_time_stop_world_color(Color(1.0, 0.4, 0.4, 0.9)),
+			Color(1.0, 0.4, 0.4, 0.9),
 			3.0
 		)
 	elif attack_progress < main.PUPPET_MELEE_PREP_TIME + 0.16:
@@ -1109,7 +1364,7 @@ static func _draw_puppet_attack_telegraph(main: Node2D, enemy: Dictionary, enemy
 			attack_angle - 0.8,
 			attack_angle + 0.8,
 			28,
-			main._get_time_stop_world_color(Color(1.0, 0.0, 0.0, 1.0)),
+			Color(1.0, 0.0, 0.0, 1.0),
 			5.0
 		)
 
@@ -1119,14 +1374,6 @@ static func _draw_time_stop_wash(main: Node2D) -> void:
 	var strength: float = main._get_time_stop_visual_strength()
 	if wash_alpha <= 0.001 and strength <= 0.001:
 		return
-	if wash_alpha > 0.001:
-		main.draw_rect(
-			Rect2(Vector2.ZERO, main.get_viewport_rect().size),
-			_with_alpha(TIME_STOP_WASH_COLOR, wash_alpha * 0.36),
-			true
-		)
-	if wash_alpha > 0.001:
-		main.draw_rect(main.ARENA_RECT, _with_alpha(TIME_STOP_WASH_COLOR, wash_alpha), true)
 	if strength <= 0.001:
 		return
 	var frame_rect: Rect2 = main.ARENA_RECT.grow(2.0)
@@ -2761,6 +3008,28 @@ static func _with_alpha(color: Color, alpha: float) -> Color:
 	var result: Color = color
 	result.a = alpha
 	return result
+
+
+static func _stable_noise(index: int, salt: float) -> float:
+	var value: float = sin(float(index) * 12.9898 + salt * 78.233) * 43758.5453
+	return value - floor(value)
+
+
+static func _draw_irregular_ink_poly(main: Node2D, center: Vector2, radius: float, seed: int, color: Color) -> void:
+	if radius <= 0.0 or color.a <= 0.001:
+		return
+	var point_count: int = 9
+	var points := PackedVector2Array()
+	var point_index: int = 0
+	while point_index < point_count:
+		var angle: float = float(point_index) / float(point_count) * TAU
+		var wobble: float = 0.62 + 0.48 * _stable_noise(seed * 19 + point_index, radius * 0.17)
+		var tangent_pull: float = (_stable_noise(seed * 23 + point_index, radius * 0.31) - 0.5) * radius * 0.16
+		var direction: Vector2 = Vector2.RIGHT.rotated(angle)
+		var tangent: Vector2 = direction.rotated(PI * 0.5)
+		points.append(center + direction * radius * wobble + tangent * tangent_pull)
+		point_index += 1
+	_try_draw_colored_polygon(main, points, color)
 
 
 static func _color_matches(lhs: Color, rhs: Color) -> bool:
