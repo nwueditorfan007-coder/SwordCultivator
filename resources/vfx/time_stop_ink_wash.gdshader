@@ -4,7 +4,10 @@ render_mode unshaded, blend_mix;
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
 uniform float strength : hint_range(0.0, 1.0) = 0.0;
 uniform float entry_pulse : hint_range(0.0, 1.0) = 0.0;
+uniform float recover_progress : hint_range(0.0, 1.0) = 0.0;
 uniform vec2 center_uv = vec2(0.5, 0.5);
+uniform vec2 player_uv = vec2(0.5, 0.5);
+uniform vec2 axis_dir = vec2(1.0, 0.0);
 uniform vec3 cold_ink_color = vec3(0.66, 0.82, 1.0);
 uniform vec3 paper_color = vec3(0.78, 0.83, 0.88);
 uniform float ink_contrast = 0.58;
@@ -67,6 +70,27 @@ void fragment() {
 	float wave_progress = 1.0 - pulse;
 	float entry_ring = exp(-abs(pulse_distance - wave_progress * 0.95) * 21.0) * pulse;
 
+	vec2 line_to_focus = center_uv - player_uv;
+	float line_length = max(length(line_to_focus), 0.001);
+	vec2 corridor_axis = normalize(mix(axis_dir, line_to_focus / line_length, 0.7));
+	vec2 corridor_origin = mix(player_uv, center_uv, 0.42);
+	vec2 corridor_uv = SCREEN_UV - corridor_origin;
+	corridor_uv.x *= SCREEN_PIXEL_SIZE.y / max(SCREEN_PIXEL_SIZE.x, 0.0001);
+	vec2 corridor_axis_aspect = corridor_axis;
+	corridor_axis_aspect.x *= SCREEN_PIXEL_SIZE.y / max(SCREEN_PIXEL_SIZE.x, 0.0001);
+	corridor_axis_aspect = normalize(corridor_axis_aspect);
+	float corridor_along = dot(corridor_uv, corridor_axis_aspect);
+	float corridor_side = abs(corridor_uv.x * corridor_axis_aspect.y - corridor_uv.y * corridor_axis_aspect.x);
+	float corridor_half_length = max(line_length * 0.85, 0.08);
+	float corridor_width = mix(0.035, 0.14, ink) + recover_progress * 0.045;
+	float corridor_mask = smoothstep(corridor_half_length + 0.08, corridor_half_length * 0.45, abs(corridor_along));
+	corridor_mask *= smoothstep(corridor_width, corridor_width * 0.25, corridor_side);
+	float corridor_flow = 0.5 + 0.5 * sin(corridor_along * 42.0 - TIME * (4.8 + recover_progress * 2.2));
+	corridor_flow *= smoothstep(corridor_width * 0.85, corridor_width * 0.08, corridor_side);
+	float player_recover = 1.0 - smoothstep(0.06, 0.26, distance(SCREEN_UV, player_uv));
+	float focus_recover = 1.0 - smoothstep(0.08, 0.34, distance(SCREEN_UV, center_uv));
+	float recover_mask = clamp(max(corridor_mask, max(player_recover, focus_recover * 0.92)) * recover_progress, 0.0, 1.0);
+
 	float luma = dot(source, vec3(0.299, 0.587, 0.114));
 	float luma_contrast = clamp((luma - 0.5) * (1.0 + ink_contrast * ink + 0.18 * pulse) + 0.5, 0.0, 1.0);
 	float broad_noise = fbm(SCREEN_UV * vec2(6.2, 3.7) + vec2(0.0, TIME * 0.018));
@@ -94,10 +118,15 @@ void fragment() {
 	halo *= 0.25;
 
 	vec3 focus_boost = source * (1.0 + 0.18 * ink) + vec3(0.08, 0.17, 0.24) * halo * ink;
-	washed = mix(washed, focus_boost, clamp(local_focus * focus_restore_strength * (0.48 + 0.52 * ink), 0.0, 0.92));
+	float local_restore = clamp(local_focus * focus_restore_strength * (0.48 + 0.52 * ink), 0.0, 0.92);
+	local_restore = max(local_restore, recover_mask * (0.26 + 0.42 * focus_restore_strength));
+	washed = mix(washed, focus_boost, local_restore);
 	washed += vec3(0.58, 0.78, 1.0) * halo * 0.075 * ink;
 	washed += vec3(0.94, 0.98, 1.0) * entry_ring * (0.13 + 0.16 * ink);
 	washed -= vec3(0.06, 0.08, 0.1) * smoothstep(0.05, 0.42, pulse_distance) * pulse * 0.08;
+	washed = mix(washed, source * vec3(0.94, 0.98, 1.06), recover_mask * 0.42);
+	washed += vec3(0.18, 0.32, 0.5) * corridor_mask * recover_progress * 0.22;
+	washed += vec3(0.26, 0.48, 0.78) * corridor_flow * recover_progress * 0.16;
 
 	float effect_mix = clamp(ink * 0.96 + pulse * 0.18, 0.0, 1.0);
 	vec3 final_rgb = mix(source, washed, effect_mix);

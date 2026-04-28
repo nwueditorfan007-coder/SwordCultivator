@@ -3,6 +3,7 @@ class_name GameStateFactory
 
 const DamageResolver = preload("res://scripts/combat/damage_resolver.gd")
 const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
+const SwordResonanceController = preload("res://scripts/system/sword_resonance_controller.gd")
 const HitDetection = preload("res://scripts/combat/hit_detection.gd")
 const HitRegistry = preload("res://scripts/combat/hit_registry.gd")
 const HurtboxRegistry = preload("res://scripts/combat/hurtbox_registry.gd")
@@ -45,6 +46,7 @@ static func reset_runtime(main: Node) -> void:
 	main.array_mode_confirm_cooldown = 0.0
 	main.array_mode_confirm_mode = ""
 	main.array_mode_confirm_angle = 0.0
+	main.array_distance_guide_timer = 0.0
 	main.energy_gain_feedback_timer = 0.0
 	main.energy_gain_feedback_strength = 0.0
 	main.energy_gain_feedback_color = Color.WHITE
@@ -67,12 +69,14 @@ static func reset_runtime(main: Node) -> void:
 		"array_fire_index": 0,
 		"array_selected_mode": SwordArrayConfig.MODE_RING,
 		"array_mode": SwordArrayConfig.MODE_RING,
+		"array_sticky_mode": SwordArrayConfig.MODE_RING,
 		"array_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"array_fire_morph_state": SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING),
 		"array_confirm_observed_stable_mode": SwordArrayConfig.MODE_RING,
 		"array_raw_aim_distance": 0.0,
 		"array_control_distance": 0.0,
 	}
+	SwordResonanceController.initialize_player_state(main.player)
 	main.debug_battle_mode = false
 	main.debug_flags = {
 		"infinite_health": false,
@@ -82,10 +86,6 @@ static func reset_runtime(main: Node) -> void:
 	}
 	main.debug_calibration_mode = false
 	main.debug_dragging_player = false
-	main.visual_time_stop_strength = 0.0
-	main.visual_time_stop_hold_timer = 0.0
-	main.visual_time_stop_entry_pulse_timer = 0.0
-	main.visual_time_stop_ink_break_timer = 0.0
 	main.unsheath_flash_timer = 0.0
 	main.unsheath_flash_origin = main.ARENA_SIZE * 0.5
 	main.unsheath_flash_direction = Vector2.RIGHT
@@ -105,6 +105,20 @@ static func reset_runtime(main: Node) -> void:
 		"state": main.SwordState.ORBITING,
 		"attack_instance_id": "",
 		"attack_profile_id": "",
+		"combo_id": "",
+		"combo_phase": "",
+		"combo_timer": 0.0,
+		"combo_duration": 0.0,
+		"combo_points": [],
+		"combo_locked_points": [],
+		"combo_release_anchor": main.ARENA_SIZE * 0.5,
+		"combo_route_index": 0,
+		"combo_last_hit_pos": main.ARENA_SIZE * 0.5,
+		"combo_finish_profile_pending": false,
+		"combo_attack_instance_id": "",
+		"combo_attack_profile_id": "",
+		"fan_time_stop_clone_attack_instance_ids": {},
+		"fan_time_stop_clone_attack_profile_id": "",
 		"press_timer": 0.0,
 		"time_slow_timer": 0.0,
 		"target_pos": main.ARENA_SIZE * 0.5,

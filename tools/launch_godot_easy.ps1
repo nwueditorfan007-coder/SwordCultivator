@@ -6,6 +6,7 @@ param(
     [switch]$Wait,
     [switch]$Headless,
     [switch]$Detach,
+    [switch]$NoHastur,
     [string[]]$ExtraArgs = @()
 )
 
@@ -13,6 +14,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
 $startScript = Join-Path $scriptDir "start_godot_with_log.ps1"
 $watchScript = Join-Path $scriptDir "show_godot_errors.ps1"
+$hasturScript = Join-Path $scriptDir "start_hastur_broker.ps1"
 $pwshPath = "C:\Program Files\PowerShell\7\pwsh.exe"
 $powerShellExe = if (Test-Path $pwshPath) { $pwshPath } else { "powershell.exe" }
 
@@ -37,6 +39,14 @@ if (-not $NoWatcher) {
 if (-not $NoWatcher) {
     Start-WatcherWindow -ProjectRoot $projectDir -WatcherPath $watchScript
     Start-Sleep -Milliseconds 400
+}
+
+if (-not $NoHastur -and (Test-Path $hasturScript)) {
+    try {
+        & $hasturScript
+    } catch {
+        Write-Warning "Could not start Hastur broker automatically: $($_.Exception.Message)"
+    }
 }
 
 & $startScript -Mode $Mode -Wait:$Wait -Headless:$Headless -Detach:$Detach -ExtraArgs $ExtraArgs

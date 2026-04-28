@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#17213a"/>
+      <stop offset="55%" stop-color="#101522"/>
+      <stop offset="100%" stop-color="#080b10"/>
+    </radialGradient>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="thinGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <symbol id="sword" viewBox="-8 -34 16 68">
+      <path d="M0 -34 L5 -8 L2 24 L0 34 L-2 24 L-5 -8 Z" fill="currentColor"/>
+      <path d="M0 -28 L2 -8 L0 22 L-2 -8 Z" fill="#ffffff" opacity="0.62"/>
+    </symbol>
+    <symbol id="player" viewBox="-26 -30 52 60">
+      <circle cx="0" cy="-12" r="11" fill="#f7f3e8"/>
+      <path d="M-15 24 C-11 -4 11 -4 15 24 Z" fill="#d8e4f2"/>
+      <path d="M-16 6 C-5 15 5 15 16 6" fill="none" stroke="#8aa3bd" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <rect width="1440" height="900" fill="url(#bgGlow)"/>
+  <path d="M0 728 C260 665 420 780 670 723 C916 667 1091 747 1440 680 L1440 900 L0 900 Z" fill="#0e1118" opacity="0.66"/>
+
+  <text x="72" y="74" fill="#f7f3e8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="34" font-weight="700">
+    剑势余韵印记 UI / 剑体附着示意
+  </text>
+  <text x="72" y="112" fill="#9fb4c8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18">
+    主读法放在玩家身边；HUD 只确认持有状态；剑体附着负责提示“下一招会变形”。
+  </text>
+
+  <g transform="translate(70 158)">
+    <rect x="0" y="0" width="398" height="640" rx="18" fill="#111827" stroke="#25465a" stroke-width="2"/>
+    <text x="28" y="46" fill="#8ff8e7" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="700">环式余韵</text>
+    <text x="28" y="78" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">安全 / 护身 / 转破线</text>
+
+    <g transform="translate(54 114)">
+      <rect x="0" y="0" width="92" height="52" rx="10" fill="#0b1018" stroke="#335c66"/>
+      <circle cx="26" cy="26" r="14" fill="none" stroke="#76ffee" stroke-width="3" filter="url(#thinGlow)"/>
+      <circle cx="26" cy="26" r="5" fill="#8ff8e7"/>
+      <text x="52" y="31" fill="#d8fff8" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14">HUD</text>
+    </g>
+
+    <g transform="translate(199 272)">
+      <circle r="116" fill="#0b1418" stroke="#173d40" stroke-width="2"/>
+      <circle r="78" fill="none" stroke="#76ffee" stroke-width="5" opacity="0.8" filter="url(#softGlow)"/>
+      <circle r="94" fill="none" stroke="#76ffee" stroke-width="1.5" stroke-dasharray="7 12" opacity="0.45"/>
+      <g color="#8ff8e7">
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(0)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(30)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(60)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(90)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(120)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(150)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(180)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(210)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(240)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(270)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(300)"/>
+        <use href="#sword" x="0" y="-104" width="17" height="70" transform="rotate(330)"/>
+      </g>
+      <use href="#player" width="52" height="60"/>
+    </g>
+
+    <text x="28" y="470" fill="#e5f8f6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="700">显示建议</text>
+    <text x="28" y="500" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">玩家腰身一圈淡环；12 剑剑脊带短促环光。</text>
+    <text x="28" y="528" fill="#8ff8e7" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">预告：瞄到贯穿时，圆势向前收成一线。</text>
+  </g>
+
+  <g transform="translate(521 158)">
+    <rect x="0" y="0" width="398" height="640" rx="18" fill="#111827" stroke="#375172" stroke-width="2"/>
+    <text x="28" y="46" fill="#a7d8ff" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="700">扇式余韵</text>
+    <text x="28" y="78" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">覆盖 / 面扫 / 分光御剑</text>
+
+    <g transform="translate(54 114)">
+      <rect x="0" y="0" width="92" height="52" rx="10" fill="#0b1018" stroke="#375172"/>
+      <path d="M20 38 A30 30 0 0 1 52 10" fill="none" stroke="#a7d8ff" stroke-width="3" filter="url(#thinGlow)"/>
+      <path d="M20 38 L38 13 M20 38 L52 24 M20 38 L58 38" stroke="#a7d8ff" stroke-width="2"/>
+      <text x="52" y="31" fill="#e5f4ff" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14">HUD</text>
+    </g>
+
+    <g transform="translate(199 272)">
+      <circle r="116" fill="#0b121b" stroke="#20364a" stroke-width="2"/>
+      <path d="M0 0 L-96 -56 A112 112 0 0 1 96 -56 Z" fill="#4cc9ff" opacity="0.1"/>
+      <path d="M0 0 L-94 -54" stroke="#a7d8ff" stroke-width="3" opacity="0.6" filter="url(#thinGlow)"/>
+      <path d="M0 0 L0 -111" stroke="#dff4ff" stroke-width="3" opacity="0.74" filter="url(#thinGlow)"/>
+      <path d="M0 0 L94 -54" stroke="#a7d8ff" stroke-width="3" opacity="0.6" filter="url(#thinGlow)"/>
+      <path d="M-92 -56 A110 110 0 0 1 92 -56" fill="none" stroke="#a7d8ff" stroke-width="4" opacity="0.82" filter="url(#softGlow)"/>
+      <g color="#a7d8ff">
+        <use href="#sword" x="-78" y="-82" width="17" height="70" transform="rotate(-35 -78 -82)"/>
+        <use href="#sword" x="-48" y="-106" width="17" height="70" transform="rotate(-20 -48 -106)"/>
+        <use href="#sword" x="-15" y="-118" width="17" height="70" transform="rotate(-5 -15 -118)"/>
+        <use href="#sword" x="15" y="-118" width="17" height="70" transform="rotate(5 15 -118)"/>
+        <use href="#sword" x="48" y="-106" width="17" height="70" transform="rotate(20 48 -106)"/>
+        <use href="#sword" x="78" y="-82" width="17" height="70" transform="rotate(35 78 -82)"/>
+      </g>
+      <use href="#player" width="52" height="60"/>
+      <g opacity="0.46" color="#dff4ff">
+        <use href="#sword" x="-36" y="-20" width="13" height="52" transform="rotate(-18 -36 -20)"/>
+        <use href="#sword" x="36" y="-20" width="13" height="52" transform="rotate(18 36 -20)"/>
+      </g>
+    </g>
+
+    <text x="28" y="470" fill="#e5f8f6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="700">显示建议</text>
+    <text x="28" y="500" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">玩家身后两三片淡扇影；剑体边缘像分光。</text>
+    <text x="28" y="528" fill="#a7d8ff" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">预告：右键前，主剑两侧短暂浮出影剑。</text>
+  </g>
+
+  <g transform="translate(972 158)">
+    <rect x="0" y="0" width="398" height="640" rx="18" fill="#111827" stroke="#655b31" stroke-width="2"/>
+    <text x="28" y="46" fill="#ffe08a" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="26" font-weight="700">刺式余韵</text>
+    <text x="28" y="78" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">定向 / 破线 / 剑虹贯日</text>
+
+    <g transform="translate(54 114)">
+      <rect x="0" y="0" width="92" height="52" rx="10" fill="#0b1018" stroke="#655b31"/>
+      <path d="M14 36 L55 14" stroke="#ffe08a" stroke-width="4" stroke-linecap="round" filter="url(#thinGlow)"/>
+      <circle cx="57" cy="13" r="5" fill="#fff4c7"/>
+      <text x="52" y="31" fill="#fff4c7" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14">HUD</text>
+    </g>
+
+    <g transform="translate(199 272)">
+      <circle r="116" fill="#141109" stroke="#41391c" stroke-width="2"/>
+      <path d="M-96 42 C-44 -6 20 -37 102 -84" fill="none" stroke="#ffe08a" stroke-width="5" stroke-linecap="round" filter="url(#softGlow)"/>
+      <path d="M-96 42 C-44 -6 20 -37 102 -84" fill="none" stroke="#fff8df" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M-88 54 C-24 14 35 -27 94 -68" fill="none" stroke="#ffb86b" stroke-width="2" stroke-dasharray="9 10" opacity="0.48"/>
+      <g color="#ffe08a">
+        <use href="#sword" x="-82" y="22" width="16" height="64" transform="rotate(58 -82 22)"/>
+        <use href="#sword" x="-49" y="-8" width="16" height="64" transform="rotate(58 -49 -8)"/>
+        <use href="#sword" x="-14" y="-30" width="16" height="64" transform="rotate(58 -14 -30)"/>
+        <use href="#sword" x="22" y="-48" width="16" height="64" transform="rotate(58 22 -48)"/>
+        <use href="#sword" x="58" y="-68" width="16" height="64" transform="rotate(58 58 -68)"/>
+      </g>
+      <use href="#player" width="52" height="60"/>
+      <circle cx="102" cy="-84" r="9" fill="#fff4c7" filter="url(#thinGlow)"/>
+    </g>
+
+    <text x="28" y="470" fill="#e5f8f6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="700">显示建议</text>
+    <text x="28" y="500" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">玩家到准星方向有一条细线意；剑尖带金白光点。</text>
+    <text x="28" y="528" fill="#ffe08a" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">预告：右键时停后，线意变成可绘制剑虹。</text>
+  </g>
+
+  <g transform="translate(72 830)">
+    <circle cx="10" cy="-6" r="5" fill="#8ff8e7"/>
+    <text x="28" y="0" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">持有态：克制、低噪音，只告诉玩家“你有势”。</text>
+    <circle cx="455" cy="-6" r="5" fill="#a7d8ff"/>
+    <text x="473" y="0" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">预告态：下一招匹配时，印记短暂变亮并附到剑体上。</text>
+    <circle cx="950" cy="-6" r="5" fill="#ffe08a"/>
+    <text x="968" y="0" fill="#b8c7d6" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15">消耗态：合式触发后，印记被“吸入”当前剑阵或御剑。</text>
+  </g>
+</svg>

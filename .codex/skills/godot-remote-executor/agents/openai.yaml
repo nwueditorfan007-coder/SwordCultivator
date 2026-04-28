@@ -1,0 +1,3 @@
+display_name: Godot Remote Executor
+short_description: Control the live SwordCultivator Godot editor through the local Hastur broker.
+default_prompt: Use the Hastur broker to inspect connected Godot executors and report the current editor scene.

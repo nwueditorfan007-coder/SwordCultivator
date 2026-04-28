@@ -1,0 +1,8 @@
+Repository: https://github.com/rayxuln/hastur-operation-plugin
+Commit: eedff7f39f9b2ec95c389e08e69f4d6bd35b8553
+Imported: 2026-04-27
+
+Local notes:
+- Godot editor plugin is copied to addons/hasturoperationgd.
+- Broker server is copied to tools/hastur-operation-plugin/broker-server.
+- The local auth token is generated at tools/hastur-operation-plugin/.hastur-auth-token and ignored by git.

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="TimeRiftProfile" format=3 uid="uid://dcixheaasp2u4"]
+
+[ext_resource type="Script" uid="uid://xjo16sq21n5n" path="res://scripts/vfx/time_rift_profile.gd" id="1_profile_script"]
+
+[resource]
+resource_local_to_scene = true
+script = ExtResource("1_profile_script")
+"进入时长" = 0.18
+"愈合时长" = 0.68
+"进入强度" = 0.92

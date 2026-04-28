@@ -5,3 +5,10 @@
 /dist/
 .codex/config.toml
 .codex_tmp/
+.codex/time_rift_eval/
+.codex/video_frames/
+.codex/video_frames_fullpass/
+.codex/video_frames_latest/
+.codex/video_frames_new/
+/tools/hastur-operation-plugin/broker-server/node_modules/
+/tools/hastur-operation-plugin/.hastur-auth-token

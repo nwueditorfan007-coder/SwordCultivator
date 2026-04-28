@@ -167,34 +167,30 @@ resources/vfx/ink/
 相关脚本：
 
 - `scripts/system/main.gd`
-  - 检查器参数入口：`时停水墨后处理`。
-  - 当前全屏滤镜预览默认关闭。
-- `scripts/system/game_renderer.gd`
-  - `_draw_time_stop_background_ink`：背景水墨层。
-  - `_draw_time_stop_large_brush_field`：程序化大笔触，占位用。
-  - `_draw_time_stop_target_ink_blot`：敌人背后墨斑，占位用。
-  - `_draw_time_stop_ink_break`：破墨入场，占位用。
-- `scripts/system/game_boss_controller.gd`
-  - Boss 本体和 Boss 血条已改为保色。
+  - `_trigger_time_rift_enter`：右键御剑出手时触发夜界入场。
+  - `_trace_time_rift_sword`：持续把飞剑屏幕位置传给特效。
+  - `_build_time_rift_freeze_markers`：把敌人、Boss、弹幕转成冻结标记。
+- `scripts/vfx/time_rift_fx.gd`
+  - 运行时驱动层，只负责阶段、位置、方向、强度和池化标记。
+  - 不再保留旧版 `BackBuffer + time_rift_screen.gdshader + Line2D` 裂隙系统。
+- `scenes/vfx/TimeStopDomainArt.tscn`
+  - 正式节点化美术层，承载宣纸、笔刷、墨斑、裂墨、剑光、粒子和 AnimationPlayer。
 
-素材接入时，优先替换这些程序化函数中的多边形绘制：
+素材接入时，优先替换 `TimeStopDomainArt.tscn` 里的贴图节点：
 
-- `brush_sweep_*` 替换 `_draw_time_stop_large_brush_field`。
-- `ink_blot_*` 替换 `_draw_time_stop_target_ink_blot`。
-- `ink_crack_*` 替换 `_draw_time_stop_ink_break` 主裂纹。
-- `ink_droplets_*` 替换 `_draw_ink_break_droplets`。
+- `brush_sweep_*` 用于 `BackgroundBrush`。
+- `ink_blot_*` 用于 `TargetLayer` 和运行时冻结标记池。
+- `ink_crack_*` 用于 `EntryLayer/Crack*`。
+- `ink_droplets_*` 用于入场喷溅贴片或粒子贴图。
 
 ## 参数调试建议
 
-在 `Main` 节点 Inspector 的 `时停水墨后处理` 分组中优先调：
+优先在 `TimeRiftFx` 节点和 `TimeStopDomainArt.tscn` 中调：
 
-1. `时停背景笔触强度`
-2. `时停目标墨斑强度`
-3. `时停破墨强度`
-4. `时停破墨宽度倍率`
-5. `时停破墨墨滴倍率`
-6. `时停宣纸覆盖`
-7. `时停背景冷蓝雾`
+1. `TimeRiftFx/冻结标记强度`
+2. `TimeRiftFx/剑光放射强度`
+3. `resources/vfx/time_rift_profile_default.tres` 的进入和恢复时长
+4. `TimeStopDomainArt.tscn` 中 `Crack*`、`Streak*`、`BackgroundBrush` 的贴图和初始调色
 
 推荐目标：
 

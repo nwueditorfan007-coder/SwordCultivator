@@ -166,17 +166,6 @@ static func draw_boss_world(main: Node2D) -> void:
 		boss_color = boss_color.lerp(boss_flash_color, 0.42 + 0.34 * boss_hit_flash_ratio)
 	var boss_pos: Vector2 = main._to_screen(main.boss["pos"] + boss_visual_offset)
 	main.draw_circle(boss_pos, main.boss["radius"], boss_color)
-	var time_stop_strength: float = main._get_time_stop_visual_strength() * float(main.时停对象冻结描边)
-	if time_stop_strength > 0.001:
-		main.draw_arc(
-			boss_pos,
-			main.boss["radius"] + 5.0 + 3.0 * time_stop_strength,
-			0.0,
-			TAU,
-			36,
-			Color(0.7, 0.9, 1.0, 0.08 + 0.14 * time_stop_strength),
-			1.4 + 1.4 * time_stop_strength
-		)
 	if boss_hit_flash_ratio > 0.0:
 		main.draw_circle(
 			boss_pos,

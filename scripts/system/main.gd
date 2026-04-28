@@ -10,6 +10,8 @@ const GameStateFactory = preload("res://scripts/system/game_state_factory.gd")
 const HitRegistry = preload("res://scripts/combat/hit_registry.gd")
 const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
+const SwordResonanceController = preload("res://scripts/system/sword_resonance_controller.gd")
+const SwordFlightFxScript = preload("res://scripts/vfx/sword_flight_fx.gd")
 const SwordVfxProfile = preload("res://scripts/vfx/sword_vfx_profile.gd")
 const TargetDescriptors = preload("res://scripts/combat/target_descriptors.gd")
 const TargetDescriptorRegistry = preload("res://scripts/combat/target_descriptor_registry.gd")
@@ -18,8 +20,6 @@ const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
 const TargetWritebackAdapters = preload("res://scripts/combat/target_writeback_adapters.gd")
 const DEFAULT_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_default.tres")
 const DEFAULT_LOOKDEV_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_lookdev.tres")
-const TIME_STOP_INK_WASH_SHADER = preload("res://resources/vfx/time_stop_ink_wash.gdshader")
-
 enum CombatMode {
 	MELEE,
 	RANGED,
@@ -29,6 +29,7 @@ enum SwordState {
 	ORBITING,
 	POINT_STRIKE,
 	SLICING,
+	PIERCE_DRAWING,
 	RECALLING,
 }
 
@@ -215,17 +216,11 @@ const BULLET_FAMILY_WEAVE := "weave"
 const BULLET_FAMILY_FANG := "fang"
 const BULLET_FAMILY_CORE := "core"
 
-const BULLET_TIME_START_MULTIPLIER := 0.1
+const BULLET_TIME_START_MULTIPLIER := 0.2
+const BULLET_TIME_ENTRY_HOLD_DURATION := 0.2
 const BULLET_TIME_RECOVERY_DURATION := 2.0
 const PLAYER_BULLET_TIME_SPEED_MULTIPLIER := 0.85
-const TIME_STOP_VISUAL_MAX_STRENGTH := 0.84
-const TIME_STOP_VISUAL_ENTER_SPEED := 12.0
-const TIME_STOP_VISUAL_EXIT_SPEED := 4.8
-const TIME_STOP_VISUAL_RELEASE_HOLD := 0.28
-const TIME_STOP_VISUAL_HOLD_FLOOR := 0.26
-const TIME_STOP_VISUAL_ENTRY_PULSE_DURATION := 0.12
-const TIME_STOP_VISUAL_WASH_SUSTAIN_ALPHA := 0.072
-const TIME_STOP_VISUAL_WASH_PULSE_ALPHA := 0.045
+const TIME_RIFT_FREEZE_MARKER_LIMIT := 22
 const UNSHEATH_FLASH_DURATION := 0.08
 const UNSHEATH_FLASH_REPEAT_SUPPRESSION := 0.16
 const UNSHEATH_FLASH_BASE_STRENGTH := 0.34
@@ -322,6 +317,30 @@ const SWORD_IMPACT_MAX_OFFSET := 20
 const SWORD_IMPACT_MAX_ANGLE_OFFSET := 0.3
 const SWORD_SLICE_IMPACT_FEEDBACK_DURATION := 0.24
 const SWORD_SLICE_IMPACT_SIDE_OFFSET_RATIO := 0.46
+const FAN_TIME_STOP_COMBO_DURATION := 2.5
+const FAN_TIME_STOP_SPLIT_DURATION := 0.2
+const FAN_TIME_STOP_MERGE_DURATION := 0.24
+const FAN_TIME_STOP_TRANSITION_PARTICLE_COUNT := 8
+const FAN_TIME_STOP_SPLIT_SHAKE := 4.0
+const FAN_TIME_STOP_MERGE_SHAKE := 3.2
+const FAN_TIME_STOP_CLONE_SIDE_OFFSET_BASE := 24.0
+const FAN_TIME_STOP_CLONE_SIDE_OFFSET_SCALE := 10.0
+const FAN_TIME_STOP_CLONE_FORWARD_OFFSET := 4.0
+const FAN_TIME_STOP_CLONE_DAMAGE_SCALAR := 0.55
+const FAN_TIME_STOP_CLONE_HIT_EFFECT_INTENSITY := 0.72
+const PIERCE_TIME_STOP_COMBO_MIN_SWEEP_DISTANCE := 4.0
+const PIERCE_TIME_STOP_COMBO_POINT_SPACING := 18.0
+const PIERCE_TIME_STOP_COMBO_MAX_POINTS := 384
+# Set to <= 0.0 to disable distance-based auto release.
+const PIERCE_TIME_STOP_COMBO_AUTO_RELEASE_DRAW_DISTANCE := 0.0
+const PIERCE_TIME_STOP_DRAW_DURATION := 2
+const PIERCE_TIME_STOP_RELEASE_COMBO_DURATION := 1.15
+const PIERCE_TIME_STOP_DRAW_BULLET_TIME_MULTIPLIER := 0.06
+const PIERCE_TIME_STOP_DRAW_PLAYER_TIME_MULTIPLIER := 0.96
+const PIERCE_TIME_STOP_ROUTE_REACHED_DISTANCE := 1.5
+const PIERCE_TIME_STOP_COMBO_FLIGHT_SPEED_MULTIPLIER := 1.14
+const PIERCE_TIME_STOP_RELEASE_SHAKE := 8.0
+const PIERCE_TIME_STOP_RELEASE_PARTICLE_COUNT := 24
 
 const ENERGY_RECOVERY_MELEE_NATURAL := 3.0
 const ENERGY_GAIN_MELEE_HIT := 3.0
@@ -347,8 +366,11 @@ const ACTION_FAILURE_FLASH_DURATION := 0.28
 const ARRAY_ENERGY_WARNING_HOLD_RATIO_THRESHOLD := 0.55
 const ARRAY_ENERGY_WARNING_FADE_SPEED := 7.5
 const ARRAY_ENERGY_BREAK_DURATION := 0.24
-const ARRAY_MODE_CONFIRM_DURATION := 0.16
-const ARRAY_MODE_CONFIRM_COOLDOWN := 0.12
+const ARRAY_MODE_CONFIRM_DURATION := 0.24
+const ARRAY_MODE_CONFIRM_COOLDOWN := 0.10
+const ARRAY_DISTANCE_GUIDE_INTRO_DURATION := 45.0
+const ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION := 1.4
+const ARRAY_DISTANCE_GUIDE_HOLD_STRENGTH := 0.9
 const FOCUS_STATUS_DURATION := 0.46
 const FOCUS_STATUS_Y_OFFSET := 58.0
 const DEFLECT_BULLET_SPEED_MULTIPLIER := 8.0
@@ -358,6 +380,7 @@ const RING_GUARD_PLAYER_CLEAR_RADIUS := 58.0
 const DAMAGE_SOURCE_NONE := ""
 const DAMAGE_SOURCE_MELEE := "melee"
 const DAMAGE_SOURCE_FLYING_SWORD := "flying_sword"
+const DAMAGE_SOURCE_FLYING_SWORD_CLONE := "flying_sword_clone"
 const DAMAGE_SOURCE_ARRAY_SWORD := "array_sword"
 const DAMAGE_SOURCE_SYSTEM := "system"
 
@@ -556,33 +579,6 @@ const START_MENU_OPERATION_TEXT_DISTANCE := """[b]WASD 移动[/b]
 @export var sword_hover_preset_next_key: Key = KEY_NONE
 @export var sword_hover_preset_previous_key: Key = KEY_NONE
 @export_group("")
-@export_group("时停水墨后处理")
-@export var 时停分层水墨启用 := true
-@export_range(0.0, 1.5, 0.01) var 时停背景墨化强度 := 1.15
-@export_range(0.0, 1.5, 0.01) var 时停背景冷蓝雾 := 0.16
-@export_range(0.0, 1.0, 0.01) var 时停背景暗角 := 0.42
-@export_range(0.0, 1.0, 0.01) var 时停宣纸覆盖 := 0.72
-@export_range(0.0, 2.0, 0.01) var 时停背景笔触强度 := 1.55
-@export_range(0.0, 2.0, 0.01) var 时停目标墨斑强度 := 1.35
-@export var 时停破墨启用 := true
-@export_range(0.08, 1.2, 0.01) var 时停破墨持续时间 := 0.42
-@export_range(0.0, 2.0, 0.01) var 时停破墨强度 := 1.35
-@export_range(0.2, 2.4, 0.01) var 时停破墨长度倍率 := 1.0
-@export_range(0.2, 2.4, 0.01) var 时停破墨宽度倍率 := 1.25
-@export_range(0.0, 2.0, 0.01) var 时停破墨墨滴倍率 := 1.4
-@export_range(0.0, 1.0, 0.01) var 时停对象冻结描边 := 0.55
-@export var 时停全屏滤镜预览启用 := false
-@export_range(0.0, 0.08, 0.001) var 时停水墨显示阈值 := 0.008
-@export_range(0.0, 2.0, 0.01) var 时停水墨强度倍率 := 1.12
-@export_range(0.2, 2.0, 0.01) var 时停水墨强度曲线 := 0.78
-@export_range(0.0, 2.0, 0.01) var 时停水墨进入脉冲倍率 := 1.0
-@export_range(0.0, 2.0, 0.01) var 时停水墨对比 := 0.62
-@export_range(0.0, 0.3, 0.001) var 时停宣纸颗粒 := 0.092
-@export_range(0.0, 1.0, 0.01) var 时停边缘暗角 := 0.52
-@export_range(0.0, 1.5, 0.01) var 时停飞剑目标保色 := 0.86
-@export var 时停冷墨颜色 := Color(0.66, 0.82, 1.0, 1.0)
-@export var 时停宣纸颜色 := Color(0.78, 0.83, 0.88, 1.0)
-@export_group("")
 @export var lookdev_mode := false
 @export var lookdev_auto_cycle := true
 @export var lookdev_preview_mode: LookdevPreviewMode = LookdevPreviewMode.POINT
@@ -599,6 +595,7 @@ var sword_trail_points: Array = []
 var sword_air_wakes: Array = []
 var sword_return_catches: Array = []
 var sword_hit_effects: Array = []
+var fan_time_stop_clone_fx_nodes: Array = []
 var boss: Dictionary = {}
 var hit_registry: HitRegistry = HitRegistry.new()
 var hurtbox_registry: HurtboxRegistry = HurtboxRegistry.new()
@@ -637,6 +634,7 @@ var array_mode_confirm_timer: float = 0.0
 var array_mode_confirm_cooldown: float = 0.0
 var array_mode_confirm_mode: String = ""
 var array_mode_confirm_angle: float = 0.0
+var array_distance_guide_timer: float = 0.0
 var energy_gain_feedback_timer: float = 0.0
 var energy_gain_feedback_strength: float = 0.0
 var energy_gain_feedback_color: Color = Color.WHITE
@@ -766,16 +764,46 @@ func _setup_sword_flight_vfx_environment() -> void:
 	environment.set("glow_levels/3", 0.08)
 	environment.set("glow_levels/4", 0.04)
 	glow_environment.environment = environment
+	_ensure_fan_time_stop_clone_flight_fx_nodes()
+
+
+func _ensure_fan_time_stop_clone_flight_fx_nodes() -> void:
+	fan_time_stop_clone_fx_nodes.clear()
+	for side_sign in [-1.0, 1.0]:
+		var node_name := "FanTimeStopSwordFlightFxLeft" if side_sign < 0.0 else "FanTimeStopSwordFlightFxRight"
+		var clone_fx := get_node_or_null(node_name) as Node2D
+		if clone_fx == null:
+			clone_fx = SwordFlightFxScript.new()
+			clone_fx.name = node_name
+			clone_fx.visible = false
+			clone_fx.set("source_side_sign", side_sign)
+			add_child(clone_fx)
+		else:
+			clone_fx.set("source_side_sign", side_sign)
+		_sync_fan_time_stop_clone_flight_fx_settings(clone_fx)
+		fan_time_stop_clone_fx_nodes.append(clone_fx)
+
+
+func _has_fan_time_stop_clone_flight_fx() -> bool:
+	return _use_node_sword_flight_vfx() and not fan_time_stop_clone_fx_nodes.is_empty()
+
+
+func _sync_fan_time_stop_clone_flight_fx_settings(clone_fx: Node) -> void:
+	var source_fx := get_node_or_null("SwordFlightFx")
+	if source_fx == null or clone_fx == null or source_fx == clone_fx:
+		return
+	for property_info in source_fx.get_property_list():
+		var usage: int = int(property_info.get("usage", 0))
+		if (usage & PROPERTY_USAGE_SCRIPT_VARIABLE) == 0 or (usage & PROPERTY_USAGE_EDITOR) == 0:
+			continue
+		var property_name := StringName(property_info.get("name", ""))
+		clone_fx.set(property_name, source_fx.get(property_name))
+
+
 var debug_battle_mode: bool = false
 var debug_flags: Dictionary = {}
 var debug_calibration_mode: bool = false
 var debug_dragging_player: bool = false
-var visual_time_stop_strength: float = 0.0
-var visual_time_stop_hold_timer: float = 0.0
-var visual_time_stop_entry_pulse_timer: float = 0.0
-var visual_time_stop_ink_break_timer: float = 0.0
-var time_stop_ink_overlay: ColorRect = null
-var time_stop_ink_material: ShaderMaterial = null
 var unsheath_flash_timer: float = 0.0
 var unsheath_flash_origin: Vector2 = ARENA_SIZE * 0.5
 var unsheath_flash_direction: Vector2 = Vector2.RIGHT
@@ -815,13 +843,13 @@ const DEBUG_ENEMY_LAYOUT := [
 @onready var hint_label: Label = $CanvasLayer/HintLabel
 @onready var game_over_label: Label = $CanvasLayer/GameOverLabel
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
+@onready var time_rift_fx: Node = get_node_or_null("TimeRiftFx")
 
 
 func _ready() -> void:
 	randomize()
 	SwordArrayConfig.load_morph_distances_from_project()
 	_setup_sword_flight_vfx_environment()
-	_setup_time_stop_ink_overlay()
 	_reset_game()
 	_apply_demo_art_label_style()
 	if lookdev_mode:
@@ -860,62 +888,6 @@ func _apply_demo_art_label_style() -> void:
 	hint_label.size = Vector2(viewport_size.x - 440.0, 28.0)
 	game_over_label.position = Vector2(viewport_size.x * 0.5 - 280.0, viewport_size.y * 0.5 - 120.0)
 	game_over_label.size = Vector2(560.0, 240.0)
-	if time_stop_ink_overlay != null:
-		time_stop_ink_overlay.move_to_front()
-		canvas_layer.move_child(time_stop_ink_overlay, 0)
-
-
-func _setup_time_stop_ink_overlay() -> void:
-	if time_stop_ink_overlay != null:
-		return
-	time_stop_ink_material = ShaderMaterial.new()
-	time_stop_ink_material.shader = TIME_STOP_INK_WASH_SHADER
-	time_stop_ink_material.set_shader_parameter("strength", 0.0)
-	time_stop_ink_material.set_shader_parameter("entry_pulse", 0.0)
-	time_stop_ink_material.set_shader_parameter("center_uv", Vector2(0.5, 0.5))
-	_apply_time_stop_ink_tuning_parameters()
-	time_stop_ink_overlay = ColorRect.new()
-	time_stop_ink_overlay.name = "TimeStopInkWash"
-	time_stop_ink_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	time_stop_ink_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	time_stop_ink_overlay.color = Color.WHITE
-	time_stop_ink_overlay.material = time_stop_ink_material
-	time_stop_ink_overlay.visible = false
-	canvas_layer.add_child(time_stop_ink_overlay)
-	canvas_layer.move_child(time_stop_ink_overlay, 0)
-	var viewport := get_viewport()
-	if viewport != null and not viewport.size_changed.is_connected(_resize_time_stop_ink_overlay):
-		viewport.size_changed.connect(_resize_time_stop_ink_overlay)
-	_resize_time_stop_ink_overlay()
-
-
-func _resize_time_stop_ink_overlay() -> void:
-	if time_stop_ink_overlay == null:
-		return
-	time_stop_ink_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	time_stop_ink_overlay.offset_left = 0.0
-	time_stop_ink_overlay.offset_top = 0.0
-	time_stop_ink_overlay.offset_right = 0.0
-	time_stop_ink_overlay.offset_bottom = 0.0
-
-
-func _hide_time_stop_ink_overlay() -> void:
-	if time_stop_ink_overlay != null:
-		time_stop_ink_overlay.visible = false
-	if time_stop_ink_material != null:
-		time_stop_ink_material.set_shader_parameter("strength", 0.0)
-		time_stop_ink_material.set_shader_parameter("entry_pulse", 0.0)
-
-
-func _apply_time_stop_ink_tuning_parameters() -> void:
-	if time_stop_ink_material == null:
-		return
-	time_stop_ink_material.set_shader_parameter("ink_contrast", 时停水墨对比)
-	time_stop_ink_material.set_shader_parameter("paper_grain", 时停宣纸颗粒)
-	time_stop_ink_material.set_shader_parameter("vignette_strength", 时停边缘暗角)
-	time_stop_ink_material.set_shader_parameter("focus_restore_strength", 时停飞剑目标保色)
-	time_stop_ink_material.set_shader_parameter("cold_ink_color", Vector3(时停冷墨颜色.r, 时停冷墨颜色.g, 时停冷墨颜色.b))
-	time_stop_ink_material.set_shader_parameter("paper_color", Vector3(时停宣纸颜色.r, 时停宣纸颜色.g, 时停宣纸颜色.b))
 
 
 func _style_demo_label(label: Label, font_size: int, font_color: Color, alignment: HorizontalAlignment) -> void:
@@ -962,14 +934,13 @@ func _process(delta: float) -> void:
 		return
 
 	elapsed_time += delta
+	array_distance_guide_timer = maxf(array_distance_guide_timer - delta, 0.0)
 
 	var is_flying_sword: bool = sword["state"] != SwordState.ORBITING
 	if is_flying_sword:
 		sword["time_slow_timer"] += delta
 	else:
 		sword["time_slow_timer"] = 0.0
-	_update_time_stop_visual(delta, is_flying_sword)
-	_update_time_stop_ink_overlay()
 	unsheath_flash_timer = max(unsheath_flash_timer - delta, 0.0)
 	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - delta, 0.0)
 	unsheath_press_flash_timer = max(unsheath_press_flash_timer - delta, 0.0)
@@ -978,21 +949,23 @@ func _process(delta: float) -> void:
 	var bullet_time_ratio: float = 1.0
 	var player_time_ratio: float = 1.0
 	if is_flying_sword:
-		var time_slow_timer: float = float(sword["time_slow_timer"])
-		bullet_time_ratio = _get_bullet_time_ratio(time_slow_timer)
-		player_time_ratio = _get_player_bullet_time_ratio(time_slow_timer)
+		if _is_pierce_time_stop_drawing_active():
+			bullet_time_ratio = PIERCE_TIME_STOP_DRAW_BULLET_TIME_MULTIPLIER
+			player_time_ratio = PIERCE_TIME_STOP_DRAW_PLAYER_TIME_MULTIPLIER
+		else:
+			var time_slow_timer: float = float(sword["time_slow_timer"])
+			bullet_time_ratio = _get_bullet_time_ratio(time_slow_timer)
+			player_time_ratio = _get_player_bullet_time_ratio(time_slow_timer)
 
 	var bullet_time_delta: float = delta * bullet_time_ratio
 	var player_delta: float = delta * player_time_ratio
 
 	if right_mouse_held:
-		var previous_press_timer: float = sword["press_timer"]
 		sword["press_timer"] += delta
-		if previous_press_timer <= SWORD_TAP_THRESHOLD and sword["press_timer"] > SWORD_TAP_THRESHOLD and sword["state"] == SwordState.ORBITING:
-			_start_slicing()
 
 	_update_array_morph_control(delta)
 	_refresh_sword_array_live_state()
+	SwordResonanceController.update(self, delta)
 
 	if debug_calibration_mode:
 		_ensure_debug_calibration_state()
@@ -1024,9 +997,11 @@ func _process(delta: float) -> void:
 	_update_array_mode_confirm_feedback(delta)
 	_update_player(delta, player_delta)
 	_update_sword(delta)
+	_trace_time_rift_sword()
 	_update_boss(delta, bullet_time_delta)
 	_update_enemies(bullet_time_delta)
 	_update_bullets(delta, bullet_time_delta)
+	_update_time_rift_freeze_markers()
 	_update_array_swords(delta)
 	_update_particles(bullet_time_delta)
 	_update_sword_hit_effects(delta)
@@ -1062,6 +1037,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if is_start_menu_active:
 		if event is InputEventMouseMotion:
 			mouse_world = _screen_to_world(event.position)
+			_wake_array_distance_guide()
 		elif event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE:
 				_start_game_from_menu()
@@ -1074,10 +1050,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if event is InputEventMouseMotion:
 		mouse_world = _screen_to_world(event.position)
+		_wake_array_distance_guide()
 		if debug_calibration_mode and debug_dragging_player:
 			_set_debug_player_position(mouse_world)
 	elif event is InputEventMouseButton:
 		mouse_world = _screen_to_world(event.position)
+		_wake_array_distance_guide()
 		if debug_calibration_mode and event.button_index == MOUSE_BUTTON_MIDDLE:
 			debug_dragging_player = event.pressed
 			if event.pressed:
@@ -1101,14 +1079,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				sword["press_timer"] = 0.0
 				sword["target_pos"] = mouse_world
 				if sword["state"] == SwordState.ORBITING:
-					_trigger_unsheath_press_flash(mouse_world - player["pos"])
+					_start_slicing()
 			else:
 				right_mouse_held = false
 				if sword["state"] == SwordState.ORBITING:
 					if sword["press_timer"] < SWORD_TAP_THRESHOLD:
 						_start_point_strike()
+				elif sword["state"] == SwordState.PIERCE_DRAWING:
+					_release_pierce_time_stop_combo_sword()
 				elif sword["state"] == SwordState.SLICING:
-					sword["state"] = SwordState.RECALLING
+					if sword["press_timer"] < SWORD_TAP_THRESHOLD:
+						_commit_quick_release_point_strike()
+					else:
+						sword["state"] = SwordState.RECALLING
+						_trigger_time_rift_recover()
 
 
 func _draw() -> void:
@@ -1247,7 +1231,6 @@ func _show_start_menu() -> void:
 	is_start_menu_active = true
 	left_mouse_held = false
 	right_mouse_held = false
-	_hide_time_stop_ink_overlay()
 	_update_array_control_scheme_ui()
 	if start_menu != null:
 		start_menu.visible = true
@@ -1324,8 +1307,6 @@ func _process_lookdev(delta: float) -> void:
 		sword["time_slow_timer"] += scaled_delta
 	else:
 		sword["time_slow_timer"] = 0.0
-	_update_time_stop_visual(scaled_delta, is_flying_sword)
-	_update_time_stop_ink_overlay()
 	unsheath_flash_timer = max(unsheath_flash_timer - scaled_delta, 0.0)
 	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - scaled_delta, 0.0)
 	unsheath_press_flash_timer = max(unsheath_press_flash_timer - scaled_delta, 0.0)
@@ -1338,6 +1319,8 @@ func _process_lookdev(delta: float) -> void:
 	_update_array_energy_feedback_state(scaled_delta)
 	_update_array_mode_confirm_feedback(scaled_delta)
 	_update_sword(scaled_delta)
+	_trace_time_rift_sword()
+	_update_time_rift_freeze_markers()
 	_update_particles(scaled_delta)
 	_update_sword_hit_effects(scaled_delta)
 
@@ -1455,7 +1438,7 @@ func _consume_lookdev_event(event_key: String) -> bool:
 
 func _reset_game() -> void:
 	GameStateFactory.reset_runtime(self )
-	_hide_time_stop_ink_overlay()
+	_reset_time_rift_fx()
 	action_failure_cooldowns.clear()
 	energy_feedback_timer = 0.0
 	energy_feedback_color = Color.WHITE
@@ -1471,6 +1454,7 @@ func _reset_game() -> void:
 	array_mode_confirm_cooldown = 0.0
 	array_mode_confirm_mode = ""
 	array_mode_confirm_angle = 0.0
+	array_distance_guide_timer = 0.0
 
 
 func _update_player(delta: float, player_delta: float) -> void:
@@ -1496,128 +1480,253 @@ func _get_bullet_time_recovery_duration() -> float:
 	return BULLET_TIME_RECOVERY_DURATION
 
 
+func _get_bullet_time_recovery_progress(time_slow_timer: float) -> float:
+	if time_slow_timer <= BULLET_TIME_ENTRY_HOLD_DURATION:
+		return 0.0
+	var recovery_duration: float = maxf(_get_bullet_time_recovery_duration() - BULLET_TIME_ENTRY_HOLD_DURATION, 0.001)
+	return clampf((time_slow_timer - BULLET_TIME_ENTRY_HOLD_DURATION) / recovery_duration, 0.0, 1.0)
+
+
 func _get_bullet_time_ratio(time_slow_timer: float) -> float:
-	var recovery_duration: float = _get_bullet_time_recovery_duration()
-	var recovery_progress: float = clampf(time_slow_timer / recovery_duration, 0.0, 1.0)
+	var recovery_progress: float = _get_bullet_time_recovery_progress(time_slow_timer)
 	return lerpf(BULLET_TIME_START_MULTIPLIER, 1.0, recovery_progress)
 
 
 func _get_player_bullet_time_ratio(time_slow_timer: float) -> float:
-	var recovery_duration: float = _get_bullet_time_recovery_duration()
-	var recovery_progress: float = clampf(time_slow_timer / recovery_duration, 0.0, 1.0)
+	var recovery_progress: float = _get_bullet_time_recovery_progress(time_slow_timer)
 	return lerpf(PLAYER_BULLET_TIME_SPEED_MULTIPLIER, 1.0, recovery_progress)
 
 
-func _update_time_stop_visual(delta: float, is_flying_sword: bool) -> void:
-	var had_visual_presence: bool = _has_time_stop_visual_presence()
-	visual_time_stop_hold_timer = max(visual_time_stop_hold_timer - delta, 0.0)
-	visual_time_stop_entry_pulse_timer = max(visual_time_stop_entry_pulse_timer - delta, 0.0)
-	visual_time_stop_ink_break_timer = max(visual_time_stop_ink_break_timer - delta, 0.0)
-	var target_strength: float = 0.0
-	if is_flying_sword:
-		target_strength = _get_time_stop_gameplay_strength() * TIME_STOP_VISUAL_MAX_STRENGTH
-		visual_time_stop_hold_timer = TIME_STOP_VISUAL_RELEASE_HOLD
-		if not had_visual_presence:
-			visual_time_stop_entry_pulse_timer = TIME_STOP_VISUAL_ENTRY_PULSE_DURATION
-			visual_time_stop_ink_break_timer = 时停破墨持续时间
-	elif visual_time_stop_hold_timer > 0.0 and TIME_STOP_VISUAL_RELEASE_HOLD > 0.0:
-		var hold_ratio: float = clampf(visual_time_stop_hold_timer / TIME_STOP_VISUAL_RELEASE_HOLD, 0.0, 1.0)
-		target_strength = TIME_STOP_VISUAL_HOLD_FLOOR * hold_ratio
-	var smoothing_speed: float = TIME_STOP_VISUAL_ENTER_SPEED if target_strength > visual_time_stop_strength else TIME_STOP_VISUAL_EXIT_SPEED
-	visual_time_stop_strength = move_toward(visual_time_stop_strength, target_strength, delta * smoothing_speed)
-
-
-func _has_time_stop_visual_presence() -> bool:
-	return (
-		visual_time_stop_strength > 0.04
-		or visual_time_stop_hold_timer > 0.0
-		or visual_time_stop_entry_pulse_timer > 0.0
+func _trigger_time_rift_enter(direction: Vector2, anchor_world: Vector2) -> void:
+	if time_rift_fx == null:
+		return
+	var rift_direction: Vector2 = direction.normalized()
+	if rift_direction.is_zero_approx():
+		rift_direction = Vector2.RIGHT
+	time_rift_fx.enter_from_screen(
+		_to_screen(anchor_world),
+		rift_direction,
+		_to_screen(player["pos"])
 	)
 
 
-func _get_time_stop_gameplay_strength() -> float:
-	var bullet_time_ratio: float = _get_bullet_time_ratio(float(sword.get("time_slow_timer", 0.0)))
-	var max_slow_amount: float = maxf(1.0 - BULLET_TIME_START_MULTIPLIER, 0.001)
-	return clampf((1.0 - bullet_time_ratio) / max_slow_amount, 0.0, 1.0)
-
-
-func _get_time_stop_visual_strength() -> float:
-	return visual_time_stop_strength
-
-
-func _get_time_stop_entry_pulse_strength() -> float:
-	if TIME_STOP_VISUAL_ENTRY_PULSE_DURATION <= 0.0:
-		return 0.0
-	var pulse_ratio: float = clampf(visual_time_stop_entry_pulse_timer / TIME_STOP_VISUAL_ENTRY_PULSE_DURATION, 0.0, 1.0)
-	return pow(pulse_ratio, 1.6)
-
-
-func _get_time_stop_ink_break_strength() -> float:
-	if 时停破墨持续时间 <= 0.0:
-		return 0.0
-	var ratio: float = clampf(visual_time_stop_ink_break_timer / 时停破墨持续时间, 0.0, 1.0)
-	return sin(ratio * PI) * pow(ratio, 0.24)
-
-
-func _get_time_stop_ink_break_progress() -> float:
-	if 时停破墨持续时间 <= 0.0:
-		return 1.0
-	return 1.0 - clampf(visual_time_stop_ink_break_timer / 时停破墨持续时间, 0.0, 1.0)
-
-
-func _update_time_stop_ink_overlay() -> void:
-	if time_stop_ink_overlay == null or time_stop_ink_material == null:
+func _trace_time_rift_sword() -> void:
+	if time_rift_fx == null:
 		return
-	if not 时停全屏滤镜预览启用:
-		_hide_time_stop_ink_overlay()
+	if not time_rift_fx.has_method("trace_to_screen"):
 		return
-	var strength: float = _get_time_stop_visual_strength()
-	var entry_pulse: float = clampf(_get_time_stop_entry_pulse_strength() * 时停水墨进入脉冲倍率, 0.0, 1.0)
-	var visible_strength: float = maxf(strength, entry_pulse)
-	time_stop_ink_overlay.visible = visible_strength > 时停水墨显示阈值 and not is_start_menu_active
-	if not time_stop_ink_overlay.visible:
-		_hide_time_stop_ink_overlay()
+	if int(sword.get("state", SwordState.ORBITING)) == SwordState.ORBITING:
 		return
-	var shaped_strength: float = clampf(pow(strength, 时停水墨强度曲线) * 时停水墨强度倍率, 0.0, 1.0)
-	var focus_screen_pos: Vector2 = _get_time_stop_focus_screen_position()
-	var viewport_size: Vector2 = get_viewport_rect().size
-	var center_uv: Vector2 = Vector2(0.5, 0.5)
-	if viewport_size.x > 0.0 and viewport_size.y > 0.0:
-		center_uv = Vector2(
-			clampf(focus_screen_pos.x / viewport_size.x, 0.0, 1.0),
-			clampf(focus_screen_pos.y / viewport_size.y, 0.0, 1.0)
-		)
-	_apply_time_stop_ink_tuning_parameters()
-	time_stop_ink_material.set_shader_parameter("strength", shaped_strength)
-	time_stop_ink_material.set_shader_parameter("entry_pulse", entry_pulse)
-	time_stop_ink_material.set_shader_parameter("center_uv", center_uv)
+	time_rift_fx.trace_to_screen(_to_screen(_get_sword_visual_position()), _to_screen(player["pos"]))
 
 
-func _get_time_stop_focus_screen_position() -> Vector2:
+func _get_fan_time_stop_clone_source(side_sign: float) -> Dictionary:
+	if String(sword.get("combo_id", "")) != SwordResonanceController.COMBO_FAN_TIME_STOP:
+		return {}
+	var strength: float = _get_fan_time_stop_combo_strength()
+	if strength <= 0.01:
+		return {}
 	var sword_state: int = int(sword.get("state", SwordState.ORBITING))
-	if sword_state != SwordState.ORBITING:
-		var sword_pos: Vector2 = _get_sword_visual_position()
-		var player_pos: Vector2 = Vector2(player.get("pos", ARENA_SIZE * 0.5))
-		return _to_screen(player_pos.lerp(sword_pos, 0.48))
-	return _to_screen(Vector2(player.get("pos", ARENA_SIZE * 0.5)))
+	if sword_state == SwordState.ORBITING:
+		return {}
+	var sword_angle: float = _get_sword_visual_angle()
+	var forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	forward = forward.normalized()
+	var offset: Vector2 = _get_fan_time_stop_clone_offset(side_sign, strength, forward)
+	var visual_pos: Vector2 = _get_sword_visual_position() + offset
+	var clone_sword: Dictionary = sword.duplicate(true)
+	clone_sword["state"] = sword_state
+	clone_sword["pos"] = visual_pos
+	clone_sword["prev_pos"] = Vector2(sword.get("prev_pos", sword.get("pos", visual_pos))) + offset
+	clone_sword["target_pos"] = Vector2(sword.get("target_pos", visual_pos)) + offset
+	clone_sword["vel"] = Vector2(sword.get("vel", Vector2.ZERO))
+	clone_sword["angle"] = sword_angle
+	return {
+		"active": true,
+		"sword": clone_sword,
+		"visual_pos": visual_pos,
+		"visual_angle": sword_angle,
+		"player_mode": CombatMode.RANGED,
+		"trail_points": _get_fan_time_stop_clone_trail_points(offset),
+		"air_wakes": _get_fan_time_stop_clone_air_wakes(offset),
+	}
 
 
-func _get_time_stop_world_color(color: Color) -> Color:
-	var strength: float = _get_time_stop_visual_strength()
-	if strength <= 0.0:
-		return color
-	var shaped_strength: float = clampf(pow(strength, 0.72) * 1.06, 0.0, 1.0)
-	var luminance: float = color.r * 0.299 + color.g * 0.587 + color.b * 0.114
-	var frozen_color := Color(luminance, luminance, luminance, color.a)
-	frozen_color = frozen_color.darkened(0.08 * shaped_strength)
-	frozen_color = frozen_color.lerp(Color(0.8, 0.9, 1.0, color.a), 0.3 * shaped_strength)
-	return color.lerp(frozen_color, minf(shaped_strength * 1.04, 1.0))
+func _get_fan_time_stop_combo_strength() -> float:
+	var timer: float = maxf(float(sword.get("combo_timer", 0.0)), 0.0)
+	var duration: float = maxf(float(sword.get("combo_duration", timer)), 0.001)
+	if timer <= 0.0:
+		return 0.0
+	var elapsed: float = clampf(duration - timer, 0.0, duration)
+	var split_progress: float = clampf(elapsed / maxf(FAN_TIME_STOP_SPLIT_DURATION, 0.001), 0.0, 1.0)
+	var merge_progress: float = clampf(timer / maxf(FAN_TIME_STOP_MERGE_DURATION, 0.001), 0.0, 1.0)
+	return minf(
+		_get_fan_time_stop_transition_ease(split_progress),
+		_get_fan_time_stop_transition_ease(merge_progress)
+	)
 
 
-func _get_time_stop_world_wash_alpha() -> float:
-	var sustain_alpha: float = TIME_STOP_VISUAL_WASH_SUSTAIN_ALPHA * sqrt(_get_time_stop_visual_strength())
-	var pulse_alpha: float = TIME_STOP_VISUAL_WASH_PULSE_ALPHA * _get_time_stop_entry_pulse_strength()
-	return sustain_alpha + pulse_alpha
+func _get_fan_time_stop_transition_ease(progress: float) -> float:
+	var value: float = clampf(progress, 0.0, 1.0)
+	return value * value * (3.0 - 2.0 * value)
+
+
+func _get_fan_time_stop_clone_offset(side_sign: float, strength: float, forward: Vector2) -> Vector2:
+	var side: Vector2 = forward.orthogonal()
+	var side_distance: float = (FAN_TIME_STOP_CLONE_SIDE_OFFSET_BASE + FAN_TIME_STOP_CLONE_SIDE_OFFSET_SCALE) * strength
+	var forward_distance: float = FAN_TIME_STOP_CLONE_FORWARD_OFFSET * strength
+	return side * side_sign * side_distance - forward * (forward_distance * side_sign)
+
+
+func _trigger_fan_time_stop_clone_transition_effect(strength: float, particle_count: int, shake: float) -> void:
+	var sword_angle: float = _get_sword_visual_angle()
+	var forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	forward = forward.normalized()
+	var center: Vector2 = _get_sword_visual_position()
+	var effect_color: Color = _get_resonance_color(SwordArrayConfig.MODE_FAN)
+	_create_particles(center, effect_color, particle_count)
+	for side_sign in [-1.0, 1.0]:
+		var clone_pos: Vector2 = center + _get_fan_time_stop_clone_offset(side_sign, strength, forward)
+		_create_particles(clone_pos, effect_color, particle_count)
+	screen_shake = maxf(screen_shake, shake)
+
+
+func _get_fan_time_stop_clone_trail_points(offset: Vector2) -> Array:
+	var clone_trail_points: Array = []
+	for point_variant in sword_trail_points:
+		if not (point_variant is Dictionary):
+			continue
+		var trail_point: Dictionary = point_variant.duplicate(true)
+		trail_point["pos"] = Vector2(trail_point.get("pos", Vector2.ZERO)) + offset
+		clone_trail_points.append(trail_point)
+	return clone_trail_points
+
+
+func _get_fan_time_stop_clone_air_wakes(offset: Vector2) -> Array:
+	var clone_air_wakes: Array = []
+	for wake_variant in sword_air_wakes:
+		if not (wake_variant is Dictionary):
+			continue
+		var wake: Dictionary = wake_variant.duplicate(true)
+		wake["pos"] = Vector2(wake.get("pos", Vector2.ZERO)) + offset
+		clone_air_wakes.append(wake)
+	return clone_air_wakes
+
+
+func _get_fan_time_stop_clone_attack_key(side_sign: float) -> String:
+	return "left" if side_sign < 0.0 else "right"
+
+
+func _get_fan_time_stop_clone_attack_instance_ids() -> Dictionary:
+	var stored_ids: Variant = sword.get("fan_time_stop_clone_attack_instance_ids", {})
+	if stored_ids is Dictionary:
+		return stored_ids
+	return {}
+
+
+func _clear_fan_time_stop_clone_attack_instances() -> void:
+	var clone_attack_instance_ids: Dictionary = _get_fan_time_stop_clone_attack_instance_ids()
+	for attack_instance_id_variant in clone_attack_instance_ids.values():
+		_clear_attack_instance(str(attack_instance_id_variant))
+	sword["fan_time_stop_clone_attack_instance_ids"] = {}
+	sword["fan_time_stop_clone_attack_profile_id"] = ""
+
+
+func _ensure_fan_time_stop_clone_attack_instance(side_sign: float, profile_id: String) -> String:
+	if String(sword.get("combo_id", "")) != SwordResonanceController.COMBO_FAN_TIME_STOP:
+		return ""
+	if profile_id == "":
+		return ""
+	var clone_attack_instance_ids: Dictionary = _get_fan_time_stop_clone_attack_instance_ids()
+	var clone_key: String = _get_fan_time_stop_clone_attack_key(side_sign)
+	var attack_instance_id: String = str(clone_attack_instance_ids.get(clone_key, ""))
+	var attack_instances: Dictionary = combat_runtime.get("attack_instances", {})
+	if attack_instance_id == "" or not attack_instances.has(attack_instance_id):
+		var attack_instance: Dictionary = _build_attack_instance(profile_id, "player", "fan_time_stop_clone_%s" % clone_key)
+		attack_instance_id = str(attack_instance.get("id", ""))
+		clone_attack_instance_ids[clone_key] = attack_instance_id
+	else:
+		var attack_instance: Dictionary = attack_instances[attack_instance_id]
+		attack_instance["profile_id"] = profile_id
+		attack_instances[attack_instance_id] = attack_instance
+		combat_runtime["attack_instances"] = attack_instances
+	sword["fan_time_stop_clone_attack_instance_ids"] = clone_attack_instance_ids
+	sword["fan_time_stop_clone_attack_profile_id"] = profile_id
+	return attack_instance_id
+
+
+func _trigger_time_rift_recover() -> void:
+	if time_rift_fx == null:
+		return
+	time_rift_fx.begin_recover(_to_screen(player["pos"]))
+
+
+func _reset_time_rift_fx() -> void:
+	if time_rift_fx == null:
+		return
+	time_rift_fx.cancel_immediate()
+
+
+func _update_time_rift_freeze_markers() -> void:
+	if time_rift_fx == null:
+		return
+	if not time_rift_fx.has_method("set_freeze_markers"):
+		return
+	if time_rift_fx.has_method("is_active") and not time_rift_fx.is_active():
+		time_rift_fx.set_freeze_markers([])
+		return
+	time_rift_fx.set_freeze_markers(_build_time_rift_freeze_markers())
+
+
+func _build_time_rift_freeze_markers() -> Array:
+	var markers: Array = []
+	if _has_boss():
+		markers.append({
+			"position": _to_screen(Vector2(boss.get("pos", Vector2.ZERO)) + Vector2(boss.get("hit_reaction_offset", Vector2.ZERO))),
+			"radius": BOSS_RADIUS,
+			"color": COLORS["boss_body"],
+			"threat": 1.35,
+			"kind": "boss",
+		})
+	for enemy in enemies:
+		if markers.size() >= TIME_RIFT_FREEZE_MARKER_LIMIT:
+			break
+		if float(enemy.get("health", 0.0)) <= 0.0:
+			continue
+		var enemy_type := str(enemy.get("type", SHOOTER))
+		var enemy_color: Color = COLORS[enemy_type] if COLORS.has(enemy_type) else COLORS["health"]
+		markers.append({
+			"position": _to_screen(Vector2(enemy.get("pos", Vector2.ZERO)) + Vector2(enemy.get("hit_reaction_offset", Vector2.ZERO))),
+			"radius": float(enemy.get("radius", SHOOTER_RADIUS)),
+			"color": enemy_color,
+			"threat": 1.05,
+			"kind": "enemy",
+		})
+	for bullet in bullets:
+		if markers.size() >= TIME_RIFT_FREEZE_MARKER_LIMIT:
+			break
+		if str(bullet.get("state", "normal")) != "normal":
+			continue
+		var bullet_color: Color = COLORS["bullet"]
+		var raw_color = bullet.get("color", bullet_color)
+		if raw_color is Color:
+			bullet_color = raw_color
+		if bool(bullet.get("reflectable", false)):
+			bullet_color = bullet_color.lerp(COLORS["array_sword"], 0.42)
+		else:
+			bullet_color = bullet_color.lerp(COLORS["health"], 0.34)
+		markers.append({
+			"position": _to_screen(Vector2(bullet.get("pos", Vector2.ZERO))),
+			"radius": maxf(float(bullet.get("radius", BULLET_RADIUS)) * 1.55, 10.0),
+			"color": bullet_color,
+			"threat": 0.72,
+			"kind": "bullet",
+		})
+	return markers
 
 
 func _get_unsheath_flash_progress() -> float:
@@ -1630,6 +1739,375 @@ func _get_unsheath_press_flash_progress() -> float:
 	if UNSHEATH_PRESS_FLASH_DURATION <= 0.0:
 		return 0.0
 	return clampf(unsheath_press_flash_timer / UNSHEATH_PRESS_FLASH_DURATION, 0.0, 1.0)
+
+
+func _get_resonance_mode() -> String:
+	return SwordResonanceController.get_mode(player)
+
+
+func _get_resonance_color(mode := "") -> Color:
+	var resolved_mode: String = mode if mode != "" else _get_resonance_mode()
+	return SwordResonanceController.get_color(resolved_mode)
+
+
+func _get_resonance_display_name(mode := "") -> String:
+	var resolved_mode: String = mode if mode != "" else _get_resonance_mode()
+	return SwordResonanceController.get_display_name(resolved_mode)
+
+
+func _get_resonance_strength() -> float:
+	return SwordResonanceController.get_strength(player)
+
+
+func _get_resonance_flash_strength() -> float:
+	return SwordResonanceController.get_flash_strength(player)
+
+
+func _get_resonance_progress() -> float:
+	var mode: String = _get_resonance_mode()
+	if mode == SwordResonanceController.MODE_NONE:
+		return 0.0
+	return clampf(
+		float(player.get("resonance_timer", 0.0)) / maxf(float(player.get("resonance_duration", SwordResonanceController.RESONANCE_DURATION)), 0.001),
+		0.0,
+		1.0
+	)
+
+
+func _get_resonance_preview_strength() -> float:
+	var mode: String = _get_resonance_mode()
+	var base_strength: float = _get_resonance_strength()
+	if mode == SwordResonanceController.MODE_NONE or base_strength <= 0.0:
+		return 0.0
+	var is_previewing: bool = false
+	if mode == SwordArrayConfig.MODE_RING:
+		is_previewing = (
+			(left_mouse_held or bool(player.get("array_is_firing", false)) or float(player.get("array_hold_ratio", 0.0)) > 0.02)
+			and _get_array_batch_mode() == SwordArrayConfig.MODE_PIERCE
+		)
+	elif mode == SwordArrayConfig.MODE_FAN or mode == SwordArrayConfig.MODE_PIERCE:
+		is_previewing = right_mouse_held or int(sword.get("state", SwordState.ORBITING)) != SwordState.ORBITING
+	if not is_previewing:
+		return 0.0
+	return base_strength * (0.74 + 0.26 * sin(elapsed_time * 12.0) * 0.5 + 0.13)
+
+
+func _is_resonance_expiring() -> bool:
+	return SwordResonanceController.is_expiring(player)
+
+
+func _build_resonance_array_combo_state(combo_id: String, target_mode: String) -> Dictionary:
+	if combo_id != SwordResonanceController.COMBO_RING_TO_PIERCE:
+		return _get_sword_array_fire_state()
+	var target_state: Dictionary = _build_locked_array_state(
+		target_mode,
+		float(player.get("array_control_distance", player["pos"].distance_to(mouse_world)))
+	)
+	target_state["dominant_mode"] = target_mode
+	target_state["visual_from_mode"] = SwordArrayConfig.MODE_RING
+	target_state["visual_to_mode"] = target_mode
+	target_state["visual_blend"] = 0.86
+	target_state["preset_from"] = SwordArrayConfig.get_default_preset_for_mode(SwordArrayConfig.MODE_RING)
+	target_state["preset_to"] = SwordArrayConfig.get_default_preset_for_mode(target_mode)
+	target_state["preset_blend"] = 0.86
+	return SwordArrayConfig.complete_morph_state(target_state)
+
+
+func _get_array_combo_fire_count(combo_id: String, mode: String, ready_count: int) -> int:
+	if combo_id == SwordResonanceController.COMBO_RING_TO_PIERCE and mode == SwordArrayConfig.MODE_PIERCE:
+		return ready_count
+	return mini(_get_array_mode_batch_target(mode), ready_count)
+
+
+func _start_sword_combo(combo_id: String, release_anchor: Vector2, target_pos: Vector2) -> void:
+	_clear_sword_combo()
+	if combo_id == SwordResonanceController.COMBO_NONE:
+		return
+	sword["combo_id"] = combo_id
+	var duration: float = 1.05
+	if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP:
+		duration = FAN_TIME_STOP_COMBO_DURATION
+	elif combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		duration = PIERCE_TIME_STOP_DRAW_DURATION
+		sword["combo_phase"] = "drawing"
+		sword["combo_release_anchor"] = release_anchor
+		sword["combo_route_index"] = 1
+		sword["combo_draw_distance"] = 0.0
+	else:
+		sword["combo_phase"] = "active"
+	sword["combo_timer"] = duration
+	sword["combo_duration"] = duration
+	sword["combo_points"] = [release_anchor, target_pos]
+	sword["combo_last_hit_pos"] = release_anchor
+	var combo_color: Color = _get_resonance_color(SwordArrayConfig.MODE_FAN if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP else SwordArrayConfig.MODE_PIERCE)
+	_create_particles(release_anchor, combo_color, 16)
+	screen_shake = maxf(screen_shake, 3.0)
+	if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP:
+		_trigger_fan_time_stop_clone_transition_effect(0.0, FAN_TIME_STOP_TRANSITION_PARTICLE_COUNT, FAN_TIME_STOP_SPLIT_SHAKE)
+
+
+func _clear_sword_combo() -> void:
+	var combo_attack_instance_id: String = str(sword.get("combo_attack_instance_id", ""))
+	if combo_attack_instance_id != "":
+		_clear_attack_instance(combo_attack_instance_id)
+	_clear_fan_time_stop_clone_attack_instances()
+	sword["combo_id"] = SwordResonanceController.COMBO_NONE
+	sword["combo_phase"] = ""
+	sword["combo_timer"] = 0.0
+	sword["combo_duration"] = 0.0
+	sword["combo_points"] = []
+	sword["combo_locked_points"] = []
+	sword["combo_release_anchor"] = Vector2(sword.get("pos", player.get("pos", Vector2.ZERO)))
+	sword["combo_route_index"] = 0
+	sword["combo_draw_distance"] = 0.0
+	sword["combo_last_hit_pos"] = Vector2(sword.get("pos", player.get("pos", Vector2.ZERO)))
+	sword["combo_finish_profile_pending"] = false
+	sword["combo_attack_instance_id"] = ""
+	sword["combo_attack_profile_id"] = ""
+	sword["fan_time_stop_clone_attack_instance_ids"] = {}
+	sword["fan_time_stop_clone_attack_profile_id"] = ""
+
+
+func _update_sword_combo_state(delta: float) -> void:
+	var combo_id: String = String(sword.get("combo_id", SwordResonanceController.COMBO_NONE))
+	if combo_id == SwordResonanceController.COMBO_NONE:
+		return
+	var previous_combo_timer: float = float(sword.get("combo_timer", 0.0))
+	var combo_timer: float = maxf(previous_combo_timer - delta, 0.0)
+	sword["combo_timer"] = combo_timer
+	if (
+		combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP
+		and previous_combo_timer > FAN_TIME_STOP_MERGE_DURATION
+		and combo_timer <= FAN_TIME_STOP_MERGE_DURATION
+	):
+		_trigger_fan_time_stop_clone_transition_effect(1.0, FAN_TIME_STOP_TRANSITION_PARTICLE_COUNT, FAN_TIME_STOP_MERGE_SHAKE)
+	if combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		var combo_phase: String = str(sword.get("combo_phase", ""))
+		if combo_phase == "released" and bool(sword.get("combo_finish_profile_pending", false)) and int(sword.get("state", SwordState.ORBITING)) == SwordState.RECALLING:
+			_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
+			sword["combo_finish_profile_pending"] = false
+		if combo_phase == "drawing":
+			_update_pierce_time_stop_combo_drawing()
+			if combo_timer <= 0.0:
+				_release_pierce_time_stop_combo_sword(true)
+			return
+		if combo_phase == "followthrough" and int(sword.get("state", SwordState.ORBITING)) == SwordState.POINT_STRIKE:
+			return
+		if combo_phase == "released" and combo_timer <= 0.0 and int(sword.get("state", SwordState.ORBITING)) != SwordState.ORBITING:
+			return
+	if combo_timer <= 0.0:
+		_clear_sword_combo()
+
+
+func _is_pierce_time_stop_drawing_active() -> bool:
+	return (
+		String(sword.get("combo_id", "")) == SwordResonanceController.COMBO_PIERCE_TIME_STOP
+		and String(sword.get("combo_phase", "")) == "drawing"
+		and int(sword.get("state", SwordState.ORBITING)) == SwordState.PIERCE_DRAWING
+	)
+
+
+func _is_right_mouse_intent_active() -> bool:
+	return right_mouse_held or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+
+
+func _update_pierce_time_stop_combo_drawing() -> void:
+	if not _is_pierce_time_stop_drawing_active():
+		return
+	var anchor: Vector2 = Vector2(sword.get("combo_release_anchor", sword.get("pos", player.get("pos", Vector2.ZERO))))
+	sword["pos"] = anchor
+	sword["vel"] = Vector2.ZERO
+	var draw_direction: Vector2 = mouse_world - anchor
+	if draw_direction.is_zero_approx():
+		draw_direction = mouse_world - player["pos"]
+	if draw_direction.is_zero_approx():
+		draw_direction = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+	if draw_direction.is_zero_approx():
+		draw_direction = Vector2.RIGHT
+	sword["angle"] = draw_direction.angle()
+	sword["target_pos"] = mouse_world
+	_append_pierce_time_stop_combo_point(mouse_world)
+	var auto_release_draw_distance: float = PIERCE_TIME_STOP_COMBO_AUTO_RELEASE_DRAW_DISTANCE
+	if auto_release_draw_distance > 0.0 and float(sword.get("combo_draw_distance", 0.0)) >= auto_release_draw_distance:
+		_release_pierce_time_stop_combo_sword(true)
+
+
+func _release_pierce_time_stop_combo_sword(auto_release := false) -> void:
+	if String(sword.get("combo_id", "")) != SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		return
+	if String(sword.get("combo_phase", "")) != "drawing":
+		return
+	if auto_release:
+		right_mouse_held = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	_append_pierce_time_stop_combo_point(mouse_world, true)
+	var route_points: Array = _get_pierce_time_stop_combo_route_points()
+	if route_points.size() < 2:
+		var fallback_direction: Vector2 = mouse_world - player["pos"]
+		if fallback_direction.is_zero_approx():
+			fallback_direction = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+		if fallback_direction.is_zero_approx():
+			fallback_direction = Vector2.RIGHT
+		var fallback_anchor: Vector2 = Vector2(sword.get("combo_release_anchor", sword.get("pos", player["pos"])))
+		route_points = [fallback_anchor, fallback_anchor + fallback_direction.normalized() * 160.0]
+	sword["combo_phase"] = "released"
+	sword["combo_points"] = route_points.duplicate()
+	sword["combo_locked_points"] = route_points.duplicate()
+	sword["combo_route_index"] = 1
+	sword["combo_timer"] = PIERCE_TIME_STOP_RELEASE_COMBO_DURATION
+	sword["combo_duration"] = PIERCE_TIME_STOP_RELEASE_COMBO_DURATION
+	sword["pos"] = Vector2(route_points[0])
+	sword["prev_pos"] = Vector2(route_points[0])
+	sword["target_pos"] = Vector2(route_points[1])
+	var launch_direction: Vector2 = Vector2(route_points[1]) - Vector2(route_points[0])
+	if launch_direction.is_zero_approx():
+		launch_direction = mouse_world - player["pos"]
+	if launch_direction.is_zero_approx():
+		launch_direction = Vector2.RIGHT
+	sword["angle"] = launch_direction.angle()
+	sword["vel"] = launch_direction.normalized() * SWORD_POINT_STRIKE_SPEED
+	sword["state"] = SwordState.POINT_STRIKE
+	sword["time_slow_timer"] = _get_bullet_time_recovery_duration()
+	player["mode"] = CombatMode.RANGED
+	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_PIERCE_COMBO)
+	var combo_color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE)
+	_create_particles(Vector2(route_points[0]), combo_color, PIERCE_TIME_STOP_RELEASE_PARTICLE_COUNT)
+	screen_shake = maxf(screen_shake, PIERCE_TIME_STOP_RELEASE_SHAKE)
+	_trigger_time_rift_recover()
+
+
+func _advance_pierce_time_stop_combo_route() -> bool:
+	if String(sword.get("combo_id", "")) != SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		return false
+	if String(sword.get("combo_phase", "")) != "released":
+		return false
+	var route_points: Array = sword.get("combo_points", [])
+	var route_index: int = int(sword.get("combo_route_index", 1)) + 1
+	while route_index < route_points.size() and Vector2(route_points[route_index]).distance_to(sword["pos"]) <= PIERCE_TIME_STOP_ROUTE_REACHED_DISTANCE:
+		route_index += 1
+	if route_index >= route_points.size():
+		return false
+	sword["combo_route_index"] = route_index
+	sword["target_pos"] = Vector2(route_points[route_index])
+	return true
+
+
+func _update_pierce_time_stop_combo_flight(delta: float) -> bool:
+	if String(sword.get("combo_id", "")) != SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		return false
+	if String(sword.get("combo_phase", "")) != "released":
+		return false
+	var route_points: Array = sword.get("combo_points", [])
+	if route_points.size() < 2:
+		return false
+	var route_index: int = clampi(int(sword.get("combo_route_index", 1)), 1, route_points.size() - 1)
+	var current_pos: Vector2 = Vector2(sword["pos"])
+	var previous_pos: Vector2 = current_pos
+	var remaining_distance: float = SWORD_POINT_STRIKE_SPEED * PIERCE_TIME_STOP_COMBO_FLIGHT_SPEED_MULTIPLIER * delta
+	while remaining_distance > 0.0 and route_index < route_points.size():
+		var target_pos: Vector2 = Vector2(route_points[route_index])
+		var to_target: Vector2 = target_pos - current_pos
+		var target_distance: float = to_target.length()
+		if target_distance <= PIERCE_TIME_STOP_ROUTE_REACHED_DISTANCE:
+			current_pos = target_pos
+			route_index += 1
+			continue
+		var travel_distance: float = minf(remaining_distance, target_distance)
+		var travel_direction: Vector2 = to_target / target_distance
+		current_pos += travel_direction * travel_distance
+		remaining_distance -= travel_distance
+		if target_distance - travel_distance <= PIERCE_TIME_STOP_ROUTE_REACHED_DISTANCE:
+			current_pos = target_pos
+			route_index += 1
+			continue
+		break
+	sword["pos"] = current_pos
+	var frame_velocity: Vector2 = (current_pos - previous_pos) / maxf(delta, 0.001)
+	sword["vel"] = frame_velocity
+	if frame_velocity.length_squared() > 1.0:
+		sword["angle"] = frame_velocity.angle()
+	if route_index >= route_points.size():
+		_finish_pierce_time_stop_combo_flight()
+	else:
+		sword["combo_route_index"] = route_index
+		sword["target_pos"] = Vector2(route_points[route_index])
+	return true
+
+
+func _finish_pierce_time_stop_combo_flight() -> void:
+	var combo_color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE)
+	if _is_right_mouse_intent_active():
+		if sword["pos"].distance_to(mouse_world) <= 18.0:
+			_hold_pierce_combo_sword_at_mouse(combo_color)
+			return
+		var follow_direction: Vector2 = mouse_world - sword["pos"]
+		if follow_direction.is_zero_approx():
+			follow_direction = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+		if follow_direction.is_zero_approx():
+			follow_direction = Vector2.RIGHT
+		sword["state"] = SwordState.POINT_STRIKE
+		sword["target_pos"] = mouse_world
+		sword["vel"] = follow_direction.normalized() * SWORD_POINT_STRIKE_SPEED
+		sword["angle"] = follow_direction.angle()
+		sword["combo_phase"] = "followthrough"
+		sword["combo_timer"] = 0.18
+		sword["combo_duration"] = 0.18
+		sword["combo_finish_profile_pending"] = false
+		player["mode"] = CombatMode.RANGED
+		_create_particles(sword["pos"], combo_color, 10)
+		screen_shake = max(screen_shake, 3.5)
+		return
+	sword["state"] = SwordState.RECALLING
+	sword["combo_finish_profile_pending"] = true
+	_trigger_time_rift_recover()
+	_create_particles(sword["pos"], combo_color, 18)
+	screen_shake = max(screen_shake, 6.0)
+
+
+func _hold_pierce_combo_sword_at_mouse(combo_color: Color) -> void:
+	var hold_direction: Vector2 = mouse_world - sword["pos"]
+	if hold_direction.is_zero_approx():
+		hold_direction = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+	if hold_direction.is_zero_approx():
+		hold_direction = Vector2.RIGHT
+	sword["pos"] = mouse_world
+	sword["prev_pos"] = mouse_world
+	sword["target_pos"] = mouse_world
+	sword["vel"] = Vector2.ZERO
+	sword["angle"] = hold_direction.angle()
+	sword["state"] = SwordState.SLICING
+	sword["combo_phase"] = "held"
+	sword["combo_timer"] = 0.16
+	sword["combo_duration"] = 0.16
+	sword["combo_finish_profile_pending"] = false
+	player["mode"] = CombatMode.RANGED
+	_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
+	_create_particles(sword["pos"], combo_color, 8)
+	screen_shake = max(screen_shake, 3.0)
+
+
+func _get_pierce_time_stop_combo_route_points() -> Array:
+	var raw_points: Array = sword.get("combo_points", [])
+	var route_points: Array = []
+	for point_variant in raw_points:
+		var point: Vector2 = Vector2(point_variant)
+		if route_points.is_empty() or Vector2(route_points[route_points.size() - 1]).distance_to(point) > PIERCE_TIME_STOP_COMBO_MIN_SWEEP_DISTANCE:
+			route_points.append(point)
+	return route_points
+
+
+func _append_pierce_time_stop_combo_point(sample_pos: Vector2, force := false) -> void:
+	var combo_points: Array = sword.get("combo_points", [])
+	var spacing: float = PIERCE_TIME_STOP_COMBO_MIN_SWEEP_DISTANCE if force else PIERCE_TIME_STOP_COMBO_POINT_SPACING
+	if combo_points.is_empty() or Vector2(combo_points[combo_points.size() - 1]).distance_to(sample_pos) > spacing:
+		if String(sword.get("combo_phase", "")) == "drawing" and not combo_points.is_empty():
+			sword["combo_draw_distance"] = float(sword.get("combo_draw_distance", 0.0)) + Vector2(combo_points[combo_points.size() - 1]).distance_to(sample_pos)
+		combo_points.append(sample_pos)
+	while combo_points.size() > PIERCE_TIME_STOP_COMBO_MAX_POINTS:
+		if String(sword.get("combo_phase", "")) == "drawing" and combo_points.size() > 1:
+			combo_points.remove_at(1)
+		else:
+			combo_points.remove_at(0)
+	sword["combo_points"] = combo_points
 
 
 func _can_use_array_attack() -> bool:
@@ -1755,6 +2233,9 @@ func _build_array_sword(slot_index: int) -> Dictionary:
 		"state": "ready",
 		"attack_instance_id": "",
 		"attack_profile_id": "",
+		"combo_id": "",
+		"combo_timer": 0.0,
+		"combo_duration": 0.0,
 		"travel_mode": SwordArrayConfig.MODE_RING,
 		"trail_timer": 0.0,
 		"guidance_active": false,
@@ -1789,6 +2270,9 @@ func _reset_array_sword_sortie_state(array_sword: Dictionary) -> void:
 	array_sword["has_hit_target"] = false
 	array_sword["remaining_penetration"] = _get_array_sword_penetration_targets(travel_mode)
 	array_sword["hit_target_cooldowns"] = {}
+	array_sword["combo_id"] = ""
+	array_sword["combo_timer"] = 0.0
+	array_sword["combo_duration"] = 0.0
 	array_sword["batch_id"] = ""
 	array_sword["batch_return_ready"] = false
 	array_sword["return_unlock_distance"] = _get_array_sword_min_sortie_distance(travel_mode)
@@ -2060,13 +2544,34 @@ func _get_array_energy_break_strength() -> float:
 	return clampf(array_energy_break_timer / ARRAY_ENERGY_BREAK_DURATION, 0.0, 1.0)
 
 
+func _wake_array_distance_guide() -> void:
+	if _get_array_control_scheme() != ARRAY_CONTROL_SCHEME_DISTANCE:
+		return
+	array_distance_guide_timer = maxf(array_distance_guide_timer, ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION)
+
+
+func _get_array_distance_guide_strength() -> float:
+	if lookdev_mode or debug_calibration_mode or is_start_menu_active:
+		return 0.0
+	if _get_array_control_scheme() != ARRAY_CONTROL_SCHEME_DISTANCE:
+		return 0.0
+	var intro_strength: float = 0.0
+	if ARRAY_DISTANCE_GUIDE_INTRO_DURATION > 0.0:
+		intro_strength = clampf(1.0 - elapsed_time / ARRAY_DISTANCE_GUIDE_INTRO_DURATION, 0.0, 1.0)
+	var mouse_strength: float = 0.0
+	if ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION > 0.0:
+		mouse_strength = clampf(array_distance_guide_timer / ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION, 0.0, 1.0)
+	var hold_strength: float = ARRAY_DISTANCE_GUIDE_HOLD_STRENGTH if left_mouse_held else 0.0
+	return clampf(maxf(intro_strength * 0.72, maxf(mouse_strength * 0.62, hold_strength)), 0.0, 1.0)
+
+
 func _get_array_stable_mode_from_state(state: Dictionary) -> String:
 	var completed_state: Dictionary = SwordArrayConfig.complete_morph_state(state)
 	var visual_from_mode: String = str(completed_state.get("visual_from_mode", ""))
 	var visual_to_mode: String = str(completed_state.get("visual_to_mode", visual_from_mode))
 	if visual_from_mode != "" and visual_from_mode == visual_to_mode:
 		return str(completed_state.get("dominant_mode", visual_from_mode))
-	return ""
+	return str(completed_state.get("dominant_mode", ""))
 
 
 func _get_array_mode_confirm_strength() -> float:
@@ -2125,6 +2630,10 @@ func _set_array_control_scheme(scheme: String) -> void:
 			player["array_selected_mode"] = current_mode
 		else:
 			player["array_selected_mode"] = _normalize_array_selected_mode(str(player.get("array_selected_mode", SwordArrayConfig.MODE_RING)))
+		player["array_sticky_mode"] = _get_selected_array_mode()
+	else:
+		player["array_sticky_mode"] = str(player.get("array_mode", SwordArrayConfig.MODE_RING))
+		_wake_array_distance_guide()
 	_refresh_sword_array_live_state()
 	_update_array_control_scheme_ui()
 	_update_ui()
@@ -2193,6 +2702,7 @@ func _toggle_selected_array_mode() -> void:
 	if current_mode == SwordArrayConfig.MODE_PIERCE and next_mode == SwordArrayConfig.MODE_RING:
 		ready_source_snapshot = _build_array_sword_source_snapshot()
 	player["array_selected_mode"] = next_mode
+	player["array_sticky_mode"] = next_mode
 	player["array_confirm_observed_stable_mode"] = next_mode
 	_refresh_sword_array_live_state()
 	if current_mode == SwordArrayConfig.MODE_PIERCE and next_mode == SwordArrayConfig.MODE_RING:
@@ -2281,14 +2791,19 @@ func _refresh_sword_array_live_state() -> void:
 	var control_distance: float = float(player.get("array_control_distance", raw_distance))
 	var visual_state: Dictionary = {}
 	var fire_state: Dictionary = {}
+	var previous_mode: String = str(player.get("array_sticky_mode", player.get("array_mode", SwordArrayConfig.MODE_RING)))
 	if _uses_manual_array_mode_toggle():
 		var selected_mode: String = _get_selected_array_mode()
 		player["array_selected_mode"] = selected_mode
 		visual_state = _build_locked_array_state(selected_mode, raw_distance)
 		fire_state = _build_locked_array_state(selected_mode, control_distance)
+		player["array_sticky_mode"] = selected_mode
 	else:
 		visual_state = SwordArrayConfig.get_morph_state_for_distance(raw_distance)
 		fire_state = SwordArrayConfig.get_control_morph_state_for_distance(control_distance)
+		visual_state = SwordArrayConfig.apply_dominant_mode_hysteresis(visual_state, previous_mode)
+		fire_state = SwordArrayConfig.apply_dominant_mode_hysteresis(fire_state, previous_mode)
+		player["array_sticky_mode"] = str(fire_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
 	player["array_morph_state"] = visual_state
 	player["array_fire_morph_state"] = fire_state
 	player["array_mode"] = fire_state["dominant_mode"]
@@ -2576,6 +3091,7 @@ func _reset_sword_array_hold_state() -> void:
 
 func _update_sword(delta: float) -> void:
 	sword["prev_pos"] = sword["pos"]
+	_update_sword_combo_state(delta)
 	sword["impact_feedback_timer"] = maxf(float(sword.get("impact_feedback_timer", 0.0)) - delta, 0.0)
 	sword["impact_feedback_offset"] = Vector2(sword.get("impact_feedback_offset", Vector2.ZERO)).move_toward(
 		Vector2.ZERO,
@@ -2607,22 +3123,33 @@ func _update_sword(delta: float) -> void:
 		_update_sword_afterimages(delta, Vector2.ZERO)
 		return
 
-	if sword["state"] == SwordState.SLICING:
+	if sword["state"] == SwordState.PIERCE_DRAWING:
+		sword["vel"] = Vector2.ZERO
+	elif sword["state"] == SwordState.SLICING:
 		sword["pos"] = sword["pos"].lerp(mouse_world, min(delta * 18.0, 1.0))
 		sword["vel"] = mouse_world - sword["pos"]
 	elif sword["state"] == SwordState.POINT_STRIKE:
-		var to_target: Vector2 = sword["target_pos"] - sword["pos"]
-		var move_distance: float = SWORD_POINT_STRIKE_SPEED * delta
-		if to_target.length() > move_distance and to_target.length() > 10.0:
-			sword["vel"] = to_target.normalized() * SWORD_POINT_STRIKE_SPEED
-			sword["pos"] += sword["vel"] * delta
-		else:
-			sword["pos"] = sword["target_pos"]
-			sword["vel"] = Vector2.ZERO
-			sword["state"] = SwordState.RECALLING
-			_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
-			screen_shake = max(screen_shake, 6.0)
-			_create_particles(sword["pos"], COLORS["ranged_sword"], 12)
+		if not _update_pierce_time_stop_combo_flight(delta):
+			var to_target: Vector2 = sword["target_pos"] - sword["pos"]
+			var move_distance: float = SWORD_POINT_STRIKE_SPEED * delta
+			if to_target.length() > move_distance and to_target.length() > 10.0:
+				sword["vel"] = to_target.normalized() * SWORD_POINT_STRIKE_SPEED
+				sword["pos"] += sword["vel"] * delta
+			else:
+				sword["pos"] = sword["target_pos"]
+				sword["vel"] = Vector2.ZERO
+				if (
+					String(sword.get("combo_id", "")) == SwordResonanceController.COMBO_PIERCE_TIME_STOP
+					and String(sword.get("combo_phase", "")) == "followthrough"
+					and _is_right_mouse_intent_active()
+				):
+					_hold_pierce_combo_sword_at_mouse(SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE))
+					return
+				sword["state"] = SwordState.RECALLING
+				_trigger_time_rift_recover()
+				_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
+				screen_shake = max(screen_shake, 6.0)
+				_create_particles(sword["pos"], COLORS["ranged_sword"], 12)
 	elif sword["state"] == SwordState.RECALLING:
 		var to_player: Vector2 = player["pos"] - sword["pos"]
 		var recall_distance: float = SWORD_RECALL_SPEED * delta
@@ -2637,12 +3164,22 @@ func _update_sword(delta: float) -> void:
 				recall_direction = Vector2.RIGHT
 			_emit_sword_return_catch(player["pos"], recall_direction)
 			_create_particles(player["pos"], COLORS["array_sword_return"], 5)
+			_trigger_time_rift_recover()
 			sword["pos"] = player["pos"]
 			sword["vel"] = Vector2.ZERO
 			sword["state"] = SwordState.ORBITING
 			player["mode"] = CombatMode.MELEE
-			sword["press_timer"] = 0.0
+			var buffered_press_timer: float = float(sword.get("press_timer", 0.0))
+			if not _is_right_mouse_intent_active():
+				sword["press_timer"] = 0.0
 			_end_sword_attack_instance()
+			_clear_sword_combo()
+			if _is_right_mouse_intent_active():
+				sword["press_timer"] = buffered_press_timer
+				sword["target_pos"] = mouse_world
+				_start_slicing()
+				sword["prev_pos"] = sword["pos"]
+				return
 
 	if sword["vel"].length_squared() > 1.0:
 		sword["angle"] = sword["vel"].angle()
@@ -2728,6 +3265,8 @@ func _update_sword_hover(delta: float, frame_velocity: Vector2) -> void:
 
 
 func _damage_enemies_with_sword(delta: float) -> void:
+	if sword["state"] == SwordState.PIERCE_DRAWING:
+		return
 	var swing_direction: Vector2 = sword["pos"] - sword["prev_pos"]
 	var detection_result := {
 		"contacts": [],
@@ -2774,6 +3313,7 @@ func _damage_enemies_with_sword(delta: float) -> void:
 		var effect_color: Color = COLORS["ranged_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24)
 		_emit_sword_hit_effect(contact_point, swing_direction, effect_color)
 
+	_damage_fan_time_stop_clone_swords(delta)
 	_update_drape_priest_threads(delta)
 
 	if _has_boss():
@@ -2791,6 +3331,98 @@ func _damage_enemies_with_sword(delta: float) -> void:
 			if bool(boss_hit_result.get("allowed", false)):
 				var boss_contact_point: Vector2 = boss_contact.get("contact_point", sword["pos"])
 				_emit_sword_hit_effect(boss_contact_point, swing_direction, COLORS["ranged_sword"].lerp(COLORS["boss_body"], 0.28), 1.12)
+
+
+func _damage_fan_time_stop_clone_swords(delta: float) -> void:
+	if String(sword.get("combo_id", "")) != SwordResonanceController.COMBO_FAN_TIME_STOP:
+		return
+	var attack_profile_id: String = str(sword.get("attack_profile_id", ""))
+	if attack_profile_id == "":
+		return
+	for side_sign in [-1.0, 1.0]:
+		var source: Dictionary = _get_fan_time_stop_clone_source(side_sign)
+		if not bool(source.get("active", false)):
+			continue
+		var clone_sword: Dictionary = source.get("sword", {})
+		var clone_state: int = int(clone_sword.get("state", SwordState.ORBITING))
+		if clone_state == SwordState.PIERCE_DRAWING or clone_state == SwordState.ORBITING:
+			continue
+		var clone_prev_pos: Vector2 = Vector2(clone_sword.get("prev_pos", clone_sword.get("pos", Vector2.ZERO)))
+		var clone_pos: Vector2 = Vector2(clone_sword.get("pos", Vector2.ZERO))
+		var clone_swing_direction: Vector2 = clone_pos - clone_prev_pos
+		var can_clone_hit := true
+		if clone_state == SwordState.SLICING:
+			var clone_swing_speed: float = clone_swing_direction.length() / maxf(delta, 0.001)
+			can_clone_hit = clone_swing_speed >= SWORD_SLICE_MIN_HIT_SPEED
+		if not can_clone_hit:
+			continue
+		var clone_attack_instance_id: String = _ensure_fan_time_stop_clone_attack_instance(side_sign, attack_profile_id)
+		if clone_attack_instance_id == "":
+			continue
+		var detection_result: Dictionary = hit_detection.collect_segment_sweep_targets(
+			self ,
+			clone_prev_pos,
+			clone_pos,
+			float(clone_sword.get("radius", SWORD_RADIUS)),
+			attack_profile_id,
+			DAMAGE_SOURCE_FLYING_SWORD_CLONE,
+			delta,
+			{
+				"exclude_enemy_types": [PUPPET],
+			}
+		)
+		for contact_variant in detection_result.get("contacts", []):
+			var contact: Dictionary = contact_variant
+			var contact_point: Vector2 = contact.get("contact_point", clone_pos)
+			var attack_result: Dictionary = _apply_attack_instance_hit_to_target(
+				clone_attack_instance_id,
+				attack_profile_id,
+				contact_point,
+				str(contact.get("target_id", "")),
+				str(contact.get("hurtbox_id", "")),
+				str(contact.get("target_profile_id", "")),
+				DAMAGE_SOURCE_FLYING_SWORD_CLONE,
+				float(contact.get("contact_time", delta)),
+				str(contact.get("target_state", "")),
+				bool(contact.get("is_currently_overlapping", true)),
+				{
+					"channel_scalar": FAN_TIME_STOP_CLONE_DAMAGE_SCALAR,
+				}
+			)
+			if not bool(attack_result.get("allowed", false)):
+				continue
+			var enemy: Variant = contact.get("entity", null)
+			if enemy == null:
+				continue
+			var effect_color: Color = COLORS["ranged_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.16)
+			_emit_sword_hit_effect(
+				contact_point,
+				clone_swing_direction,
+				effect_color,
+				FAN_TIME_STOP_CLONE_HIT_EFFECT_INTENSITY
+			)
+		if _has_boss():
+			var boss_contact: Dictionary = detection_result.get("boss_contact", {})
+			if not boss_contact.is_empty():
+				var boss_contact_point: Vector2 = boss_contact.get("contact_point", clone_pos)
+				var boss_hit_result: Dictionary = _apply_boss_attack_instance_hit(
+					clone_attack_instance_id,
+					attack_profile_id,
+					boss_contact_point,
+					DAMAGE_SOURCE_FLYING_SWORD_CLONE,
+					float(boss_contact.get("contact_time", delta)),
+					bool(boss_contact.get("is_currently_overlapping", true)),
+					{
+						"channel_scalar": FAN_TIME_STOP_CLONE_DAMAGE_SCALAR,
+					}
+				)
+				if bool(boss_hit_result.get("allowed", false)):
+					_emit_sword_hit_effect(
+						boss_contact_point,
+						clone_swing_direction,
+						COLORS["ranged_sword"].lerp(COLORS["boss_body"], 0.2),
+						FAN_TIME_STOP_CLONE_HIT_EFFECT_INTENSITY
+					)
 
 
 func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> void:
@@ -3514,6 +4146,11 @@ func _update_array_swords(delta: float) -> void:
 	var sword_index: int = array_swords.size() - 1
 	while sword_index >= 0:
 		var array_sword: Dictionary = array_swords[sword_index]
+		if String(array_sword.get("combo_id", "")) != "":
+			array_sword["combo_timer"] = maxf(float(array_sword.get("combo_timer", 0.0)) - delta, 0.0)
+			if float(array_sword.get("combo_timer", 0.0)) <= 0.0:
+				array_sword["combo_id"] = ""
+				array_sword["combo_duration"] = 0.0
 		match String(array_sword.get("state", "")):
 			"outbound":
 				var travel_mode: String = String(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING))
@@ -3628,6 +4265,9 @@ func _array_sword_hits_enemy(array_sword: Dictionary) -> Dictionary:
 		)
 		if not bool(attack_result.get("allowed", false)):
 			continue
+		var apply_result: Dictionary = attack_result.get("apply_result", {})
+		if bool(apply_result.get("killed", false)):
+			SwordResonanceController.record_array_kill(self, travel_mode)
 		hit_result["hit"] = true
 		hit_result["should_return"] = _register_array_sword_target_hit(array_sword, target_id, travel_mode)
 		_create_particles(array_sword["pos"], COLORS["array_sword"], 10)
@@ -4027,24 +4667,56 @@ func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> voi
 
 func _start_point_strike() -> void:
 	var unsheath_direction: Vector2 = mouse_world - player["pos"]
+	var release_anchor: Vector2 = _get_unsheath_flash_release_anchor(unsheath_direction, SwordState.POINT_STRIKE)
+	var combo_id: String = SwordResonanceController.consume_time_stop_combo(player)
 	_trigger_unsheath_flash(
 		unsheath_direction,
-		_get_unsheath_flash_release_anchor(unsheath_direction, SwordState.POINT_STRIKE)
+		release_anchor
 	)
+	_trigger_time_rift_enter(unsheath_direction, release_anchor)
 	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_POINT)
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
 	player["mode"] = CombatMode.RANGED
+	_start_sword_combo(combo_id, release_anchor, mouse_world)
+	if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP:
+		_show_focus_status_message("分光御剑", SwordResonanceController.get_color(SwordArrayConfig.MODE_FAN), 0.58)
+	elif combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		_show_focus_status_message("剑虹贯日", SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE), 0.58)
 
 
 func _start_slicing() -> void:
 	var unsheath_direction: Vector2 = mouse_world - player["pos"]
+	var release_anchor: Vector2 = _get_unsheath_flash_release_anchor(unsheath_direction, SwordState.SLICING)
+	var combo_id: String = SwordResonanceController.consume_time_stop_combo(player)
 	_trigger_unsheath_flash(
 		unsheath_direction,
-		_get_unsheath_flash_release_anchor(unsheath_direction, SwordState.SLICING)
+		release_anchor
 	)
+	_trigger_time_rift_enter(unsheath_direction, release_anchor)
+	if combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		sword["state"] = SwordState.PIERCE_DRAWING
+		sword["pos"] = release_anchor
+		sword["prev_pos"] = release_anchor
+		sword["vel"] = Vector2.ZERO
+		player["mode"] = CombatMode.RANGED
+		_start_sword_combo(combo_id, release_anchor, mouse_world)
+		_show_focus_status_message("剑虹贯日", SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE), 0.58)
+		return
 	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
 	sword["state"] = SwordState.SLICING
+	player["mode"] = CombatMode.RANGED
+	_start_sword_combo(combo_id, release_anchor, mouse_world)
+	if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP:
+		_show_focus_status_message("分光御剑", SwordResonanceController.get_color(SwordArrayConfig.MODE_FAN), 0.58)
+	elif combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP:
+		_show_focus_status_message("剑虹贯日", SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE), 0.58)
+
+
+func _commit_quick_release_point_strike() -> void:
+	_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_POINT)
+	sword["state"] = SwordState.POINT_STRIKE
+	sword["target_pos"] = mouse_world
 	player["mode"] = CombatMode.RANGED
 
 
@@ -4072,8 +4744,6 @@ func _trigger_unsheath_press_flash(direction: Vector2) -> void:
 	unsheath_press_flash_origin = _get_unsheath_press_flash_anchor(flash_direction, UNSHEATH_PRESS_FLASH_ANCHOR_LERP)
 	unsheath_press_flash_strength = UNSHEATH_PRESS_FLASH_REPEAT_STRENGTH if is_repeated_trigger else UNSHEATH_PRESS_FLASH_BASE_STRENGTH
 	unsheath_press_flash_repeat_timer = UNSHEATH_PRESS_FLASH_REPEAT_SUPPRESSION
-
-
 func _get_unsheath_flash_release_anchor(flash_direction: Vector2, next_sword_state: int) -> Vector2:
 	if flash_direction.is_zero_approx():
 		flash_direction = Vector2.RIGHT
@@ -4446,6 +5116,8 @@ func _get_silk_contact_self_feedback_interval(attack_profile_id: String) -> floa
 	match attack_profile_id:
 		AttackProfiles.PROFILE_FLYING_SWORD_POINT:
 			return SILK_CONTACT_SELF_FEEDBACK_POINT_INTERVAL
+		AttackProfiles.PROFILE_FLYING_SWORD_PIERCE_COMBO:
+			return SILK_CONTACT_SELF_FEEDBACK_POINT_INTERVAL
 		AttackProfiles.PROFILE_FLYING_SWORD_SLICE:
 			return SILK_CONTACT_SELF_FEEDBACK_SLICE_INTERVAL
 		_:
@@ -4507,6 +5179,12 @@ func _trigger_sword_self_hit_feedback(contact_point: Vector2, attack_profile_id:
 			screen_shake_strength = 6.8
 			local_hit_intensity = 0.88
 			local_hit_style = "point"
+		AttackProfiles.PROFILE_FLYING_SWORD_PIERCE_COMBO:
+			offset_distance = 8.8
+			angle_offset = 0.22 * side_sign
+			screen_shake_strength = 5.2
+			local_hit_intensity = 0.92
+			local_hit_style = "point"
 		AttackProfiles.PROFILE_FLYING_SWORD_SLICE:
 			offset_distance = SWORD_IMPACT_MAX_OFFSET
 			angle_offset = SWORD_IMPACT_MAX_ANGLE_OFFSET * side_sign
@@ -4562,8 +5240,10 @@ func _fire_array_swords() -> bool:
 	if not _can_fire_array_batch(mode, ready_count):
 		_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
 		return false
-	var fire_count: int = mini(_get_array_mode_batch_target(mode), ready_count)
-	var energy_cost: float = _get_array_sword_energy_cost(fire_count, mode)
+	var pending_combo_id: String = SwordResonanceController.peek_array_combo(player, mode)
+	var fire_count: int = _get_array_combo_fire_count(pending_combo_id, mode, ready_count)
+	var energy_fire_count: int = fire_count
+	var energy_cost: float = _get_array_sword_energy_cost(energy_fire_count, mode)
 	if energy_cost > 0.0 and not _try_consume_energy(energy_cost):
 		_show_action_failure("剑意不足", "array_energy", _get_energy_failure_color(), "energy")
 		return false
@@ -4573,6 +5253,8 @@ func _fire_array_swords() -> bool:
 	if fire_count <= 0:
 		_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
 		return false
+	var combo_id: String = SwordResonanceController.consume_array_combo(player, mode) if pending_combo_id != SwordResonanceController.COMBO_NONE else SwordResonanceController.COMBO_NONE
+	var fire_state_source: Dictionary = _build_resonance_array_combo_state(combo_id, mode) if combo_id != SwordResonanceController.COMBO_NONE else morph_state
 	var batch_id: String = _next_id("array_batch") if mode == SwordArrayConfig.MODE_FAN else ""
 	var burst_step: int = 0
 	var fired_count: int = 0
@@ -4582,7 +5264,7 @@ func _fire_array_swords() -> bool:
 			snapshot_positions.append(source["pos"])
 		var source_snapshot_index: int = SwordArrayController.get_fire_source_snapshot_index(
 			self ,
-			morph_state,
+			fire_state_source,
 			snapshot_positions,
 			fired_count,
 			fire_count,
@@ -4592,10 +5274,13 @@ func _fire_array_swords() -> bool:
 		if source_snapshot_index < 0 or source_snapshot_index >= source_snapshot.size():
 			source_snapshot_index = 0
 		var sword_id: String = str(source_snapshot[source_snapshot_index]["id"])
-		_fire_single_array_sword(sword_id, fired_count, fire_count, burst_step, ready_count, batch_id)
+		_fire_single_array_sword(sword_id, fired_count, fire_count, burst_step, ready_count, batch_id, "", null, null, fire_state_source, combo_id)
 		source_snapshot.remove_at(source_snapshot_index)
 		fired_count += 1
-	_emit_sword_array_fire_effect(morph_state, fire_count)
+	_emit_sword_array_fire_effect(fire_state_source, fire_count)
+	if combo_id == SwordResonanceController.COMBO_RING_TO_PIERCE:
+		_show_focus_status_message("圆势归一", SwordResonanceController.get_color(SwordArrayConfig.MODE_RING), 0.58)
+		screen_shake = maxf(screen_shake, 5.2)
 	return true
 
 
@@ -4626,7 +5311,8 @@ func _fire_single_array_sword(
 	override_mode := "",
 	override_launch_origin = null,
 	override_target_anchor = null,
-	override_state_source = null
+	override_state_source = null,
+	combo_id := ""
 ) -> void:
 	if sword_id == "":
 		return
@@ -4675,6 +5361,9 @@ func _fire_single_array_sword(
 	array_sword["state"] = "outbound"
 	array_sword["travel_mode"] = travel_mode
 	_reset_array_sword_sortie_state(array_sword)
+	array_sword["combo_id"] = combo_id
+	array_sword["combo_timer"] = 0.72 if combo_id != "" else 0.0
+	array_sword["combo_duration"] = array_sword["combo_timer"]
 	_start_array_sword_attack_instance(array_sword)
 	array_sword["batch_id"] = String(batch_id)
 	array_sword["guidance_active"] = true
@@ -5900,6 +6589,8 @@ func _get_target_hit_reaction_distance(attack_profile_id: String, damage_source:
 			reaction_distance = 12.0
 		AttackProfiles.PROFILE_FLYING_SWORD_SLICE:
 			reaction_distance = 7.8
+		AttackProfiles.PROFILE_FLYING_SWORD_PIERCE_COMBO:
+			reaction_distance = 10.5
 		AttackProfiles.PROFILE_MELEE_SLASH:
 			reaction_distance = 7.0
 		AttackProfiles.PROFILE_ARRAY_PIERCE:
@@ -5913,6 +6604,8 @@ func _get_target_hit_reaction_distance(attack_profile_id: String, damage_source:
 		_:
 			if damage_source == DAMAGE_SOURCE_MELEE:
 				reaction_distance = 6.6
+	if damage_source == DAMAGE_SOURCE_FLYING_SWORD_CLONE:
+		reaction_distance *= 0.72
 	if target_kind == "boss":
 		reaction_distance *= 0.72
 	return reaction_distance

@@ -21,6 +21,7 @@ const BOSS_WINDOW_BYPASS := "bypass"
 const PROFILE_MELEE_SLASH := "melee_slash"
 const PROFILE_FLYING_SWORD_POINT := "flying_sword_point"
 const PROFILE_FLYING_SWORD_SLICE := "flying_sword_slice"
+const PROFILE_FLYING_SWORD_PIERCE_COMBO := "flying_sword_pierce_combo"
 const PROFILE_ARRAY_RING := "array_ring"
 const PROFILE_ARRAY_FAN := "array_fan"
 const PROFILE_ARRAY_PIERCE := "array_pierce"
@@ -106,6 +107,30 @@ const _PROFILES := {
 		},
 		"dps_channels": {
 			CHANNEL_SEVER: 160.0,
+		},
+	},
+	PROFILE_FLYING_SWORD_PIERCE_COMBO: {
+		"id": PROFILE_FLYING_SWORD_PIERCE_COMBO,
+		"tags": ["thrust", "pierce", "flying_sword"],
+		"shape": {
+			"kind": "segment_sweep",
+		},
+		"hit_mode": HIT_MODE_INTERVAL,
+		"rehit_policy": REHIT_INTERVAL_PER_TARGET,
+		"rehit_interval": 0.16,
+		"rehit_policy_overrides": {
+			"silk": REHIT_CONTINUOUS_CONTACT,
+		},
+		"channel_mode_overrides": {
+			"silk": "dps",
+		},
+		"channels": {
+			CHANNEL_HP: 150.0,
+			CHANNEL_POISE: 42.0,
+			CHANNEL_SEVER: 7.0,
+		},
+		"dps_channels": {
+			CHANNEL_SEVER: 130.0,
 		},
 	},
 	PROFILE_ARRAY_RING: {

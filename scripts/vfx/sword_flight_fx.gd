@@ -4,6 +4,8 @@ const SWORD_DISTORTION_SHADER = preload("res://resources/vfx/sword_flight_distor
 const ART_BLUE := Color("88d8ff")
 const ART_BLUE_CORE := Color("f6fbff")
 const ART_GOLD := Color("d7bb79")
+const UNSHEATH_FLASH_CORE_COLOR := Color(1.0, 0.99, 0.96, 1.0)
+const UNSHEATH_FLASH_EDGE_COLOR := Color(0.72, 0.9, 1.0, 1.0)
 const WAKE_POOL_SIZE := 16
 const TRAIL_SUBDIVISIONS := 5
 const WAKE_SEGMENTS := 6
@@ -92,6 +94,8 @@ const TURN_BURST_THRESHOLD := 0.34
 @export_range(0.0, 4.0, 0.01) var 剑气前雾强度倍率 := 1.0
 
 var main: Node2D = null
+var source_side_sign := 0.0
+var source_cache: Dictionary = {}
 
 var trail_halo: Line2D
 var trail_ribbon: Line2D
@@ -163,6 +167,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	source_cache = _resolve_source_cache()
 	if not _is_active():
 		_clear_all()
 		visible = false
@@ -191,7 +196,76 @@ func _is_active() -> bool:
 		return false
 	if bool(main.get("is_start_menu_active")):
 		return false
+	if _uses_clone_source():
+		return bool(source_cache.get("active", false))
 	return true
+
+
+func _uses_clone_source() -> bool:
+	return absf(source_side_sign) > 0.001
+
+
+func _resolve_source_cache() -> Dictionary:
+	if not _uses_clone_source():
+		return {}
+	if main == null or not is_instance_valid(main):
+		main = get_parent() as Node2D
+	if main == null or not main.has_method("_get_fan_time_stop_clone_source"):
+		return {}
+	var source = main.call("_get_fan_time_stop_clone_source", source_side_sign)
+	return source if source is Dictionary else {}
+
+
+func _get_source_sword() -> Dictionary:
+	if _uses_clone_source():
+		return source_cache.get("sword", {})
+	return main.sword
+
+
+func _get_source_trail_points() -> Array:
+	if _uses_clone_source():
+		return source_cache.get("trail_points", [])
+	return main.sword_trail_points
+
+
+func _get_source_air_wakes() -> Array:
+	if _uses_clone_source():
+		return source_cache.get("air_wakes", [])
+	return main.sword_air_wakes
+
+
+func _get_source_visual_position() -> Vector2:
+	if _uses_clone_source():
+		return Vector2(source_cache.get("visual_pos", Vector2.ZERO))
+	return main._get_sword_visual_position()
+
+
+func _get_source_visual_angle() -> float:
+	if _uses_clone_source():
+		return float(source_cache.get("visual_angle", 0.0))
+	return main._get_sword_visual_angle()
+
+
+func _get_source_player_mode() -> int:
+	if _uses_clone_source():
+		return int(source_cache.get("player_mode", main.CombatMode.RANGED))
+	return int(main.player["mode"])
+
+
+func _get_source_sword_state() -> int:
+	return int(_get_source_sword().get("state", main.SwordState.ORBITING))
+
+
+func _get_source_velocity() -> Vector2:
+	return Vector2(_get_source_sword().get("vel", Vector2.ZERO))
+
+
+func _get_source_impact_ratio() -> float:
+	return clampf(
+		float(_get_source_sword().get("impact_feedback_timer", 0.0)) / maxf(main.SWORD_IMPACT_FEEDBACK_DURATION, 0.001),
+		0.0,
+		1.0
+	)
 
 
 func _build_layers() -> void:
@@ -928,11 +1002,11 @@ func _clear_particle_array(particles_list: Array) -> void:
 
 
 func _should_show_body_support(sword_state: int) -> bool:
-	return main.player["mode"] == main.CombatMode.RANGED or sword_state != main.SwordState.ORBITING
+	return _get_source_player_mode() == main.CombatMode.RANGED or sword_state != main.SwordState.ORBITING
 
 
 func _get_sword_visual_forward() -> Vector2:
-	var sword_angle: float = main._get_sword_visual_angle()
+	var sword_angle: float = _get_source_visual_angle()
 	var forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
 	if forward.is_zero_approx():
 		forward = Vector2.RIGHT
@@ -1085,8 +1159,8 @@ func _configure_segment_backscatter_particles(
 
 
 func _update_body_base() -> void:
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
-	var show_body: bool = main.player["mode"] == main.CombatMode.RANGED or sword_state != main.SwordState.ORBITING
+	var sword_state: int = _get_source_sword_state()
+	var show_body: bool = _get_source_player_mode() == main.CombatMode.RANGED or sword_state != main.SwordState.ORBITING
 	if not show_body:
 		_clear_polygon(base_blade_fill)
 		_clear_polygon(base_blade_core_fill)
@@ -1100,26 +1174,20 @@ func _update_body_base() -> void:
 		return
 
 	var glow_strength: float = _get_local_glow_strength()
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
-	var sword_angle: float = main._get_sword_visual_angle()
+	var sword_angle: float = _get_source_visual_angle()
 	var scale: float = MAIN_SWORD_VISUAL_SCALE
 	var forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
 	if forward.is_zero_approx():
 		forward = Vector2.RIGHT
 	forward = forward.normalized()
 	var side: Vector2 = forward.rotated(PI * 0.5)
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
-	var impact_ratio: float = clampf(
-		float(main.sword.get("impact_feedback_timer", 0.0)) / maxf(main.SWORD_IMPACT_FEEDBACK_DURATION, 0.001),
-		0.0,
-		1.0
-	)
+	var impact_ratio: float = _get_source_impact_ratio()
 	var focus_strength: float = clampf(
-		(0.08 if main.player["mode"] == main.CombatMode.MELEE else 0.26)
+		(0.08 if _get_source_player_mode() == main.CombatMode.MELEE else 0.26)
 		+ glow_strength * 0.24
-		+ impact_ratio * (0.42 if main.player["mode"] == main.CombatMode.MELEE else 0.56)
-		+ time_stop_strength * 0.4,
+		+ impact_ratio * (0.42 if _get_source_player_mode() == main.CombatMode.MELEE else 0.56),
 		0.0,
 		1.0
 	)
@@ -1137,7 +1205,7 @@ func _update_body_base() -> void:
 	var guard_half_span := 3.05 * scale
 	var guard_half_thickness := 0.58 * scale
 
-	var base_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
+	var base_color: Color = main.COLORS["melee_sword"] if _get_source_player_mode() == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
 	var blade_color: Color = base_color.lerp(ART_BLUE_CORE, 0.16 + 0.08 * focus_strength)
 	var blade_edge_color: Color = base_color.lerp(ART_BLUE_CORE, 0.24 + 0.08 * focus_strength)
 	var blade_core_color: Color = ART_BLUE_CORE.lerp(Color.WHITE, 0.42 + 0.12 * focus_strength)
@@ -1227,7 +1295,7 @@ func _update_body_base() -> void:
 
 
 func _update_body_flow() -> void:
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var sword_state: int = _get_source_sword_state()
 	var show_body: bool = _should_show_body_support(sword_state)
 	if not show_body or not 剑体流光启用:
 		_clear_line(body_flow_primary)
@@ -1236,20 +1304,17 @@ func _update_body_flow() -> void:
 		return
 
 	var vfx = main.get_sword_vfx_profile()
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
 	var scale: float = MAIN_SWORD_VISUAL_SCALE
-	var sword_velocity: Vector2 = Vector2(main.sword.get("vel", Vector2.ZERO))
+	var sword_velocity: Vector2 = _get_source_velocity()
 	var speed_reference: float = main.SWORD_RECALL_SPEED if sword_state == main.SwordState.RECALLING else main.SWORD_POINT_STRIKE_SPEED
 	var speed_ratio: float = clampf(sword_velocity.length() / maxf(speed_reference, 0.001), 0.0, 1.0)
 	var turn_strength := 0.0
-	if not main.sword_trail_points.is_empty():
-		turn_strength = clampf(float(main.sword_trail_points[main.sword_trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
-	var impact_ratio: float = clampf(
-		float(main.sword.get("impact_feedback_timer", 0.0)) / maxf(main.SWORD_IMPACT_FEEDBACK_DURATION, 0.001),
-		0.0,
-		1.0
-	)
+	var trail_points: Array = _get_source_trail_points()
+	if not trail_points.is_empty():
+		turn_strength = clampf(float(trail_points[trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
+	var impact_ratio: float = _get_source_impact_ratio()
 	var glow_strength: float = _get_local_glow_strength()
 	var forward: Vector2 = _get_sword_visual_forward()
 	var flow_strength: float = _get_body_flow_presence(vfx, sword_state, speed_ratio, turn_strength, glow_strength, impact_ratio)
@@ -1367,7 +1432,7 @@ func _update_body_flow() -> void:
 
 
 func _update_body_glow() -> void:
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var sword_state: int = _get_source_sword_state()
 	var show_body: bool = _should_show_body_support(sword_state)
 	if not show_body or not 剑体流光启用 or 贴身底辉强度倍率 <= 0.001:
 		_clear_line(body_halo)
@@ -1377,9 +1442,9 @@ func _update_body_glow() -> void:
 		return
 
 	var glow_strength: float = _get_local_glow_strength()
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
-	var sword_angle: float = main._get_sword_visual_angle()
+	var sword_angle: float = _get_source_visual_angle()
 	var scale: float = MAIN_SWORD_VISUAL_SCALE
 	var forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
 	if forward.is_zero_approx():
@@ -1392,8 +1457,7 @@ func _update_body_glow() -> void:
 	var body_end: Vector2 = sword_pos + forward * (24.2 * scale)
 	var body_points := PackedVector2Array([body_start, body_shoulder, body_mid, body_end])
 	var pulse: float = 0.86 + 0.14 * sin(main.elapsed_time * 11.0)
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
-	var body_energy: float = (0.16 + glow_strength * 0.28 + time_stop_strength * 0.06) * 贴身底辉强度倍率
+	var body_energy: float = (0.16 + glow_strength * 0.28) * 贴身底辉强度倍率
 	var halo_color: Color = _hdr(main.COLORS["ranged_sword"].lerp(ART_BLUE, 0.22), 1.18 + 0.22 * pulse, 0.016 + 0.024 * body_energy)
 	var ribbon_color: Color = _hdr(ART_BLUE.lerp(ART_BLUE_CORE, 0.3), 1.3 + 0.24 * pulse, 0.026 + 0.03 * body_energy)
 	var core_color: Color = _hdr(ART_BLUE_CORE.lerp(Color.WHITE, 0.2), 1.42 + 0.3 * pulse, 0.04 + 0.036 * body_energy)
@@ -1419,7 +1483,7 @@ func _update_body_glow() -> void:
 
 
 func _update_front_beam() -> void:
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var sword_state: int = _get_source_sword_state()
 	if sword_state != main.SwordState.POINT_STRIKE and sword_state != main.SwordState.RECALLING:
 		_clear_line(front_halo)
 		_clear_line(front_ribbon)
@@ -1427,7 +1491,7 @@ func _update_front_beam() -> void:
 		return
 
 	var vfx = main.get_sword_vfx_profile()
-	var sword_velocity: Vector2 = Vector2(main.sword.get("vel", Vector2.ZERO))
+	var sword_velocity: Vector2 = _get_source_velocity()
 	var speed: float = sword_velocity.length()
 	var speed_reference: float = main.SWORD_RECALL_SPEED if sword_state == main.SwordState.RECALLING else main.SWORD_POINT_STRIKE_SPEED
 	var speed_ratio: float = clampf(
@@ -1441,11 +1505,11 @@ func _update_front_beam() -> void:
 		_clear_line(front_core)
 		return
 
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
 	var forward: Vector2 = sword_velocity.normalized()
 	if forward.is_zero_approx():
-		var sword_angle: float = main._get_sword_visual_angle()
+		var sword_angle: float = _get_source_visual_angle()
 		forward = Vector2.RIGHT.rotated(sword_angle)
 	if forward.is_zero_approx():
 		forward = Vector2.RIGHT
@@ -1472,7 +1536,8 @@ func _update_front_beam() -> void:
 
 
 func _update_trail() -> void:
-	if main.sword_trail_points.is_empty():
+	var trail_points: Array = _get_source_trail_points()
+	if trail_points.is_empty():
 		_clear_line(trail_halo)
 		_clear_line(trail_ribbon)
 		_clear_line(trail_core)
@@ -1483,22 +1548,23 @@ func _update_trail() -> void:
 	var total_half_width := 0.0
 	var total_alpha := 0.0
 	var sample_count := 0
-	for entry in main.sword_trail_points:
+	for entry in trail_points:
 		raw_points.append(main._to_screen(entry["pos"]))
 		total_half_width += float(entry.get("half_width", main.SWORD_TRAIL_BASE_HALF_WIDTH))
 		total_alpha += float(entry.get("alpha_scale", 1.0))
 		sample_count += 1
 
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
-	var latest: Dictionary = main.sword_trail_points[main.sword_trail_points.size() - 1]
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
+	var source_sword: Dictionary = _get_source_sword()
+	var latest: Dictionary = trail_points[trail_points.size() - 1]
 	var style: String = str(latest.get("style", "point"))
 	var speed_ratio: float = clampf(float(latest.get("speed_ratio", 0.0)), 0.0, 1.0)
 	var turn_strength: float = clampf(float(latest.get("turn_strength", 0.0)), 0.0, 1.0)
 	var trail_forward: Vector2 = Vector2(latest.get("forward", Vector2.ZERO))
 	if trail_forward.is_zero_approx():
-		trail_forward = Vector2(main.sword.get("vel", Vector2.ZERO)).normalized()
+		trail_forward = Vector2(source_sword.get("vel", Vector2.ZERO)).normalized()
 	if trail_forward.is_zero_approx():
-		trail_forward = Vector2.RIGHT.rotated(float(main.sword.get("angle", 0.0)))
+		trail_forward = Vector2.RIGHT.rotated(float(source_sword.get("angle", 0.0)))
 	if trail_forward.is_zero_approx():
 		trail_forward = Vector2.RIGHT
 	trail_forward = trail_forward.normalized()
@@ -1536,11 +1602,62 @@ func _update_trail() -> void:
 
 
 func _update_wakes() -> void:
-	var index := 0
-	while index < wake_halo_lines.size():
-		_clear_line(wake_halo_lines[index])
-		_clear_line(wake_core_lines[index])
-		index += 1
+	var air_wakes: Array = _get_source_air_wakes()
+	var line_index := 0
+	for wake_variant in air_wakes:
+		if line_index >= wake_halo_lines.size() or line_index >= wake_core_lines.size():
+			break
+		if not (wake_variant is Dictionary):
+			continue
+		var wake: Dictionary = wake_variant
+		var life_ratio: float = clampf(float(wake.get("life", 0.0)) / maxf(float(wake.get("max_life", 1.0)), 0.001), 0.0, 1.0)
+		if life_ratio <= 0.0:
+			continue
+		var center: Vector2 = main._to_screen(Vector2(wake.get("pos", Vector2.ZERO)))
+		var forward: Vector2 = Vector2(wake.get("forward", Vector2.RIGHT))
+		if forward.is_zero_approx():
+			forward = Vector2.RIGHT
+		forward = forward.normalized()
+		var outward: Vector2 = Vector2(wake.get("outward", forward.rotated(PI * 0.5)))
+		if outward.is_zero_approx():
+			outward = forward.rotated(PI * 0.5)
+		outward = outward.normalized()
+		var turn_strength: float = clampf(float(wake.get("turn_strength", 0.0)), 0.0, 1.0)
+		var speed_ratio: float = clampf(float(wake.get("speed_ratio", 0.0)), 0.0, 1.0)
+		var style: String = str(wake.get("style", "point"))
+		var length: float = float(wake.get("length", main.SWORD_AIR_WAKE_BASE_LENGTH)) * (0.46 + 0.54 * life_ratio)
+		var width: float = float(wake.get("width", main.SWORD_AIR_WAKE_BASE_WIDTH)) * (0.5 + 0.5 * life_ratio)
+		var haze_color: Color = main.COLORS["ranged_sword"].lerp(UNSHEATH_FLASH_EDGE_COLOR, 0.22)
+		var streak_color: Color = ART_BLUE_CORE.lerp(Color.WHITE, 0.22)
+		if style == "recall":
+			haze_color = main.COLORS["array_sword_return"].lerp(main.COLORS["ranged_sword"], 0.5)
+			streak_color = main.COLORS["array_sword_return"].lerp(UNSHEATH_FLASH_CORE_COLOR, 0.44)
+		var wake_points: PackedVector2Array = _build_wake_points(
+			center,
+			forward,
+			outward,
+			length,
+			width,
+			turn_strength,
+			speed_ratio
+		)
+		_apply_line(
+			wake_halo_lines[line_index] as Line2D,
+			wake_points,
+			maxf((1.7 + 0.9 * speed_ratio) * (0.7 + 0.28 * turn_strength), 0.45),
+			Color(haze_color.r, haze_color.g, haze_color.b, 0.05 + 0.08 * life_ratio)
+		)
+		_apply_line(
+			wake_core_lines[line_index] as Line2D,
+			wake_points,
+			maxf((0.7 + 0.28 * turn_strength) * (0.72 + 0.2 * speed_ratio), 0.4),
+			Color(streak_color.r, streak_color.g, streak_color.b, 0.08 + 0.12 * life_ratio)
+		)
+		line_index += 1
+	while line_index < wake_halo_lines.size() and line_index < wake_core_lines.size():
+		_clear_line(wake_halo_lines[line_index] as Line2D)
+		_clear_line(wake_core_lines[line_index] as Line2D)
+		line_index += 1
 
 
 func _update_particles() -> void:
@@ -1548,25 +1665,22 @@ func _update_particles() -> void:
 	_clear_particles(wake_particles)
 	_clear_particle_array(body_upper_side_particles)
 	_clear_particle_array(body_lower_side_particles)
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var sword_state: int = _get_source_sword_state()
 	var show_body: bool = _should_show_body_support(sword_state)
 	if not show_body or not 剑气补层启用 or 剑气补层整体强度 <= 0.001:
 		return
 
 	var vfx = main.get_sword_vfx_profile()
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
-	var sword_velocity: Vector2 = Vector2(main.sword.get("vel", Vector2.ZERO))
+	var sword_velocity: Vector2 = _get_source_velocity()
 	var speed_reference: float = main.SWORD_RECALL_SPEED if sword_state == main.SwordState.RECALLING else main.SWORD_POINT_STRIKE_SPEED
 	var speed_ratio: float = clampf(sword_velocity.length() / maxf(speed_reference, 0.001), 0.0, 1.0)
 	var turn_strength: float = 0.0
-	if not main.sword_trail_points.is_empty():
-		turn_strength = clampf(float(main.sword_trail_points[main.sword_trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
-	var impact_ratio: float = clampf(
-		float(main.sword.get("impact_feedback_timer", 0.0)) / maxf(main.SWORD_IMPACT_FEEDBACK_DURATION, 0.001),
-		0.0,
-		1.0
-	)
+	var trail_points: Array = _get_source_trail_points()
+	if not trail_points.is_empty():
+		turn_strength = clampf(float(trail_points[trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
+	var impact_ratio: float = _get_source_impact_ratio()
 	var glow_strength: float = _get_local_glow_strength()
 	var flow_strength: float = _get_body_flow_presence(vfx, sword_state, speed_ratio, turn_strength, glow_strength, impact_ratio)
 	var scale: float = MAIN_SWORD_VISUAL_SCALE
@@ -1620,17 +1734,18 @@ func _update_particles() -> void:
 
 
 func _update_haze() -> void:
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var sword_state: int = _get_source_sword_state()
 	var is_flying: bool = sword_state != main.SwordState.ORBITING
 	var show_body: bool = _should_show_body_support(sword_state)
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
-	var sword_velocity: Vector2 = Vector2(main.sword.get("vel", Vector2.ZERO))
+	var sword_velocity: Vector2 = _get_source_velocity()
 	var speed_reference: float = main.SWORD_RECALL_SPEED if sword_state == main.SwordState.RECALLING else main.SWORD_POINT_STRIKE_SPEED
 	var speed_ratio: float = clampf(sword_velocity.length() / maxf(speed_reference, 0.001), 0.0, 1.0)
 	var trail_turn_strength: float = 0.0
-	if not main.sword_trail_points.is_empty():
-		trail_turn_strength = clampf(float(main.sword_trail_points[main.sword_trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
+	var trail_points: Array = _get_source_trail_points()
+	if not trail_points.is_empty():
+		trail_turn_strength = clampf(float(trail_points[trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
 	var motion_forward: Vector2 = _get_sword_motion_forward(sword_velocity)
 
 	body_haze.visible = false
@@ -1653,18 +1768,20 @@ func _update_haze() -> void:
 
 
 func _update_distortion(_delta: float) -> void:
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var source_sword: Dictionary = _get_source_sword()
+	var sword_state: int = _get_source_sword_state()
 	var is_flying: bool = sword_state != main.SwordState.ORBITING
-	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
+	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
-	var sword_velocity: Vector2 = Vector2(main.sword.get("vel", Vector2.ZERO))
+	var sword_velocity: Vector2 = _get_source_velocity()
 	var speed_reference: float = main.SWORD_RECALL_SPEED if sword_state == main.SwordState.RECALLING else main.SWORD_POINT_STRIKE_SPEED
 	var speed_ratio: float = clampf(sword_velocity.length() / maxf(speed_reference, 0.001), 0.0, 1.0)
 	var trail_turn_strength: float = 0.0
-	if not main.sword_trail_points.is_empty():
-		trail_turn_strength = clampf(float(main.sword_trail_points[main.sword_trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
+	var trail_points: Array = _get_source_trail_points()
+	if not trail_points.is_empty():
+		trail_turn_strength = clampf(float(trail_points[trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
 	var glow_strength: float = _get_local_glow_strength()
-	var impact_ratio: float = clampf(float(main.sword.get("impact_feedback_timer", 0.0)) / maxf(main.SWORD_IMPACT_FEEDBACK_DURATION, 0.001), 0.0, 1.0)
+	var impact_ratio: float = _get_source_impact_ratio()
 	var distortion_active: bool = 扭曲启用 and is_flying and (
 		speed_ratio > 扭曲速度阈值
 		or trail_turn_strength > 扭曲转向阈值
@@ -1683,7 +1800,7 @@ func _update_distortion(_delta: float) -> void:
 		return
 	var forward: Vector2 = sword_velocity.normalized()
 	if forward.is_zero_approx():
-		forward = Vector2.RIGHT.rotated(float(main.sword.get("angle", 0.0)))
+		forward = Vector2.RIGHT.rotated(float(source_sword.get("angle", 0.0)))
 	if forward.is_zero_approx():
 		forward = Vector2.RIGHT
 	forward = forward.normalized()
@@ -1711,8 +1828,8 @@ func _update_distortion(_delta: float) -> void:
 func _update_burst_events(_delta: float) -> void:
 	_clear_burst_emitters()
 	burst_trigger_cooldown = 0.0
-	previous_sword_state = int(main.sword.get("state", main.SwordState.ORBITING))
-	previous_impact_timer = float(main.sword.get("impact_feedback_timer", 0.0))
+	previous_sword_state = _get_source_sword_state()
+	previous_impact_timer = float(_get_source_sword().get("impact_feedback_timer", 0.0))
 	previous_speed_ratio = 0.0
 
 
@@ -1929,29 +2046,25 @@ func _apply_arc(line: Line2D, center: Vector2, start_angle: float, end_angle: fl
 
 func _get_local_glow_strength() -> float:
 	var vfx = main.get_sword_vfx_profile()
-	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
-	var glow_strength: float = float(vfx.local_glow_ranged_idle) if main.player["mode"] == main.CombatMode.RANGED else 0.0
+	var source_sword: Dictionary = _get_source_sword()
+	var sword_state: int = _get_source_sword_state()
+	var glow_strength: float = float(vfx.local_glow_ranged_idle) if _get_source_player_mode() == main.CombatMode.RANGED else 0.0
 	if sword_state == main.SwordState.POINT_STRIKE:
-		var point_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
+		var point_speed_ratio: float = clampf(Vector2(source_sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
 		glow_strength = float(vfx.local_glow_point_base) + float(vfx.local_glow_point_speed_scale) * point_speed_ratio
 	elif sword_state == main.SwordState.SLICING:
-		var slice_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
+		var slice_speed_ratio: float = clampf(Vector2(source_sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
 		glow_strength = float(vfx.local_glow_slice_base) + float(vfx.local_glow_slice_speed_scale) * slice_speed_ratio
 		var hover_blend: float = main._get_sword_hover_blend()
 		if hover_blend > 0.0:
 			glow_strength = lerpf(glow_strength, maxf(float(vfx.local_glow_ranged_idle), 0.18), hover_blend)
 	elif sword_state == main.SwordState.RECALLING:
-		var recall_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_RECALL_SPEED, 0.001), 0.0, 1.0)
+		var recall_speed_ratio: float = clampf(Vector2(source_sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_RECALL_SPEED, 0.001), 0.0, 1.0)
 		glow_strength = float(vfx.local_glow_recall_base) + float(vfx.local_glow_recall_speed_scale) * recall_speed_ratio
-	var impact_ratio: float = clampf(
-		float(main.sword.get("impact_feedback_timer", 0.0)) / maxf(main.SWORD_IMPACT_FEEDBACK_DURATION, 0.001),
-		0.0,
-		1.0
-	)
+	var impact_ratio: float = _get_source_impact_ratio()
 	glow_strength = clampf(
 		glow_strength
-		+ impact_ratio * float(vfx.local_glow_impact_bonus_scale)
-		+ main._get_time_stop_visual_strength() * float(vfx.local_glow_time_stop_bonus_scale),
+		+ impact_ratio * float(vfx.local_glow_impact_bonus_scale),
 		0.0,
 		1.0
 	)

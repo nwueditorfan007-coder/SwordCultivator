@@ -62,7 +62,6 @@ class_name SwordVfxProfile
 @export_range(0.0, 1.0, 0.01) var local_glow_array_channel_base := 0.14
 @export_range(0.0, 0.4, 0.01) var local_glow_array_channel_hold_scale := 0.08
 @export_range(0.0, 1.0, 0.01) var local_glow_impact_bonus_scale := 0.36
-@export_range(0.0, 0.4, 0.01) var local_glow_time_stop_bonus_scale := 0.08
 @export_range(0.5, 8.0, 0.1) var local_glow_tip_radius_min := 1.9
 @export_range(0.0, 8.0, 0.1) var local_glow_tip_radius_scale := 3.8
 @export_range(0.0, 4.0, 0.1) var local_glow_tip_radius_pulse := 1.1

@@ -2,17 +2,14 @@
 
 [ext_resource type="Script" uid="uid://csb61sc78v6gj" path="res://scripts/system/main.gd" id="1_82ptl"]
 [ext_resource type="Script" uid="uid://d23o6qr4240c3" path="res://scripts/vfx/sword_flight_fx.gd" id="2_swordflightfx"]
+[ext_resource type="PackedScene" uid="uid://b6xwhb5a71ywh" path="res://scenes/vfx/TimeRiftFx.tscn" id="3_timeriftfx"]
 
 [node name="Main" type="Node2D" unique_id=2035086712]
 script = ExtResource("1_82ptl")
 sword_hover_preset = 3
-"时停分层水墨启用" = false
-"时停背景暗角" = 1.0
-"时停全屏滤镜预览启用" = true
-"时停冷墨颜色" = Color(0.44952887, 0.4342661, 0.43497428, 1)
-"时停宣纸颜色" = Color(0.86586535, 0.74883556, 0.5885365, 1)
 
 [node name="SwordFlightFx" type="Node2D" parent="." unique_id=1718008480]
+visible = false
 script = ExtResource("2_swordflightfx")
 "扭曲启用" = false
 "扭曲速度阈值" = 0.0
@@ -50,6 +47,20 @@ script = ExtResource("2_swordflightfx")
 "剑气粒子散射倍率" = 0.56
 "剑气尾雾强度倍率" = 2.0
 "剑气前雾强度倍率" = 2.0
+
+[node name="TimeRiftFx" parent="." unique_id=144610351 instance=ExtResource("3_timeriftfx")]
+"入场墨爆强度" = 0.0
+"冻结标记强度" = 0.0
+"剑光放射强度" = 0.0
+"泼墨固定角度" = -180.0
+"泼墨轴向长度倍率" = 0.36
+"泼墨中心前推倍率" = 0.49
+"暗场持续透明度" = 1.0
+"暗场入场透明度" = 1.0
+"暗场呼吸透明度" = 0.26
+"暗场呼吸速度" = 0.28
+"冷雾颜色" = Color(0, 0, 0, 1)
+"时场圆弧启用" = false
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=855900825]
 

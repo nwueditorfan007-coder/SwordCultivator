@@ -35,6 +35,7 @@ const RING_STABLE_END := 85.0
 const RING_TO_FAN_END := 145.0
 const FAN_STABLE_END := 295.0
 const FAN_TO_PIERCE_END := 400.0
+const CONTROL_HYSTERESIS_BLEND_MARGIN := 0.16
 
 static var _morph_distance_overrides := {
 	"ring_stable_end": RING_STABLE_END,
@@ -297,6 +298,29 @@ static func get_control_morph_distances() -> Dictionary:
 
 static func get_control_morph_state_for_distance(aim_distance: float) -> Dictionary:
 	return _get_morph_state_for_distance_with_distances(aim_distance, get_control_morph_distances())
+
+
+static func apply_dominant_mode_hysteresis(state: Dictionary, previous_mode: String, blend_margin := CONTROL_HYSTERESIS_BLEND_MARGIN) -> Dictionary:
+	var result: Dictionary = state.duplicate(true)
+	var normalized_previous: String = previous_mode if MODE_PROFILES.has(previous_mode) else ""
+	if normalized_previous == "":
+		return result
+
+	var from_mode: String = String(result.get("visual_from_mode", result.get("dominant_mode", MODE_RING)))
+	var to_mode: String = String(result.get("visual_to_mode", from_mode))
+	if not MODE_PROFILES.has(from_mode) or not MODE_PROFILES.has(to_mode):
+		return result
+	if from_mode == to_mode:
+		result["dominant_mode"] = from_mode
+		return result
+
+	var blend: float = clampf(float(result.get("visual_blend", 0.0)), 0.0, 1.0)
+	var margin: float = clampf(blend_margin, 0.0, 0.45)
+	if normalized_previous == from_mode and blend < 0.5 + margin:
+		result["dominant_mode"] = from_mode
+	elif normalized_previous == to_mode and blend > 0.5 - margin:
+		result["dominant_mode"] = to_mode
+	return result
 
 
 static func _get_morph_state_for_distance_with_distances(aim_distance: float, distances: Dictionary) -> Dictionary:

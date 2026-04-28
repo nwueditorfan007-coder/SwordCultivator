@@ -4,14 +4,11 @@ class_name GameRenderer
 const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 const SwordArrayController = preload("res://scripts/system/sword_array_controller.gd")
 const SwordArrayBandRenderer = preload("res://scripts/system/sword_array_band_renderer.gd")
+const SwordResonanceController = preload("res://scripts/system/sword_resonance_controller.gd")
 
 const ARRAY_CHANNEL_CORE_COLOR := Color("f8fafc")
 const ARRAY_CHANNEL_EDGE_COLOR := Color("22d3ee")
 const ARRAY_CHANNEL_FLARE_COLOR := Color("fb7185")
-const TIME_STOP_WASH_COLOR := Color(0.82, 0.9, 1.0, 1.0)
-const TIME_STOP_FRAME_COLOR := Color(0.7, 0.9, 1.0, 1.0)
-const TIME_STOP_FRAME_CORE_COLOR := Color(0.95, 0.99, 1.0, 1.0)
-const TIME_STOP_SWORD_FOCUS_COLOR := Color(0.78, 0.96, 1.0, 1.0)
 const UNSHEATH_FLASH_CORE_COLOR := Color(1.0, 0.99, 0.96, 1.0)
 const UNSHEATH_FLASH_EDGE_COLOR := Color(0.72, 0.9, 1.0, 1.0)
 const UNSHEATH_FLASH_WARM_COLOR := Color(1.0, 0.9, 0.72, 1.0)
@@ -27,11 +24,11 @@ const BULLET_EDGE_SHADE := 0.24
 const BULLET_CORE_HIGHLIGHT := 0.28
 const BULLET_SPECULAR_HIGHLIGHT := 0.52
 const BULLET_RENDER_SCALE := 1.24
-const ART_BG_DEEP := Color("02060d")
-const ART_BG := Color("06101c")
-const ART_ARENA := Color("08111d")
-const ART_ARENA_CORE := Color("0b1724")
-const ART_GRID := Color(0.42, 0.72, 0.9, 0.075)
+const ART_BG_DEEP := Color("010409")
+const ART_BG := Color("05101a")
+const ART_ARENA := Color("07101a")
+const ART_ARENA_CORE := Color("0a1622")
+const ART_GRID := Color(0.42, 0.72, 0.9, 0.038)
 const ART_GOLD := Color("d7bb79")
 const ART_BLUE := Color("88d8ff")
 const ART_BLUE_CORE := Color("f6fbff")
@@ -45,11 +42,11 @@ static func draw_game(main: Node2D) -> void:
 	if main.screen_shake > 0.1:
 		shake_offset = Vector2(randf_range(-main.screen_shake, main.screen_shake), randf_range(-main.screen_shake, main.screen_shake))
 	main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
-
 	_draw_art_tactical_grid(main)
-	_draw_time_stop_background_ink(main)
-	_draw_time_stop_ink_break(main)
+	if main.time_rift_fx != null and main.time_rift_fx.has_method("draw_background_effect"):
+		main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		main.time_rift_fx.draw_background_effect(main)
+		main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
 
 	for particle in main.particles:
 		var particle_color: Color = particle["color"]
@@ -67,13 +64,6 @@ static func draw_game(main: Node2D) -> void:
 		if bullet["state"] == "deflected":
 			bullet_color = main.COLORS["melee_sword"]
 			bullet_radius *= 1.15
-		else:
-			if time_stop_strength > 0.001:
-				main.draw_circle(
-					bullet_pos,
-					bullet_radius + 2.6 + 2.0 * time_stop_strength,
-					_with_alpha(TIME_STOP_FRAME_COLOR, 0.05 + 0.12 * time_stop_strength)
-				)
 		_draw_bullet_shape(
 			main,
 			bullet_pos,
@@ -110,7 +100,6 @@ static func draw_game(main: Node2D) -> void:
 		var enemy_color: Color = main.COLORS[color_key]
 		var enemy_radius: float = float(enemy["radius"])
 		var enemy_alpha: float = 1.0
-		_draw_time_stop_target_ink_blot(main, enemy_screen_pos, enemy_radius)
 		if is_enemy_dying:
 			enemy_radius *= lerpf(1.08, 0.62, enemy_death_progress)
 			enemy_alpha = 1.0 - pow(enemy_death_progress, 1.35)
@@ -131,7 +120,6 @@ static func draw_game(main: Node2D) -> void:
 			enemy_alpha,
 			is_enemy_dying
 		)
-		_draw_time_stop_actor_freeze_outline(main, enemy_screen_pos, enemy_radius, enemy_alpha)
 		if not is_enemy_dying and str(enemy.get("support_source_id", "")) != "":
 			var support_pulse: float = 0.72 + 0.28 * absf(sin(main.elapsed_time * 8.0))
 			var support_color: Color = _with_alpha(main.COLORS["silk"].lerp(main.COLORS["drape_priest"], 0.18), (0.24 + 0.18 * support_pulse) * enemy_alpha)
@@ -200,16 +188,6 @@ static func draw_game(main: Node2D) -> void:
 				enemy_radius + 1.5 + 2.0 * enemy_flash_ratio,
 				_with_alpha(Color.WHITE, (0.08 + 0.16 * enemy_flash_ratio) * enemy_alpha)
 			)
-		if time_stop_strength > 0.001:
-			main.draw_arc(
-				enemy_screen_pos,
-				enemy_radius + 3.0 + 1.5 * time_stop_strength,
-				0.0,
-				TAU,
-				24,
-				_with_alpha(TIME_STOP_FRAME_COLOR, 0.06 + 0.14 * time_stop_strength),
-				1.2 + 1.0 * time_stop_strength
-			)
 		if enemy_flash_ratio > 0.0:
 			var enemy_ring_color: Color = Color(enemy.get("hit_flash_color", Color.WHITE))
 			enemy_ring_color.a = (0.2 + 0.26 * enemy_flash_ratio) * enemy_alpha
@@ -246,9 +224,10 @@ static func draw_game(main: Node2D) -> void:
 		elif not is_enemy_dying and enemy.get("melee_timer", 0.0) > 0.0:
 			_draw_puppet_attack_telegraph(main, enemy, enemy_screen_pos)
 
-	_draw_time_stop_wash(main)
-
 	var player_pos: Vector2 = main._to_screen(main.player["pos"])
+	var distance_guide_strength: float = main._get_array_distance_guide_strength()
+	if distance_guide_strength > 0.01:
+		_draw_array_distance_guides(main, player_pos, distance_guide_strength)
 	main.draw_circle(player_pos, main.PLAYER_RADIUS, main.COLORS["player"])
 	var aura_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
 	var array_channeling: bool = bool(main.player.get("array_is_firing", false))
@@ -271,6 +250,7 @@ static func draw_game(main: Node2D) -> void:
 			_with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.55),
 			2.2
 		)
+	_draw_resonance_player_mark(main, player_pos)
 	if array_warning_strength > 0.01:
 		var warning_pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 11.0)
 		var warning_color: Color = main.COLORS["energy"]
@@ -308,6 +288,11 @@ static func draw_game(main: Node2D) -> void:
 	_draw_sword_return_catches(main)
 
 	_draw_array_mode_confirm(main, player_pos)
+	var mode_hint_strength: float = array_hold_ratio * 0.58
+	if array_channeling:
+		mode_hint_strength = maxf(mode_hint_strength, 0.48)
+	if mode_hint_strength > 0.01:
+		_draw_current_array_mode_hint(main, player_pos, mode_hint_strength)
 
 	if not array_channeling:
 		_draw_ambient_array_presence(main, player_pos, array_hold_ratio)
@@ -336,6 +321,12 @@ static func draw_game(main: Node2D) -> void:
 				main.draw_circle(empty_slot_pos, 1.6, _with_alpha(ghost_color, 0.08))
 		slot_index += 1
 
+	var resonance_mode: String = main._get_resonance_mode()
+	var resonance_strength: float = main._get_resonance_strength()
+	var resonance_preview_strength: float = main._get_resonance_preview_strength()
+	var resonance_color: Color = main._get_resonance_color(resonance_mode)
+	var resonance_sword_mark_strength: float = clampf(resonance_strength * 0.42 + resonance_preview_strength * 0.76, 0.0, 1.0)
+	_draw_resonance_array_field(main, player_pos, resonance_mode, resonance_color, resonance_strength, resonance_preview_strength)
 	for array_sword in main.array_swords:
 		var array_sword_pos: Vector2 = main._to_screen(array_sword["pos"])
 		var array_sword_color: Color = SwordArrayController.get_accent_color(main._get_sword_array_morph_state())
@@ -345,6 +336,12 @@ static func draw_game(main: Node2D) -> void:
 			array_sword_color = main.COLORS["array_sword"]
 		if array_channeling:
 			array_sword_color = _get_channeled_array_sword_color(main, array_sword_color)
+		if resonance_sword_mark_strength > 0.01:
+			array_sword_color = array_sword_color.lerp(resonance_color, clampf(resonance_sword_mark_strength * 0.55, 0.0, 0.68))
+		var array_combo_id: String = String(array_sword.get("combo_id", ""))
+		var array_combo_strength: float = _get_combo_strength(array_sword)
+		if array_combo_id == SwordResonanceController.COMBO_RING_TO_PIERCE and array_combo_strength > 0.01:
+			array_sword_color = array_sword_color.lerp(SwordResonanceController.get_color(SwordArrayConfig.MODE_RING), 0.34 * array_combo_strength)
 		var forward: Vector2 = Vector2.RIGHT
 		if array_sword["vel"].length_squared() > 1.0:
 			forward = array_sword["vel"].normalized()
@@ -367,6 +364,8 @@ static func draw_game(main: Node2D) -> void:
 				_draw_ready_array_sword_primed(main, array_sword_pos, tip_pos, left_pos, right_pos, array_sword_color, array_hold_ratio)
 			else:
 				_draw_ready_array_sword_idle(main, array_sword_pos, tip_pos, left_pos, right_pos, array_sword_color)
+			if resonance_sword_mark_strength > 0.01:
+				_draw_resonance_sword_mark(main, array_sword_pos, forward, side, resonance_mode, resonance_color, resonance_sword_mark_strength * 0.78)
 			continue
 		var array_sword_focus_strength: float = 0.16 if array_channeling else 0.03
 		var sword_scale: float = 0.94 if array_channeling else 0.88
@@ -385,6 +384,10 @@ static func draw_game(main: Node2D) -> void:
 			array_local_glow_strength = float(sword_vfx.local_glow_array_channel_base) + float(sword_vfx.local_glow_array_channel_hold_scale) * array_hold_ratio
 			array_glow_style = "slice"
 		_draw_sword_body(main, array_sword_pos, forward, array_sword_color, sword_scale, array_sword_focus_strength, array_local_glow_strength, array_glow_style)
+		if array_combo_id == SwordResonanceController.COMBO_RING_TO_PIERCE and array_combo_strength > 0.01:
+			_draw_ring_to_pierce_array_combo(main, array_sword_pos, forward, array_combo_strength)
+		if resonance_sword_mark_strength > 0.01:
+			_draw_resonance_sword_mark(main, array_sword_pos, forward, side, resonance_mode, resonance_color, resonance_sword_mark_strength)
 
 	if main.debug_calibration_mode:
 		_draw_debug_calibration_overlay(main, player_pos)
@@ -405,7 +408,7 @@ static func draw_game(main: Node2D) -> void:
 	var sword_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
 	var sword_angle: float = main._get_sword_visual_angle()
 	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
-	var sword_focus_strength: float = 0.06 if main.player["mode"] == main.CombatMode.MELEE else 0.26 + time_stop_strength * 1.04
+	var sword_focus_strength: float = 0.06 if main.player["mode"] == main.CombatMode.MELEE else 0.26
 	sword_focus_strength += sword_impact_ratio * (0.42 if main.player["mode"] == main.CombatMode.MELEE else 0.56)
 	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
 	var sword_vfx = _get_sword_vfx(main)
@@ -415,6 +418,10 @@ static func draw_game(main: Node2D) -> void:
 	if sword_state == main.SwordState.POINT_STRIKE:
 		var point_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
 		sword_local_glow_strength = float(sword_vfx.local_glow_point_base) + float(sword_vfx.local_glow_point_speed_scale) * point_speed_ratio
+		sword_glow_style = "point"
+	elif sword_state == main.SwordState.PIERCE_DRAWING:
+		sword_local_glow_strength = maxf(float(sword_vfx.local_glow_point_base), 0.28)
+		sword_focus_strength += 0.16
 		sword_glow_style = "point"
 	elif sword_state == main.SwordState.SLICING:
 		var slice_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
@@ -434,13 +441,10 @@ static func draw_game(main: Node2D) -> void:
 		sword_glow_style = "idle"
 	sword_local_glow_strength = clampf(
 		sword_local_glow_strength
-		+ sword_impact_ratio * float(sword_vfx.local_glow_impact_bonus_scale)
-		+ time_stop_strength * float(sword_vfx.local_glow_time_stop_bonus_scale),
+		+ sword_impact_ratio * float(sword_vfx.local_glow_impact_bonus_scale),
 		0.0,
 		1.0
 	)
-	if main.sword["state"] != main.SwordState.ORBITING and time_stop_strength > 0.001:
-		_draw_time_stop_sword_focus(main, sword_pos, sword_forward, time_stop_strength)
 	_draw_sword_motion_front(main, sword_pos, sword_forward, sword_color)
 	if sword_impact_ratio > 0.0 and not use_node_main_sword_vfx:
 		_draw_sword_impact_smear(main, sword_base_pos, sword_pos, sword_forward, sword_color, sword_impact_ratio)
@@ -451,6 +455,21 @@ static func draw_game(main: Node2D) -> void:
 		)
 	if not use_node_main_sword_vfx:
 		_draw_sword_body(main, sword_pos, sword_forward, sword_color, 1.6, sword_focus_strength, sword_local_glow_strength, sword_glow_style)
+	if resonance_sword_mark_strength > 0.01 and sword_state != main.SwordState.ORBITING:
+		_draw_resonance_main_sword_mark(
+			main,
+			sword_pos,
+			sword_forward,
+			resonance_mode,
+			resonance_color,
+			clampf(resonance_strength * 0.12 + resonance_preview_strength * 0.82, 0.0, 1.0)
+		)
+	var sword_combo_id: String = String(main.sword.get("combo_id", ""))
+	var sword_combo_strength: float = _get_combo_strength(main.sword)
+	if sword_combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP and sword_combo_strength > 0.01:
+		_draw_fan_time_stop_combo(main, sword_pos, sword_forward, sword_combo_strength)
+	elif sword_combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP and sword_combo_strength > 0.01:
+		_draw_pierce_time_stop_combo(main, sword_pos, sword_forward, sword_combo_strength)
 
 	if main.player["attack_flash_timer"] > 0.0:
 		var attack_angle: float = (main.mouse_world - main.player["pos"]).angle()
@@ -496,13 +515,14 @@ static func _draw_art_background(main: Node2D) -> void:
 	var arena_rect: Rect2 = main.ARENA_RECT
 	var arena_center: Vector2 = arena_rect.get_center()
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
-	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.74), true)
-	main.draw_rect(arena_rect.grow(32.0), _with_alpha(ART_BLUE, 0.028), true)
-	main.draw_rect(arena_rect.grow(14.0), _with_alpha(ART_BG_DEEP, 0.58), true)
-	main.draw_rect(arena_rect, main._get_time_stop_world_color(ART_ARENA), true)
+	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.82), true)
+	_draw_art_depth_wash(main, viewport_rect, arena_rect)
+	main.draw_rect(arena_rect.grow(34.0), _with_alpha(ART_BLUE, 0.018), true)
+	main.draw_rect(arena_rect.grow(14.0), _with_alpha(ART_BG_DEEP, 0.62), true)
+	main.draw_rect(arena_rect, ART_ARENA, true)
 	main.draw_rect(
 		Rect2(arena_rect.position + arena_rect.size * 0.08, arena_rect.size * 0.84),
-		main._get_time_stop_world_color(_with_alpha(ART_ARENA_CORE, 0.54)),
+		_with_alpha(ART_ARENA_CORE, 0.54),
 		true
 	)
 	_draw_art_star_field(main, arena_rect)
@@ -510,8 +530,46 @@ static func _draw_art_background(main: Node2D) -> void:
 	_draw_art_mist_lines(main, arena_rect)
 
 
+static func _draw_art_depth_wash(main: Node2D, viewport_rect: Rect2, arena_rect: Rect2) -> void:
+	var center := arena_rect.get_center()
+	var slash_axis := Vector2(0.96, -0.28).normalized()
+	var counter_axis := Vector2(0.72, 0.48).normalized()
+	_draw_soft_diagonal_band(main, center + Vector2(-90.0, -34.0), slash_axis, arena_rect.size.x * 0.74, 96.0, ART_BLUE, 0.028)
+	_draw_soft_diagonal_band(main, center + Vector2(82.0, 72.0), slash_axis, arena_rect.size.x * 0.56, 58.0, ART_GOLD, 0.016)
+	_draw_soft_diagonal_band(main, center + Vector2(140.0, -150.0), counter_axis, arena_rect.size.x * 0.48, 72.0, ART_BLUE_CORE, 0.014)
+	main.draw_rect(
+		Rect2(Vector2.ZERO, Vector2(viewport_rect.size.x, 110.0)),
+		_with_alpha(ART_BG_DEEP, 0.18),
+		true
+	)
+	main.draw_rect(
+		Rect2(Vector2(0.0, viewport_rect.size.y - 135.0), Vector2(viewport_rect.size.x, 135.0)),
+		_with_alpha(ART_BG_DEEP, 0.24),
+		true
+	)
+
+
+static func _draw_soft_diagonal_band(
+	main: Node2D,
+	center: Vector2,
+	axis: Vector2,
+	half_length: float,
+	half_width: float,
+	color: Color,
+	alpha: float
+) -> void:
+	var normal := Vector2(-axis.y, axis.x)
+	var points := PackedVector2Array([
+		center - axis * half_length - normal * half_width * 0.46,
+		center - axis * half_length * 0.32 + normal * half_width,
+		center + axis * half_length + normal * half_width * 0.52,
+		center + axis * half_length * 0.34 - normal * half_width,
+	])
+	_try_draw_colored_polygon(main, points, _with_alpha(color, alpha))
+
+
 static func _draw_art_star_field(main: Node2D, arena_rect: Rect2) -> void:
-	var star_count: int = 62
+	var star_count: int = 36
 	var star_index: int = 0
 	while star_index < star_count:
 		var x_ratio: float = fmod(float(star_index) * 0.6180339 + 0.13, 1.0)
@@ -519,54 +577,76 @@ static func _draw_art_star_field(main: Node2D, arena_rect: Rect2) -> void:
 		var star_pos: Vector2 = arena_rect.position + Vector2(x_ratio * arena_rect.size.x, y_ratio * arena_rect.size.y)
 		var shimmer: float = 0.58 + 0.42 * sin(main.elapsed_time * (0.22 + float(star_index % 5) * 0.035) + float(star_index) * 1.71)
 		var star_color: Color = ART_GOLD.lerp(ART_BLUE_CORE, fmod(float(star_index) * 0.37, 1.0))
-		var star_alpha: float = (0.05 + 0.13 * shimmer) * (0.65 if star_index % 7 == 0 else 1.0)
-		main.draw_circle(star_pos, 0.9 + fmod(float(star_index) * 1.9, 2.2), main._get_time_stop_world_color(_with_alpha(star_color, star_alpha)))
-		if star_index % 13 == 0:
-			main.draw_line(
-				star_pos - Vector2(8.0, 0.0),
-				star_pos + Vector2(8.0, 0.0),
-				main._get_time_stop_world_color(_with_alpha(star_color, star_alpha * 0.34)),
-				1.0
-			)
-			main.draw_line(
-				star_pos - Vector2(0.0, 8.0),
-				star_pos + Vector2(0.0, 8.0),
-				main._get_time_stop_world_color(_with_alpha(star_color, star_alpha * 0.34)),
-				1.0
-			)
+		var star_alpha: float = (0.032 + 0.074 * shimmer) * (0.72 if star_index % 7 == 0 else 1.0)
+		var star_radius: float = 0.75 + fmod(float(star_index) * 1.9, 1.8)
+		main.draw_circle(star_pos, star_radius, _with_alpha(star_color, star_alpha))
+		if star_index % 11 == 0:
+			main.draw_circle(star_pos, star_radius + 4.5, _with_alpha(star_color, star_alpha * 0.12))
 		star_index += 1
 
 
 static func _draw_art_orbit_field(main: Node2D, arena_center: Vector2) -> void:
-	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 0.42)
-	var radii := [82.0, 146.0, 224.0, 318.0, 430.0]
-	for radius_variant in radii:
-		var radius: float = float(radius_variant)
-		main.draw_arc(
-			arena_center,
-			radius,
-			0.0,
-			TAU,
-			96,
-			main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.035 + 0.025 * pulse)),
-			1.0
+	var arena_rect: Rect2 = main.ARENA_RECT
+	var node_positions: Array[Vector2] = []
+	var node_count := 27
+	var node_index := 0
+	while node_index < node_count:
+		var x_ratio: float = fmod(float(node_index) * 0.381966 + 0.19, 1.0)
+		var y_ratio: float = fmod(float(node_index * node_index) * 0.041 + float(node_index) * 0.137 + 0.07, 1.0)
+		var drift := Vector2(
+			sin(main.elapsed_time * 0.07 + float(node_index) * 1.9),
+			cos(main.elapsed_time * 0.06 + float(node_index) * 1.3)
+		) * 4.0
+		node_positions.append(arena_rect.position + Vector2(x_ratio * arena_rect.size.x, y_ratio * arena_rect.size.y) + drift)
+		node_index += 1
+
+	node_index = 1
+	while node_index < node_positions.size():
+		var pos: Vector2 = node_positions[node_index]
+		var linked_index := maxi(node_index - 1 - (node_index % 3), 0)
+		var linked_pos: Vector2 = node_positions[linked_index]
+		if pos.distance_to(linked_pos) < 260.0 and node_index % 4 != 0:
+			var link_alpha := 0.030 + 0.014 * sin(main.elapsed_time * 0.18 + float(node_index))
+			main.draw_line(linked_pos, pos, _with_alpha(ART_BLUE, link_alpha), 1.0)
+		node_index += 1
+
+	var pulse := 0.5 + 0.5 * sin(main.elapsed_time * 0.38)
+	node_index = 0
+	while node_index < node_positions.size():
+		var pos: Vector2 = node_positions[node_index]
+		var node_color := ART_GOLD.lerp(ART_BLUE_CORE, fmod(float(node_index) * 0.29, 1.0))
+		var node_alpha := 0.064 + 0.038 * pulse
+		var node_radius := 1.2 + fmod(float(node_index) * 0.73, 1.6)
+		main.draw_circle(pos, node_radius + 3.2, _with_alpha(node_color, node_alpha * 0.13))
+		main.draw_circle(pos, node_radius, _with_alpha(node_color, node_alpha))
+		node_index += 1
+
+	_draw_art_drift_strokes(main, arena_rect, arena_center)
+
+
+static func _draw_art_drift_strokes(main: Node2D, arena_rect: Rect2, arena_center: Vector2) -> void:
+	var axis := Vector2(0.94, -0.34).normalized()
+	var normal := Vector2(-axis.y, axis.x)
+	var stroke_index := 0
+	while stroke_index < 5:
+		var t := float(stroke_index) / 4.0
+		var anchor := arena_rect.position + Vector2(
+			arena_rect.size.x * lerpf(0.12, 0.78, t),
+			arena_rect.size.y * (0.22 + 0.42 * fmod(t * 1.7 + 0.18, 1.0))
 		)
-	var orbit_index: int = 0
-	while orbit_index < 6:
-		var t: float = float(orbit_index) / 5.0
-		var orbit_radius: float = lerpf(118.0, 390.0, t)
-		var arc_angle: float = PI * (0.58 + 0.34 * t)
-		var angle: float = -PI * 0.22 + t * 0.82 + sin(main.elapsed_time * 0.12 + t * 2.3) * 0.08
-		main.draw_arc(
-			arena_center,
-			orbit_radius,
-			angle - arc_angle * 0.5,
-			angle + arc_angle * 0.5,
-			42,
-			main._get_time_stop_world_color(_with_alpha(ART_BLUE, 0.035 + 0.035 * (1.0 - t))),
-			1.0
-		)
-		orbit_index += 1
+		var breathe := sin(main.elapsed_time * 0.13 + float(stroke_index) * 1.8)
+		var half_length := 46.0 + 34.0 * float(stroke_index % 3)
+		var offset := normal * (breathe * 7.0 + float(stroke_index - 2) * 10.0)
+		var color := ART_BLUE.lerp(ART_GOLD, 0.24 + 0.12 * float(stroke_index % 2))
+		main.draw_line(anchor - axis * half_length + offset, anchor + axis * half_length + offset, _with_alpha(color, 0.034), 1.0)
+		stroke_index += 1
+
+	main.draw_line(
+		arena_center - axis * 235.0 - normal * 96.0,
+		arena_center + axis * 250.0 - normal * 116.0,
+		_with_alpha(ART_BLUE_CORE, 0.022),
+		1.0
+	)
 
 
 static func _draw_art_mist_lines(main: Node2D, arena_rect: Rect2) -> void:
@@ -580,290 +660,36 @@ static func _draw_art_mist_lines(main: Node2D, arena_rect: Rect2) -> void:
 		main.draw_line(
 			Vector2(start_x, y),
 			Vector2(minf(start_x + length, arena_rect.end.x - 38.0), y + sin(float(line_index) * 1.7) * 9.0),
-			main._get_time_stop_world_color(_with_alpha(color, 0.032)),
+			_with_alpha(color, 0.032),
 			1.0
 		)
 		line_index += 1
 
 
 static func _draw_art_tactical_grid(main: Node2D) -> void:
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
-	var time_stop_grid_fade: float = 1.0 - 0.72 * time_stop_strength
 	var x: int = 0
 	while x <= int(main.ARENA_SIZE.x):
-		var alpha_scale: float = (1.0 if x % 100 == 0 else 0.52) * time_stop_grid_fade
+		var alpha_scale: float = 1.0 if x % 200 == 0 else 0.38
 		var from: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), 0.0)
 		var to: Vector2 = main.ARENA_ORIGIN + Vector2(float(x), main.ARENA_SIZE.y)
-		main.draw_line(from, to, main._get_time_stop_world_color(_with_alpha(ART_GRID, ART_GRID.a * alpha_scale)), 1.0)
-		x += 50
+		main.draw_line(from, to, _with_alpha(ART_GRID, ART_GRID.a * alpha_scale), 1.0)
+		x += 100
 
 	var y: int = 0
 	while y <= int(main.ARENA_SIZE.y):
-		var alpha_scale: float = (1.0 if y % 100 == 0 else 0.52) * time_stop_grid_fade
+		var alpha_scale: float = 1.0 if y % 200 == 0 else 0.38
 		var from_y: Vector2 = main.ARENA_ORIGIN + Vector2(0.0, float(y))
 		var to_y: Vector2 = main.ARENA_ORIGIN + Vector2(main.ARENA_SIZE.x, float(y))
-		main.draw_line(from_y, to_y, main._get_time_stop_world_color(_with_alpha(ART_GRID, ART_GRID.a * alpha_scale)), 1.0)
-		y += 50
-
-
-static func _draw_time_stop_background_ink(main: Node2D) -> void:
-	if not bool(main.时停分层水墨启用):
-		return
-	var strength: float = clampf(main._get_time_stop_visual_strength() * float(main.时停背景墨化强度), 0.0, 1.0)
-	var pulse: float = maxf(main._get_time_stop_entry_pulse_strength(), main._get_time_stop_ink_break_strength())
-	if strength <= 0.001 and pulse <= 0.001:
-		return
-	var arena_rect: Rect2 = main.ARENA_RECT
-	var paper_alpha: float = clampf((0.24 + 0.46 * strength + 0.12 * pulse) * float(main.时停宣纸覆盖), 0.0, 0.82)
-	var cool_alpha: float = (0.03 + 0.08 * strength) * float(main.时停背景冷蓝雾)
-	main.draw_rect(arena_rect, _with_alpha(Color(0.76, 0.79, 0.8), paper_alpha), true)
-	main.draw_rect(arena_rect, _with_alpha(Color(0.91, 0.92, 0.9), 0.12 * strength), true)
-	_draw_time_stop_large_brush_field(main, arena_rect, strength, pulse)
-	main.draw_rect(arena_rect, _with_alpha(ART_BLUE, cool_alpha), true)
-	_draw_time_stop_paper_grain(main, arena_rect, strength)
-	_draw_time_stop_vignette(main, arena_rect, strength)
-
-
-static func _draw_time_stop_paper_grain(main: Node2D, arena_rect: Rect2, strength: float) -> void:
-	var alpha: float = clampf(0.05 + 0.15 * strength, 0.0, 0.22)
-	var blot_count: int = 18
-	var blot_index: int = 0
-	while blot_index < blot_count:
-		var x_ratio: float = _stable_noise(blot_index, 1.7)
-		var y_ratio: float = _stable_noise(blot_index, 8.4)
-		var center: Vector2 = arena_rect.position + Vector2(x_ratio * arena_rect.size.x, y_ratio * arena_rect.size.y)
-		var radius: float = lerpf(22.0, 82.0, _stable_noise(blot_index, 3.2)) * (0.65 + 0.55 * strength)
-		var tone: float = _stable_noise(blot_index, 9.1)
-		var color: Color = Color(0.06, 0.075, 0.09, alpha * (0.35 + 0.65 * tone)) if tone > 0.45 else Color(0.82, 0.88, 0.92, alpha * 0.45)
-		_draw_irregular_ink_poly(main, center, radius, blot_index, color)
-		blot_index += 1
-	var line_index: int = 0
-	while line_index < 8:
-		var y: float = arena_rect.position.y + arena_rect.size.y * _stable_noise(line_index, 14.0)
-		var start_x: float = arena_rect.position.x + arena_rect.size.x * _stable_noise(line_index, 15.0) * 0.35
-		var length: float = arena_rect.size.x * lerpf(0.18, 0.52, _stable_noise(line_index, 16.0))
-		main.draw_line(
-			Vector2(start_x, y),
-			Vector2(minf(start_x + length, arena_rect.end.x), y + lerpf(-18.0, 18.0, _stable_noise(line_index, 17.0))),
-			_with_alpha(Color(0.86, 0.92, 0.96), alpha * 0.36),
-			1.0 + strength
-		)
-		line_index += 1
-
-
-static func _draw_time_stop_large_brush_field(main: Node2D, arena_rect: Rect2, strength: float, pulse: float) -> void:
-	var brush_strength: float = clampf((strength + pulse * 0.65) * float(main.时停背景笔触强度), 0.0, 2.0)
-	if brush_strength <= 0.001:
-		return
-	var center: Vector2 = arena_rect.get_center()
-	var focus: Vector2 = main._get_time_stop_focus_screen_position()
-	var axis: Vector2 = focus - center
-	if axis.length_squared() <= 4.0:
-		axis = Vector2.RIGHT
-	axis = axis.normalized()
-	var side: Vector2 = axis.rotated(PI * 0.5)
-	var sweep_count: int = 9
-	var sweep_index: int = 0
-	while sweep_index < sweep_count:
-		var t: float = float(sweep_index) / maxf(float(sweep_count - 1), 1.0)
-		var lane: float = lerpf(-0.82, 0.82, t)
-		var start: Vector2 = center - axis * arena_rect.size.x * (0.52 + 0.08 * _stable_noise(sweep_index, 30.0)) + side * lane * arena_rect.size.y * 0.48
-		var end: Vector2 = center + axis * arena_rect.size.x * (0.42 + 0.1 * _stable_noise(sweep_index, 31.0)) + side * (lane * 0.18 + lerpf(-0.28, 0.28, _stable_noise(sweep_index, 32.0))) * arena_rect.size.y
-		var width: float = lerpf(18.0, 62.0, _stable_noise(sweep_index, 33.0)) * (0.7 + 0.45 * brush_strength)
-		var dark_color: Color = _with_alpha(Color(0.12, 0.15, 0.17), (0.035 + 0.07 * _stable_noise(sweep_index, 34.0)) * brush_strength)
-		_draw_brush_stroke(main, start, end, width, sweep_index, dark_color)
-		if sweep_index % 3 == 0:
-			_draw_brush_stroke(main, start + side * width * 0.42, end - side * width * 0.24, width * 0.32, sweep_index + 50, _with_alpha(Color(0.86, 0.9, 0.91), 0.035 * brush_strength))
-		sweep_index += 1
-	var ring_count: int = 5
-	var ring_index: int = 0
-	while ring_index < ring_count:
-		var radius: float = lerpf(120.0, 430.0, float(ring_index) / maxf(float(ring_count - 1), 1.0))
-		var start_angle: float = -PI * 0.78 + float(ring_index) * 0.42
-		var end_angle: float = start_angle + PI * (0.72 + 0.18 * _stable_noise(ring_index, 35.0))
-		main.draw_arc(center + axis * 20.0, radius, start_angle, end_angle, 72, _with_alpha(Color(0.08, 0.1, 0.11), 0.045 * brush_strength), 5.0 + 3.0 * brush_strength)
-		ring_index += 1
-
-
-static func _draw_brush_stroke(main: Node2D, start: Vector2, end: Vector2, half_width: float, seed: int, color: Color) -> void:
-	if color.a <= 0.001:
-		return
-	var axis: Vector2 = end - start
-	if axis.length_squared() <= 1.0:
-		return
-	var forward: Vector2 = axis.normalized()
-	var side: Vector2 = forward.rotated(PI * 0.5)
-	var segment_count: int = 12
-	var top := PackedVector2Array()
-	var bottom := PackedVector2Array()
-	var index: int = 0
-	while index <= segment_count:
-		var t: float = float(index) / float(segment_count)
-		var taper: float = sin(t * PI)
-		var center: Vector2 = start.lerp(end, t) + side * sin(t * TAU * 1.7 + float(seed)) * half_width * 0.18 * taper
-		var local_width: float = half_width * (0.18 + 0.82 * taper) * (0.68 + 0.42 * _stable_noise(seed * 31 + index, 36.0))
-		top.append(center + side * local_width)
-		bottom.append(center - side * local_width * (0.72 + 0.35 * _stable_noise(seed * 37 + index, 37.0)))
-		index += 1
-	var poly := PackedVector2Array()
-	for point in top:
-		poly.append(point)
-	index = bottom.size() - 1
-	while index >= 0:
-		poly.append(bottom[index])
-		index -= 1
-	_try_draw_colored_polygon(main, poly, color)
-
-
-static func _draw_time_stop_vignette(main: Node2D, arena_rect: Rect2, strength: float) -> void:
-	var vignette_alpha: float = clampf(strength * float(main.时停背景暗角), 0.0, 0.9)
-	if vignette_alpha <= 0.001:
-		return
-	var edge_color: Color = _with_alpha(Color(0.0, 0.012, 0.024), 0.12 * vignette_alpha)
-	var ring_index: int = 0
-	while ring_index < 5:
-		var grow: float = 4.0 + float(ring_index) * 18.0
-		main.draw_rect(arena_rect.grow(grow), edge_color, false, 12.0 + float(ring_index) * 10.0)
-		ring_index += 1
-
-
-static func _draw_time_stop_actor_freeze_outline(main: Node2D, center: Vector2, radius: float, alpha_scale := 1.0) -> void:
-	var strength: float = main._get_time_stop_visual_strength() * float(main.时停对象冻结描边)
-	if strength <= 0.001:
-		return
-	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 5.0 + center.x * 0.017)
-	main.draw_arc(
-		center,
-		radius + 4.0 + 2.0 * pulse,
-		0.0,
-		TAU,
-		28,
-		_with_alpha(TIME_STOP_FRAME_COLOR, (0.07 + 0.12 * strength) * alpha_scale),
-		1.1 + 1.4 * strength
-	)
-	main.draw_arc(
-		center,
-		radius + 9.0 + 3.0 * strength,
-		-PI * 0.12,
-		PI * 1.28,
-		26,
-		_with_alpha(TIME_STOP_FRAME_CORE_COLOR, (0.035 + 0.08 * strength) * alpha_scale),
-		0.9 + 0.8 * strength
-	)
-
-
-static func _draw_time_stop_target_ink_blot(main: Node2D, center: Vector2, radius: float) -> void:
-	var strength: float = main._get_time_stop_visual_strength() * float(main.时停目标墨斑强度)
-	if strength <= 0.001:
-		return
-	var seed: int = int(center.x * 0.37 + center.y * 0.61)
-	_draw_irregular_ink_poly(main, center, radius * (2.0 + 0.6 * strength), seed, _with_alpha(Color(0.01, 0.012, 0.015), 0.12 + 0.18 * strength))
-	_draw_irregular_ink_poly(main, center + Vector2(radius * 0.22, -radius * 0.18), radius * (1.35 + 0.4 * strength), seed + 7, _with_alpha(Color(0.18, 0.19, 0.19), 0.08 + 0.1 * strength))
-	var spike_count: int = 10
-	var spike_index: int = 0
-	while spike_index < spike_count:
-		var angle: float = float(spike_index) / float(spike_count) * TAU + _stable_noise(seed + spike_index, 40.0) * 0.4
-		var direction: Vector2 = Vector2.RIGHT.rotated(angle)
-		var start: Vector2 = center + direction * radius * 0.9
-		var end: Vector2 = center + direction * radius * lerpf(1.35, 2.7, _stable_noise(seed + spike_index, 41.0))
-		main.draw_line(start, end, _with_alpha(Color(0.0, 0.0, 0.0), (0.08 + 0.12 * strength) * _stable_noise(seed + spike_index, 42.0)), 1.2 + 1.8 * strength)
-		spike_index += 1
-
-
-static func _draw_time_stop_ink_break(main: Node2D) -> void:
-	if not bool(main.时停分层水墨启用) or not bool(main.时停破墨启用):
-		return
-	var pulse: float = clampf(main._get_time_stop_ink_break_strength(), 0.0, 1.0)
-	if pulse <= 0.001:
-		return
-	var progress: float = clampf(main._get_time_stop_ink_break_progress(), 0.0, 1.0)
-	var strength: float = clampf(float(main.时停破墨强度), 0.0, 2.0)
-	var player_pos: Vector2 = main._to_screen(Vector2(main.player.get("pos", main.ARENA_SIZE * 0.5)))
-	var focus_pos: Vector2 = main._get_time_stop_focus_screen_position()
-	var forward: Vector2 = focus_pos - player_pos
-	if forward.length_squared() <= 4.0:
-		forward = main._to_screen(main.mouse_world) - player_pos
-	if forward.length_squared() <= 4.0:
-		forward = Vector2.RIGHT
-	forward = forward.normalized()
-	var side: Vector2 = forward.rotated(PI * 0.5)
-	var center: Vector2 = player_pos.lerp(focus_pos, 0.48)
-	var length: float = (360.0 + 740.0 * smoothstep(0.0, 1.0, progress)) * float(main.时停破墨长度倍率)
-	var width: float = (34.0 + 128.0 * sin(progress * PI)) * float(main.时停破墨宽度倍率)
-	var start: Vector2 = center - forward * length * 0.36
-	var end: Vector2 = center + forward * length * 0.64
-	var points: Array[Vector2] = []
-	var segment_count: int = 10
-	var segment_index: int = 0
-	while segment_index <= segment_count:
-		var t: float = float(segment_index) / float(segment_count)
-		var jag: float = (sin(t * TAU * 2.7 + 0.9) * 0.55 + sin(t * TAU * 5.1 + 2.1) * 0.28)
-		var taper: float = sin(t * PI)
-		points.append(start.lerp(end, t) + side * jag * width * taper)
-		segment_index += 1
-	var dark_alpha: float = (0.38 + 0.44 * pulse) * strength
-	var paper_alpha: float = (0.38 + 0.42 * pulse) * strength
-	_draw_ink_break_poly(main, points, side, width * 1.05, _with_alpha(Color(0.005, 0.007, 0.01), dark_alpha))
-	_draw_ink_break_poly(main, points, side, width * 0.62, _with_alpha(Color(0.88, 0.92, 0.93), paper_alpha))
-	_draw_ink_break_poly(main, points, side, width * 0.18, _with_alpha(Color(0.96, 0.99, 1.0), 0.26 * pulse * strength))
-	_draw_ink_break_lines(main, points, pulse, strength)
-	_draw_ink_break_droplets(main, points, forward, side, width, pulse, strength * float(main.时停破墨墨滴倍率))
-
-
-static func _draw_ink_break_poly(main: Node2D, points: Array[Vector2], side: Vector2, half_width: float, color: Color) -> void:
-	if points.size() < 2 or half_width <= 0.0 or color.a <= 0.001:
-		return
-	var poly := PackedVector2Array()
-	var point_count: int = points.size()
-	var index: int = 0
-	while index < point_count:
-		var t: float = float(index) / maxf(float(point_count - 1), 1.0)
-		var local_width: float = half_width * (0.22 + 0.78 * sin(t * PI)) * (0.72 + 0.28 * _stable_noise(index, half_width * 0.13))
-		poly.append(points[index] + side * local_width)
-		index += 1
-	index = point_count - 1
-	while index >= 0:
-		var t_back: float = float(index) / maxf(float(point_count - 1), 1.0)
-		var local_width_back: float = half_width * (0.2 + 0.76 * sin(t_back * PI)) * (0.72 + 0.28 * _stable_noise(index, half_width * 0.27 + 3.0))
-		poly.append(points[index] - side * local_width_back)
-		index -= 1
-	_try_draw_colored_polygon(main, poly, color)
-
-
-static func _draw_ink_break_lines(main: Node2D, points: Array[Vector2], pulse: float, strength: float) -> void:
-	var index: int = 0
-	while index < points.size() - 1:
-		main.draw_line(points[index], points[index + 1], _with_alpha(Color(0.0, 0.0, 0.0), (0.34 + 0.3 * pulse) * strength), 4.5 + 5.0 * pulse)
-		main.draw_line(points[index], points[index + 1], _with_alpha(Color(0.9, 0.97, 1.0), (0.18 + 0.24 * pulse) * strength), 1.5 + 2.0 * pulse)
-		index += 1
-
-
-static func _draw_ink_break_droplets(main: Node2D, points: Array[Vector2], forward: Vector2, side: Vector2, width: float, pulse: float, strength: float) -> void:
-	if strength <= 0.001:
-		return
-	var droplet_count: int = 18
-	var droplet_index: int = 0
-	while droplet_index < droplet_count:
-		var point_index: int = int(floor(_stable_noise(droplet_index, 20.0) * float(max(points.size() - 1, 1))))
-		var t: float = _stable_noise(droplet_index, 21.0)
-		var side_sign: float = -1.0 if _stable_noise(droplet_index, 22.0) < 0.5 else 1.0
-		var offset: float = lerpf(width * 0.28, width * 1.25, _stable_noise(droplet_index, 23.0)) * side_sign
-		var forward_offset: float = lerpf(-26.0, 34.0, _stable_noise(droplet_index, 24.0))
-		var pos: Vector2 = points[point_index] + side * offset + forward * forward_offset
-		var radius: float = lerpf(2.0, 10.0, _stable_noise(droplet_index, 25.0)) * (0.55 + 0.55 * pulse)
-		var color: Color = Color(0.02, 0.026, 0.032, (0.12 + 0.34 * pulse) * strength)
-		if t > 0.72:
-			color = Color(0.82, 0.9, 0.96, (0.08 + 0.16 * pulse) * strength)
-		_draw_irregular_ink_poly(main, pos, radius, droplet_index + 100, color)
-		droplet_index += 1
+		main.draw_line(from_y, to_y, _with_alpha(ART_GRID, ART_GRID.a * alpha_scale), 1.0)
+		y += 100
 
 
 static func _draw_art_arena_frame(main: Node2D) -> void:
 	var arena_rect: Rect2 = main.ARENA_RECT
-	var frame_color: Color = main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.34))
-	var soft_color: Color = main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.16))
-	main.draw_rect(arena_rect, main._get_time_stop_world_color(_with_alpha(ART_GOLD, 0.16)), false, 1.2)
-	main.draw_rect(arena_rect.grow(6.0), main._get_time_stop_world_color(_with_alpha(ART_BLUE, 0.045)), false, 1.0)
+	var frame_color: Color = _with_alpha(ART_GOLD, 0.34)
+	var soft_color: Color = _with_alpha(ART_GOLD, 0.16)
+	main.draw_rect(arena_rect, _with_alpha(ART_GOLD, 0.16), false, 1.2)
+	main.draw_rect(arena_rect.grow(6.0), _with_alpha(ART_BLUE, 0.045), false, 1.0)
 	var corner_len: float = 56.0
 	var corners := [
 		arena_rect.position,
@@ -908,6 +734,55 @@ static func _get_channeled_array_sword_color(main: Node2D, base_color: Color) ->
 	elif energy_ratio <= 0.18:
 		color = color.lerp(main.COLORS["health"], 0.22 + 0.18 * pulse)
 	return color
+
+
+static func _draw_resonance_array_field(
+	main: Node2D,
+	player_pos: Vector2,
+	mode: String,
+	color: Color,
+	strength: float,
+	preview_strength: float
+) -> void:
+	if mode == "" or strength <= 0.01:
+		return
+	var flash: float = main._get_resonance_flash_strength()
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 7.4)
+	var field_strength: float = clampf(strength * (0.66 + 0.24 * pulse) + preview_strength * 0.32 + flash * 0.36, 0.0, 1.0)
+	var aim_dir: Vector2 = main._to_screen(main.mouse_world) - player_pos
+	if aim_dir.is_zero_approx():
+		aim_dir = Vector2.RIGHT
+	aim_dir = aim_dir.normalized()
+	var side: Vector2 = aim_dir.orthogonal()
+	var core_color: Color = color.lerp(ART_BLUE_CORE, 0.26)
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			var ring_radius: float = main.PLAYER_RADIUS + 46.0 + 8.0 * pulse + 8.0 * flash
+			main.draw_circle(player_pos, ring_radius + 16.0, _with_alpha(color, 0.025 + 0.045 * field_strength))
+			main.draw_arc(player_pos, ring_radius, 0.0, TAU, 72, _with_alpha(color, 0.24 + 0.22 * field_strength), 2.0 + 1.6 * field_strength)
+			main.draw_arc(player_pos, ring_radius + 13.0, -main.elapsed_time * 1.5, -main.elapsed_time * 1.5 + TAU * 0.72, 56, _with_alpha(core_color, 0.18 + 0.18 * field_strength), 1.4 + field_strength)
+			main.draw_arc(player_pos, ring_radius - 12.0, main.elapsed_time * 1.1, main.elapsed_time * 1.1 + TAU * 0.46, 40, _with_alpha(ART_BLUE_CORE, 0.08 + 0.12 * field_strength), 1.0)
+		SwordArrayConfig.MODE_FAN:
+			var fan_radius: float = 92.0 + 28.0 * field_strength + 9.0 * flash
+			var arc_width: float = 0.72 + 0.18 * field_strength
+			main.draw_arc(player_pos, fan_radius, aim_dir.angle() - arc_width, aim_dir.angle() + arc_width, 48, _with_alpha(color, 0.22 + 0.22 * field_strength), 2.2 + 1.4 * field_strength)
+			main.draw_arc(player_pos, fan_radius + 18.0, aim_dir.angle() - arc_width * 0.86, aim_dir.angle() + arc_width * 0.86, 42, _with_alpha(core_color, 0.12 + 0.16 * field_strength), 1.2 + 0.8 * field_strength)
+			for offset in [-0.62, -0.31, 0.0, 0.31, 0.62]:
+				var ray: Vector2 = aim_dir.rotated(offset)
+				main.draw_line(
+					player_pos + ray * (main.PLAYER_RADIUS + 18.0),
+					player_pos + ray * (fan_radius + 8.0),
+					_with_alpha(color.lerp(ART_BLUE_CORE, 0.2), 0.08 + 0.12 * field_strength),
+					1.2 + 0.8 * field_strength
+				)
+		SwordArrayConfig.MODE_PIERCE:
+			var start_pos: Vector2 = player_pos + aim_dir * (main.PLAYER_RADIUS + 16.0)
+			var end_pos: Vector2 = player_pos + aim_dir * (148.0 + 42.0 * field_strength + 14.0 * flash)
+			for side_offset in [-10.0, 0.0, 10.0]:
+				var offset_pos: Vector2 = side * side_offset * (0.72 + 0.28 * field_strength)
+				var alpha: float = 0.08 + 0.18 * field_strength if absf(side_offset) < 0.1 else 0.04 + 0.1 * field_strength
+				main.draw_line(start_pos + offset_pos, end_pos + offset_pos, _with_alpha(color.lerp(ART_BLUE_CORE, 0.2), alpha), 1.0 + 1.4 * field_strength)
+			main.draw_circle(end_pos, 4.2 + 2.8 * field_strength, _with_alpha(core_color, 0.22 + 0.24 * field_strength))
 
 
 static func _draw_enemy_sigil(
@@ -1164,6 +1039,213 @@ static func _draw_deflected_bullet(
 	)
 
 
+static func _draw_array_distance_guides(main: Node2D, player_pos: Vector2, strength: float) -> void:
+	var guide_strength: float = clampf(strength, 0.0, 1.0)
+	if guide_strength <= 0.01:
+		return
+	var distances: Dictionary = SwordArrayConfig.get_morph_distances()
+	var mode_state: Dictionary = main._get_sword_array_fire_state()
+	var active_mode: String = str(mode_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+	var ring_color: Color = SwordArrayController.get_accent_color(SwordArrayConfig.MODE_RING)
+	var fan_color: Color = SwordArrayController.get_accent_color(SwordArrayConfig.MODE_FAN)
+	var pierce_color: Color = SwordArrayController.get_accent_color(SwordArrayConfig.MODE_PIERCE)
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 3.2)
+	var cursor_pos: Vector2 = main._to_screen(main.mouse_world)
+	var aim_axis: Vector2 = cursor_pos - player_pos
+	if aim_axis.is_zero_approx():
+		aim_axis = Vector2.RIGHT
+	var aim_dir: Vector2 = aim_axis.normalized()
+	var aim_angle: float = aim_dir.angle()
+	_draw_distance_guide_arc(
+		main,
+		player_pos,
+		float(distances.get("ring_stable_end", SwordArrayConfig.RING_STABLE_END)),
+		ring_color,
+		guide_strength,
+		active_mode == SwordArrayConfig.MODE_RING,
+		aim_dir,
+		aim_angle,
+		pulse
+	)
+	_draw_distance_guide_arc(
+		main,
+		player_pos,
+		float(distances.get("fan_stable_end", SwordArrayConfig.FAN_STABLE_END)),
+		fan_color,
+		guide_strength,
+		active_mode == SwordArrayConfig.MODE_FAN,
+		aim_dir,
+		aim_angle,
+		pulse
+	)
+	_draw_distance_guide_arc(
+		main,
+		player_pos,
+		float(distances.get("fan_to_pierce_end", SwordArrayConfig.FAN_TO_PIERCE_END)),
+		pierce_color,
+		guide_strength,
+		active_mode == SwordArrayConfig.MODE_PIERCE,
+		aim_dir,
+		aim_angle,
+		pulse
+	)
+	var transition_color: Color = fan_color.lerp(pierce_color, 0.42)
+	_draw_distance_guide_tick(
+		main,
+		player_pos,
+		float(distances.get("ring_to_fan_end", SwordArrayConfig.RING_TO_FAN_END)),
+		transition_color,
+		guide_strength * 0.55,
+		aim_dir
+	)
+
+	var active_color: Color = SwordArrayController.get_accent_color(active_mode)
+	main.draw_line(
+		player_pos + aim_dir * (main.PLAYER_RADIUS + 16.0),
+		cursor_pos,
+		_with_alpha(active_color, 0.055 + 0.11 * guide_strength),
+		1.0 + guide_strength * 0.45
+	)
+	var active_radius: float = float(distances.get("ring_stable_end", SwordArrayConfig.RING_STABLE_END))
+	match active_mode:
+		SwordArrayConfig.MODE_FAN:
+			active_radius = float(distances.get("fan_stable_end", SwordArrayConfig.FAN_STABLE_END))
+		SwordArrayConfig.MODE_PIERCE:
+			active_radius = float(distances.get("fan_to_pierce_end", SwordArrayConfig.FAN_TO_PIERCE_END))
+	var active_arc: float = deg_to_rad(64.0)
+	main.draw_arc(
+		player_pos,
+		active_radius,
+		aim_angle - active_arc * 0.5,
+		aim_angle + active_arc * 0.5,
+		20,
+		_with_alpha(active_color.lerp(Color.WHITE, 0.18), 0.2 * guide_strength + 0.12 * pulse * guide_strength),
+		2.0 + guide_strength
+	)
+	main.draw_circle(cursor_pos, 3.0 + 1.6 * guide_strength, _with_alpha(active_color.lerp(Color.WHITE, 0.24), 0.2 + 0.32 * guide_strength))
+	main.draw_arc(cursor_pos, 7.0 + 2.0 * pulse, 0.0, TAU, 18, _with_alpha(active_color, 0.14 + 0.18 * guide_strength), 1.0)
+
+
+static func _draw_distance_guide_arc(
+	main: Node2D,
+	player_pos: Vector2,
+	radius: float,
+	color: Color,
+	strength: float,
+	active: bool,
+	aim_dir: Vector2,
+	aim_angle: float,
+	pulse: float
+) -> void:
+	if radius <= 0.0:
+		return
+	var arc_span: float = deg_to_rad(34.0)
+	var alpha: float = (0.035 + 0.035 * strength) * strength
+	var width: float = 1.0 + 0.25 * strength
+	if active:
+		arc_span = deg_to_rad(72.0)
+		alpha = 0.13 * strength + 0.07 * pulse * strength
+		width = 1.6 + 0.9 * strength
+	main.draw_arc(player_pos, radius, aim_angle - arc_span * 0.5, aim_angle + arc_span * 0.5, 20, _with_alpha(color, alpha), width)
+	main.draw_arc(player_pos, radius + 4.0, aim_angle - arc_span * 0.28, aim_angle + arc_span * 0.28, 14, _with_alpha(color.lerp(Color.WHITE, 0.16), alpha * 0.32), 0.8)
+	_draw_distance_guide_tick(main, player_pos, radius, color, strength if active else strength * 0.48, aim_dir)
+
+
+static func _draw_distance_guide_tick(
+	main: Node2D,
+	player_pos: Vector2,
+	radius: float,
+	color: Color,
+	strength: float,
+	aim_dir: Vector2
+) -> void:
+	var tick_strength: float = clampf(strength, 0.0, 1.0)
+	if radius <= 0.0 or tick_strength <= 0.01:
+		return
+	var side: Vector2 = aim_dir.rotated(PI * 0.5)
+	var center: Vector2 = player_pos + aim_dir * radius
+	var tick_half_width: float = 5.0 + tick_strength * 5.0
+	var tick_depth: float = 3.0 + tick_strength * 2.0
+	main.draw_line(
+		center - side * tick_half_width - aim_dir * tick_depth,
+		center + side * tick_half_width - aim_dir * tick_depth,
+		_with_alpha(color.lerp(Color.WHITE, 0.12), 0.08 + 0.2 * tick_strength),
+		1.0 + 0.8 * tick_strength
+	)
+	main.draw_circle(center, 1.4 + tick_strength * 1.6, _with_alpha(color, 0.08 + 0.2 * tick_strength))
+
+
+static func _draw_current_array_mode_hint(main: Node2D, player_pos: Vector2, strength: float) -> void:
+	var hint_strength: float = clampf(strength, 0.0, 1.0)
+	var state: Dictionary = main._get_sword_array_fire_state()
+	var mode: String = str(state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+	var aim_vector: Vector2 = main.mouse_world - main.player["pos"]
+	if aim_vector.is_zero_approx():
+		aim_vector = Vector2.RIGHT
+	var forward: Vector2 = aim_vector.normalized()
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var angle: float = forward.angle()
+	var color: Color = SwordArrayController.get_accent_color(mode)
+	var soft_color: Color = SwordArrayController.get_soft_accent_color(mode)
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 5.0)
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			var guard_radius: float = main.PLAYER_RADIUS + 19.0 + pulse * 2.4
+			main.draw_arc(player_pos, guard_radius, 0.0, TAU, 42, _with_alpha(color, 0.16 * hint_strength), 1.8)
+			main.draw_arc(player_pos, guard_radius + 7.0, 0.0, TAU, 42, _with_alpha(soft_color, 0.08 * hint_strength), 1.1)
+			for spoke_index in range(4):
+				var spoke_angle: float = angle + float(spoke_index) * PI * 0.5
+				var spoke_dir: Vector2 = Vector2.RIGHT.rotated(spoke_angle)
+				main.draw_line(
+					player_pos + spoke_dir * (main.PLAYER_RADIUS + 6.0),
+					player_pos + spoke_dir * (main.PLAYER_RADIUS + 16.0 + pulse * 2.0),
+					_with_alpha(color.lerp(Color.WHITE, 0.18), 0.12 * hint_strength),
+					1.2
+				)
+		SwordArrayConfig.MODE_FAN:
+			var fan_arc: float = float(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN).get("arc", deg_to_rad(60.0))) * 1.38
+			var fan_radius: float = main.PLAYER_RADIUS + 46.0 + pulse * 4.0
+			main.draw_arc(
+				player_pos,
+				fan_radius,
+				angle - fan_arc * 0.5,
+				angle + fan_arc * 0.5,
+				30,
+				_with_alpha(color, 0.18 * hint_strength),
+				2.0
+			)
+			main.draw_arc(
+				player_pos,
+				fan_radius - 16.0,
+				angle - fan_arc * 0.34,
+				angle + fan_arc * 0.34,
+				20,
+				_with_alpha(soft_color, 0.11 * hint_strength),
+				1.2
+			)
+			main.draw_line(
+				player_pos + forward * (main.PLAYER_RADIUS + 12.0),
+				player_pos + forward * (fan_radius + 5.0),
+				_with_alpha(color.lerp(Color.WHITE, 0.1), 0.08 * hint_strength),
+				1.0
+			)
+		SwordArrayConfig.MODE_PIERCE:
+			var start: Vector2 = player_pos + forward * (main.PLAYER_RADIUS + 18.0)
+			var tip: Vector2 = player_pos + forward * (main.PLAYER_RADIUS + 92.0 + pulse * 12.0)
+			var tail: Vector2 = player_pos + forward * (main.PLAYER_RADIUS + 54.0)
+			main.draw_line(start, tip, _with_alpha(color.lerp(Color.WHITE, 0.18), 0.2 * hint_strength), 2.0)
+			main.draw_line(start + side * 5.0, tail + side * 1.6, _with_alpha(soft_color, 0.08 * hint_strength), 1.0)
+			main.draw_line(start - side * 5.0, tail - side * 1.6, _with_alpha(soft_color, 0.08 * hint_strength), 1.0)
+			var head := PackedVector2Array([
+				tip,
+				tip - forward * 13.0 + side * 5.2,
+				tip - forward * 13.0 - side * 5.2,
+			])
+			_try_draw_colored_polygon(main, head, _with_alpha(color.lerp(Color.WHITE, 0.2), 0.11 * hint_strength))
+		_:
+			main.draw_arc(player_pos, main.PLAYER_RADIUS + 18.0, 0.0, TAU, 32, _with_alpha(color, 0.1 * hint_strength), 1.4)
+
+
 static func _draw_ambient_array_presence(main: Node2D, player_pos: Vector2, hold_ratio: float) -> void:
 	var ambient_ratio: float = 0.18 + hold_ratio * 0.42
 	var ambient_alpha: float = 0.065 + hold_ratio * 0.09
@@ -1191,12 +1273,15 @@ static func _draw_array_mode_confirm(main: Node2D, player_pos: Vector2) -> void:
 	if mode == "":
 		return
 	var progress: float = 1.0 - strength
-	var pulse_alpha: float = 0.12 + 0.48 * strength
-	var pulse_color: Color = _with_alpha(ARRAY_MODE_CONFIRM_COLOR, pulse_alpha)
+	var mode_color: Color = SwordArrayController.get_accent_color(mode)
+	var pulse_alpha: float = 0.16 + 0.56 * strength
+	var pulse_color: Color = _with_alpha(mode_color.lerp(ARRAY_MODE_CONFIRM_COLOR, 0.45), pulse_alpha)
+	var soft_pulse_color: Color = _with_alpha(SwordArrayController.get_soft_accent_color(mode), 0.08 + 0.18 * strength)
 	match mode:
 		SwordArrayConfig.MODE_RING:
 			var ring_radius: float = main.PLAYER_RADIUS + 12.0 + progress * 12.0
 			main.draw_arc(player_pos, ring_radius, 0.0, TAU, 36, pulse_color, 1.8 + 1.2 * strength)
+			main.draw_arc(player_pos, ring_radius + 8.0, 0.0, TAU, 36, soft_pulse_color, 1.0 + 0.8 * strength)
 		SwordArrayConfig.MODE_FAN:
 			var fan_arc: float = float(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN).get("arc", deg_to_rad(60.0))) * 1.12
 			var fan_radius: float = main.PLAYER_RADIUS + 18.0 + progress * 16.0
@@ -1209,11 +1294,22 @@ static func _draw_array_mode_confirm(main: Node2D, player_pos: Vector2) -> void:
 				pulse_color,
 				1.8 + 1.0 * strength
 			)
+			main.draw_arc(
+				player_pos,
+				fan_radius + 10.0,
+				main.array_mode_confirm_angle - fan_arc * 0.58,
+				main.array_mode_confirm_angle + fan_arc * 0.58,
+				22,
+				soft_pulse_color,
+				1.0 + 0.6 * strength
+			)
 		SwordArrayConfig.MODE_PIERCE:
 			var direction: Vector2 = Vector2.RIGHT.rotated(main.array_mode_confirm_angle)
 			var start: Vector2 = player_pos + direction * (main.PLAYER_RADIUS + 10.0)
 			var tip: Vector2 = player_pos + direction * (main.PLAYER_RADIUS + 26.0 + progress * 18.0)
 			main.draw_line(start, tip, pulse_color, 1.8 + 1.0 * strength)
+			main.draw_line(start - direction.rotated(PI * 0.5) * 4.0, tip - direction.rotated(PI * 0.5) * 1.2, soft_pulse_color, 1.0)
+			main.draw_line(start + direction.rotated(PI * 0.5) * 4.0, tip + direction.rotated(PI * 0.5) * 1.2, soft_pulse_color, 1.0)
 			main.draw_circle(tip, 1.6 + 1.4 * strength, pulse_color)
 
 
@@ -1369,149 +1465,6 @@ static func _draw_puppet_attack_telegraph(main: Node2D, enemy: Dictionary, enemy
 		)
 
 
-static func _draw_time_stop_wash(main: Node2D) -> void:
-	var wash_alpha: float = main._get_time_stop_world_wash_alpha()
-	var strength: float = main._get_time_stop_visual_strength()
-	if wash_alpha <= 0.001 and strength <= 0.001:
-		return
-	if strength <= 0.001:
-		return
-	var frame_rect: Rect2 = main.ARENA_RECT.grow(2.0)
-	main.draw_rect(
-		frame_rect,
-		_with_alpha(TIME_STOP_FRAME_COLOR, 0.07 + 0.11 * strength),
-		false,
-		2.2 + 2.0 * strength
-	)
-	_draw_time_stop_frame_corners(main, frame_rect, strength)
-	_draw_time_stop_focus_field(main, strength)
-	_draw_time_stop_orbit_ticks(main, strength)
-
-
-static func _draw_time_stop_frame_corners(main: Node2D, frame_rect: Rect2, strength: float) -> void:
-	var corner_length: float = 20.0 + 24.0 * strength
-	var inset: float = 6.0
-	var thickness: float = 1.8 + 1.4 * strength
-	var left: float = frame_rect.position.x + inset
-	var right: float = frame_rect.end.x - inset
-	var top: float = frame_rect.position.y + inset
-	var bottom: float = frame_rect.end.y - inset
-	var corner_color: Color = _with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.12 + 0.18 * strength)
-	main.draw_line(Vector2(left, top), Vector2(left + corner_length, top), corner_color, thickness)
-	main.draw_line(Vector2(left, top), Vector2(left, top + corner_length), corner_color, thickness)
-	main.draw_line(Vector2(right, top), Vector2(right - corner_length, top), corner_color, thickness)
-	main.draw_line(Vector2(right, top), Vector2(right, top + corner_length), corner_color, thickness)
-	main.draw_line(Vector2(left, bottom), Vector2(left + corner_length, bottom), corner_color, thickness)
-	main.draw_line(Vector2(left, bottom), Vector2(left, bottom - corner_length), corner_color, thickness)
-	main.draw_line(Vector2(right, bottom), Vector2(right - corner_length, bottom), corner_color, thickness)
-	main.draw_line(Vector2(right, bottom), Vector2(right, bottom - corner_length), corner_color, thickness)
-
-
-static func _draw_time_stop_focus_field(main: Node2D, strength: float) -> void:
-	var center: Vector2 = main._to_screen(main.player["pos"])
-	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 9.0)
-	var inner_radius: float = main.PLAYER_RADIUS + 18.0 + 6.0 * pulse + 10.0 * strength
-	var outer_radius: float = main.PLAYER_RADIUS + 34.0 + 14.0 * strength
-	main.draw_arc(
-		center,
-		inner_radius,
-		0.0,
-		TAU,
-		36,
-		_with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.05 + 0.1 * strength),
-		1.0 + 0.8 * strength
-	)
-	main.draw_arc(
-		center,
-		outer_radius,
-		0.0,
-		TAU,
-		40,
-		_with_alpha(TIME_STOP_FRAME_COLOR, 0.04 + 0.08 * strength),
-		0.9 + 0.7 * strength
-	)
-	var ray_gap: float = main.PLAYER_RADIUS + 10.0
-	var ray_length: float = 14.0 + 18.0 * strength
-	var ray_color: Color = _with_alpha(TIME_STOP_FRAME_COLOR, 0.04 + 0.08 * strength)
-	main.draw_line(center + Vector2.RIGHT * ray_gap, center + Vector2.RIGHT * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
-	main.draw_line(center + Vector2.LEFT * ray_gap, center + Vector2.LEFT * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
-	main.draw_line(center + Vector2.UP * ray_gap, center + Vector2.UP * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
-	main.draw_line(center + Vector2.DOWN * ray_gap, center + Vector2.DOWN * (ray_gap + ray_length), ray_color, 1.0 + 0.6 * strength)
-
-
-static func _draw_time_stop_orbit_ticks(main: Node2D, strength: float) -> void:
-	var center: Vector2 = main._to_screen(main.player["pos"])
-	var tick_color: Color = _with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.05 + 0.12 * strength)
-	var tick_count: int = 16
-	var tick_index: int = 0
-	while tick_index < tick_count:
-		var angle: float = float(tick_index) / float(tick_count) * TAU + main.elapsed_time * 0.08
-		var direction: Vector2 = Vector2.RIGHT.rotated(angle)
-		var side: Vector2 = direction.rotated(PI * 0.5)
-		var radius: float = main.PLAYER_RADIUS + 48.0 + 18.0 * sin(float(tick_index) * 1.7)
-		var tick_center: Vector2 = center + direction * radius
-		main.draw_line(tick_center - side * 4.0, tick_center + side * (4.0 + 6.0 * strength), tick_color, 1.0)
-		tick_index += 1
-
-
-static func _draw_time_stop_sword_focus(main: Node2D, sword_pos: Vector2, forward: Vector2, strength: float) -> void:
-	if strength <= 0.001:
-		return
-	if forward.is_zero_approx():
-		forward = Vector2.RIGHT
-	forward = forward.normalized()
-	var side: Vector2 = forward.rotated(PI * 0.5)
-	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 12.0)
-	var focus_tail: Vector2 = sword_pos - forward * 12.0
-	var focus_mid: Vector2 = sword_pos + forward * 6.0
-	var focus_tip: Vector2 = sword_pos + forward * 24.0
-	var band_half_width: float = 4.0 + 1.2 * pulse
-	var halo_band_half_width: float = band_half_width * 1.7
-	var halo_tip: Vector2 = sword_pos + forward * 29.0
-	var focus_halo := PackedVector2Array([
-		focus_tail - forward * 3.0,
-		sword_pos - forward * 4.0 + side * halo_band_half_width,
-		focus_mid + side * halo_band_half_width * 0.82,
-		halo_tip,
-		focus_mid - side * halo_band_half_width * 0.82,
-		sword_pos - forward * 4.0 - side * halo_band_half_width,
-	])
-	var focus_band := PackedVector2Array([
-		focus_tail,
-		sword_pos - forward * 2.0 + side * band_half_width,
-		focus_mid + side * band_half_width * 0.72,
-		focus_tip,
-		focus_mid - side * band_half_width * 0.72,
-		sword_pos - forward * 2.0 - side * band_half_width,
-	])
-	_try_draw_colored_polygon(main, focus_halo, _with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, 0.05 + 0.08 * strength))
-	_try_draw_colored_polygon(main, focus_band, _with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, 0.12 + 0.16 * strength))
-	main.draw_line(
-		sword_pos - forward * 8.0,
-		sword_pos + forward * 18.0,
-		_with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.16 + 0.2 * strength),
-		2.2 + 1.6 * strength
-	)
-	var side_offset: float = 5.0 + 2.2 * pulse
-	main.draw_line(
-		sword_pos - forward * 4.5 + side * side_offset,
-		sword_pos + forward * 12.0 + side * 1.8,
-		_with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, 0.08 + 0.12 * strength),
-		1.3 + 1.0 * strength
-	)
-	main.draw_line(
-		sword_pos - forward * 4.0 - side * side_offset,
-		sword_pos + forward * 10.5 - side * 1.5,
-		_with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.07 + 0.1 * strength),
-		1.0 + 0.8 * strength
-	)
-	main.draw_circle(
-		sword_pos + forward * 3.5,
-		3.2 + 1.8 * strength,
-		_with_alpha(TIME_STOP_FRAME_CORE_COLOR, 0.07 + 0.1 * strength)
-	)
-
-
 static func _draw_luminous_sword_streak(
 	main: Node2D,
 	start: Vector2,
@@ -1620,7 +1573,6 @@ static func _draw_sword_motion_front(main: Node2D, sword_pos: Vector2, forward: 
 		forward = Vector2.RIGHT
 	forward = forward.normalized()
 	var side: Vector2 = forward.rotated(PI * 0.5)
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
 	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * (16.0 if sword_state == main.SwordState.POINT_STRIKE else 12.0))
 	var front_origin: Vector2 = sword_pos + forward * (8.0 + 4.0 * speed_ratio)
 	var front_length: float = lerpf(float(sword_vfx.front_length_min), float(sword_vfx.front_length_max), speed_ratio) * (float(sword_vfx.front_recall_length_scale) if sword_state == main.SwordState.RECALLING else 1.0)
@@ -1637,7 +1589,6 @@ static func _draw_sword_motion_front(main: Node2D, sword_pos: Vector2, forward: 
 		ribbon_color = main.COLORS["array_sword_return"].lerp(ART_BLUE_CORE, 0.18)
 		accent_color = ART_GOLD
 		core_color = UNSHEATH_FLASH_CORE_COLOR.lerp(Color.WHITE, 0.28)
-	outer_color = outer_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.18 * time_stop_strength)
 	var beam_start: Vector2 = sword_pos - forward * (1.2 + 1.8 * speed_ratio)
 	var beam_end: Vector2 = halo_tip + forward * (front_length * (0.32 if sword_state == main.SwordState.RECALLING else 0.46))
 	var beam_half_width: float = front_width * (0.42 if sword_state == main.SwordState.POINT_STRIKE else 0.34)
@@ -1725,8 +1676,8 @@ static func _draw_sword_body(
 			glow_shoulder - side * glow_shoulder_half,
 			glow_root - side * glow_root_half,
 		])
-		_try_draw_colored_polygon(main, sword_outer_glow, _with_alpha(base_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.5), 0.04 + 0.07 * focus_strength))
-		_try_draw_colored_polygon(main, sword_glow, _with_alpha(base_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.45), 0.08 + 0.12 * focus_strength))
+		_try_draw_colored_polygon(main, sword_outer_glow, _with_alpha(base_color.lerp(ART_BLUE_CORE, 0.18), 0.04 + 0.07 * focus_strength))
+		_try_draw_colored_polygon(main, sword_glow, _with_alpha(base_color.lerp(ART_BLUE_CORE, 0.16), 0.08 + 0.12 * focus_strength))
 	if local_glow_strength > 0.001:
 		var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * (15.0 if glow_style == "point" else 11.0))
 		var local_accent_color: Color = base_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.32)
@@ -1992,8 +1943,7 @@ static func _draw_sword_impact_smear(
 
 static func _draw_sword_afterimages(main: Node2D) -> void:
 	var trail_presence_scale: float = 0.62 if main.sword_trail_points.size() >= 3 else 1.0
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
-	var focus_boost: float = 1.0 + time_stop_strength * 1.0
+	var focus_boost: float = 1.0
 	for afterimage in main.sword_afterimages:
 		var life_ratio: float = clampf(float(afterimage.get("life", 0.0)) / maxf(float(afterimage.get("max_life", 1.0)), 0.001), 0.0, 1.0)
 		if life_ratio <= 0.0:
@@ -2004,23 +1954,11 @@ static func _draw_sword_afterimages(main: Node2D) -> void:
 		var stretch: float = float(afterimage.get("stretch", 1.0))
 		var width_scale: float = float(afterimage.get("width_scale", 1.0))
 		var ghost_color: Color = Color(afterimage.get("color", main.COLORS["ranged_sword"]))
-		ghost_color = ghost_color.lerp(TIME_STOP_FRAME_COLOR, 0.2 * time_stop_strength)
 		var ghost_alpha: float = minf((0.05 + 0.2 * life_ratio) * main.SWORD_AFTERIMAGE_ALPHA_SCALE * trail_presence_scale * focus_boost, 1.0)
 		var tip: Vector2 = sword_pos + forward * (main.SWORD_RADIUS * 1.08 * stretch)
 		var left: Vector2 = sword_pos - forward * (8.5 * stretch) + side * (7.2 * width_scale)
 		var right: Vector2 = sword_pos - forward * (8.5 * stretch) - side * (7.2 * width_scale)
 		_try_draw_colored_polygon(main, PackedVector2Array([tip, left, right]), _with_alpha(ghost_color, ghost_alpha))
-		if time_stop_strength > 0.001:
-			var halo_tip: Vector2 = tip + forward * (4.0 + 5.0 * time_stop_strength)
-			var halo_mid: Vector2 = sword_pos + forward * (5.0 + 1.8 * stretch)
-			var halo_side: float = (4.2 + 2.2 * life_ratio) * (0.8 + 0.5 * time_stop_strength)
-			var halo_poly := PackedVector2Array([
-				sword_pos - forward * (5.2 + 1.8 * stretch),
-				halo_mid + side * halo_side,
-				halo_tip,
-				halo_mid - side * halo_side,
-			])
-			_try_draw_colored_polygon(main, halo_poly, _with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, 0.04 + 0.1 * life_ratio * time_stop_strength))
 		main.draw_line(
 			sword_pos - forward * (3.0 + 1.5 * stretch),
 			tip,
@@ -2034,7 +1972,6 @@ static func _draw_sword_air_wakes(main: Node2D) -> void:
 		return
 	if main.sword_air_wakes.is_empty():
 		return
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
 	for wake in main.sword_air_wakes:
 		var life_ratio: float = clampf(float(wake.get("life", 0.0)) / maxf(float(wake.get("max_life", 1.0)), 0.001), 0.0, 1.0)
 		if life_ratio <= 0.0:
@@ -2058,8 +1995,6 @@ static func _draw_sword_air_wakes(main: Node2D) -> void:
 		if style == "recall":
 			haze_color = main.COLORS["array_sword_return"].lerp(main.COLORS["ranged_sword"], 0.5)
 			streak_color = main.COLORS["array_sword_return"].lerp(UNSHEATH_FLASH_CORE_COLOR, 0.44)
-		haze_color = haze_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.18 * time_stop_strength)
-		streak_color = streak_color.lerp(TIME_STOP_FRAME_CORE_COLOR, 0.16 * time_stop_strength)
 		var trace_start: Vector2 = center - forward * length * 0.62
 		var trace_end: Vector2 = center + forward * length * (0.32 + 0.08 * turn_strength) + outward * width * (0.42 + 0.14 * speed_ratio)
 		var trace_control: Vector2 = center + outward * width * (1.08 + 0.56 * turn_strength) - forward * length * 0.08
@@ -2082,7 +2017,6 @@ static func _draw_sword_trail(main: Node2D) -> void:
 		return
 	if main.sword_trail_points.size() < 2:
 		return
-	var time_stop_strength: float = main._get_time_stop_visual_strength()
 	var segment_index: int = 1
 	while segment_index < main.sword_trail_points.size():
 		var older: Dictionary = main.sword_trail_points[segment_index - 1]
@@ -2092,7 +2026,7 @@ static func _draw_sword_trail(main: Node2D) -> void:
 		if older_ratio <= 0.0 and newer_ratio <= 0.0:
 			segment_index += 1
 			continue
-		var alpha_scale: float = 0.5 * (float(older.get("alpha_scale", 1.0)) + float(newer.get("alpha_scale", 1.0))) * (1.0 + time_stop_strength * 1.02)
+		var alpha_scale: float = 0.5 * (float(older.get("alpha_scale", 1.0)) + float(newer.get("alpha_scale", 1.0)))
 		var from_pos: Vector2 = main._to_screen(older["pos"])
 		var to_pos: Vector2 = main._to_screen(newer["pos"])
 		var segment: Vector2 = to_pos - from_pos
@@ -2119,8 +2053,6 @@ static func _draw_sword_trail(main: Node2D) -> void:
 			accent_color = ART_GOLD
 		elif style == "slice":
 			ribbon_color = ribbon_color.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.08)
-		haze_color = haze_color.lerp(TIME_STOP_SWORD_FOCUS_COLOR, 0.22 * time_stop_strength)
-		ribbon_color = ribbon_color.lerp(TIME_STOP_FRAME_CORE_COLOR, 0.14 * time_stop_strength)
 		if style == "point":
 			var point_start: Vector2 = from_pos - trail_forward * (1.4 + 1.0 * segment_ratio)
 			var point_end: Vector2 = to_pos + trail_forward * (8.0 + 12.0 * segment_ratio + 4.0 * turn_strength)
@@ -2138,28 +2070,6 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				(0.24 + 0.28 * segment_ratio) * alpha_scale,
 				(0.06 + 0.08 * segment_ratio) * alpha_scale,
 				accent_color
-			)
-			if time_stop_strength > 0.001:
-				var point_focus_poly := PackedVector2Array([
-					point_start - trail_forward * 2.2,
-					point_start + side * point_half_width * 1.1,
-					point_end + side * point_half_width * 0.88,
-					point_end + trail_forward * 3.2,
-					point_end - side * point_half_width * 0.72,
-					point_start - side * point_half_width * 0.92,
-				])
-				_try_draw_colored_polygon(main, point_focus_poly, _with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, (0.06 + 0.1 * segment_ratio) * alpha_scale * time_stop_strength))
-			main.draw_line(
-				point_start + side * point_half_width * 0.64,
-				point_end + side * point_half_width * 0.16,
-				_with_alpha(ART_BLUE, (0.05 + 0.08 * segment_ratio) * alpha_scale),
-				0.78 + 0.44 * segment_ratio
-			)
-			main.draw_line(
-				point_start - side * point_half_width * 0.12,
-				point_end - side * point_half_width * 0.04,
-				_with_alpha(accent_color, (0.05 + 0.07 * segment_ratio) * alpha_scale),
-				0.66 + 0.38 * segment_ratio
 			)
 		elif style == "recall":
 			var recall_start: Vector2 = from_pos - trail_forward * 0.6
@@ -2209,27 +2119,6 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				(0.04 + 0.06 * segment_ratio) * alpha_scale,
 				accent_color
 			)
-			if time_stop_strength > 0.001:
-				var slice_focus_poly := PackedVector2Array([
-					slice_start - trail_forward * 1.6 + side * slice_half_width * 0.92,
-					slice_start - trail_forward * 1.6 - side * slice_half_width * 0.74,
-					slice_end - side * slice_half_width * 0.48,
-					slice_end + trail_forward * 2.8,
-					slice_end + side * slice_half_width * 0.56,
-				])
-				_try_draw_colored_polygon(main, slice_focus_poly, _with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, (0.04 + 0.07 * segment_ratio) * alpha_scale * time_stop_strength))
-			main.draw_line(
-				slice_start + side * slice_half_width * 0.58,
-				slice_end + side * slice_half_width * 0.14,
-				_with_alpha(ART_BLUE, (0.04 + 0.07 * segment_ratio) * alpha_scale),
-				0.76 + 0.48 * segment_ratio
-			)
-			main.draw_line(
-				slice_start - side * slice_half_width * 0.08,
-				slice_end - side * slice_half_width * 0.02,
-				_with_alpha(accent_color, (0.04 + 0.06 * segment_ratio) * alpha_scale),
-				0.64 + 0.42 * segment_ratio
-			)
 		segment_index += 1
 	var head_point: Dictionary = main.sword_trail_points[main.sword_trail_points.size() - 1]
 	var head_ratio: float = clampf(float(head_point.get("life", 0.0)) / maxf(float(head_point.get("max_life", 1.0)), 0.001), 0.0, 1.0)
@@ -2255,12 +2144,6 @@ static func _draw_sword_trail(main: Node2D) -> void:
 				_with_alpha(UNSHEATH_FLASH_WARM_COLOR, 0.08 + 0.1 * head_ratio),
 				0.9 + 0.4 * head_ratio
 			)
-			if time_stop_strength > 0.001:
-				main.draw_circle(
-					head_pos,
-					4.0 + 5.0 * head_ratio * time_stop_strength,
-					_with_alpha(TIME_STOP_SWORD_FOCUS_COLOR, 0.06 + 0.1 * head_ratio * time_stop_strength)
-				)
 		elif head_style == "recall":
 			var comet_tip := PackedVector2Array([
 				head_pos + head_forward * (7.0 + 6.0 * head_ratio),
@@ -2668,10 +2551,301 @@ static func _is_player_owned_effect_color(main: Node2D, color: Color) -> bool:
 	)
 
 
+static func _draw_resonance_player_mark(main: Node2D, player_pos: Vector2) -> void:
+	var mode: String = main._get_resonance_mode()
+	var strength: float = main._get_resonance_strength()
+	if mode == "" or strength <= 0.01:
+		return
+	var color: Color = main._get_resonance_color(mode)
+	var flash: float = main._get_resonance_flash_strength()
+	var preview: float = main._get_resonance_preview_strength()
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * (10.0 if preview > 0.01 else 4.6))
+	var alpha_scale: float = clampf(strength * (0.72 + 0.24 * pulse) + flash * 0.34 + preview * 0.28, 0.0, 1.0)
+	var aim_dir: Vector2 = main.mouse_world - main.player["pos"]
+	if aim_dir.is_zero_approx():
+		aim_dir = Vector2.RIGHT
+	aim_dir = aim_dir.normalized()
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			var ring_radius: float = main.PLAYER_RADIUS + 18.0 + flash * 12.0 + preview * 5.0
+			main.draw_circle(player_pos, ring_radius + 5.0, _with_alpha(color, 0.025 * alpha_scale))
+			main.draw_arc(player_pos, ring_radius, 0.0, TAU, 48, _with_alpha(color, 0.34 * alpha_scale), 2.0 + preview * 1.8)
+			main.draw_arc(player_pos, ring_radius + 10.0, main.elapsed_time * 0.8, main.elapsed_time * 0.8 + TAU * 0.72, 42, _with_alpha(color.lerp(ART_BLUE_CORE, 0.24), 0.14 * alpha_scale), 1.4)
+		SwordArrayConfig.MODE_FAN:
+			var fan_radius: float = main.PLAYER_RADIUS + 54.0 + flash * 10.0
+			var fan_angle: float = aim_dir.angle()
+			var arc_width: float = 0.64 + preview * 0.24
+			main.draw_arc(player_pos, fan_radius, fan_angle - arc_width, fan_angle + arc_width, 28, _with_alpha(color, 0.33 * alpha_scale), 2.4 + preview * 1.2)
+			for offset in [-0.48, 0.0, 0.48]:
+				var ray: Vector2 = Vector2.RIGHT.rotated(fan_angle + offset)
+				main.draw_line(player_pos + ray * (main.PLAYER_RADIUS + 8.0), player_pos + ray * fan_radius, _with_alpha(color.lerp(ART_BLUE_CORE, 0.18), 0.16 * alpha_scale), 1.6)
+		SwordArrayConfig.MODE_PIERCE:
+			var line_len: float = 104.0 + flash * 28.0 + preview * 34.0
+			var start_pos: Vector2 = player_pos + aim_dir * (main.PLAYER_RADIUS + 12.0)
+			var end_pos: Vector2 = player_pos + aim_dir * line_len
+			main.draw_line(start_pos, end_pos, _with_alpha(color, 0.36 * alpha_scale), 2.2 + preview * 1.8)
+			main.draw_line(start_pos, end_pos, _with_alpha(ART_BLUE_CORE, 0.15 * alpha_scale), 0.9)
+			main.draw_circle(end_pos, 3.6 + preview * 2.4, _with_alpha(color.lerp(ART_BLUE_CORE, 0.24), 0.34 * alpha_scale))
+
+
+static func _get_combo_strength(holder: Dictionary) -> float:
+	var combo_id: String = String(holder.get("combo_id", ""))
+	if combo_id == "":
+		return 0.0
+	if String(holder.get("combo_phase", "")) == "drawing":
+		return 1.0
+	var timer: float = maxf(float(holder.get("combo_timer", 0.0)), 0.0)
+	var duration: float = maxf(float(holder.get("combo_duration", timer)), 0.001)
+	if timer <= 0.0:
+		return 0.0
+	return clampf(timer / duration, 0.0, 1.0)
+
+
+static func _draw_ring_to_pierce_array_combo(main: Node2D, sword_pos: Vector2, forward: Vector2, strength: float) -> void:
+	var color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_RING)
+	var pierce_color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE)
+	var clamped_strength: float = clampf(strength, 0.0, 1.0)
+	var resolved_forward: Vector2 = forward.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	_draw_luminous_sword_streak(
+		main,
+		sword_pos - resolved_forward * (32.0 + 22.0 * clamped_strength),
+		sword_pos + resolved_forward * (46.0 + 28.0 * clamped_strength),
+		4.4 + 2.2 * clamped_strength,
+		color.lerp(pierce_color, 0.32),
+		pierce_color.lerp(ART_BLUE_CORE, 0.24),
+		ART_BLUE_CORE,
+		0.08 + 0.12 * clamped_strength,
+		0.14 + 0.18 * clamped_strength,
+		0.20 + 0.22 * clamped_strength,
+		0.04 + 0.04 * clamped_strength,
+		color
+	)
+	main.draw_arc(sword_pos, 11.0 + 9.0 * clamped_strength, 0.0, TAU, 24, _with_alpha(color, 0.16 + 0.2 * clamped_strength), 1.4 + 1.4 * clamped_strength)
+	main.draw_line(sword_pos - resolved_forward * 18.0, sword_pos + resolved_forward * (42.0 + 30.0 * clamped_strength), _with_alpha(pierce_color.lerp(ART_BLUE_CORE, 0.24), 0.20 + 0.24 * clamped_strength), 2.2 + 1.6 * clamped_strength)
+
+
+static func _draw_fan_time_stop_combo(main: Node2D, sword_pos: Vector2, forward: Vector2, strength: float) -> void:
+	var color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_FAN)
+	var clamped_strength: float = clampf(strength, 0.0, 1.0)
+	var resolved_forward: Vector2 = forward.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	var side: Vector2 = resolved_forward.orthogonal()
+	var uses_node_clones: bool = main.has_method("_has_fan_time_stop_clone_flight_fx") and bool(main.call("_has_fan_time_stop_clone_flight_fx"))
+	if not uses_node_clones:
+		for side_sign in [-1.0, 1.0]:
+			var offset: Vector2 = side * side_sign * (main.FAN_TIME_STOP_CLONE_SIDE_OFFSET_BASE + main.FAN_TIME_STOP_CLONE_SIDE_OFFSET_SCALE * clamped_strength)
+			var ghost_pos: Vector2 = sword_pos + offset - resolved_forward * (main.FAN_TIME_STOP_CLONE_FORWARD_OFFSET * side_sign)
+			_draw_fan_time_stop_sword_clone(main, ghost_pos, resolved_forward, clamped_strength)
+	var fan_radius: float = 54.0 + 20.0 * clamped_strength
+	main.draw_arc(sword_pos, fan_radius, resolved_forward.angle() - 0.72, resolved_forward.angle() + 0.72, 32, _with_alpha(color, 0.14 + 0.16 * clamped_strength), 2.0)
+
+
+static func _draw_fan_time_stop_sword_clone(main: Node2D, sword_pos: Vector2, forward: Vector2, strength: float) -> void:
+	var vfx = _get_sword_vfx(main)
+	var clamped_strength: float = clampf(strength, 0.0, 1.0)
+	var speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.45, 1.0)
+	var clone_alpha: float = 0.5 + 0.42 * clamped_strength
+	var base_color: Color = main.COLORS["ranged_sword"]
+	var trail_half_width: float = maxf(float(vfx.trail_base_half_width) * float(vfx.trail_point_width_scale) * 0.52, 3.2)
+	var trail_start: Vector2 = sword_pos - forward * (58.0 + 34.0 * speed_ratio)
+	var trail_end: Vector2 = sword_pos - forward * (9.0 + 5.0 * speed_ratio)
+	_draw_luminous_sword_streak(
+		main,
+		trail_start,
+		trail_end,
+		trail_half_width,
+		base_color.lerp(ART_BLUE, 0.24),
+		ART_BLUE.lerp(ART_BLUE_CORE, 0.24),
+		ART_BLUE_CORE.lerp(Color.WHITE, 0.28),
+		(0.12 + 0.12 * speed_ratio) * clone_alpha,
+		(0.22 + 0.18 * speed_ratio) * clone_alpha,
+		(0.36 + 0.18 * speed_ratio) * clone_alpha,
+		(0.04 + 0.04 * speed_ratio) * clone_alpha,
+		ART_GOLD
+	)
+	var front_length: float = lerpf(float(vfx.front_length_min), float(vfx.front_length_max), speed_ratio)
+	var front_width: float = lerpf(float(vfx.front_width_min), float(vfx.front_width_max), speed_ratio) * 0.42
+	_draw_luminous_sword_streak(
+		main,
+		sword_pos - forward * (1.0 + 1.6 * speed_ratio),
+		sword_pos + forward * (front_length * 0.92 + 12.0 * clamped_strength),
+		front_width,
+		base_color.lerp(ART_BLUE, 0.18),
+		base_color.lerp(ART_BLUE_CORE, 0.24),
+		ART_BLUE_CORE.lerp(Color.WHITE, 0.36),
+		(0.08 + 0.1 * speed_ratio) * clone_alpha,
+		(0.14 + 0.16 * speed_ratio) * clone_alpha,
+		(0.22 + 0.22 * speed_ratio) * clone_alpha,
+		(0.04 + 0.05 * speed_ratio) * clone_alpha,
+		UNSHEATH_FLASH_WARM_COLOR
+	)
+	_draw_sword_body(
+		main,
+		sword_pos,
+		forward,
+		_with_alpha(base_color.lerp(ART_BLUE_CORE, 0.12), clone_alpha),
+		1.46,
+		0.26 + 0.34 * clamped_strength,
+		maxf(float(vfx.local_glow_point_base), 0.34) + 0.28 * clamped_strength,
+		"point"
+	)
+
+
+static func _draw_pierce_time_stop_combo(main: Node2D, sword_pos: Vector2, forward: Vector2, strength: float) -> void:
+	var color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE)
+	var clamped_strength: float = clampf(strength, 0.0, 1.0)
+	var is_drawing: bool = String(main.sword.get("combo_phase", "")) == "drawing"
+	var resolved_forward: Vector2 = forward.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	var raw_points: Array = main.sword.get("combo_points", [])
+	var locked_points: Array = []
+	if not is_drawing:
+		locked_points = main.sword.get("combo_locked_points", [])
+		if not locked_points.is_empty():
+			raw_points = locked_points
+	var line_strength: float = clamped_strength if is_drawing else clampf(0.38 + clamped_strength * 0.24, 0.0, 0.62)
+	var line_alpha_strength: float = clamped_strength if is_drawing else clampf(0.24 + clamped_strength * 0.26, 0.0, 0.5)
+	var previous_screen: Vector2 = Vector2.INF
+	var point_index: int = 0
+	for point_variant in raw_points:
+		var point: Vector2 = main._to_screen(Vector2(point_variant))
+		if previous_screen.x != INF:
+			var line_alpha: float = 0.055 + 0.1 * line_alpha_strength
+			var line_width: float = 1.15 + 0.55 * line_strength
+			if is_drawing:
+				var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 18.0 + float(point_index) * 0.8)
+				line_alpha += 0.035 * pulse
+				line_width += 0.3 * pulse
+			main.draw_line(previous_screen, point, _with_alpha(color, line_alpha), line_width)
+			main.draw_line(previous_screen, point, _with_alpha(ART_BLUE_CORE, 0.035 + 0.065 * line_alpha_strength), 0.7 + (0.15 if is_drawing else 0.0))
+		if is_drawing and point_index % 3 == 0:
+			main.draw_circle(point, 1.1 + 0.5 * clamped_strength, _with_alpha(color.lerp(ART_BLUE_CORE, 0.2), 0.08 + 0.06 * clamped_strength))
+		previous_screen = point
+		point_index += 1
+	if raw_points.size() < 2:
+		main.draw_line(sword_pos - resolved_forward * 28.0, sword_pos + resolved_forward * (72.0 + 28.0 * clamped_strength), _with_alpha(color, 0.08 + 0.1 * clamped_strength), 1.4)
+	var head_pos: Vector2 = main._to_screen(main.mouse_world)
+	if not is_drawing and not raw_points.is_empty():
+		head_pos = main._to_screen(Vector2(raw_points[raw_points.size() - 1]))
+	elif not is_drawing:
+		head_pos = sword_pos + resolved_forward * (28.0 + 18.0 * clamped_strength)
+	main.draw_circle(head_pos, 2.8 + 1.8 * line_strength + (0.7 if is_drawing else 0.0), _with_alpha(color.lerp(ART_BLUE_CORE, 0.32), 0.1 + 0.14 * line_alpha_strength))
+	if is_drawing:
+		main.draw_arc(head_pos, 8.5 + 2.0 * clamped_strength, main.elapsed_time * 1.8, main.elapsed_time * 1.8 + TAU * 0.74, 28, _with_alpha(color, 0.12), 0.9)
+
+
+static func _draw_hud_resonance_mark(main: Node2D, center: Vector2) -> void:
+	var mode: String = main._get_resonance_mode()
+	var strength: float = main._get_resonance_strength()
+	if mode == "" or strength <= 0.01:
+		return
+	var color: Color = main._get_resonance_color(mode)
+	var progress: float = main._get_resonance_progress()
+	var flash: float = main._get_resonance_flash_strength()
+	var preview: float = main._get_resonance_preview_strength()
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 8.6)
+	var radius: float = 27.0 + flash * 4.0 + preview * 2.0
+	main.draw_circle(center, radius + 14.0, _with_alpha(color, 0.08 + 0.06 * preview + 0.04 * pulse))
+	main.draw_circle(center, radius + 4.0, _with_alpha(color.lerp(ART_BLUE_CORE, 0.14), 0.07 + 0.08 * strength))
+	main.draw_circle(center, radius, _with_alpha(ART_BG_DEEP, 0.7))
+	main.draw_arc(center, radius, 0.0, TAU, 56, _with_alpha(color, 0.34), 1.8)
+	main.draw_arc(center, radius + 7.0, -main.elapsed_time * 1.4, -main.elapsed_time * 1.4 + TAU * 0.68, 46, _with_alpha(color.lerp(ART_BLUE_CORE, 0.24), 0.22 + 0.12 * pulse), 1.6)
+	if progress > 0.0:
+		main.draw_arc(center, radius + 2.0, -PI * 0.5, -PI * 0.5 + TAU * progress, 56, _with_alpha(color.lerp(ART_BLUE_CORE, 0.2), 0.76), 3.0)
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			main.draw_arc(center, 10.0, 0.0, TAU, 30, _with_alpha(color, 0.88), 2.6)
+			main.draw_arc(center, 17.0, main.elapsed_time * 1.1, main.elapsed_time * 1.1 + TAU * 0.55, 24, _with_alpha(color.lerp(ART_BLUE_CORE, 0.28), 0.52), 1.7)
+			main.draw_circle(center, 3.4, _with_alpha(ART_BLUE_CORE, 0.86))
+		SwordArrayConfig.MODE_FAN:
+			var base_angle: float = -PI * 0.32
+			main.draw_arc(center, 16.0, base_angle, PI * 0.32, 24, _with_alpha(color, 0.88), 2.6)
+			for offset in [-0.46, -0.23, 0.0, 0.23, 0.46]:
+				main.draw_line(center + Vector2(-6.0, 8.0), center + Vector2.RIGHT.rotated(-PI * 0.5 + offset) * 17.0, _with_alpha(color.lerp(ART_BLUE_CORE, 0.16), 0.66), 1.6)
+		SwordArrayConfig.MODE_PIERCE:
+			main.draw_line(center + Vector2(-13.0, 11.0), center + Vector2(14.0, -12.0), _with_alpha(color, 0.92), 4.0)
+			main.draw_line(center + Vector2(-6.0, 12.0), center + Vector2(18.0, -8.0), _with_alpha(ART_BLUE_CORE, 0.34), 1.5)
+			main.draw_circle(center + Vector2(15.0, -13.0), 4.0, _with_alpha(ART_BLUE_CORE, 0.86))
+	if main._is_resonance_expiring():
+		var blink: float = 0.5 + 0.5 * sin(main.elapsed_time * 16.0)
+		main.draw_arc(center, radius + 11.0, 0.0, TAU, 44, _with_alpha(color, 0.12 + 0.26 * blink), 2.0)
+
+
+static func _draw_resonance_sword_mark(
+	main: Node2D,
+	sword_pos: Vector2,
+	forward: Vector2,
+	side: Vector2,
+	mode: String,
+	color: Color,
+	strength: float
+) -> void:
+	if mode == "" or strength <= 0.01:
+		return
+	var clamped_strength: float = clampf(strength, 0.0, 1.0)
+	var resolved_forward: Vector2 = forward.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	var resolved_side: Vector2 = side.normalized()
+	if resolved_side.is_zero_approx():
+		resolved_side = resolved_forward.orthogonal()
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			main.draw_arc(sword_pos, 8.0 + 4.0 * clamped_strength, 0.0, TAU, 22, _with_alpha(color, 0.36 * clamped_strength), 1.6 + 1.4 * clamped_strength)
+			main.draw_circle(sword_pos, 4.0 + 2.0 * clamped_strength, _with_alpha(color.lerp(ART_BLUE_CORE, 0.28), 0.08 + 0.14 * clamped_strength))
+		SwordArrayConfig.MODE_FAN:
+			var base_pos: Vector2 = sword_pos - resolved_forward * 5.0
+			main.draw_line(base_pos, sword_pos + resolved_forward * 12.0 + resolved_side * 7.0, _with_alpha(color, 0.42 * clamped_strength), 1.7 + clamped_strength)
+			main.draw_line(base_pos, sword_pos + resolved_forward * 12.0 - resolved_side * 7.0, _with_alpha(color, 0.42 * clamped_strength), 1.7 + clamped_strength)
+			main.draw_arc(sword_pos + resolved_forward * 3.0, 9.0 + 3.0 * clamped_strength, resolved_forward.angle() - 0.56, resolved_forward.angle() + 0.56, 16, _with_alpha(color.lerp(ART_BLUE_CORE, 0.16), 0.18 * clamped_strength), 1.2)
+		SwordArrayConfig.MODE_PIERCE:
+			main.draw_line(sword_pos - resolved_forward * 10.0, sword_pos + resolved_forward * (18.0 + 9.0 * clamped_strength), _with_alpha(color, 0.48 * clamped_strength), 1.8 + 1.3 * clamped_strength)
+			main.draw_line(sword_pos - resolved_forward * 5.0 + resolved_side * 3.0, sword_pos + resolved_forward * (16.0 + 8.0 * clamped_strength) + resolved_side * 3.0, _with_alpha(ART_BLUE_CORE, 0.18 * clamped_strength), 0.9 + 0.6 * clamped_strength)
+			main.draw_circle(sword_pos + resolved_forward * (19.0 + 9.0 * clamped_strength), 2.8 + clamped_strength, _with_alpha(color.lerp(ART_BLUE_CORE, 0.22), 0.42 * clamped_strength))
+
+
+static func _draw_resonance_main_sword_mark(
+	main: Node2D,
+	sword_pos: Vector2,
+	forward: Vector2,
+	mode: String,
+	color: Color,
+	strength: float
+) -> void:
+	if mode == "" or strength <= 0.01:
+		return
+	var resolved_forward: Vector2 = forward.normalized()
+	if resolved_forward.is_zero_approx():
+		resolved_forward = Vector2.RIGHT
+	var side: Vector2 = resolved_forward.orthogonal()
+	var clamped_strength: float = clampf(strength, 0.0, 1.0)
+	_draw_resonance_sword_mark(main, sword_pos, resolved_forward, side, mode, color, clamped_strength)
+	if mode == SwordArrayConfig.MODE_FAN:
+		for side_sign in [-1.0, 1.0]:
+			var ghost_pos: Vector2 = sword_pos + side * side_sign * (12.0 + 7.0 * clamped_strength)
+			main.draw_line(
+				ghost_pos - resolved_forward * 16.0,
+				ghost_pos + resolved_forward * 18.0,
+				_with_alpha(color.lerp(ART_BLUE_CORE, 0.14), 0.14 + 0.22 * clamped_strength),
+				2.0
+			)
+	elif mode == SwordArrayConfig.MODE_PIERCE:
+		main.draw_line(
+			sword_pos - resolved_forward * 24.0,
+			sword_pos + resolved_forward * (52.0 + 22.0 * clamped_strength),
+			_with_alpha(color, 0.18 + 0.24 * clamped_strength),
+			2.4 + 1.6 * clamped_strength
+		)
+
+
 static func _draw_arena_margin_mask(main: Node2D) -> void:
 	var viewport_rect: Rect2 = main.get_viewport_rect()
 	var arena_rect: Rect2 = main.ARENA_RECT
-	var mask_color: Color = main._get_time_stop_world_color(ART_BG_DEEP.lerp(ART_BG, 0.22))
+	var mask_color: Color = ART_BG_DEEP.lerp(ART_BG, 0.22)
 	var top_height: float = maxf(arena_rect.position.y - viewport_rect.position.y, 0.0)
 	var bottom_height: float = maxf(viewport_rect.end.y - arena_rect.end.y, 0.0)
 	var left_width: float = maxf(arena_rect.position.x - viewport_rect.position.x, 0.0)
@@ -2736,6 +2910,7 @@ static func draw_hud_bars(main: Node2D) -> void:
 			_with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.08 + 0.16 * gain_strength),
 			true
 		)
+	_draw_hud_resonance_mark(main, Vector2(336.0, 62.0))
 	_draw_hud_bottom_frame(main, viewport_size)
 
 

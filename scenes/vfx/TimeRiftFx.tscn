@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b6xwhb5a71ywh"]
+
+[ext_resource type="Script" uid="uid://p2gviospv7i1" path="res://scripts/vfx/time_rift_fx.gd" id="1_time_rift_fx"]
+
+[node name="TimeRiftFx" type="Node2D" unique_id=605327652]
+script = ExtResource("1_time_rift_fx")
