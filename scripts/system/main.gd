@@ -47,6 +47,7 @@ enum LookdevPreviewMode {
 
 const ARRAY_TOGGLE_MODES := [
 	SwordArrayConfig.MODE_RING,
+	SwordArrayConfig.MODE_FAN,
 	SwordArrayConfig.MODE_PIERCE,
 ]
 const ARRAY_CONTROL_SCHEME_DISTANCE := "distance_aim"
@@ -145,11 +146,19 @@ const SWORD_RADIUS := 25.0
 const SWORD_MELEE_RANGE := 100.0
 const SWORD_MELEE_COOLDOWN := 10.0 / 60.0
 const SWORD_MELEE_ARC := PI * 1.2
+const MELEE_SWORD_SWING_DURATION := 0.15
+const MELEE_SWORD_SWING_ARC := SWORD_MELEE_ARC
+const MELEE_SWORD_VISUAL_SCALE := 1.6
+const MELEE_SWORD_TIP_FORWARD_OFFSET := 24.4 * MELEE_SWORD_VISUAL_SCALE
+const MELEE_SWORD_CENTER_DISTANCE := SWORD_MELEE_RANGE - MELEE_SWORD_TIP_FORWARD_OFFSET
+const MELEE_SWORD_READY_SIDE := -1.0
+const MELEE_SWORD_SWING_SIDE := -MELEE_SWORD_READY_SIDE
 const SWORD_TAP_THRESHOLD := 0.15
 const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
 const SWORD_ORBIT_DISTANCE := 25.0
 const SWORD_SLICE_MIN_HIT_SPEED := 90.0
+const SWORD_SLICE_FOLLOW_SPEED := 36.0
 const SWORD_HOVER_PRESETS := [
 	{
 		"name": "稳悬",
@@ -229,7 +238,7 @@ const UNSHEATH_PRESS_FLASH_DURATION := 0.045
 const UNSHEATH_PRESS_FLASH_STRENGTH := 1
 const UNSHEATH_PRESS_FLASH_REPEAT_SUPPRESSION := 0.11
 const UNSHEATH_PRESS_FLASH_BASE_STRENGTH := 0.22
-const UNSHEATH_PRESS_FLASH_REPEAT_STRENGTH := 0.08
+const UNSHEATH_PRESS_FLASH_REPEAT_STRENGTH := 0.087
 const UNSHEATH_FLASH_LENGTH_SCALE := 1.08
 const UNSHEATH_FLASH_WIDTH_SCALE := 0.92
 const UNSHEATH_FLASH_ANCHOR_LERP := 0.68
@@ -278,7 +287,7 @@ const SWORD_HIT_EFFECT_POINT_WIDTH_SCALE := 0.42
 const SWORD_HIT_EFFECT_SLICE_LENGTH_SCALE := 1.28
 const SWORD_HIT_EFFECT_SLICE_WIDTH_SCALE := 0.96
 const SWORD_HIT_EFFECT_SPARK_COUNT := 2
-const MELEE_ATTACK_FLASH_DURATION := 0.08
+const MELEE_ATTACK_FLASH_DURATION := 0.14
 const ENERGY_GAIN_FEEDBACK_DURATION := 0.24
 const ENERGY_GAIN_FEEDBACK_MAX_STRENGTH := 1.0
 const FLYING_SWORD_POINT_HITSTOP_BASE_DURATION := 0.045
@@ -368,9 +377,26 @@ const ARRAY_ENERGY_WARNING_FADE_SPEED := 7.5
 const ARRAY_ENERGY_BREAK_DURATION := 0.24
 const ARRAY_MODE_CONFIRM_DURATION := 0.24
 const ARRAY_MODE_CONFIRM_COOLDOWN := 0.10
-const ARRAY_DISTANCE_GUIDE_INTRO_DURATION := 45.0
-const ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION := 1.4
-const ARRAY_DISTANCE_GUIDE_HOLD_STRENGTH := 0.9
+const ARRAY_DISTANCE_GUIDE_ENABLED := false
+const ARRAY_DISTANCE_GUIDE_INTRO_DURATION := 0.0
+const ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION := 0.0
+const ARRAY_DISTANCE_GUIDE_HOLD_STRENGTH := 0.0
+const CURSOR_INTENT_FAST_SPEED := 520.0
+const CURSOR_INTENT_MAX_SPEED := 1420.0
+const CURSOR_INTENT_MODE_SWITCH_DURATION := 0.22
+const CURSOR_INTENT_PRESSURE_RADIUS := 170.0
+const CURSOR_INTENT_PRESSURE_ENTER_SCORE := 0.65
+const CURSOR_INTENT_PRESSURE_EXIT_SCORE := 0.35
+const CURSOR_INTENT_PRESSURE_ENTER_HOLD := 0.10
+const CURSOR_INTENT_PRESSURE_FADE_IN_SPEED := 9.0
+const CURSOR_INTENT_PRESSURE_FADE_OUT_SPEED := 3.4
+const CURSOR_INTENT_OUT_OF_RANGE_FADE_SPEED := 6.5
+const CURSOR_INTENT_RESOURCE_FADE_SPEED := 8.0
+const CURSOR_INTENT_FIRE_KICK_PER_SWORD := 0.18
+const CURSOR_INTENT_FIRE_KICK_MIN := 0.28
+const CURSOR_INTENT_FIRE_KICK_MAX := 1.0
+const CURSOR_INTENT_FIRE_KICK_DECAY_SPEED := 7.4
+const CURSOR_INTENT_FIRE_PHASE_STEP := 1.43
 const FOCUS_STATUS_DURATION := 0.46
 const FOCUS_STATUS_Y_OFFSET := 58.0
 const DEFLECT_BULLET_SPEED_MULTIPLIER := 8.0
@@ -385,7 +411,12 @@ const DAMAGE_SOURCE_ARRAY_SWORD := "array_sword"
 const DAMAGE_SOURCE_SYSTEM := "system"
 
 const WAVE_BASE_ENEMIES := 3
-const BOSS_WAVE_INTERVAL := 5
+const BOSS_WAVE_INTERVAL := 10
+const FIRST_CHAPTER_SCRIPTED_WAVE_MAX := 9
+const UNLOCK_WAVE_FLYING_SWORD := 2
+const UNLOCK_WAVE_ARRAY_RING := 3
+const UNLOCK_WAVE_ARRAY_FAN := 4
+const UNLOCK_WAVE_ARRAY_PIERCE := 5
 const SPAWN_MARGIN := 50.0
 const SPAWN_INTERVAL := 0.35
 
@@ -534,7 +565,7 @@ const START_MENU_OPERATION_TEXT := """[b]WASD 移动[/b]
 角色、近战挥剑、御剑目标和剑阵方向都会参考鼠标位置。剑阵发射朝向也会跟随鼠标，方便你边走位边控线。
 
 [b]Space 切换剑阵[/b]
-在环阵和贯穿阵之间切换。环阵更适合近身护体和群组解压，贯穿阵更适合远端破线和窗口输出。
+在已解锁的环阵、扇阵、贯穿阵之间循环切换。环阵更适合近身护体和群组解压，扇阵更适合中距离扫面，贯穿阵更适合远端破线和窗口输出。
 
 [b]左键点击 近战挥剑[/b]
 立即朝鼠标方向斩击，适合处理贴脸敌人和弹开敌弹。命中敌人或成功弹反敌弹会回复剑意，是维持后续剑阵的主要来源。
@@ -643,6 +674,19 @@ var hitstop_queue: Array = []
 var hitstop_gap_timer: float = 0.0
 
 var mouse_world: Vector2 = ARENA_SIZE * 0.5
+var cursor_intent_previous_mouse_world: Vector2 = ARENA_SIZE * 0.5
+var cursor_intent_mouse_speed: float = 0.0
+var cursor_intent_fast_display: float = 0.0
+var cursor_intent_last_mode: String = SwordArrayConfig.MODE_RING
+var cursor_intent_mode_switch_timer: float = 0.0
+var cursor_intent_pressure_score: float = 0.0
+var cursor_intent_pressure_enter_timer: float = 0.0
+var cursor_intent_pressure_active: bool = false
+var cursor_intent_pressure_display: float = 0.0
+var cursor_intent_out_of_range_display: float = 0.0
+var cursor_intent_resource_display: float = 0.0
+var cursor_intent_fire_kick: float = 0.0
+var cursor_intent_fire_phase: float = 0.0
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
 var array_control_scheme: String = ARRAY_CONTROL_SCHEME_DISTANCE
@@ -691,6 +735,52 @@ func _get_sword_visual_angle() -> float:
 
 func _get_sword_hover_blend() -> float:
 	return float(sword.get("hover_idle_blend", 0.0))
+
+
+func _is_held_melee_sword_active() -> bool:
+	return (
+		int(sword.get("state", SwordState.ORBITING)) == SwordState.ORBITING
+		and int(player.get("mode", CombatMode.MELEE)) == CombatMode.MELEE
+	)
+
+
+func _is_melee_swing_visual_active() -> bool:
+	return _is_held_melee_sword_active() and float(player.get("melee_swing_timer", 0.0)) > 0.0
+
+
+func _get_melee_swing_progress() -> float:
+	var swing_duration: float = maxf(float(player.get("melee_swing_duration", MELEE_SWORD_SWING_DURATION)), 0.001)
+	return clampf(1.0 - float(player.get("melee_swing_timer", 0.0)) / swing_duration, 0.0, 1.0)
+
+
+func _get_held_sword_aim_direction() -> Vector2:
+	var aim_direction: Vector2 = mouse_world - player["pos"]
+	if aim_direction.is_zero_approx():
+		aim_direction = Vector2.RIGHT.rotated(float(sword.get("angle", 0.0)))
+	if aim_direction.is_zero_approx():
+		aim_direction = Vector2.RIGHT
+	return aim_direction.normalized()
+
+
+func _get_melee_sword_visual_angle() -> float:
+	var base_angle: float = _get_held_sword_aim_direction().angle()
+	if not _is_melee_swing_visual_active():
+		return base_angle - MELEE_SWORD_SWING_ARC * 0.5 * MELEE_SWORD_READY_SIDE
+	base_angle = float(player.get("melee_swing_angle", base_angle))
+	var swing_side: float = float(player.get("melee_swing_side", MELEE_SWORD_SWING_SIDE))
+	if is_zero_approx(swing_side):
+		swing_side = MELEE_SWORD_SWING_SIDE
+	var swing_progress: float = _get_melee_swing_progress()
+	var eased_progress: float = 1.0 - pow(1.0 - swing_progress, 3.0)
+	return base_angle + lerpf(-MELEE_SWORD_SWING_ARC * 0.5, MELEE_SWORD_SWING_ARC * 0.5, eased_progress) * swing_side
+
+
+func _get_held_melee_sword_position() -> Vector2:
+	var sword_angle: float = _get_melee_sword_visual_angle()
+	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
+	if sword_forward.is_zero_approx():
+		sword_forward = _get_held_sword_aim_direction()
+	return player["pos"] + sword_forward.normalized() * MELEE_SWORD_CENTER_DISTANCE
 
 
 func _get_sword_hover_preset_data() -> Dictionary:
@@ -999,13 +1089,14 @@ func _process(delta: float) -> void:
 	_update_sword(delta)
 	_trace_time_rift_sword()
 	_update_boss(delta, bullet_time_delta)
-	_update_enemies(bullet_time_delta)
+	_update_enemies(bullet_time_delta, delta)
 	_update_bullets(delta, bullet_time_delta)
 	_update_time_rift_freeze_markers()
 	_update_array_swords(delta)
 	_update_particles(bullet_time_delta)
 	_update_sword_hit_effects(delta)
 	_update_wave(delta)
+	_update_cursor_intent_indicator(delta)
 	_apply_debug_runtime_overrides()
 
 	if player["health"] <= 0.0:
@@ -1036,7 +1127,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if is_start_menu_active:
 		if event is InputEventMouseMotion:
-			mouse_world = _screen_to_world(event.position)
+			_update_mouse_world_from_motion(event)
 			_wake_array_distance_guide()
 		elif event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE:
@@ -1049,12 +1140,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_toggle_selected_array_mode()
 			return
 	if event is InputEventMouseMotion:
-		mouse_world = _screen_to_world(event.position)
+		_update_mouse_world_from_motion(event)
 		_wake_array_distance_guide()
 		if debug_calibration_mode and debug_dragging_player:
 			_set_debug_player_position(mouse_world)
 	elif event is InputEventMouseButton:
-		mouse_world = _screen_to_world(event.position)
+		_update_mouse_world_from_button(event)
 		_wake_array_distance_guide()
 		if debug_calibration_mode and event.button_index == MOUSE_BUTTON_MIDDLE:
 			debug_dragging_player = event.pressed
@@ -1065,6 +1156,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.pressed:
 				if is_game_over:
 					_reset_game()
+					_sync_desktop_mouse_visibility_to_game_state()
 					return
 				left_mouse_held = true
 				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
@@ -1073,6 +1165,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				left_mouse_held = false
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			if is_game_over:
+				return
+			if not _is_flying_sword_unlocked():
+				if event.pressed:
+					_show_locked_skill_feedback("flying_sword")
+				right_mouse_held = false
+				sword["press_timer"] = 0.0
 				return
 			if event.pressed:
 				right_mouse_held = true
@@ -1227,10 +1325,26 @@ func _make_start_menu_style(background_color: Color, border_color: Color, border
 	return style
 
 
+func _set_desktop_mouse_visible(visible: bool) -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if visible else Input.MOUSE_MODE_CAPTURED
+
+
+func _sync_desktop_mouse_visibility_to_game_state() -> void:
+	if is_start_menu_active or is_game_over or player.is_empty():
+		_set_desktop_mouse_visible(true)
+		return
+	_set_desktop_mouse_visible(false)
+
+
+func _set_player_combat_mode(mode: int) -> void:
+	player["mode"] = mode
+
+
 func _show_start_menu() -> void:
 	is_start_menu_active = true
 	left_mouse_held = false
 	right_mouse_held = false
+	_set_desktop_mouse_visible(true)
 	_update_array_control_scheme_ui()
 	if start_menu != null:
 		start_menu.visible = true
@@ -1249,6 +1363,7 @@ func _start_game_from_menu() -> void:
 	if start_menu != null:
 		start_menu.visible = false
 	_reset_game()
+	_sync_desktop_mouse_visibility_to_game_state()
 
 
 func _enter_lookdev_mode() -> void:
@@ -1339,7 +1454,7 @@ func _reset_lookdev_preview() -> void:
 	sword["prev_pos"] = sword["pos"]
 	sword["angle"] = 0.0
 	sword["state"] = SwordState.ORBITING
-	player["mode"] = CombatMode.RANGED
+	_set_player_combat_mode(CombatMode.RANGED)
 	status_message = "御剑特效预览"
 	status_message_timer = 0.0
 	hint_label.text = "1 点刺 | 2 连斩 | 3 回收 | Space 暂停/继续 | R 重播"
@@ -1423,7 +1538,7 @@ func _update_lookdev_recall(local_time: float, duration: float) -> void:
 		sword["pos"] = start_pos
 		sword["prev_pos"] = start_pos
 		sword["state"] = SwordState.RECALLING
-		player["mode"] = CombatMode.RANGED
+		_set_player_combat_mode(CombatMode.RANGED)
 		_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
 	if local_time < duration:
 		sword["target_pos"] = end_pos
@@ -1455,6 +1570,9 @@ func _reset_game() -> void:
 	array_mode_confirm_mode = ""
 	array_mode_confirm_angle = 0.0
 	array_distance_guide_timer = 0.0
+	_reset_cursor_intent_indicator()
+	_show_wave_unlock_feedback(wave)
+	_sync_desktop_mouse_visibility_to_game_state()
 
 
 func _update_player(delta: float, player_delta: float) -> void:
@@ -1462,6 +1580,7 @@ func _update_player(delta: float, player_delta: float) -> void:
 		player["vel"] = Vector2.ZERO
 		player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
 		player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
+		player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
 		return
 	var move_input: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if not move_input.is_zero_approx():
@@ -1474,6 +1593,7 @@ func _update_player(delta: float, player_delta: float) -> void:
 
 	player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
 	player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
+	player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
 
 
 func _get_bullet_time_recovery_duration() -> float:
@@ -1967,7 +2087,7 @@ func _release_pierce_time_stop_combo_sword(auto_release := false) -> void:
 	sword["vel"] = launch_direction.normalized() * SWORD_POINT_STRIKE_SPEED
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["time_slow_timer"] = _get_bullet_time_recovery_duration()
-	player["mode"] = CombatMode.RANGED
+	_set_player_combat_mode(CombatMode.RANGED)
 	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_PIERCE_COMBO)
 	var combo_color: Color = SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE)
 	_create_particles(Vector2(route_points[0]), combo_color, PIERCE_TIME_STOP_RELEASE_PARTICLE_COUNT)
@@ -2052,7 +2172,7 @@ func _finish_pierce_time_stop_combo_flight() -> void:
 		sword["combo_timer"] = 0.18
 		sword["combo_duration"] = 0.18
 		sword["combo_finish_profile_pending"] = false
-		player["mode"] = CombatMode.RANGED
+		_set_player_combat_mode(CombatMode.RANGED)
 		_create_particles(sword["pos"], combo_color, 10)
 		screen_shake = max(screen_shake, 3.5)
 		return
@@ -2079,7 +2199,7 @@ func _hold_pierce_combo_sword_at_mouse(combo_color: Color) -> void:
 	sword["combo_timer"] = 0.16
 	sword["combo_duration"] = 0.16
 	sword["combo_finish_profile_pending"] = false
-	player["mode"] = CombatMode.RANGED
+	_set_player_combat_mode(CombatMode.RANGED)
 	_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
 	_create_particles(sword["pos"], combo_color, 8)
 	screen_shake = max(screen_shake, 3.0)
@@ -2113,7 +2233,16 @@ func _append_pierce_time_stop_combo_point(sample_pos: Vector2, force := false) -
 func _can_use_array_attack() -> bool:
 	if not left_mouse_held:
 		return false
-	return float(player.get("array_hold_timer", 0.0)) >= SwordArrayConfig.HOLD_THRESHOLD
+	if float(player.get("array_hold_timer", 0.0)) < SwordArrayConfig.HOLD_THRESHOLD:
+		return false
+	if not _is_any_array_unlocked():
+		_show_locked_skill_feedback(SwordArrayConfig.MODE_RING)
+		return false
+	var mode: String = _get_array_batch_mode()
+	if not _is_array_mode_unlocked(mode):
+		_show_locked_skill_feedback(mode)
+		return false
+	return true
 
 
 func _get_active_array_sword_count() -> int:
@@ -2486,6 +2615,92 @@ func _emit_action_feedback_sfx(_reason_key: String) -> void:
 	pass
 
 
+func _is_flying_sword_unlocked() -> bool:
+	return lookdev_mode or debug_calibration_mode or wave >= UNLOCK_WAVE_FLYING_SWORD
+
+
+func _is_array_mode_unlocked(mode: String) -> bool:
+	if lookdev_mode or debug_calibration_mode:
+		return true
+	match mode:
+		SwordArrayConfig.MODE_PIERCE:
+			return wave >= UNLOCK_WAVE_ARRAY_PIERCE
+		SwordArrayConfig.MODE_FAN:
+			return wave >= UNLOCK_WAVE_ARRAY_FAN
+		SwordArrayConfig.MODE_RING:
+			return wave >= UNLOCK_WAVE_ARRAY_RING
+	return false
+
+
+func _is_any_array_unlocked() -> bool:
+	return _is_array_mode_unlocked(SwordArrayConfig.MODE_RING)
+
+
+func _get_locked_skill_failure_message(skill_id: String) -> String:
+	match skill_id:
+		"flying_sword":
+			return "御剑未解锁"
+		SwordArrayConfig.MODE_RING:
+			return "环阵未解锁"
+		SwordArrayConfig.MODE_FAN:
+			return "扇阵未解锁"
+		SwordArrayConfig.MODE_PIERCE:
+			return "贯穿阵未解锁"
+		_:
+			return "剑阵未解锁"
+
+
+func _get_unlock_color(skill_id: String) -> Color:
+	match skill_id:
+		"melee":
+			return COLORS["melee_sword"]
+		"flying_sword":
+			return COLORS["ranged_sword"]
+		SwordArrayConfig.MODE_RING:
+			return Color(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_RING).get("accent_color", COLORS["array_sword"]))
+		SwordArrayConfig.MODE_FAN:
+			return Color(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN).get("accent_color", COLORS["array_sword"]))
+		SwordArrayConfig.MODE_PIERCE:
+			return Color(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_PIERCE).get("accent_color", COLORS["array_sword"]))
+	return COLORS["array_sword"]
+
+
+func _show_locked_skill_feedback(skill_id: String) -> void:
+	var color: Color = _get_unlock_color(skill_id).lerp(COLORS["health"], 0.35)
+	_show_action_failure(
+		_get_locked_skill_failure_message(skill_id),
+		"skill_locked_%s" % skill_id,
+		color,
+		"array" if skill_id != "flying_sword" else "",
+		0.78
+	)
+
+
+func _show_wave_unlock_feedback(wave_index: int) -> void:
+	var unlock_message := ""
+	var unlock_color := Color.WHITE
+	match wave_index:
+		1:
+			unlock_message = "近战已解锁"
+			unlock_color = _get_unlock_color("melee")
+		UNLOCK_WAVE_FLYING_SWORD:
+			unlock_message = "御剑已解锁"
+			unlock_color = _get_unlock_color("flying_sword")
+		UNLOCK_WAVE_ARRAY_RING:
+			unlock_message = "环阵已解锁"
+			unlock_color = _get_unlock_color(SwordArrayConfig.MODE_RING)
+		UNLOCK_WAVE_ARRAY_FAN:
+			unlock_message = "扇阵已解锁"
+			unlock_color = _get_unlock_color(SwordArrayConfig.MODE_FAN)
+		UNLOCK_WAVE_ARRAY_PIERCE:
+			unlock_message = "贯穿阵已解锁"
+			unlock_color = _get_unlock_color(SwordArrayConfig.MODE_PIERCE)
+	if unlock_message == "":
+		return
+	_show_status_message(unlock_message, unlock_color, 1.0)
+	_show_focus_status_message(unlock_message, unlock_color, minf(FOCUS_STATUS_DURATION, 0.6))
+
+
 func _trigger_array_energy_break_feedback() -> void:
 	array_energy_break_timer = maxf(array_energy_break_timer, ARRAY_ENERGY_BREAK_DURATION)
 
@@ -2545,12 +2760,16 @@ func _get_array_energy_break_strength() -> float:
 
 
 func _wake_array_distance_guide() -> void:
+	if not ARRAY_DISTANCE_GUIDE_ENABLED:
+		return
 	if _get_array_control_scheme() != ARRAY_CONTROL_SCHEME_DISTANCE:
 		return
 	array_distance_guide_timer = maxf(array_distance_guide_timer, ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION)
 
 
 func _get_array_distance_guide_strength() -> float:
+	if not ARRAY_DISTANCE_GUIDE_ENABLED:
+		return 0.0
 	if lookdev_mode or debug_calibration_mode or is_start_menu_active:
 		return 0.0
 	if _get_array_control_scheme() != ARRAY_CONTROL_SCHEME_DISTANCE:
@@ -2563,6 +2782,195 @@ func _get_array_distance_guide_strength() -> float:
 		mouse_strength = clampf(array_distance_guide_timer / ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION, 0.0, 1.0)
 	var hold_strength: float = ARRAY_DISTANCE_GUIDE_HOLD_STRENGTH if left_mouse_held else 0.0
 	return clampf(maxf(intro_strength * 0.72, maxf(mouse_strength * 0.62, hold_strength)), 0.0, 1.0)
+
+
+func _reset_cursor_intent_indicator() -> void:
+	cursor_intent_previous_mouse_world = mouse_world
+	cursor_intent_mouse_speed = 0.0
+	cursor_intent_fast_display = 0.0
+	cursor_intent_last_mode = str(player.get("array_mode", SwordArrayConfig.MODE_RING))
+	cursor_intent_mode_switch_timer = 0.0
+	cursor_intent_pressure_score = 0.0
+	cursor_intent_pressure_enter_timer = 0.0
+	cursor_intent_pressure_active = false
+	cursor_intent_pressure_display = 0.0
+	cursor_intent_out_of_range_display = 0.0
+	cursor_intent_resource_display = 0.0
+	cursor_intent_fire_kick = 0.0
+	cursor_intent_fire_phase = 0.0
+
+
+func _update_cursor_intent_indicator(delta: float) -> void:
+	if player.is_empty():
+		return
+	var safe_delta: float = maxf(delta, 0.0001)
+	var mouse_delta: Vector2 = mouse_world - cursor_intent_previous_mouse_world
+	cursor_intent_mouse_speed = mouse_delta.length() / safe_delta
+	var target_fast_display: float = _cursor_intent_smoothstep(inverse_lerp(CURSOR_INTENT_FAST_SPEED, CURSOR_INTENT_MAX_SPEED, cursor_intent_mouse_speed))
+	var fast_speed: float = 11.0 if target_fast_display > cursor_intent_fast_display else 5.5
+	cursor_intent_fast_display = move_toward(cursor_intent_fast_display, target_fast_display, delta * fast_speed)
+	cursor_intent_previous_mouse_world = mouse_world
+
+	var morph_state: Dictionary = _get_sword_array_morph_state()
+	var current_mode: String = str(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+	if current_mode != cursor_intent_last_mode:
+		cursor_intent_last_mode = current_mode
+		cursor_intent_mode_switch_timer = CURSOR_INTENT_MODE_SWITCH_DURATION
+	else:
+		cursor_intent_mode_switch_timer = maxf(cursor_intent_mode_switch_timer - delta, 0.0)
+
+	_update_cursor_intent_pressure(delta, morph_state)
+	var out_of_range_target: float = _calculate_cursor_intent_out_of_range_strength()
+	cursor_intent_out_of_range_display = move_toward(
+		cursor_intent_out_of_range_display,
+		out_of_range_target,
+		delta * CURSOR_INTENT_OUT_OF_RANGE_FADE_SPEED
+	)
+	var resource_target: float = _calculate_cursor_intent_resource_strength()
+	cursor_intent_resource_display = move_toward(
+		cursor_intent_resource_display,
+		resource_target,
+		delta * CURSOR_INTENT_RESOURCE_FADE_SPEED
+	)
+	cursor_intent_fire_kick = move_toward(
+		cursor_intent_fire_kick,
+		0.0,
+		delta * CURSOR_INTENT_FIRE_KICK_DECAY_SPEED
+	)
+
+
+func _pulse_cursor_intent_fire(fire_count: int) -> void:
+	var count_strength: float = CURSOR_INTENT_FIRE_KICK_MIN + CURSOR_INTENT_FIRE_KICK_PER_SWORD * float(maxi(fire_count, 1))
+	cursor_intent_fire_kick = maxf(cursor_intent_fire_kick, clampf(count_strength, 0.0, CURSOR_INTENT_FIRE_KICK_MAX))
+	cursor_intent_fire_phase = fmod(cursor_intent_fire_phase + CURSOR_INTENT_FIRE_PHASE_STEP + float(maxi(fire_count, 1)) * 0.31, TAU)
+
+
+func _update_cursor_intent_pressure(delta: float, morph_state: Dictionary) -> void:
+	cursor_intent_pressure_score = _calculate_cursor_intent_pressure_score(morph_state)
+	if cursor_intent_pressure_active:
+		if cursor_intent_pressure_score <= CURSOR_INTENT_PRESSURE_EXIT_SCORE:
+			cursor_intent_pressure_active = false
+	else:
+		if cursor_intent_pressure_score >= CURSOR_INTENT_PRESSURE_ENTER_SCORE:
+			cursor_intent_pressure_enter_timer += delta
+			if cursor_intent_pressure_enter_timer >= CURSOR_INTENT_PRESSURE_ENTER_HOLD:
+				cursor_intent_pressure_active = true
+		else:
+			cursor_intent_pressure_enter_timer = 0.0
+	var target_display: float = cursor_intent_pressure_score if cursor_intent_pressure_active else 0.0
+	var fade_speed: float = CURSOR_INTENT_PRESSURE_FADE_IN_SPEED if target_display > cursor_intent_pressure_display else CURSOR_INTENT_PRESSURE_FADE_OUT_SPEED
+	cursor_intent_pressure_display = move_toward(cursor_intent_pressure_display, target_display, delta * fade_speed)
+
+
+func _calculate_cursor_intent_out_of_range_strength() -> float:
+	var aim_distance: float = player["pos"].distance_to(mouse_world)
+	var distances: Dictionary = SwordArrayConfig.get_morph_distances()
+	var pierce_end: float = float(distances.get("fan_to_pierce_end", SwordArrayConfig.FAN_TO_PIERCE_END))
+	var range_start: float = maxf(ARRAY_SWORD_MAX_TRAVEL_DISTANCE - 45.0, pierce_end + 70.0)
+	var range_full: float = range_start + 120.0
+	return _cursor_intent_smoothstep(inverse_lerp(range_start, range_full, aim_distance))
+
+
+func _calculate_cursor_intent_resource_strength() -> float:
+	var warning_strength: float = _get_array_energy_warning_strength()
+	var break_strength: float = _get_array_energy_break_strength()
+	var resource_strength: float = warning_strength * 0.72
+	if array_energy_forecast_level >= ArrayEnergyForecastLevel.CRITICAL:
+		resource_strength = maxf(resource_strength, warning_strength)
+	return clampf(maxf(resource_strength, break_strength), 0.0, 1.0)
+
+
+func _calculate_cursor_intent_pressure_score(morph_state: Dictionary) -> float:
+	if enemies.is_empty() or player.is_empty():
+		return 0.0
+	var player_pos: Vector2 = Vector2(player.get("pos", Vector2.ZERO))
+	var aim_vector: Vector2 = mouse_world - player_pos
+	var mode: String = str(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+	var best_score: float = 0.0
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if _should_ignore_cursor_pressure_enemy(enemy):
+			continue
+		var enemy_pos: Vector2 = Vector2(enemy.get("pos", Vector2.ZERO))
+		var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
+		var edge_distance: float = player_pos.distance_to(enemy_pos) - enemy_radius - PLAYER_RADIUS
+		var proximity: float = 1.0 - _cursor_intent_smoothstep(inverse_lerp(0.0, CURSOR_INTENT_PRESSURE_RADIUS, maxf(edge_distance, 0.0)))
+		if proximity <= 0.0:
+			continue
+		var threat_intent: float = _get_cursor_pressure_enemy_threat_intent(enemy, player_pos, enemy_pos)
+		var uncovered: float = _get_cursor_pressure_uncovered_weight(enemy_pos, enemy_radius, aim_vector, mode)
+		var score: float = clampf(proximity * threat_intent * uncovered, 0.0, 1.0)
+		best_score = maxf(best_score, score)
+	return best_score
+
+
+func _should_ignore_cursor_pressure_enemy(enemy: Dictionary) -> bool:
+	if bool(enemy.get("is_dying", false)):
+		return true
+	if float(enemy.get("health", 0.0)) <= 0.0:
+		return true
+	if float(enemy.get("stagger_timer", 0.0)) > 0.0:
+		return true
+	return false
+
+
+func _get_cursor_pressure_enemy_threat_intent(enemy: Dictionary, player_pos: Vector2, enemy_pos: Vector2) -> float:
+	var enemy_type: String = str(enemy.get("type", SHOOTER))
+	var distance: float = player_pos.distance_to(enemy_pos)
+	var intent: float = 0.35
+	match enemy_type:
+		TANK, HEAVY:
+			intent = 1.0
+		PUPPET:
+			intent = 1.0 if float(enemy.get("melee_timer", 0.0)) > 0.0 or distance <= PUPPET_MELEE_RANGE + 24.0 else 0.72
+		RING_LEECH:
+			intent = 0.9 if distance <= RING_LEECH_FIRE_DISTANCE else 0.62
+		MIRROR_NEEDLER:
+			intent = 0.88 if float(enemy.get("charge_timer", 0.0)) > 0.0 else 0.42
+		CASTER, DRAPE_PRIEST:
+			intent = 0.55 if float(enemy.get("shoot_cooldown", 999.0)) <= 0.35 else 0.38
+		_:
+			intent = 0.5 if float(enemy.get("shoot_cooldown", 999.0)) <= 0.35 else 0.34
+	var to_player: Vector2 = player_pos - enemy_pos
+	var enemy_velocity: Vector2 = Vector2(enemy.get("vel", Vector2.ZERO))
+	if not to_player.is_zero_approx() and not enemy_velocity.is_zero_approx():
+		var approach_speed: float = enemy_velocity.dot(to_player.normalized())
+		if approach_speed > 20.0:
+			intent = maxf(intent, clampf(approach_speed / 180.0, 0.45, 1.0))
+	if distance <= PLAYER_RADIUS + float(enemy.get("radius", SHOOTER_RADIUS)) + 24.0:
+		intent = maxf(intent, 1.0)
+	return clampf(intent, 0.0, 1.0)
+
+
+func _get_cursor_pressure_uncovered_weight(enemy_pos: Vector2, enemy_radius: float, aim_vector: Vector2, mode: String) -> float:
+	var player_pos: Vector2 = Vector2(player.get("pos", Vector2.ZERO))
+	var to_enemy: Vector2 = enemy_pos - player_pos
+	if to_enemy.is_zero_approx():
+		return 1.0
+	var coverage: float = 0.0
+	if not aim_vector.is_zero_approx():
+		var aim_dir: Vector2 = aim_vector.normalized()
+		var angle: float = absf(aim_dir.angle_to(to_enemy.normalized()))
+		var directional_coverage: float = 1.0 - _cursor_intent_smoothstep(inverse_lerp(0.38, 1.12, angle))
+		coverage = maxf(coverage, directional_coverage)
+	var cursor_distance_to_enemy: float = mouse_world.distance_to(enemy_pos)
+	var target_coverage: float = 1.0 - _cursor_intent_smoothstep(inverse_lerp(enemy_radius + 24.0, enemy_radius + 92.0, cursor_distance_to_enemy))
+	coverage = maxf(coverage, target_coverage)
+	var ring_is_committed: bool = (left_mouse_held or bool(player.get("array_is_firing", false))) and mode == SwordArrayConfig.MODE_RING
+	if ring_is_committed and to_enemy.length() <= SwordArrayConfig.RING_ACTIVE_RADIUS + enemy_radius + 34.0:
+		coverage = maxf(coverage, 0.86)
+	return clampf(1.0 - coverage, 0.0, 1.0)
+
+
+func _get_cursor_intent_mode_switch_strength() -> float:
+	if CURSOR_INTENT_MODE_SWITCH_DURATION <= 0.0:
+		return 0.0
+	return clampf(cursor_intent_mode_switch_timer / CURSOR_INTENT_MODE_SWITCH_DURATION, 0.0, 1.0)
+
+
+func _cursor_intent_smoothstep(value: float) -> float:
+	var t: float = clampf(value, 0.0, 1.0)
+	return t * t * (3.0 - 2.0 * t)
 
 
 func _get_array_stable_mode_from_state(state: Dictionary) -> String:
@@ -2600,6 +3008,27 @@ func _get_current_operation_guide_text() -> String:
 	return START_MENU_OPERATION_TEXT if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL else START_MENU_OPERATION_TEXT_DISTANCE
 
 
+func _get_progression_hint_text() -> String:
+	var hint_parts: Array[String] = [
+		"WASD 移动",
+		"左键 挥剑",
+	]
+	if _is_flying_sword_unlocked():
+		hint_parts.append("右键 御剑")
+	if _is_array_mode_unlocked(SwordArrayConfig.MODE_RING):
+		if _is_array_mode_unlocked(SwordArrayConfig.MODE_PIERCE):
+			hint_parts.append("长按左键 剑阵环/扇/贯")
+		elif _is_array_mode_unlocked(SwordArrayConfig.MODE_FAN):
+			hint_parts.append("长按左键 剑阵环/扇")
+		else:
+			hint_parts.append("长按左键 环阵")
+	hint_parts.append("点击右上切操作方案")
+	hint_parts.append(_get_sword_hover_preset_shortcut_hint())
+	hint_parts.append("F7 战斗调试")
+	hint_parts.append("F6 校准调试")
+	return " | ".join(hint_parts)
+
+
 func _update_array_control_scheme_ui() -> void:
 	var scheme_name: String = _get_array_control_scheme_display_name()
 	if start_menu_scheme_button != null:
@@ -2626,7 +3055,7 @@ func _set_array_control_scheme(scheme: String) -> void:
 	array_control_scheme = ARRAY_CONTROL_SCHEME_MANUAL if scheme == ARRAY_CONTROL_SCHEME_MANUAL else ARRAY_CONTROL_SCHEME_DISTANCE
 	if array_control_scheme == ARRAY_CONTROL_SCHEME_MANUAL:
 		var current_mode: String = str(player.get("array_mode", SwordArrayConfig.MODE_RING))
-		if current_mode == SwordArrayConfig.MODE_RING or current_mode == SwordArrayConfig.MODE_PIERCE:
+		if ARRAY_TOGGLE_MODES.has(current_mode):
 			player["array_selected_mode"] = current_mode
 		else:
 			player["array_selected_mode"] = _normalize_array_selected_mode(str(player.get("array_selected_mode", SwordArrayConfig.MODE_RING)))
@@ -2663,13 +3092,36 @@ func _uses_manual_array_mode_toggle() -> bool:
 
 
 func _normalize_array_selected_mode(mode: String) -> String:
-	return SwordArrayConfig.MODE_PIERCE if mode == SwordArrayConfig.MODE_PIERCE else SwordArrayConfig.MODE_RING
+	match mode:
+		SwordArrayConfig.MODE_FAN:
+			return SwordArrayConfig.MODE_FAN
+		SwordArrayConfig.MODE_PIERCE:
+			return SwordArrayConfig.MODE_PIERCE
+		_:
+			return SwordArrayConfig.MODE_RING
 
 
 func _get_selected_array_mode() -> String:
 	return _normalize_array_selected_mode(
 		str(player.get("array_selected_mode", player.get("array_mode", SwordArrayConfig.MODE_RING)))
 	)
+
+
+func _get_unlocked_array_toggle_modes() -> Array[String]:
+	var unlocked_modes: Array[String] = []
+	for mode_variant in ARRAY_TOGGLE_MODES:
+		var mode: String = str(mode_variant)
+		if _is_array_mode_unlocked(mode):
+			unlocked_modes.append(mode)
+	return unlocked_modes
+
+
+func _get_next_locked_array_toggle_mode() -> String:
+	for mode_variant in ARRAY_TOGGLE_MODES:
+		var mode: String = str(mode_variant)
+		if not _is_array_mode_unlocked(mode):
+			return mode
+	return ""
 
 
 func _build_locked_array_state(mode: String, _aim_distance: float) -> Dictionary:
@@ -2690,14 +3142,34 @@ func _build_locked_array_state(mode: String, _aim_distance: float) -> Dictionary
 
 
 func _get_array_mode_display_name(mode: String) -> String:
-	return "贯穿阵" if _normalize_array_selected_mode(mode) == SwordArrayConfig.MODE_PIERCE else "环阵"
+	match mode:
+		SwordArrayConfig.MODE_PIERCE:
+			return "贯穿阵"
+		SwordArrayConfig.MODE_FAN:
+			return "扇阵"
+		_:
+			return "环阵"
 
 
 func _toggle_selected_array_mode() -> void:
 	if is_game_over or lookdev_mode or is_start_menu_active or not _uses_manual_array_mode_toggle():
 		return
+	var unlocked_modes: Array[String] = _get_unlocked_array_toggle_modes()
+	if unlocked_modes.is_empty():
+		_show_locked_skill_feedback(SwordArrayConfig.MODE_RING)
+		return
 	var current_mode: String = _get_selected_array_mode()
-	var next_mode: String = ARRAY_TOGGLE_MODES[1] if current_mode == ARRAY_TOGGLE_MODES[0] else ARRAY_TOGGLE_MODES[0]
+	var next_mode: String = ""
+	if unlocked_modes.size() == 1:
+		next_mode = unlocked_modes[0]
+		if current_mode == next_mode:
+			var next_locked_mode: String = _get_next_locked_array_toggle_mode()
+			if next_locked_mode != "":
+				_show_locked_skill_feedback(next_locked_mode)
+			return
+	else:
+		var current_index: int = unlocked_modes.find(current_mode)
+		next_mode = unlocked_modes[0] if current_index < 0 else unlocked_modes[(current_index + 1) % unlocked_modes.size()]
 	var ready_source_snapshot: Array = []
 	if current_mode == SwordArrayConfig.MODE_PIERCE and next_mode == SwordArrayConfig.MODE_RING:
 		ready_source_snapshot = _build_array_sword_source_snapshot()
@@ -2786,6 +3258,20 @@ func _update_array_morph_control(delta: float) -> void:
 	player["array_control_distance"] = control_distance
 
 
+func _clamp_array_state_to_unlocks(state: Dictionary) -> Dictionary:
+	var completed_state: Dictionary = SwordArrayConfig.complete_morph_state(state)
+	if _is_array_mode_unlocked(SwordArrayConfig.MODE_PIERCE):
+		return completed_state
+	if _is_array_mode_unlocked(SwordArrayConfig.MODE_FAN):
+		var visual_from_mode: String = str(completed_state.get("visual_from_mode", ""))
+		var visual_to_mode: String = str(completed_state.get("visual_to_mode", ""))
+		var dominant_mode: String = str(completed_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+		if visual_from_mode == SwordArrayConfig.MODE_PIERCE or visual_to_mode == SwordArrayConfig.MODE_PIERCE or dominant_mode == SwordArrayConfig.MODE_PIERCE:
+			return SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_FAN)
+		return completed_state
+	return SwordArrayConfig.get_mode_state(SwordArrayConfig.MODE_RING)
+
+
 func _refresh_sword_array_live_state() -> void:
 	var raw_distance: float = float(player.get("array_raw_aim_distance", player["pos"].distance_to(mouse_world)))
 	var control_distance: float = float(player.get("array_control_distance", raw_distance))
@@ -2794,15 +3280,21 @@ func _refresh_sword_array_live_state() -> void:
 	var previous_mode: String = str(player.get("array_sticky_mode", player.get("array_mode", SwordArrayConfig.MODE_RING)))
 	if _uses_manual_array_mode_toggle():
 		var selected_mode: String = _get_selected_array_mode()
+		if not _is_array_mode_unlocked(selected_mode):
+			selected_mode = SwordArrayConfig.MODE_RING
 		player["array_selected_mode"] = selected_mode
 		visual_state = _build_locked_array_state(selected_mode, raw_distance)
 		fire_state = _build_locked_array_state(selected_mode, control_distance)
+		visual_state = _clamp_array_state_to_unlocks(visual_state)
+		fire_state = _clamp_array_state_to_unlocks(fire_state)
 		player["array_sticky_mode"] = selected_mode
 	else:
 		visual_state = SwordArrayConfig.get_morph_state_for_distance(raw_distance)
 		fire_state = SwordArrayConfig.get_control_morph_state_for_distance(control_distance)
 		visual_state = SwordArrayConfig.apply_dominant_mode_hysteresis(visual_state, previous_mode)
 		fire_state = SwordArrayConfig.apply_dominant_mode_hysteresis(fire_state, previous_mode)
+		visual_state = _clamp_array_state_to_unlocks(visual_state)
+		fire_state = _clamp_array_state_to_unlocks(fire_state)
 		player["array_sticky_mode"] = str(fire_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
 	player["array_morph_state"] = visual_state
 	player["array_fire_morph_state"] = fire_state
@@ -3108,26 +3600,31 @@ func _update_sword(delta: float) -> void:
 		if str(sword.get("attack_instance_id", "")) != "":
 			_end_sword_attack_instance()
 		_add_player_energy(ENERGY_RECOVERY_MELEE_NATURAL * delta, false)
-		var orbit_direction: Vector2 = mouse_world - player["pos"]
-		if orbit_direction.is_zero_approx():
-			orbit_direction = Vector2.RIGHT.rotated(sword["angle"])
+		if _is_held_melee_sword_active():
+			sword["angle"] = _get_melee_sword_visual_angle()
+			sword["pos"] = _get_held_melee_sword_position()
 		else:
-			orbit_direction = orbit_direction.normalized()
-		sword["angle"] = orbit_direction.angle()
-		var target: Vector2 = player["pos"] + orbit_direction * SWORD_ORBIT_DISTANCE
-		sword["vel"] = Vector2.ZERO
-		sword["pos"] = sword["pos"].lerp(target, min(delta * 18.0, 1.0))
+			var orbit_direction: Vector2 = mouse_world - player["pos"]
+			if orbit_direction.is_zero_approx():
+				orbit_direction = Vector2.RIGHT.rotated(sword["angle"])
+			else:
+				orbit_direction = orbit_direction.normalized()
+			sword["angle"] = orbit_direction.angle()
+			var target: Vector2 = player["pos"] + orbit_direction * SWORD_ORBIT_DISTANCE
+			sword["pos"] = sword["pos"].lerp(target, min(delta * 18.0, 1.0))
+		var held_frame_velocity: Vector2 = (sword["pos"] - sword["prev_pos"]) / maxf(delta, 0.001)
+		sword["vel"] = held_frame_velocity
 		_update_sword_hover(delta, Vector2.ZERO)
-		_update_sword_trail(delta, Vector2.ZERO)
-		_update_sword_air_wakes(delta, Vector2.ZERO)
-		_update_sword_afterimages(delta, Vector2.ZERO)
+		_update_sword_trail(delta, held_frame_velocity)
+		_update_sword_air_wakes(delta, held_frame_velocity)
+		_update_sword_afterimages(delta, held_frame_velocity)
 		return
 
 	if sword["state"] == SwordState.PIERCE_DRAWING:
 		sword["vel"] = Vector2.ZERO
 	elif sword["state"] == SwordState.SLICING:
-		sword["pos"] = sword["pos"].lerp(mouse_world, min(delta * 18.0, 1.0))
-		sword["vel"] = mouse_world - sword["pos"]
+		sword["pos"] = sword["pos"].lerp(mouse_world, min(delta * SWORD_SLICE_FOLLOW_SPEED, 1.0))
+		sword["vel"] = (sword["pos"] - sword["prev_pos"]) / maxf(delta, 0.001)
 	elif sword["state"] == SwordState.POINT_STRIKE:
 		if not _update_pierce_time_stop_combo_flight(delta):
 			var to_target: Vector2 = sword["target_pos"] - sword["pos"]
@@ -3165,10 +3662,11 @@ func _update_sword(delta: float) -> void:
 			_emit_sword_return_catch(player["pos"], recall_direction)
 			_create_particles(player["pos"], COLORS["array_sword_return"], 5)
 			_trigger_time_rift_recover()
-			sword["pos"] = player["pos"]
 			sword["vel"] = Vector2.ZERO
 			sword["state"] = SwordState.ORBITING
-			player["mode"] = CombatMode.MELEE
+			_set_player_combat_mode(CombatMode.MELEE)
+			sword["angle"] = _get_melee_sword_visual_angle()
+			sword["pos"] = _get_held_melee_sword_position()
 			var buffered_press_timer: float = float(sword.get("press_timer", 0.0))
 			if not _is_right_mouse_intent_active():
 				sword["press_timer"] = 0.0
@@ -3180,6 +3678,7 @@ func _update_sword(delta: float) -> void:
 				_start_slicing()
 				sword["prev_pos"] = sword["pos"]
 				return
+			return
 
 	if sword["vel"].length_squared() > 1.0:
 		sword["angle"] = sword["vel"].angle()
@@ -3973,7 +4472,8 @@ func _update_enemy_visual_feedback(enemy: Dictionary, delta: float) -> void:
 		enemy["death_feedback_timer"] = maxf(float(enemy.get("death_feedback_timer", 0.0)) - delta, 0.0)
 
 
-func _update_enemies(delta: float) -> void:
+func _update_enemies(delta: float, feedback_delta := -1.0) -> void:
+	var visual_feedback_delta: float = delta if feedback_delta < 0.0 else feedback_delta
 	_reset_enemy_runtime_modifiers()
 	_update_enemy_packages(delta)
 	var index: int = enemies.size() - 1
@@ -3992,7 +4492,7 @@ func _update_enemies(delta: float) -> void:
 			index -= 1
 			continue
 		if bool(enemy.get("is_dying", false)):
-			_update_enemy_visual_feedback(enemy, delta)
+			_update_enemy_visual_feedback(enemy, visual_feedback_delta)
 			if float(enemy.get("death_feedback_timer", 0.0)) <= 0.0:
 				_finalize_enemy_death(enemy, index)
 			index -= 1
@@ -4004,7 +4504,7 @@ func _update_enemies(delta: float) -> void:
 		if enemy.has("mirror_vulnerable_timer"):
 			enemy["mirror_vulnerable_timer"] = maxf(float(enemy.get("mirror_vulnerable_timer", 0.0)) - delta, 0.0)
 		enemy["stagger_timer"] = maxf(float(enemy.get("stagger_timer", 0.0)) - delta, 0.0)
-		_update_enemy_visual_feedback(enemy, delta)
+		_update_enemy_visual_feedback(enemy, visual_feedback_delta)
 		if float(enemy.get("stagger_timer", 0.0)) > 0.0:
 			enemy["vel"] = Vector2.ZERO
 			index -= 1
@@ -4507,19 +5007,22 @@ func _update_wave(delta: float) -> void:
 		_clear_target_hurtboxes("boss")
 		boss.clear()
 		score += 5000
-		enemies_to_spawn = WAVE_BASE_ENEMIES + wave * 2
+		wave += 1
+		_show_wave_unlock_feedback(wave)
+		enemies_to_spawn = _get_wave_enemy_count(wave)
 		_prepare_wave_spawn_queue()
 		spawn_timer = 0.5
 		return
 
 	if enemies_to_spawn <= 0 and enemies.is_empty():
 		wave += 1
-		if wave % BOSS_WAVE_INTERVAL == 0:
+		_show_wave_unlock_feedback(wave)
+		if _should_spawn_boss_wave(wave):
 			wave_spawn_queue.clear()
 			_spawn_boss()
 			spawn_timer = 0.6
 			return
-		enemies_to_spawn = WAVE_BASE_ENEMIES + wave * 2
+		enemies_to_spawn = _get_wave_enemy_count(wave)
 		_prepare_wave_spawn_queue()
 		spawn_timer = 0.6
 
@@ -4536,16 +5039,16 @@ func _update_wave(delta: float) -> void:
 
 	var next_spawn_entry: Variant = wave_spawn_queue.pop_front() if not wave_spawn_queue.is_empty() else _roll_spawn_entry(enemies_to_spawn)
 	var spawned_enemy_count: int = max(_spawn_wave_entry(next_spawn_entry), 1)
-	spawn_timer = SPAWN_INTERVAL * (1.0 + 0.12 * float(spawned_enemy_count - 1))
+	spawn_timer = _get_spawn_entry_delay(next_spawn_entry, spawned_enemy_count)
 	enemies_to_spawn = max(enemies_to_spawn - spawned_enemy_count, 0)
 
 
 func _perform_melee_attack() -> void:
-	player["attack_cooldown"] = SWORD_MELEE_COOLDOWN
-	player["attack_flash_timer"] = MELEE_ATTACK_FLASH_DURATION
 	var attack_direction: Vector2 = mouse_world - player["pos"]
 	if attack_direction.is_zero_approx():
 		attack_direction = Vector2.RIGHT
+	player["attack_cooldown"] = SWORD_MELEE_COOLDOWN
+	_start_melee_swing_visual(attack_direction)
 	var melee_attack_instance: Dictionary = _build_attack_instance(AttackProfiles.PROFILE_MELEE_SLASH, "player", "melee")
 	var melee_attack_instance_id: String = str(melee_attack_instance.get("id", ""))
 	var melee_attack_profile_id: String = str(melee_attack_instance.get("profile_id", AttackProfiles.PROFILE_MELEE_SLASH))
@@ -4644,6 +5147,19 @@ func _perform_melee_attack() -> void:
 	_clear_attack_instance(melee_attack_instance_id)
 
 
+func _start_melee_swing_visual(attack_direction: Vector2) -> void:
+	var swing_direction: Vector2 = attack_direction.normalized()
+	if swing_direction.is_zero_approx():
+		swing_direction = _get_held_sword_aim_direction()
+	player["attack_flash_timer"] = MELEE_ATTACK_FLASH_DURATION
+	player["melee_swing_timer"] = MELEE_SWORD_SWING_DURATION
+	player["melee_swing_duration"] = MELEE_SWORD_SWING_DURATION
+	player["melee_swing_angle"] = swing_direction.angle()
+	player["melee_swing_side"] = MELEE_SWORD_SWING_SIDE
+	sword["afterimage_burst_timer"] = maxf(float(sword.get("afterimage_burst_timer", 0.0)), SWORD_AFTERIMAGE_BURST_DURATION)
+	sword["afterimage_emit_timer"] = 0.0
+
+
 func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> void:
 	var deflect_direction: Vector2 = (bullet["pos"] - player["pos"]).normalized()
 	if deflect_direction.is_zero_approx():
@@ -4677,7 +5193,7 @@ func _start_point_strike() -> void:
 	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_POINT)
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
-	player["mode"] = CombatMode.RANGED
+	_set_player_combat_mode(CombatMode.RANGED)
 	_start_sword_combo(combo_id, release_anchor, mouse_world)
 	if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP:
 		_show_focus_status_message("分光御剑", SwordResonanceController.get_color(SwordArrayConfig.MODE_FAN), 0.58)
@@ -4699,13 +5215,13 @@ func _start_slicing() -> void:
 		sword["pos"] = release_anchor
 		sword["prev_pos"] = release_anchor
 		sword["vel"] = Vector2.ZERO
-		player["mode"] = CombatMode.RANGED
+		_set_player_combat_mode(CombatMode.RANGED)
 		_start_sword_combo(combo_id, release_anchor, mouse_world)
 		_show_focus_status_message("剑虹贯日", SwordResonanceController.get_color(SwordArrayConfig.MODE_PIERCE), 0.58)
 		return
 	_start_sword_attack_instance(AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
 	sword["state"] = SwordState.SLICING
-	player["mode"] = CombatMode.RANGED
+	_set_player_combat_mode(CombatMode.RANGED)
 	_start_sword_combo(combo_id, release_anchor, mouse_world)
 	if combo_id == SwordResonanceController.COMBO_FAN_TIME_STOP:
 		_show_focus_status_message("分光御剑", SwordResonanceController.get_color(SwordArrayConfig.MODE_FAN), 0.58)
@@ -4717,7 +5233,7 @@ func _commit_quick_release_point_strike() -> void:
 	_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_POINT)
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
-	player["mode"] = CombatMode.RANGED
+	_set_player_combat_mode(CombatMode.RANGED)
 
 
 func _trigger_unsheath_flash(direction: Vector2, flash_origin: Vector2) -> void:
@@ -4790,12 +5306,13 @@ func _update_sword_trail(delta: float, frame_velocity: Vector2) -> void:
 			sword_trail_points[index] = trail_point
 		index -= 1
 
-	if sword["state"] != SwordState.POINT_STRIKE and sword["state"] != SwordState.SLICING and sword["state"] != SwordState.RECALLING:
+	var melee_swinging: bool = _is_melee_swing_visual_active()
+	if sword["state"] != SwordState.POINT_STRIKE and sword["state"] != SwordState.SLICING and sword["state"] != SwordState.RECALLING and not melee_swinging:
 		sword["trail_emit_timer"] = 0.0
 		return
 
 	var emit_timer: float = max(float(sword.get("trail_emit_timer", 0.0)) - delta, 0.0)
-	var min_speed: float = float(vfx.trail_min_speed) * (0.82 if sword["state"] == SwordState.RECALLING else 1.0)
+	var min_speed: float = float(vfx.trail_min_speed) * (0.7 if melee_swinging else (0.82 if sword["state"] == SwordState.RECALLING else 1.0))
 	if frame_velocity.length() < min_speed:
 		sword["trail_emit_timer"] = emit_timer
 		return
@@ -4812,7 +5329,7 @@ func _emit_sword_trail_point(frame_velocity: Vector2) -> void:
 	var direction: Vector2 = frame_velocity.normalized()
 	if direction.is_zero_approx():
 		direction = Vector2.RIGHT.rotated(sword["angle"])
-	var is_slice: bool = sword["state"] == SwordState.SLICING
+	var is_slice: bool = sword["state"] == SwordState.SLICING or _is_melee_swing_visual_active()
 	var is_recalling: bool = sword["state"] == SwordState.RECALLING
 	var speed_reference: float = SWORD_RECALL_SPEED if is_recalling else SWORD_POINT_STRIKE_SPEED
 	var speed_ratio: float = clampf(frame_velocity.length() / maxf(speed_reference, 0.001), 0.0, 1.0)
@@ -4863,7 +5380,8 @@ func _update_sword_air_wakes(delta: float, frame_velocity: Vector2) -> void:
 			sword_air_wakes[index] = wake
 		index -= 1
 
-	if sword["state"] == SwordState.ORBITING:
+	var melee_swinging: bool = _is_melee_swing_visual_active()
+	if sword["state"] == SwordState.ORBITING and not melee_swinging:
 		sword["air_wake_emit_timer"] = 0.0
 		sword["last_motion_forward"] = Vector2.RIGHT.rotated(sword["angle"])
 		return
@@ -4966,7 +5484,8 @@ func _update_sword_afterimages(delta: float, frame_velocity: Vector2) -> void:
 			sword_afterimages[index] = afterimage
 		index -= 1
 
-	if sword["state"] == SwordState.ORBITING or sword["state"] == SwordState.RECALLING:
+	var melee_swinging: bool = _is_melee_swing_visual_active()
+	if (sword["state"] == SwordState.ORBITING and not melee_swinging) or sword["state"] == SwordState.RECALLING:
 		sword["afterimage_burst_timer"] = 0.0
 		sword["afterimage_emit_timer"] = 0.0
 		return
@@ -4995,7 +5514,7 @@ func _emit_sword_afterimage(frame_velocity: Vector2) -> void:
 	var speed_ratio: float = clampf(frame_velocity.length() / SWORD_POINT_STRIKE_SPEED, 0.0, 1.0)
 	sword_afterimages.append({
 		"pos": sword["pos"],
-		"angle": direction.angle(),
+		"angle": float(sword.get("angle", direction.angle())) if _is_melee_swing_visual_active() else direction.angle(),
 		"life": SWORD_AFTERIMAGE_DURATION,
 		"max_life": SWORD_AFTERIMAGE_DURATION,
 		"stretch": lerpf(1.0, 1.28, speed_ratio),
@@ -5389,10 +5908,12 @@ func _emit_sword_array_fire_effect(state_source, fire_count: int) -> void:
 	var effect: Dictionary = SwordArrayController.get_fire_effect(self , state_source, fire_count)
 	_create_particles(effect["position"], effect["color"], effect["particles"])
 	screen_shake = max(screen_shake, effect["shake"])
+	_pulse_cursor_intent_fire(fire_count)
 
 
-func _spawn_enemy(enemy_type: String) -> Dictionary:
-	var spawn_pos: Vector2 = _roll_spawn_position()
+func _spawn_enemy(enemy_type: String, spawn_position_override = null) -> Dictionary:
+	var has_spawn_override: bool = typeof(spawn_position_override) == TYPE_VECTOR2
+	var spawn_pos: Vector2 = spawn_position_override if has_spawn_override else _roll_spawn_position()
 	var enemy: Dictionary = {
 		"id": _next_id(enemy_type),
 		"type": enemy_type,
@@ -5481,6 +6002,14 @@ func _spawn_enemy(enemy_type: String) -> Dictionary:
 			enemy["mirror_vulnerable_timer"] = 0.0
 		_:
 			enemy["shoot_cooldown"] = randf_range(0.4, SHOOTER_COOLDOWN)
+	if has_spawn_override:
+		var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
+		enemy["pos"] = Vector2(spawn_position_override).clamp(
+			Vector2(enemy_radius, enemy_radius),
+			ARENA_SIZE - Vector2(enemy_radius, enemy_radius)
+		)
+		enemy["package_desired_pos"] = enemy["pos"]
+		enemy["package_center"] = enemy["pos"]
 	enemies.append(enemy)
 	_register_enemy_hurtboxes(enemy)
 	return enemy
@@ -5542,6 +6071,7 @@ func _set_game_over() -> void:
 	is_game_over = true
 	left_mouse_held = false
 	right_mouse_held = false
+	_set_desktop_mouse_visible(true)
 	game_over_label.visible = true
 
 
@@ -5668,10 +6198,7 @@ func _update_ui() -> void:
 	elif debug_battle_mode:
 		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击击杀 | 4 停刷怪 | 5 清敌弹 | %s | F7 退出 | F6 校准" % _get_sword_hover_preset_shortcut_hint()
 	else:
-		if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL:
-			hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | Space 切换环/贯 | 点击右上切操作方案 | %s | F7 战斗调试 | F6 校准调试" % _get_sword_hover_preset_shortcut_hint()
-		else:
-			hint_label.text = "WASD 移动 | 左键 挥剑/长按维持剑阵 | 右键 御剑点刺或连斩 | 鼠标距离切三阵 | 点击右上切操作方案 | %s | F7 战斗调试 | F6 校准调试" % _get_sword_hover_preset_shortcut_hint()
+		hint_label.text = _get_progression_hint_text()
 	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
@@ -6004,6 +6531,23 @@ func _screen_to_world(screen_pos: Vector2) -> Vector2:
 	return (screen_pos - ARENA_ORIGIN).clamp(Vector2.ZERO, ARENA_SIZE)
 
 
+func _update_mouse_world_from_motion(event: InputEventMouseMotion) -> void:
+	if _should_use_virtual_mouse_motion():
+		mouse_world = (mouse_world + event.relative).clamp(Vector2.ZERO, ARENA_SIZE)
+		return
+	mouse_world = _screen_to_world(event.position)
+
+
+func _update_mouse_world_from_button(event: InputEventMouseButton) -> void:
+	if _should_use_virtual_mouse_motion():
+		return
+	mouse_world = _screen_to_world(event.position)
+
+
+func _should_use_virtual_mouse_motion() -> bool:
+	return not lookdev_mode and not is_start_menu_active and not is_game_over
+
+
 func _roll_spawn_position() -> Vector2:
 	var roll: float = randf()
 	if roll < 0.5:
@@ -6011,6 +6555,206 @@ func _roll_spawn_position() -> Vector2:
 	if roll < 0.75:
 		return Vector2(ARENA_SIZE.x + SPAWN_MARGIN, randf_range(0.0, ARENA_SIZE.y))
 	return Vector2(-SPAWN_MARGIN, randf_range(0.0, ARENA_SIZE.y))
+
+
+func _should_spawn_boss_wave(wave_index: int) -> bool:
+	return wave_index > 0 and wave_index % BOSS_WAVE_INTERVAL == 0
+
+
+func _get_default_wave_enemy_count(wave_index: int) -> int:
+	return WAVE_BASE_ENEMIES + wave_index * 2
+
+
+func _get_wave_enemy_count(wave_index: int) -> int:
+	var scripted_queue: Array = _build_scripted_wave_spawn_queue(wave_index)
+	if not scripted_queue.is_empty():
+		return _get_spawn_queue_cost(scripted_queue)
+	return _get_default_wave_enemy_count(wave_index)
+
+
+func _make_enemy_spawn_entries(enemy_type: String, count: int) -> Array:
+	var entries: Array = []
+	var entry_index := 0
+	while entry_index < count:
+		entries.append(_make_enemy_spawn_entry(enemy_type))
+		entry_index += 1
+	return entries
+
+
+func _get_spawn_queue_cost(queue: Array) -> int:
+	var total_cost := 0
+	for entry_variant in queue:
+		total_cost += _get_spawn_entry_cost(entry_variant)
+	return total_cost
+
+
+func _append_enemy_spawn_drill(queue: Array, enemy_type: String, offsets: Array, delay_between := 0.08, delay_after := 0.76) -> void:
+	var entry_index := 0
+	while entry_index < offsets.size():
+		var delay: float = delay_after if entry_index == offsets.size() - 1 else delay_between
+		queue.append(_make_enemy_spawn_entry_near(enemy_type, Vector2(offsets[entry_index]), delay))
+		entry_index += 1
+
+
+func _build_scripted_wave_spawn_queue(wave_index: int) -> Array:
+	var queue: Array = []
+	if wave_index > FIRST_CHAPTER_SCRIPTED_WAVE_MAX:
+		return queue
+	match wave_index:
+		1:
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-82.0, -172.0),
+				Vector2(0.0, -186.0),
+				Vector2(82.0, -172.0),
+			], 0.08, 0.72)
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-98.0, -136.0),
+				Vector2(98.0, -136.0),
+				Vector2(0.0, -158.0),
+			], 0.10, 0.82)
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-150.0, -116.0),
+				Vector2(150.0, -116.0),
+				Vector2(-54.0, -172.0),
+				Vector2(54.0, -172.0),
+			], 0.10, 0.88)
+		2:
+			_append_enemy_spawn_drill(queue, HEAVY, [
+				Vector2(0.0, -260.0),
+				Vector2(-116.0, -250.0),
+			], 0.16, 0.88)
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-94.0, -176.0),
+				Vector2(94.0, -176.0),
+				Vector2(0.0, -206.0),
+			], 0.10, 0.76)
+			_append_enemy_spawn_drill(queue, HEAVY, [
+				Vector2(118.0, -264.0),
+				Vector2(-24.0, -292.0),
+			], 0.18, 0.86)
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-150.0, -156.0),
+				Vector2(0.0, -178.0),
+				Vector2(150.0, -156.0),
+			], 0.10, 0.72)
+		3:
+			queue.append(_make_enemy_spawn_entry_near(TANK, Vector2(0.0, -128.0), 0.58))
+			queue.append(_make_ring_leech_package_entry(RING_LEECH_PACKAGE_MIN_COUNT, 1.08))
+			_append_enemy_spawn_drill(queue, TANK, [
+				Vector2(-82.0, -134.0),
+				Vector2(82.0, -134.0),
+			], 0.18, 0.82)
+			queue.append(_make_ring_leech_package_entry(RING_LEECH_PACKAGE_MIN_COUNT, 0.92))
+		4:
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-220.0, -130.0),
+				Vector2(-112.0, -186.0),
+				Vector2(0.0, -210.0),
+				Vector2(112.0, -186.0),
+				Vector2(220.0, -130.0),
+			], 0.06, 0.78)
+			queue.append(_make_enemy_spawn_entry_near(CASTER, Vector2(0.0, -252.0), 0.68))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-246.0, -168.0),
+				Vector2(-124.0, -220.0),
+				Vector2(0.0, -236.0),
+				Vector2(124.0, -220.0),
+				Vector2(246.0, -168.0),
+			], 0.06, 0.78)
+			queue.append(_make_enemy_spawn_entry_near(CASTER, Vector2(0.0, -286.0), 0.72))
+		5:
+			_append_enemy_spawn_drill(queue, MIRROR_NEEDLER, [
+				Vector2(0.0, -312.0),
+				Vector2(0.0, -250.0),
+			], 0.12, 0.78)
+			_append_enemy_spawn_drill(queue, HEAVY, [
+				Vector2(-76.0, -268.0),
+				Vector2(-38.0, -210.0),
+				Vector2(0.0, -152.0),
+			], 0.12, 0.82)
+			_append_enemy_spawn_drill(queue, HEAVY, [
+				Vector2(108.0, -286.0),
+				Vector2(78.0, -226.0),
+				Vector2(48.0, -166.0),
+			], 0.12, 0.82)
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-132.0, -176.0),
+				Vector2(132.0, -176.0),
+			], 0.10, 0.72)
+		6:
+			_append_enemy_spawn_drill(queue, TANK, [
+				Vector2(0.0, -132.0),
+				Vector2(-96.0, -142.0),
+			], 0.16, 0.74)
+			queue.append(_make_enemy_spawn_entry_near(DRAPE_PRIEST, Vector2(0.0, -272.0), 0.68))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-136.0, -178.0),
+				Vector2(136.0, -178.0),
+				Vector2(0.0, -198.0),
+			], 0.10, 0.72)
+			queue.append(_make_enemy_spawn_entry_near(DRAPE_PRIEST, Vector2(112.0, -276.0), 0.62))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-192.0, -154.0),
+				Vector2(192.0, -154.0),
+				Vector2(76.0, -206.0),
+			], 0.10, 0.66)
+		7:
+			_append_enemy_spawn_drill(queue, TANK, [
+				Vector2(-64.0, -118.0),
+				Vector2(64.0, -118.0),
+				Vector2(0.0, -138.0),
+			], 0.12, 0.74)
+			queue.append(_make_enemy_spawn_entry_near(CASTER, Vector2(0.0, -240.0), 0.34))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-178.0, -174.0),
+				Vector2(178.0, -174.0),
+				Vector2(-92.0, -216.0),
+				Vector2(92.0, -216.0),
+			], 0.08, 0.74)
+			queue.append(_make_enemy_spawn_entry_near(CASTER, Vector2(146.0, -252.0), 0.44))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(-220.0, -146.0),
+				Vector2(0.0, -198.0),
+				Vector2(220.0, -146.0),
+			], 0.08, 0.66)
+		8:
+			_append_enemy_spawn_drill(queue, MIRROR_NEEDLER, [
+				Vector2(0.0, -286.0),
+				Vector2(126.0, -304.0),
+			], 0.14, 0.54)
+			queue.append(_make_enemy_spawn_entry_near(DRAPE_PRIEST, Vector2(-96.0, -238.0), 0.16))
+			_append_enemy_spawn_drill(queue, TANK, [
+				Vector2(-28.0, -148.0),
+				Vector2(-110.0, -154.0),
+			], 0.14, 0.66)
+			queue.append(_make_enemy_spawn_entry_near(CASTER, Vector2(126.0, -214.0), 0.22))
+			queue.append(_make_enemy_spawn_entry_near(DRAPE_PRIEST, Vector2(88.0, -254.0), 0.28))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(198.0, -150.0),
+				Vector2(-202.0, -158.0),
+				Vector2(34.0, -198.0),
+				Vector2(248.0, -190.0),
+			], 0.08, 0.68)
+		9:
+			queue.append(_make_ring_leech_package_entry(RING_LEECH_PACKAGE_MAX_COUNT, 0.86))
+			queue.append(_make_enemy_spawn_entry_near(DRAPE_PRIEST, Vector2(-138.0, -240.0), 0.16))
+			_append_enemy_spawn_drill(queue, TANK, [
+				Vector2(-56.0, -134.0),
+				Vector2(78.0, -138.0),
+			], 0.14, 0.54)
+			_append_enemy_spawn_drill(queue, MIRROR_NEEDLER, [
+				Vector2(92.0, -284.0),
+				Vector2(-116.0, -304.0),
+			], 0.16, 0.42)
+			queue.append(_make_enemy_spawn_entry_near(CASTER, Vector2(190.0, -198.0), 0.24))
+			queue.append(_make_enemy_spawn_entry_near(DRAPE_PRIEST, Vector2(16.0, -264.0), 0.18))
+			_append_enemy_spawn_drill(queue, SHOOTER, [
+				Vector2(0.0, -184.0),
+				Vector2(-210.0, -152.0),
+				Vector2(210.0, -152.0),
+				Vector2(132.0, -214.0),
+			], 0.08, 0.58)
+	return queue
 
 
 func _roll_enemy_type() -> String:
@@ -6029,12 +6773,24 @@ func _roll_enemy_type() -> String:
 	return _roll_weighted_enemy_type(enemy_weights)
 
 
-func _make_enemy_spawn_entry(enemy_type: String) -> Dictionary:
-	return {
+func _make_enemy_spawn_entry(enemy_type: String, extra := {}) -> Dictionary:
+	var entry := {
 		"kind": SPAWN_ENTRY_ENEMY,
 		"enemy_type": enemy_type,
 		"cost": 1,
 	}
+	for key_variant in extra.keys():
+		entry[key_variant] = extra[key_variant]
+	return entry
+
+
+func _make_enemy_spawn_entry_near(enemy_type: String, offset: Vector2, delay_after := -1.0) -> Dictionary:
+	var extra := {
+		"spawn_offset": offset,
+	}
+	if delay_after >= 0.0:
+		extra["delay_after"] = delay_after
+	return _make_enemy_spawn_entry(enemy_type, extra)
 
 
 func _make_package_spawn_entry(package_type: String, cost: int, extra := {}) -> Dictionary:
@@ -6048,14 +6804,17 @@ func _make_package_spawn_entry(package_type: String, cost: int, extra := {}) -> 
 	return entry
 
 
-func _make_ring_leech_package_entry(member_count := RING_LEECH_PACKAGE_DEFAULT_COUNT) -> Dictionary:
+func _make_ring_leech_package_entry(member_count := RING_LEECH_PACKAGE_DEFAULT_COUNT, delay_after := -1.0) -> Dictionary:
 	var resolved_count: int = clampi(member_count, RING_LEECH_PACKAGE_MIN_COUNT, RING_LEECH_PACKAGE_MAX_COUNT)
+	var extra := {
+		"member_count": resolved_count,
+	}
+	if delay_after >= 0.0:
+		extra["delay_after"] = delay_after
 	return _make_package_spawn_entry(
 		ENEMY_PACKAGE_RING_LEECH_CLOSE,
 		resolved_count,
-		{
-			"member_count": resolved_count,
-		}
+		extra
 	)
 
 
@@ -6063,6 +6822,23 @@ func _get_spawn_entry_cost(entry_variant: Variant) -> int:
 	if typeof(entry_variant) == TYPE_DICTIONARY:
 		return max(int((entry_variant as Dictionary).get("cost", 1)), 1)
 	return 1
+
+
+func _get_spawn_entry_delay(entry_variant: Variant, spawned_count: int) -> float:
+	if typeof(entry_variant) == TYPE_DICTIONARY:
+		var entry: Dictionary = entry_variant
+		if entry.has("delay_after"):
+			return maxf(float(entry.get("delay_after", SPAWN_INTERVAL)), 0.0)
+	return SPAWN_INTERVAL * (1.0 + 0.12 * float(spawned_count - 1))
+
+
+func _resolve_spawn_entry_position(entry: Dictionary) -> Variant:
+	if entry.has("spawn_pos") and typeof(entry.get("spawn_pos")) == TYPE_VECTOR2:
+		return entry.get("spawn_pos")
+	if entry.has("spawn_offset") and typeof(entry.get("spawn_offset")) == TYPE_VECTOR2:
+		var anchor: Vector2 = Vector2(player.get("pos", ARENA_SIZE * 0.5))
+		return anchor + Vector2(entry.get("spawn_offset"))
+	return null
 
 
 func _roll_spawn_entry(remaining_enemy_count: int, wave_index := wave) -> Dictionary:
@@ -6150,11 +6926,16 @@ func _spawn_wave_entry(entry_variant: Variant) -> int:
 			var spawned_count: int = _spawn_enemy_package(entry)
 			if spawned_count > 0:
 				return spawned_count
-	_spawn_enemy(str(entry.get("enemy_type", SHOOTER)))
+	_spawn_enemy(str(entry.get("enemy_type", SHOOTER)), _resolve_spawn_entry_position(entry))
 	return 1
 
 
 func _prepare_wave_spawn_queue() -> void:
+	var scripted_queue: Array = _build_scripted_wave_spawn_queue(wave)
+	if not scripted_queue.is_empty():
+		wave_spawn_queue = scripted_queue
+		enemies_to_spawn = _get_spawn_queue_cost(wave_spawn_queue)
+		return
 	wave_spawn_queue = _build_wave_spawn_queue(wave, enemies_to_spawn)
 
 
@@ -6255,7 +7036,7 @@ func _register_silk_hurtbox(silk: Dictionary) -> void:
 
 
 func _is_boss_core_open() -> bool:
-	return _has_boss() and (bool(boss.get("is_vulnerable", false)) or int(boss.get("phase", 0)) == 1)
+	return _has_boss() and bool(boss.get("is_vulnerable", false))
 
 
 func _get_boss_hit_context(attack_profile_id := "", damage_source := DAMAGE_SOURCE_NONE) -> Dictionary:

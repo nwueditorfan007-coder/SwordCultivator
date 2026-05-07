@@ -8,8 +8,8 @@ const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
 static func update_boss(main: Node, delta: float, bullet_time_delta: float) -> void:
 	if not has_boss(main):
 		return
-	main.boss["hit_flash_timer"] = maxf(float(main.boss.get("hit_flash_timer", 0.0)) - bullet_time_delta, 0.0)
-	main.boss["hit_reaction_timer"] = maxf(float(main.boss.get("hit_reaction_timer", 0.0)) - bullet_time_delta, 0.0)
+	main.boss["hit_flash_timer"] = maxf(float(main.boss.get("hit_flash_timer", 0.0)) - delta, 0.0)
+	main.boss["hit_reaction_timer"] = maxf(float(main.boss.get("hit_reaction_timer", 0.0)) - delta, 0.0)
 	main.boss["hit_reaction_offset"] = main._resolve_hit_reaction_offset(
 		Vector2(main.boss.get("hit_reaction_vector", Vector2.ZERO)),
 		float(main.boss.get("hit_reaction_timer", 0.0)),

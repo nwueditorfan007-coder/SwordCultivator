@@ -113,17 +113,112 @@ static func _get_mode_slot_position(main: Node, mode: String, slot_index: int, s
 			var layer_slot_count: int = fan_slot["count"]
 			var fan_angle: float = SwordArrayBandFamily.get_fan_layout_angle_factor(fan_slot["index"], layer_slot_count) * layer_arc * 0.5
 			return main.player["pos"] + Vector2.RIGHT.rotated(aim_angle + fan_angle) * layer_radius
+		SwordArrayConfig.MODE_PIERCE:
+			return _get_pierce_slot_position(main, profile, slot_index, clamped_count, formation_ratio, aim_vector)
 		_:
 			var half_span: float = maxf(float(clamped_count - 1) * 0.5, 1.0)
 			var centered_index: float = float(slot_index) - half_span
 			var lane_depth: float = absf(centered_index)
+			var start_offset: float = lerpf(profile["idle_start_offset"], profile["start_offset"], formation_ratio)
 			var tip_offset: float = lerpf(profile["idle_tip_offset"], profile["tip_offset"], formation_ratio) - 12.0
 			var depth_step: float = lerpf(profile["idle_slot_step"], profile["slot_step"] * 0.72, formation_ratio)
 			var forward_offset: float = tip_offset - lane_depth * depth_step
+			var min_forward_gap: float = lerpf(
+				float(profile.get("idle_min_slot_forward_gap", 0.0)),
+				float(profile.get("min_slot_forward_gap", 0.0)),
+				formation_ratio
+			)
+			forward_offset = maxf(forward_offset, start_offset + min_forward_gap)
 			var side_vector: Vector2 = aim_vector.rotated(PI * 0.5)
 			var lane_width: float = lerpf(profile["idle_half_width"] * 0.5, profile["wedge_width"], formation_ratio)
 			var side_offset: float = signf(centered_index) * lane_depth * lane_width
 			return main.player["pos"] + aim_vector * forward_offset + side_vector * side_offset
+
+
+static func _get_pierce_slot_position(
+	main: Node,
+	profile: Dictionary,
+	slot_index: int,
+	slot_count: int,
+	formation_ratio: float,
+	aim_vector: Vector2
+) -> Vector2:
+	var resolved_index: int = mini(maxi(slot_index, 0), slot_count - 1)
+	var center_count: int = _get_pierce_center_slot_count(slot_count)
+	var start_offset: float = lerpf(profile["idle_start_offset"], profile["start_offset"], formation_ratio)
+	var tip_offset: float = lerpf(profile["idle_tip_offset"], profile["tip_offset"], formation_ratio) - 8.0
+	var min_forward_gap: float = lerpf(
+		float(profile.get("idle_min_slot_forward_gap", 0.0)),
+		float(profile.get("min_slot_forward_gap", 0.0)),
+		formation_ratio
+	)
+	var rear_forward_offset: float = start_offset + min_forward_gap
+	var forward_span: float = maxf(tip_offset - rear_forward_offset, 1.0)
+	var forward_ratio: float = 0.0
+	var side_factor: float = 0.0
+	if resolved_index < center_count:
+		forward_ratio = _get_pierce_center_forward_ratio(resolved_index, center_count)
+	else:
+		var side_slot_index: int = resolved_index - center_count
+		var side_slot_count: int = maxi(slot_count - center_count, 1)
+		var side_slot_data: Dictionary = _get_pierce_side_slot_data(side_slot_index, side_slot_count)
+		forward_ratio = float(side_slot_data["forward_ratio"])
+		side_factor = float(side_slot_data["side_factor"])
+	var forward_offset: float = rear_forward_offset + forward_span * clampf(forward_ratio, 0.0, 1.0)
+	var side_vector: Vector2 = aim_vector.rotated(PI * 0.5)
+	var side_span: float = lerpf(
+		maxf(float(profile["idle_half_width"]) * 2.4, 20.0),
+		maxf(float(profile["wedge_width"]) * 5.8, 38.0),
+		formation_ratio
+	)
+	return main.player["pos"] + aim_vector * forward_offset + side_vector * side_span * side_factor
+
+
+static func _get_pierce_center_slot_count(slot_count: int) -> int:
+	if slot_count <= 4:
+		return slot_count
+	if slot_count >= 9 and slot_count % 2 == 1:
+		return 5
+	if slot_count % 2 == 1:
+		return 3
+	return 4
+
+
+static func _get_pierce_center_forward_ratio(axis_index: int, center_count: int) -> float:
+	var clamped_index: int = maxi(axis_index, 0)
+	match center_count:
+		1:
+			return 1.0
+		2:
+			var two_slot_ratios := [0.42, 1.0]
+			return two_slot_ratios[mini(clamped_index, 1)]
+		3:
+			var three_slot_ratios := [0.0, 0.52, 1.0]
+			return three_slot_ratios[mini(clamped_index, 2)]
+		4:
+			var four_slot_ratios := [0.0, 0.34, 0.7, 1.0]
+			return four_slot_ratios[mini(clamped_index, 3)]
+		_:
+			var five_slot_ratios := [0.0, 0.25, 0.52, 0.78, 1.0]
+			return five_slot_ratios[mini(clamped_index, 4)]
+
+
+static func _get_pierce_side_slot_data(side_slot_index: int, side_slot_count: int) -> Dictionary:
+	var pair_count: int = maxi(int(ceil(float(side_slot_count) * 0.5)), 1)
+	var pair_index: int = mini(int(floor(float(maxi(side_slot_index, 0)) * 0.5)), pair_count - 1)
+	var pair_ratio: float = 0.0
+	if pair_count > 1:
+		pair_ratio = float(pair_index) / float(pair_count - 1)
+	var side_sign: float = -1.0 if side_slot_index % 2 == 0 else 1.0
+	var forward_ratio: float = lerpf(0.26, 0.0, pair_ratio)
+	var side_strength: float = lerpf(0.72, 1.08, pair_ratio)
+	if side_slot_count <= 2:
+		forward_ratio = 0.18
+		side_strength = 0.82
+	return {
+		"forward_ratio": forward_ratio,
+		"side_factor": side_sign * side_strength,
+	}
 
 
 static func _get_slot_position_from_geometry(

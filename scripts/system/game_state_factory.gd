@@ -53,6 +53,8 @@ static func reset_runtime(main: Node) -> void:
 	main.hitstop_timer = 0.0
 	main.hitstop_queue = []
 	main.hitstop_gap_timer = 0.0
+	main.cursor_intent_fire_kick = 0.0
+	main.cursor_intent_fire_phase = 0.0
 	main.player = {
 		"pos": main.ARENA_SIZE * 0.5,
 		"vel": Vector2.ZERO,
@@ -61,6 +63,10 @@ static func reset_runtime(main: Node) -> void:
 		"mode": main.CombatMode.MELEE,
 		"attack_cooldown": 0.0,
 		"attack_flash_timer": 0.0,
+		"melee_swing_timer": 0.0,
+		"melee_swing_duration": main.MELEE_SWORD_SWING_DURATION,
+		"melee_swing_angle": 0.0,
+		"melee_swing_side": main.MELEE_SWORD_READY_SIDE,
 		"array_hold_timer": 0.0,
 		"array_hold_ratio": 0.0,
 		"array_is_firing": false,

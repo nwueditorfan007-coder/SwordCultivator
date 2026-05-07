@@ -45,13 +45,28 @@ static func _draw_ring_preview(main: Node2D, player_pos: Vector2, geometry: Dict
 		spoke_index += 1
 
 
+static func _get_unified_preview_line_color(preview_alpha: float, weight: float) -> Color:
+	var color: Color = SwordArrayController.get_accent_color(SwordArrayConfig.MODE_RING)
+	color.a = preview_alpha * 0.86 * weight
+	return color
+
+
+static func _get_unified_preview_edge_color(preview_alpha: float, weight: float) -> Color:
+	var color: Color = SwordArrayController.get_accent_color(SwordArrayConfig.MODE_RING)
+	color.a = preview_alpha * 0.32 * weight
+	return color
+
+
+static func _get_unified_preview_soft_color(formation_ratio: float, weight: float) -> Color:
+	var color: Color = SwordArrayController.get_soft_accent_color(SwordArrayConfig.MODE_RING)
+	color.a = (0.08 + formation_ratio * 0.08) * weight
+	return color
+
+
 static func _draw_fan_preview(main: Node2D, player_pos: Vector2, geometry: Dictionary, weight: float, preview_alpha: float, formation_ratio: float) -> void:
-	var fan_color_source = geometry.get("preview_state", SwordArrayConfig.MODE_FAN)
-	var fan_color: Color = SwordArrayController.get_accent_color(fan_color_source)
-	fan_color.a = (preview_alpha + 0.08) * weight
-	var fan_edge_color := Color(fan_color.r, fan_color.g, fan_color.b, 0.24 * weight)
-	var fan_soft_color: Color = SwordArrayController.get_soft_accent_color(fan_color_source)
-	fan_soft_color.a = (0.16 + formation_ratio * 0.14) * weight
+	var fan_color: Color = _get_unified_preview_line_color(preview_alpha, weight)
+	var fan_edge_color: Color = _get_unified_preview_edge_color(preview_alpha, weight)
+	var fan_soft_color: Color = _get_unified_preview_soft_color(formation_ratio, weight)
 	if _draw_section_profile_preview(main, geometry, weight, formation_ratio, fan_color, fan_edge_color, fan_soft_color):
 		return
 	_draw_arc_band_preview(main, geometry, weight, formation_ratio, fan_color, fan_edge_color, fan_soft_color)
@@ -69,21 +84,8 @@ static func _draw_classic_fan_preview(
 ) -> void:
 	var fan_mid_radius: float = lerpf(float(geometry.get("inner_radius", 0.0)), float(geometry.get("outer_radius", 0.0)), 0.56)
 	var fan_mid_arc: float = float(geometry.get("arc", 0.0)) * 0.78
-	var fan_fill: PackedVector2Array = _build_fan_band_polygon(
-		player_pos,
-		float(geometry.get("angle", 0.0)),
-		float(geometry.get("arc", 0.0)),
-		float(geometry.get("inner_radius", 0.0)),
-		float(geometry.get("outer_radius", 0.0)),
-		16
-	)
-	_try_draw_colored_polygon(
-		main,
-		fan_fill,
-		Color(fan_soft_color.r, fan_soft_color.g, fan_soft_color.b, (0.08 + formation_ratio * 0.08) * weight)
-	)
-	main.draw_arc(player_pos, float(geometry.get("outer_radius", 0.0)), float(geometry.get("angle", 0.0)) - float(geometry.get("arc", 0.0)) * 0.5, float(geometry.get("angle", 0.0)) + float(geometry.get("arc", 0.0)) * 0.5, 32, fan_color, 3.0)
-	main.draw_arc(player_pos, fan_mid_radius, float(geometry.get("angle", 0.0)) - fan_mid_arc * 0.5, float(geometry.get("angle", 0.0)) + fan_mid_arc * 0.5, 24, fan_soft_color, 1.6)
+	main.draw_arc(player_pos, float(geometry.get("outer_radius", 0.0)), float(geometry.get("angle", 0.0)) - float(geometry.get("arc", 0.0)) * 0.5, float(geometry.get("angle", 0.0)) + float(geometry.get("arc", 0.0)) * 0.5, 32, fan_color, 2.2)
+	main.draw_arc(player_pos, fan_mid_radius, float(geometry.get("angle", 0.0)) - fan_mid_arc * 0.5, float(geometry.get("angle", 0.0)) + fan_mid_arc * 0.5, 24, fan_soft_color, 1.2)
 	main.draw_arc(player_pos, float(geometry.get("inner_radius", 0.0)), float(geometry.get("angle", 0.0)) - fan_mid_arc * 0.32, float(geometry.get("angle", 0.0)) + fan_mid_arc * 0.32, 18, fan_edge_color, 1.1)
 	main.draw_line(
 		player_pos + Vector2.RIGHT.rotated(float(geometry.get("angle", 0.0)) - float(geometry.get("arc", 0.0)) * 0.5) * float(geometry.get("inner_radius", 0.0)),
@@ -110,31 +112,41 @@ static func _draw_pierce_preview(main: Node2D, geometry: Dictionary, weight: flo
 	var end_pos: Vector2 = main._to_screen(geometry.get("end", Vector2.ZERO))
 	var tip_pos: Vector2 = main._to_screen(geometry.get("tip", Vector2.ZERO))
 	var line_dir: Vector2 = (end_pos - start_pos).normalized()
-	var side_offset: Vector2 = line_dir.rotated(PI * 0.5) * float(geometry.get("half_width", 0.0))
-	var pierce_color: Color = SwordArrayController.get_accent_color(SwordArrayConfig.MODE_PIERCE)
-	pierce_color.a = (preview_alpha + 0.1) * weight
-	var pierce_soft_color: Color = SwordArrayController.get_soft_accent_color(SwordArrayConfig.MODE_PIERCE)
-	pierce_soft_color.a = (0.18 + formation_ratio * 0.08) * weight
-	var wedge_back: Vector2 = start_pos + line_dir * float(geometry.get("wedge_length", 0.0))
-	var wedge_side: Vector2 = line_dir.rotated(PI * 0.5) * float(geometry.get("wedge_width", 0.0))
-	_try_draw_colored_polygon(
-		main,
-		PackedVector2Array([start_pos + wedge_side, start_pos - wedge_side, wedge_back]),
-		Color(pierce_soft_color.r, pierce_soft_color.g, pierce_soft_color.b, (0.12 + formation_ratio * 0.1) * weight)
+	var side_dir: Vector2 = line_dir.rotated(PI * 0.5)
+	var side_offset: Vector2 = side_dir * float(geometry.get("half_width", 0.0))
+	var pierce_color: Color = _get_unified_preview_line_color(preview_alpha, weight)
+	var pierce_soft_color: Color = _get_unified_preview_soft_color(formation_ratio, weight)
+	var wedge_length: float = float(geometry.get("wedge_length", 0.0))
+	var shoulder_pos: Vector2 = start_pos + line_dir * wedge_length
+	var shoulder_half_width: float = maxf(float(geometry.get("wedge_width", 0.0)) * 3.9, 18.0) * lerpf(0.72, 1.0, formation_ratio)
+	var rear_wing_pos: Vector2 = start_pos + line_dir * maxf(wedge_length * 0.22, 6.0)
+	var rear_wing_half_width: float = shoulder_half_width * 1.12
+	var left_wing_curve: PackedVector2Array = _build_quadratic_curve_points(
+		rear_wing_pos + side_dir * rear_wing_half_width,
+		shoulder_pos + side_dir * shoulder_half_width * 0.66,
+		tip_pos,
+		8
 	)
-	main.draw_line(start_pos, end_pos, pierce_color, 3.2 + formation_ratio * 1.4)
-	main.draw_line(start_pos + side_offset, end_pos + side_offset * 0.35, pierce_soft_color, 1.0)
-	main.draw_line(start_pos - side_offset, end_pos - side_offset * 0.35, pierce_soft_color, 1.0)
-	main.draw_line(end_pos, tip_pos, Color(1.0, 1.0, 1.0, (0.34 + formation_ratio * 0.18) * weight), 2.2)
-	main.draw_circle(tip_pos, float(geometry.get("tip_radius", 0.0)), Color(1.0, 1.0, 1.0, (0.28 + formation_ratio * 0.22) * weight))
+	var right_wing_curve: PackedVector2Array = _build_quadratic_curve_points(
+		rear_wing_pos - side_dir * rear_wing_half_width,
+		shoulder_pos - side_dir * shoulder_half_width * 0.66,
+		tip_pos,
+		8
+	)
+	_draw_outline_path(main, left_wing_curve, pierce_soft_color, 1.1)
+	_draw_outline_path(main, right_wing_curve, pierce_soft_color, 1.1)
+	main.draw_line(start_pos, tip_pos, pierce_color, 2.2 + formation_ratio * 0.8)
+	main.draw_line(start_pos + side_offset, end_pos + side_offset * 0.35, pierce_soft_color, 0.9)
+	main.draw_line(start_pos - side_offset, end_pos - side_offset * 0.35, pierce_soft_color, 0.9)
+	var pierce_tip_color: Color = _get_unified_preview_edge_color(preview_alpha, weight)
+	pierce_tip_color.a = maxf(pierce_tip_color.a, (0.16 + formation_ratio * 0.1) * weight)
+	main.draw_line(end_pos, tip_pos, pierce_tip_color, 1.6)
 
 
 static func _draw_crescent_preview(main: Node2D, geometry: Dictionary, state_source, preview_alpha: float, formation_ratio: float) -> void:
-	var accent_color: Color = SwordArrayController.get_accent_color(state_source)
-	accent_color.a = preview_alpha + 0.06
-	var soft_color: Color = SwordArrayController.get_soft_accent_color(state_source)
-	soft_color.a = 0.14 + formation_ratio * 0.12
-	var edge_color := Color(accent_color.r, accent_color.g, accent_color.b, 0.22)
+	var accent_color: Color = _get_unified_preview_line_color(preview_alpha, 1.0)
+	var soft_color: Color = _get_unified_preview_soft_color(formation_ratio, 1.0)
+	var edge_color: Color = _get_unified_preview_edge_color(preview_alpha, 1.0)
 	if _draw_section_profile_preview(main, geometry, 1.0, formation_ratio, accent_color, edge_color, soft_color):
 		return
 	_draw_arc_band_preview(main, geometry, 1.0, formation_ratio, accent_color, edge_color, soft_color)
@@ -154,16 +166,8 @@ static func _draw_arc_band_preview(
 	var inner_arc: float = float(geometry.get("inner_arc", outer_arc))
 	var inner_radius: float = float(geometry.get("inner_radius", 0.0))
 	var outer_radius: float = float(geometry.get("outer_radius", 0.0))
-	var fill: PackedVector2Array = _build_crescent_polygon(
-		center,
-		float(geometry.get("angle", 0.0)),
-		outer_arc,
-		inner_arc,
-		inner_radius,
-		outer_radius,
-		18
-	)
-	_try_draw_colored_polygon(main, fill, Color(soft_color.r, soft_color.g, soft_color.b, (0.08 + formation_ratio * 0.08) * weight))
+	var mid_radius: float = lerpf(inner_radius, outer_radius, 0.58)
+	var mid_arc: float = lerpf(inner_arc, outer_arc, 0.74)
 	main.draw_arc(
 		center,
 		outer_radius,
@@ -171,7 +175,7 @@ static func _draw_arc_band_preview(
 		float(geometry.get("angle", 0.0)) + outer_arc * 0.5,
 		36,
 		line_color,
-		3.0
+		2.2
 	)
 	main.draw_arc(
 		center,
@@ -180,7 +184,16 @@ static func _draw_arc_band_preview(
 		float(geometry.get("angle", 0.0)) + inner_arc * 0.5,
 		28,
 		soft_color,
-		1.8
+		1.2
+	)
+	main.draw_arc(
+		center,
+		mid_radius,
+		float(geometry.get("angle", 0.0)) - mid_arc * 0.5,
+		float(geometry.get("angle", 0.0)) + mid_arc * 0.5,
+		24,
+		soft_color,
+		0.9
 	)
 	var left_outer: Vector2 = center + Vector2.RIGHT.rotated(float(geometry.get("angle", 0.0)) - outer_arc * 0.5) * outer_radius
 	var left_inner: Vector2 = center + Vector2.RIGHT.rotated(float(geometry.get("angle", 0.0)) - inner_arc * 0.5) * inner_radius
@@ -191,8 +204,8 @@ static func _draw_arc_band_preview(
 	main.draw_line(
 		center + Vector2.RIGHT.rotated(float(geometry.get("angle", 0.0))) * inner_radius,
 		center + Vector2.RIGHT.rotated(float(geometry.get("angle", 0.0))) * outer_radius,
-		Color(1.0, 1.0, 1.0, 0.18 + formation_ratio * 0.1),
-		1.0
+		soft_color,
+		0.9
 	)
 
 
@@ -221,7 +234,6 @@ static func _draw_section_profile_preview(
 	var spine_focus: float = float(geometry.get("spine_focus", 0.0))
 	var tip_focus: float = clampf(float(geometry.get("tip_focus", spine_focus)), 0.0, 1.0)
 	var spine_points: PackedVector2Array = _to_screen_outline(main, geometry.get("spine_points", []))
-	var fill_color := Color(soft_color.r, soft_color.g, soft_color.b, (0.09 + formation_ratio * 0.08) * weight)
 	var outer_cap_control: Vector2 = main._to_screen(geometry.get("outer_cap_control", geometry.get("tip", Vector2.ZERO)))
 	var inner_cap_control: Vector2 = main._to_screen(geometry.get("inner_cap_control", geometry.get("tail", Vector2.ZERO)))
 	var outer_curve: PackedVector2Array = _build_quadratic_curve_points(
@@ -236,22 +248,12 @@ static func _draw_section_profile_preview(
 		left_outline[0],
 		_get_cap_curve_segments(curve_strength)
 	)
-	_draw_section_band_fill(
-		main,
-		left_outline,
-		right_outline,
-		outer_curve,
-		inner_curve,
-		outer_cap_control,
-		inner_cap_control,
-		fill_color
-	)
-	_draw_outline_path(main, left_outline, line_color, 2.6)
-	_draw_outline_path(main, right_outline, line_color, 2.6)
-	_draw_outline_path(main, outer_curve, line_color, 2.6)
-	_draw_outline_path(main, inner_curve, edge_color, 1.4)
+	_draw_outline_path(main, left_outline, line_color, 2.0)
+	_draw_outline_path(main, right_outline, line_color, 2.0)
+	_draw_outline_path(main, outer_curve, line_color, 2.0)
+	_draw_outline_path(main, inner_curve, edge_color, 1.0)
 	if spine_focus > 0.0:
-		var spine_color := Color(1.0, 1.0, 1.0, (0.08 + formation_ratio * 0.1) * spine_focus)
+		var spine_color := Color(line_color.r, line_color.g, line_color.b, (0.06 + formation_ratio * 0.08) * spine_focus * weight)
 		if spine_points.size() >= 2:
 			_draw_outline_path(main, spine_points, spine_color, 1.1)
 		else:
@@ -261,12 +263,6 @@ static func _draw_section_profile_preview(
 				spine_color,
 				1.1
 			)
-	if float(geometry.get("tip_radius", 0.0)) > 0.05:
-		main.draw_circle(
-			main._to_screen(geometry.get("tip", Vector2.ZERO)),
-			float(geometry.get("tip_radius", 0.0)),
-			Color(1.0, 1.0, 1.0, (0.12 + formation_ratio * 0.12) * tip_focus)
-		)
 	return true
 
 

@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1480" viewBox="0 0 1920 1480" role="img" aria-labelledby="title desc">
+  <title id="title">Sword Cultivator 鼠标剑意锚点特效规格图</title>
+  <desc id="desc">展示鼠标世界位置在基础锚点、剑阵形态、移动、蓄力、释放、敌压、超距和资源不足等状态下的正式视觉设计规格。</desc>
+
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071016"/>
+      <stop offset="0.52" stop-color="#10131a"/>
+      <stop offset="1" stop-color="#0a1715"/>
+    </linearGradient>
+
+    <linearGradient id="panelGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14202a"/>
+      <stop offset="1" stop-color="#0f161c"/>
+    </linearGradient>
+
+    <radialGradient id="anchorGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#dfffe9" stop-opacity="0.95"/>
+      <stop offset="0.32" stop-color="#7ce6c7" stop-opacity="0.46"/>
+      <stop offset="0.76" stop-color="#35b79e" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#35b79e" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff4bd" stop-opacity="0.85"/>
+      <stop offset="0.38" stop-color="#e9bf52" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#e9bf52" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="redGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffd1bc" stop-opacity="0.82"/>
+      <stop offset="0.42" stop-color="#ef5d4c" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#ef5d4c" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="tetherGradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7dd8ff" stop-opacity="0.05"/>
+      <stop offset="0.56" stop-color="#b9ffe8" stop-opacity="0.44"/>
+      <stop offset="1" stop-color="#fff0a8" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#20313b" stroke-width="1" opacity="0.36"/>
+    </pattern>
+
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.55  0 0 0 0 1  0 0 0 0 0.84  0 0 0 0.72 0" result="color"/>
+      <feMerge>
+        <feMergeNode in="color"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="hotGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 0.78  0 0 0 0 0.3  0 0 0 0.9 0" result="color"/>
+      <feMerge>
+        <feMergeNode in="color"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="dangerGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 0.27  0 0 0 0 0.18  0 0 0 0.86 0" result="color"/>
+      <feMerge>
+        <feMergeNode in="color"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <marker id="arrowHead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 4 L 0 8 Z" fill="#b9ffe8"/>
+    </marker>
+
+    <symbol id="swordGlyph" viewBox="-10 -34 20 68">
+      <path d="M 0 -34 L 5 -12 L 2 14 L 10 22 L 0 34 L -10 22 L -2 14 L -5 -12 Z" fill="#dfffe9" opacity="0.9"/>
+      <path d="M 0 -28 L 0 20" stroke="#5fd6d1" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M -7 20 L 7 20" stroke="#fff0a8" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="miniAnchor" viewBox="-58 -58 116 116">
+      <circle r="48" fill="url(#anchorGlow)"/>
+      <circle r="35" fill="none" stroke="#7ce6c7" stroke-width="2" opacity="0.58"/>
+      <circle r="18" fill="none" stroke="#fff0a8" stroke-width="2.4" opacity="0.82"/>
+      <circle r="4" fill="#f7ffe2"/>
+      <path d="M 0 -51 L 0 -39 M 0 39 L 0 51 M -51 0 L -39 0 M 39 0 L 51 0" stroke="#dfffe9" stroke-width="2" stroke-linecap="round" opacity="0.72"/>
+    </symbol>
+
+    <style>
+      .title { fill: #f1f6ea; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 42px; font-weight: 700; }
+      .subtitle { fill: #a9bbc1; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 18px; }
+      .section-title { fill: #eef8ec; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 22px; font-weight: 700; }
+      .panel-title { fill: #f4f8ee; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 19px; font-weight: 700; }
+      .label { fill: #bdcbd0; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 14px; }
+      .small { fill: #879aa0; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 12px; }
+      .caption { fill: #d7e7df; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 15px; font-weight: 600; }
+      .spec { fill: #afc3c4; font-family: "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif; font-size: 13px; }
+      .panel { fill: url(#panelGradient); stroke: #31434d; stroke-width: 1.4; }
+      .subpanel { fill: #0a1218; stroke: #263a43; stroke-width: 1.1; }
+      .guide { stroke: #67858b; stroke-width: 1.2; opacity: 0.58; fill: none; }
+      .guide-dim { stroke: #536a71; stroke-width: 1; opacity: 0.34; fill: none; }
+      .jade { stroke: #7ce6c7; }
+      .gold { stroke: #fff0a8; }
+      .cyan { stroke: #8bdfff; }
+      .danger { stroke: #ff7d65; }
+      .muted { opacity: 0.46; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1480" fill="url(#bgGradient)"/>
+  <rect width="1920" height="1480" fill="url(#grid)" opacity="0.42"/>
+  <path d="M 0 126 C 260 156 456 83 690 112 C 975 148 1120 194 1380 112 C 1600 42 1770 72 1920 116 L 1920 0 L 0 0 Z" fill="#11252c" opacity="0.38"/>
+
+  <text x="70" y="72" class="title">Sword Cultivator 鼠标剑意锚点特效规格图</text>
+  <text x="72" y="108" class="subtitle">目标：让玩家在高速战斗中读到“我指向哪里、当前形态是什么、是否可用、释放节奏是否到位”，同时不压过敌人和剑阵本体。</text>
+  <text x="1812" y="72" text-anchor="end" class="subtitle">v0.1 / Cursor Intent Anchor</text>
+
+  <!-- Top row: base, tether, layer priority -->
+  <g id="base-anchor-panel">
+    <rect class="panel" x="70" y="150" width="520" height="320" rx="14"/>
+    <text x="96" y="187" class="panel-title">01 基础常驻锚点</text>
+    <text x="96" y="214" class="label">低亮度、准确定位、停住后稳定成“剑意落点”。</text>
+    <rect class="subpanel" x="96" y="235" width="290" height="205" rx="10"/>
+    <rect x="96" y="235" width="290" height="205" fill="url(#grid)" opacity="0.36"/>
+    <g transform="translate(241 338)">
+      <circle r="98" fill="url(#anchorGlow)" opacity="0.72"/>
+      <circle r="64" fill="none" stroke="#7ce6c7" stroke-width="2.2" opacity="0.55"/>
+      <circle r="43" fill="none" stroke="#fff0a8" stroke-width="2.2" opacity="0.74"/>
+      <circle r="21" fill="none" stroke="#dfffe9" stroke-width="1.3" opacity="0.58"/>
+      <path d="M 0 -76 L 0 -60 M 0 60 L 0 76 M -76 0 L -60 0 M 60 0 L 76 0" stroke="#dfffe9" stroke-width="2.6" stroke-linecap="round" opacity="0.76"/>
+      <path d="M -66 -66 L -54 -54 M 66 -66 L 54 -54 M -66 66 L -54 54 M 66 66 L 54 54" stroke="#7ce6c7" stroke-width="1.4" stroke-linecap="round" opacity="0.46"/>
+      <path d="M -8 -42 C -52 -22 -63 18 -35 50" fill="none" stroke="#7ce6c7" stroke-width="7" stroke-linecap="round" opacity="0.12"/>
+      <path d="M -4 -36 C -41 -18 -50 15 -26 42" fill="none" stroke="#b9ffe8" stroke-width="3" stroke-linecap="round" opacity="0.34"/>
+      <circle r="5" fill="#f8ffe5" filter="url(#softGlow)"/>
+      <path d="M 13 -9 L 42 8 L 24 14 L 17 34 Z" fill="#effff5" stroke="#7ce6c7" stroke-width="1.3" opacity="0.92"/>
+    </g>
+    <path class="guide" d="M 382 281 L 471 252"/>
+    <text x="482" y="256" class="caption">核心点</text>
+    <text x="482" y="277" class="small">真实鼠标世界坐标</text>
+    <path class="guide" d="M 359 367 L 469 381"/>
+    <text x="482" y="383" class="caption">微拖尾</text>
+    <text x="482" y="404" class="small">0.10-0.16 秒残影</text>
+    <path class="guide" d="M 296 263 L 432 311"/>
+    <text x="428" y="318" class="caption">方向刻度</text>
+    <text x="428" y="339" class="small">不抢戏，只帮扫读</text>
+  </g>
+
+  <g id="intent-tether-panel">
+    <rect class="panel" x="620" y="150" width="590" height="320" rx="14"/>
+    <text x="646" y="187" class="panel-title">02 玩家意图连接</text>
+    <text x="646" y="214" class="label">连接角色/剑阵中心与鼠标锚点，表达调度方向，不做硬激光。</text>
+    <rect class="subpanel" x="646" y="235" width="538" height="205" rx="10"/>
+    <rect x="646" y="235" width="538" height="205" fill="url(#grid)" opacity="0.32"/>
+    <g transform="translate(740 340)">
+      <circle r="66" fill="#0c1a1d" stroke="#34525b" stroke-width="1.2"/>
+      <circle r="34" fill="#142a2d" stroke="#7ce6c7" stroke-width="2" opacity="0.82"/>
+      <use href="#swordGlyph" width="34" height="68" x="-17" y="-34" opacity="0.85"/>
+      <text x="0" y="92" text-anchor="middle" class="small">角色 / 剑阵中心</text>
+    </g>
+    <path d="M 790 330 C 888 288 970 312 1080 318" stroke="url(#tetherGradient)" stroke-width="9" stroke-linecap="round" opacity="0.78" fill="none"/>
+    <path d="M 790 330 C 888 288 970 312 1080 318" stroke="#dfffe9" stroke-width="1.6" stroke-linecap="round" opacity="0.62" fill="none" marker-end="url(#arrowHead)"/>
+    <circle cx="866" cy="305" r="3.5" fill="#b9ffe8" opacity="0.62"/>
+    <circle cx="936" cy="300" r="2.8" fill="#fff0a8" opacity="0.52"/>
+    <circle cx="1006" cy="311" r="3.2" fill="#b9ffe8" opacity="0.68"/>
+    <g transform="translate(1090 320)">
+      <use href="#miniAnchor" width="116" height="116" x="-58" y="-58"/>
+      <text x="0" y="90" text-anchor="middle" class="small">鼠标锚点</text>
+    </g>
+    <circle cx="740" cy="340" r="148" fill="none" stroke="#fff0a8" stroke-width="1.3" opacity="0.28" stroke-dasharray="7 8"/>
+    <text x="655" y="258" class="spec">操作距离只影响读法，不直接等同战术射程。</text>
+    <text x="942" y="382" class="caption">弱连接线</text>
+    <text x="942" y="405" class="small">移动时更亮，静止时淡出到 18%-28%</text>
+  </g>
+
+  <g id="layer-priority-panel">
+    <rect class="panel" x="1240" y="150" width="610" height="320" rx="14"/>
+    <text x="1266" y="187" class="panel-title">03 特效层级与状态优先级</text>
+    <text x="1266" y="214" class="label">防止信息互相抢夺，关键状态短促增强，基础层保持低噪声。</text>
+    <rect class="subpanel" x="1266" y="235" width="558" height="205" rx="10"/>
+    <g transform="translate(1298 263)">
+      <rect x="0" y="0" width="500" height="30" rx="6" fill="#322326" stroke="#88463f" opacity="0.95"/>
+      <text x="16" y="21" class="caption">L4 释放瞬间</text>
+      <text x="186" y="21" class="small">0.08-0.14s 尖峰，最高视觉优先级</text>
+      <path d="M 462 15 L 485 15" stroke="#ffb673" stroke-width="2.4" marker-end="url(#arrowHead)"/>
+    </g>
+    <g transform="translate(1298 303)">
+      <rect x="0" y="0" width="500" height="30" rx="6" fill="#26302a" stroke="#d6bb62" opacity="0.92"/>
+      <text x="16" y="21" class="caption">L3 状态警告</text>
+      <text x="186" y="21" class="small">超距、资源不足、敌压，形状变化优先于颜色</text>
+    </g>
+    <g transform="translate(1298 343)">
+      <rect x="0" y="0" width="500" height="30" rx="6" fill="#183032" stroke="#52b8b2" opacity="0.92"/>
+      <text x="16" y="21" class="caption">L2 形态轮廓</text>
+      <text x="186" y="21" class="small">Ring / Fan / Pierce 各自表达战斗角色</text>
+    </g>
+    <g transform="translate(1298 383)">
+      <rect x="0" y="0" width="500" height="30" rx="6" fill="#17242b" stroke="#6a8d96" opacity="0.9"/>
+      <text x="16" y="21" class="caption">L1 基础锚点</text>
+      <text x="186" y="21" class="small">常驻 18%-35% 亮度，保证位置可信</text>
+    </g>
+    <g transform="translate(1298 423)">
+      <text x="0" y="0" class="spec">冲突处理：不可释放 &gt; 超出操控距离 &gt; 敌人近身压力 &gt; 蓄力/释放 &gt; 形态表现 &gt; 常驻锚点</text>
+    </g>
+  </g>
+
+  <!-- Middle row: form variants -->
+  <g id="form-ring">
+    <rect class="panel" x="70" y="510" width="560" height="340" rx="14"/>
+    <text x="96" y="548" class="panel-title">04 Ring 形态：近身可靠防线</text>
+    <text x="96" y="575" class="label">鼠标锚点呈内敛圆阵，强调“此处是守势中心 / 近压解法”。</text>
+    <rect class="subpanel" x="96" y="600" width="508" height="215" rx="10"/>
+    <rect x="96" y="600" width="508" height="215" fill="url(#grid)" opacity="0.28"/>
+    <g transform="translate(350 708)">
+      <circle r="112" fill="url(#goldGlow)" opacity="0.65"/>
+      <circle r="90" fill="none" stroke="#fff0a8" stroke-width="3" opacity="0.8"/>
+      <circle r="62" fill="none" stroke="#7ce6c7" stroke-width="2" opacity="0.55"/>
+      <circle r="31" fill="none" stroke="#dfffe9" stroke-width="1.4" opacity="0.46"/>
+      <path d="M 0 -100 A 100 100 0 0 1 86 -50" fill="none" stroke="#f6d777" stroke-width="6" stroke-linecap="round" opacity="0.44"/>
+      <path d="M 0 100 A 100 100 0 0 1 -86 50" fill="none" stroke="#f6d777" stroke-width="6" stroke-linecap="round" opacity="0.28"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(0)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(45)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(90)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(135)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(180)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(225)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(270)"/>
+      <use href="#swordGlyph" width="22" height="74" x="-11" y="-126" transform="rotate(315)"/>
+      <circle r="6" fill="#f8ffe5" filter="url(#softGlow)"/>
+    </g>
+    <text x="112" y="838" class="spec">读法：圆、稳、贴身。外圈只给方向感，不做大范围伤害承诺。</text>
+  </g>
+
+  <g id="form-fan">
+    <rect class="panel" x="680" y="510" width="560" height="340" rx="14"/>
+    <text x="706" y="548" class="panel-title">05 Fan 形态：中距离扫掠扇面</text>
+    <text x="706" y="575" class="label">锚点延展为浅扇形，表达扫击方向与覆盖宽度。</text>
+    <rect class="subpanel" x="706" y="600" width="508" height="215" rx="10"/>
+    <rect x="706" y="600" width="508" height="215" fill="url(#grid)" opacity="0.28"/>
+    <g transform="translate(960 708)">
+      <circle r="90" fill="url(#anchorGlow)" opacity="0.44"/>
+      <path d="M 0 0 L 172 -74 A 187 187 0 0 1 172 74 Z" fill="#49d3c8" opacity="0.13"/>
+      <path d="M 0 0 L 154 -56" stroke="#7ce6c7" stroke-width="2.4" opacity="0.5"/>
+      <path d="M 0 0 L 174 0" stroke="#dfffe9" stroke-width="2.8" opacity="0.62"/>
+      <path d="M 0 0 L 154 56" stroke="#7ce6c7" stroke-width="2.4" opacity="0.5"/>
+      <path d="M 118 -48 A 128 128 0 0 1 118 48" fill="none" stroke="#fff0a8" stroke-width="3.2" opacity="0.66" stroke-linecap="round"/>
+      <path d="M 88 -34 A 96 96 0 0 1 88 34" fill="none" stroke="#7ce6c7" stroke-width="2" opacity="0.45" stroke-linecap="round"/>
+      <path d="M 52 -20 A 58 58 0 0 1 52 20" fill="none" stroke="#dfffe9" stroke-width="1.4" opacity="0.42" stroke-linecap="round"/>
+      <use href="#swordGlyph" width="22" height="70" x="126" y="-35" transform="rotate(74 137 0)" opacity="0.92"/>
+      <use href="#swordGlyph" width="22" height="70" x="147" y="-35" transform="rotate(90 158 0)" opacity="0.92"/>
+      <use href="#swordGlyph" width="22" height="70" x="126" y="-35" transform="rotate(106 137 0)" opacity="0.92"/>
+      <circle r="6" fill="#f8ffe5" filter="url(#softGlow)"/>
+    </g>
+    <text x="722" y="838" class="spec">读法：宽、扫、稳定。扇面透明度需低，避免误读成实体碰撞区。</text>
+  </g>
+
+  <g id="form-pierce">
+    <rect class="panel" x="1290" y="510" width="560" height="340" rx="14"/>
+    <text x="1316" y="548" class="panel-title">06 Pierce 形态：长线破阵锋芒</text>
+    <text x="1316" y="575" class="label">锚点变成锋点与细长剑芒，强调方向、长度、线性突破。</text>
+    <rect class="subpanel" x="1316" y="600" width="508" height="215" rx="10"/>
+    <rect x="1316" y="600" width="508" height="215" fill="url(#grid)" opacity="0.28"/>
+    <g transform="translate(1570 708)">
+      <path d="M -124 0 C -42 -18 60 -11 188 0 C 60 11 -42 18 -124 0 Z" fill="#8bdfff" opacity="0.15"/>
+      <path d="M -116 0 L 174 0" stroke="#8bdfff" stroke-width="9" stroke-linecap="round" opacity="0.18"/>
+      <path d="M -94 0 L 196 0" stroke="#dfffe9" stroke-width="2.4" stroke-linecap="round" filter="url(#softGlow)"/>
+      <path d="M 154 -29 L 212 0 L 154 29 L 172 0 Z" fill="#eefcff" stroke="#8bdfff" stroke-width="2" opacity="0.92" filter="url(#softGlow)"/>
+      <path d="M 78 -18 L 116 0 L 78 18" fill="none" stroke="#fff0a8" stroke-width="2.1" opacity="0.72" stroke-linecap="round"/>
+      <path d="M 22 -14 L 54 0 L 22 14" fill="none" stroke="#7ce6c7" stroke-width="1.6" opacity="0.48" stroke-linecap="round"/>
+      <circle r="42" fill="url(#anchorGlow)" opacity="0.54"/>
+      <circle r="19" fill="none" stroke="#fff0a8" stroke-width="2.2" opacity="0.72"/>
+      <circle r="5" fill="#f8ffe5"/>
+    </g>
+    <text x="1332" y="838" class="spec">读法：尖、直、远。宽度保持克制，让线破角色明确。</text>
+  </g>
+
+  <!-- State grid -->
+  <text x="70" y="886" class="section-title">07 状态变体：同一个鼠标锚点在不同战斗语境下的显示</text>
+
+  <g id="state-normal" transform="translate(70 905)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">正常可用</text>
+    <text x="20" y="58" class="small">稳定低亮，给位置可信度。</text>
+    <g transform="translate(300 88)">
+      <use href="#miniAnchor" width="112" height="112" x="-56" y="-56"/>
+    </g>
+    <path d="M 52 102 H 188" stroke="#7ce6c7" stroke-width="3" opacity="0.42" stroke-linecap="round"/>
+    <text x="52" y="128" class="spec">Alpha 18%-35%，无强脉冲。</text>
+  </g>
+
+  <g id="state-fast-move" transform="translate(530 905)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">快速移动</text>
+    <text x="20" y="58" class="small">拖尾强调鼠标轨迹，避免高速丢点。</text>
+    <g transform="translate(296 88)">
+      <circle cx="-96" cy="20" r="20" fill="url(#anchorGlow)" opacity="0.13"/>
+      <circle cx="-62" cy="9" r="27" fill="url(#anchorGlow)" opacity="0.22"/>
+      <circle cx="-28" cy="-2" r="34" fill="url(#anchorGlow)" opacity="0.32"/>
+      <use href="#miniAnchor" width="106" height="106" x="-53" y="-53"/>
+      <path d="M -116 27 C -82 10 -55 0 -16 -5" fill="none" stroke="#b9ffe8" stroke-width="4" opacity="0.28" stroke-linecap="round"/>
+    </g>
+    <text x="52" y="128" class="spec">残影 3-5 个采样，0.10-0.16s 衰减。</text>
+  </g>
+
+  <g id="state-switch" transform="translate(990 905)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">形态切换</text>
+    <text x="20" y="58" class="small">外圈旋转重组，传达“剑阵正在变形”。</text>
+    <g transform="translate(304 88)">
+      <circle r="64" fill="url(#anchorGlow)" opacity="0.38"/>
+      <path d="M 0 -58 A 58 58 0 0 1 51 -28" fill="none" stroke="#fff0a8" stroke-width="5" stroke-linecap="round" opacity="0.72"/>
+      <path d="M 58 0 A 58 58 0 0 1 28 51" fill="none" stroke="#7ce6c7" stroke-width="5" stroke-linecap="round" opacity="0.54"/>
+      <path d="M 0 58 A 58 58 0 0 1 -51 28" fill="none" stroke="#fff0a8" stroke-width="5" stroke-linecap="round" opacity="0.46"/>
+      <path d="M -58 0 A 58 58 0 0 1 -28 -51" fill="none" stroke="#7ce6c7" stroke-width="5" stroke-linecap="round" opacity="0.54"/>
+      <circle r="20" fill="none" stroke="#dfffe9" stroke-width="1.8"/>
+      <circle r="5" fill="#f8ffe5"/>
+    </g>
+    <text x="52" y="128" class="spec">0.18-0.24s，随 morph 进度收束。</text>
+  </g>
+
+  <g id="state-charge" transform="translate(1450 905)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">蓄力中</text>
+    <text x="20" y="58" class="small">能量向核心汇聚，显示即将释放。</text>
+    <g transform="translate(304 88)">
+      <circle r="72" fill="url(#goldGlow)" opacity="0.42"/>
+      <circle r="58" fill="none" stroke="#fff0a8" stroke-width="2.2" opacity="0.36"/>
+      <circle r="38" fill="none" stroke="#fff0a8" stroke-width="2.8" opacity="0.66"/>
+      <circle r="18" fill="none" stroke="#dfffe9" stroke-width="2.2" opacity="0.82"/>
+      <path d="M -76 -20 L -48 -11 M 78 18 L 50 11 M -22 76 L -13 48 M 24 -78 L 15 -50" stroke="#fff0a8" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+      <circle r="6" fill="#fff6cf" filter="url(#hotGlow)"/>
+    </g>
+    <text x="52" y="128" class="spec">内收运动比外扩更像“准备”，噪声更低。</text>
+  </g>
+
+  <g id="state-release" transform="translate(70 1100)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">释放瞬间</text>
+    <text x="20" y="58" class="small">短促尖峰，帮助玩家确认指令已发生。</text>
+    <g transform="translate(304 88)">
+      <circle r="82" fill="url(#goldGlow)" opacity="0.5"/>
+      <path d="M 0 -88 L 0 -34 M 0 34 L 0 88 M -88 0 L -34 0 M 34 0 L 88 0" stroke="#fff0a8" stroke-width="4" stroke-linecap="round" filter="url(#hotGlow)"/>
+      <path d="M -62 -62 L -24 -24 M 62 -62 L 24 -24 M -62 62 L -24 24 M 62 62 L 24 24" stroke="#dfffe9" stroke-width="2.4" stroke-linecap="round" opacity="0.86"/>
+      <circle r="24" fill="none" stroke="#fff0a8" stroke-width="3.5"/>
+      <circle r="7" fill="#fff8df"/>
+    </g>
+    <text x="52" y="128" class="spec">0.08-0.14s 后回落，不持续占屏。</text>
+  </g>
+
+  <g id="state-enemy-pressure" transform="translate(530 1100)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">敌人近身压力</text>
+    <text x="20" y="58" class="small">外缘加暖色警戒，提醒近压需要处理。</text>
+    <g transform="translate(304 88)">
+      <circle r="78" fill="url(#redGlow)" opacity="0.43"/>
+      <circle r="58" fill="none" stroke="#ff7d65" stroke-width="4" stroke-dasharray="9 7" opacity="0.78" filter="url(#dangerGlow)"/>
+      <circle r="37" fill="none" stroke="#7ce6c7" stroke-width="2" opacity="0.46"/>
+      <circle r="18" fill="none" stroke="#fff0a8" stroke-width="2.2" opacity="0.68"/>
+      <circle r="5" fill="#fff8df"/>
+      <path d="M -92 10 C -70 -26 -42 -37 -10 -24" fill="none" stroke="#ff7d65" stroke-width="2.4" opacity="0.45" stroke-linecap="round"/>
+    </g>
+    <text x="52" y="128" class="spec">只提示压力，不替敌人本体做危险读条。</text>
+  </g>
+
+  <g id="state-out-of-range" transform="translate(990 1100)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">超出操控距离</text>
+    <text x="20" y="58" class="small">外圈断裂并被拉伸，表达“够不到”。</text>
+    <g transform="translate(304 88)">
+      <ellipse rx="86" ry="48" fill="url(#anchorGlow)" opacity="0.24"/>
+      <path d="M -84 0 C -46 -42 46 -42 84 0" fill="none" stroke="#fff0a8" stroke-width="3" stroke-linecap="round" stroke-dasharray="16 12" opacity="0.72"/>
+      <path d="M 84 0 C 46 42 -46 42 -84 0" fill="none" stroke="#fff0a8" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 15" opacity="0.46"/>
+      <path d="M -116 0 L -72 0" stroke="#ffb673" stroke-width="5" stroke-linecap="round" opacity="0.48"/>
+      <path d="M 72 0 L 116 0" stroke="#ffb673" stroke-width="5" stroke-linecap="round" opacity="0.48"/>
+      <circle r="17" fill="none" stroke="#dfffe9" stroke-width="2" opacity="0.64"/>
+      <circle r="4.8" fill="#f8ffe5"/>
+    </g>
+    <text x="52" y="128" class="spec">先变形再变色，玩家更容易无文字理解。</text>
+  </g>
+
+  <g id="state-resource-low" transform="translate(1450 1100)">
+    <rect class="panel" width="430" height="170" rx="12"/>
+    <text x="20" y="34" class="panel-title">资源不足 / 不可释放</text>
+    <text x="20" y="58" class="small">整体降亮，核心收缩，警示但不刺眼。</text>
+    <g transform="translate(304 88)">
+      <circle r="58" fill="#344044" opacity="0.32"/>
+      <circle r="44" fill="none" stroke="#879aa0" stroke-width="2.2" stroke-dasharray="7 8" opacity="0.48"/>
+      <circle r="24" fill="none" stroke="#ff7d65" stroke-width="2.2" opacity="0.64"/>
+      <path d="M -15 -15 L 15 15 M 15 -15 L -15 15" stroke="#ff7d65" stroke-width="3" stroke-linecap="round" opacity="0.72" filter="url(#dangerGlow)"/>
+      <circle r="3.5" fill="#bdcbd0"/>
+    </g>
+    <text x="52" y="128" class="spec">错误反馈短促，避免玩家觉得输入被吞。</text>
+  </g>
+
+  <!-- Bottom implementation notes -->
+  <g id="implementation-notes">
+    <rect class="panel" x="70" y="1300" width="1780" height="125" rx="14"/>
+    <text x="96" y="1338" class="panel-title">原型实现建议</text>
+    <text x="96" y="1367" class="label">优先做低成本、可调参版本：基础锚点 + 形态轮廓 + 移动拖尾。确认读点改善后，再加入状态优先级和释放尖峰。</text>
+    <g transform="translate(96 1395)">
+      <circle cx="0" cy="-4" r="5" fill="#7ce6c7"/>
+      <text x="16" y="0" class="spec">基础层：常驻 18%-35% alpha，屏幕混乱时自动降低外圈，仅保留核心点。</text>
+      <circle cx="455" cy="-4" r="5" fill="#fff0a8"/>
+      <text x="471" y="0" class="spec">运动层：拖尾 0.10-0.16s，采样数量随鼠标速度上升。</text>
+      <circle cx="885" cy="-4" r="5" fill="#8bdfff"/>
+      <text x="901" y="0" class="spec">形态层：Ring 圆、Fan 扇、Pierce 线，不能互相抢角色。</text>
+      <circle cx="1288" cy="-4" r="5" fill="#ff7d65"/>
+      <text x="1304" y="0" class="spec">测试问题：玩家是否更少丢失鼠标？剑阵响应是否更可信？</text>
+    </g>
+  </g>
+</svg>

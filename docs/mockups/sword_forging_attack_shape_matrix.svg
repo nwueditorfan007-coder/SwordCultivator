@@ -1,0 +1,675 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2580" height="1510" viewBox="0 0 2580 1510" role="img" aria-labelledby="title desc">
+  <title id="title">剑相组合与攻击形态 SVG 矩阵</title>
+  <desc id="desc">八种剑重、剑衡、剑路组合在普攻、御剑点刺、御剑长按、环阵、扇阵、贯穿阵中的可视化形态差异。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071018"/>
+      <stop offset="0.55" stop-color="#101421"/>
+      <stop offset="1" stop-color="#091711"/>
+    </linearGradient>
+    <linearGradient id="cellBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#111a28"/>
+      <stop offset="1" stop-color="#0b111b"/>
+    </linearGradient>
+    <filter id="glowBlue" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowGold" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="heavyGlow" x="-90%" y="-90%" width="280%" height="280%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <marker id="arrowBlue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#66d9ff"/>
+    </marker>
+    <marker id="arrowGold" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#ffd866"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#b18cff"/>
+    </marker>
+    <marker id="arrowHeavy" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L12 5 L0 10 Z" fill="#e7edf5"/>
+    </marker>
+
+    <symbol id="blade" viewBox="-9 -38 18 76">
+      <path d="M0 -38 L7 -10 L3 22 L0 38 L-3 22 L-7 -10 Z" fill="currentColor"/>
+      <path d="M0 -30 L2 -8 L0 24 L-2 -8 Z" fill="#ffffff" opacity="0.55"/>
+    </symbol>
+    <symbol id="giantBlade" viewBox="-18 -72 36 144">
+      <path d="M0 -72 L15 -20 L9 48 L0 72 L-9 48 L-15 -20 Z" fill="currentColor"/>
+      <path d="M0 -58 L5 -18 L0 52 L-5 -18 Z" fill="#ffffff" opacity="0.44"/>
+    </symbol>
+
+    <style>
+      .title { font: 700 38px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f4fbff; }
+      .subtitle { font: 18px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #a9bdcc; }
+      .legend { font: 15px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #c7d8e6; }
+      .axis { font: 700 18px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #eef7ff; }
+      .axisSmall { font: 13px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #9fb6c7; }
+      .rowLabel { font: 700 24px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f1f8ff; }
+      .rowHint { font: 14px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #89a4b8; }
+      .cellTitle { font: 700 15px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #eaf6ff; }
+      .cellNote { font: 12px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #9db3c6; }
+      .cell { fill: url(#cellBg); stroke: #22394a; stroke-width: 1.4; }
+      .header { fill: #111c29; stroke: #2c5062; stroke-width: 1.4; }
+      .gridLine { stroke: #1e3443; stroke-width: 1; opacity: 0.6; }
+      .out { fill: none; stroke: #66d9ff; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowBlue); filter: url(#glowBlue); }
+      .outThin { fill: none; stroke: #66d9ff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowBlue); }
+      .outGhost { fill: none; stroke: #66d9ff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 6 7; opacity: 0.55; marker-end: url(#arrowBlue); }
+      .ret { fill: none; stroke: #ffd866; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); filter: url(#glowGold); }
+      .retThin { fill: none; stroke: #ffd866; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); }
+      .split { fill: none; stroke: #b18cff; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowPurple); opacity: 0.9; }
+      .splitDash { fill: none; stroke: #b18cff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 5 6; marker-end: url(#arrowPurple); opacity: 0.76; }
+      .heavy { fill: none; stroke: #e7edf5; stroke-width: 8.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowHeavy); filter: url(#heavyGlow); }
+      .heavyBlue { fill: none; stroke: #aeeeff; stroke-width: 7.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowHeavy); filter: url(#heavyGlow); }
+      .heavyGold { fill: none; stroke: #ffe08a; stroke-width: 7.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); filter: url(#heavyGlow); }
+      .impact { fill: none; stroke: #ff7a55; stroke-width: 2.5; opacity: 0.92; }
+      .player { fill: #eef7ff; stroke: #53758a; stroke-width: 2; }
+      .target { fill: #ffb072; stroke: #ffe2b4; stroke-width: 2; }
+      .faint { opacity: 0.44; }
+    </style>
+  </defs>
+
+  <rect width="2580" height="1510" fill="url(#bg)"/>
+  <path d="M0 1270 C350 1198 626 1316 965 1245 C1302 1175 1620 1288 1982 1218 C2230 1170 2390 1196 2580 1142 L2580 1510 L0 1510 Z" fill="#070b10" opacity="0.52"/>
+
+  <text class="title" x="48" y="60">剑相组合 x 攻击方式：形态示意矩阵</text>
+  <text class="subtitle" x="48" y="96">目标：玩家不看数值，也能从出剑方向、回锋路径、分光层数、重势厚度上分辨每一种剑。</text>
+
+  <g transform="translate(50 126)">
+    <line x1="0" y1="0" x2="82" y2="0" class="out"/>
+    <text class="legend" x="100" y="5">蓝：出势主形</text>
+    <line x1="250" y1="0" x2="332" y2="0" class="ret"/>
+    <text class="legend" x="350" y="5">金：归锋强段</text>
+    <line x1="500" y1="0" x2="582" y2="0" class="split"/>
+    <text class="legend" x="600" y="5">紫：分光副线</text>
+    <line x1="770" y1="0" x2="852" y2="0" class="heavy"/>
+    <text class="legend" x="878" y="5">厚白：重势压线 / 巨剑</text>
+    <line x1="1115" y1="0" x2="1195" y2="0" class="outGhost"/>
+    <text class="legend" x="1212" y="5">虚线：铺线、弱段或延迟影</text>
+  </g>
+
+  <g id="columnHeaders">
+    <g transform="translate(200 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">轻灵 / 出势 / 凝锋</text>
+      <text class="axisSmall" x="18" y="51">轻直剑型：快、窄、向前爆</text>
+    </g>
+    <g transform="translate(490 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">轻灵 / 出势 / 分光</text>
+      <text class="axisSmall" x="18" y="51">风砂银分光剑：快、多影、铺开</text>
+    </g>
+    <g transform="translate(780 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">轻灵 / 归锋 / 凝锋</text>
+      <text class="axisSmall" x="18" y="51">寒玉归锋剑：轻、单线、收回爆</text>
+    </g>
+    <g transform="translate(1070 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">轻灵 / 归锋 / 分光</text>
+      <text class="axisSmall" x="18" y="51">轻影回流型：多影先铺，回时收束</text>
+    </g>
+    <g transform="translate(1360 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">重势 / 出势 / 凝锋</text>
+      <text class="axisSmall" x="18" y="51">玄铁巨阙剑：厚、压线、巨剑</text>
+    </g>
+    <g transform="translate(1650 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">重势 / 出势 / 分光</text>
+      <text class="axisSmall" x="18" y="51">裂岳分光型：厚线外轰，裂成副锋</text>
+    </g>
+    <g transform="translate(1940 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">重势 / 归锋 / 凝锋</text>
+      <text class="axisSmall" x="18" y="51">重阙回锋型：先压住，后拖回</text>
+    </g>
+    <g transform="translate(2230 140)">
+      <rect class="header" width="275" height="72" rx="8"/>
+      <text class="axis" x="18" y="27">重势 / 归锋 / 分光</text>
+      <text class="axisSmall" x="18" y="51">星陨回渊剑：重出手，多线回渊</text>
+    </g>
+  </g>
+
+  <g id="rowLabels">
+    <g transform="translate(42 250)">
+      <text class="rowLabel" x="0" y="36">普攻</text>
+      <text class="rowHint" x="0" y="64">左键近身斩</text>
+    </g>
+    <g transform="translate(42 440)">
+      <text class="rowLabel" x="0" y="36">御剑点刺</text>
+      <text class="rowHint" x="0" y="64">右键点按</text>
+    </g>
+    <g transform="translate(42 630)">
+      <text class="rowLabel" x="0" y="36">御剑长按</text>
+      <text class="rowHint" x="0" y="64">滑动 / 压线</text>
+    </g>
+    <g transform="translate(42 820)">
+      <text class="rowLabel" x="0" y="36">环阵</text>
+      <text class="rowHint" x="0" y="64">近距离阵</text>
+    </g>
+    <g transform="translate(42 1010)">
+      <text class="rowLabel" x="0" y="36">扇阵</text>
+      <text class="rowHint" x="0" y="64">中距离阵</text>
+    </g>
+    <g transform="translate(42 1200)">
+      <text class="rowLabel" x="0" y="36">贯穿阵</text>
+      <text class="rowHint" x="0" y="64">远距离阵</text>
+    </g>
+  </g>
+
+  <!-- Row 1: 普攻 -->
+  <g transform="translate(200 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">快窄单弧，首段向前</text>
+    <circle class="player" cx="64" cy="112" r="7"/>
+    <path class="out" d="M70 112 C100 58 160 48 214 73"/>
+    <use href="#blade" x="198" y="42" width="24" height="70" color="#66d9ff" transform="rotate(67 210 77)"/>
+    <text class="cellNote" x="16" y="150">改动：普攻只留一条干净窄弧。</text>
+  </g>
+  <g transform="translate(490 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">多影快斩，向前铺开</text>
+    <circle class="player" cx="62" cy="114" r="7"/>
+    <path class="out" d="M70 114 C99 60 162 49 218 74"/>
+    <path class="split" d="M69 104 C103 72 150 62 199 79"/>
+    <path class="splitDash" d="M77 125 C120 91 172 87 224 102"/>
+    <use href="#blade" x="201" y="41" width="22" height="66" color="#66d9ff" transform="rotate(66 212 74)"/>
+    <text class="cellNote" x="16" y="150">改动：主斩旁复制短延迟剑影。</text>
+  </g>
+  <g transform="translate(780 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">前斩铺线，回身成刃</text>
+    <circle class="player" cx="74" cy="113" r="7"/>
+    <path class="outGhost" d="M79 112 C108 65 159 55 208 78"/>
+    <path class="ret" d="M216 83 C160 104 109 124 58 94"/>
+    <use href="#blade" x="45" y="62" width="23" height="68" color="#ffd866" transform="rotate(-114 56 96)"/>
+    <text class="cellNote" x="16" y="150">改动：伤害读点移到金色回刃。</text>
+  </g>
+  <g transform="translate(1070 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">多影外放，多刃回卷</text>
+    <circle class="player" cx="73" cy="114" r="7"/>
+    <path class="outGhost" d="M80 113 C111 64 160 55 212 76"/>
+    <path class="splitDash" d="M84 101 C117 72 153 66 196 82"/>
+    <path class="splitDash" d="M89 126 C130 94 172 93 220 105"/>
+    <path class="retThin" d="M216 80 C163 96 119 116 69 101"/>
+    <path class="ret" d="M224 102 C171 126 108 132 54 92"/>
+    <text class="cellNote" x="16" y="150">改动：每道影都在回身时收回来。</text>
+  </g>
+  <g transform="translate(1360 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">厚重单线，斩出带击退</text>
+    <circle class="player" cx="58" cy="118" r="8"/>
+    <path class="heavyBlue" d="M64 119 C99 47 164 48 229 82"/>
+    <path class="impact" d="M218 60 l20 -10 M225 78 l25 0 M216 96 l20 12"/>
+    <use href="#blade" x="207" y="43" width="31" height="86" color="#e7edf5" transform="rotate(66 222 86)"/>
+    <text class="cellNote" x="16" y="150">改动：窄弧变厚，出手有承诺。</text>
+  </g>
+  <g transform="translate(1650 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重斩裂开，侧边碎锋</text>
+    <circle class="player" cx="58" cy="118" r="8"/>
+    <path class="heavyBlue" d="M64 119 C99 47 164 48 229 82"/>
+    <path class="split" d="M83 99 C129 58 171 59 215 69"/>
+    <path class="split" d="M85 132 C132 100 182 101 236 112"/>
+    <path class="impact" d="M224 63 l18 -12 M229 84 l28 4 M218 101 l20 15"/>
+    <text class="cellNote" x="16" y="150">改动：厚主斩旁出现裂纹副斩。</text>
+  </g>
+  <g transform="translate(1940 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重斩压出，厚钩回身</text>
+    <circle class="player" cx="62" cy="118" r="8"/>
+    <path class="heavyBlue faint" d="M66 118 C102 47 166 48 226 82"/>
+    <path class="heavyGold" d="M229 84 C185 110 138 137 70 103"/>
+    <use href="#blade" x="54" y="70" width="32" height="84" color="#ffe08a" transform="rotate(-112 70 106)"/>
+    <text class="cellNote" x="16" y="150">改动：真正强段是拖回的厚刃。</text>
+  </g>
+  <g transform="translate(2230 230)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重斩多裂，回渊多刃</text>
+    <circle class="player" cx="62" cy="118" r="8"/>
+    <path class="heavyBlue faint" d="M66 118 C102 47 166 48 226 82"/>
+    <path class="split" d="M84 98 C129 57 173 59 219 68"/>
+    <path class="split" d="M85 132 C132 101 181 101 236 112"/>
+    <path class="heavyGold" d="M231 84 C190 112 139 136 72 102"/>
+    <path class="retThin" d="M236 108 C183 130 133 131 82 118"/>
+    <text class="cellNote" x="16" y="150">改动：重出手后，多线一起回卷。</text>
+  </g>
+
+  <!-- Row 2: 御剑点刺 -->
+  <g transform="translate(200 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">快速单点，直出直收</text>
+    <circle class="player" cx="42" cy="88" r="7"/>
+    <line class="outThin" x1="54" y1="88" x2="218" y2="88"/>
+    <use href="#blade" x="206" y="51" width="21" height="74" color="#66d9ff" transform="rotate(90 216 88)"/>
+    <circle class="target" cx="232" cy="88" r="5"/>
+    <text class="cellNote" x="16" y="150">改动：刺击是一条轻快细直线。</text>
+  </g>
+  <g transform="translate(490 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">主刺命中，旁线迟到</text>
+    <circle class="player" cx="42" cy="88" r="7"/>
+    <line class="outThin" x1="54" y1="88" x2="220" y2="88"/>
+    <line class="split" x1="78" y1="69" x2="198" y2="69"/>
+    <line class="splitDash" x1="86" y1="107" x2="207" y2="107"/>
+    <circle class="target" cx="233" cy="88" r="5"/>
+    <text class="cellNote" x="16" y="150">改动：主刺两侧挂短分光。</text>
+  </g>
+  <g transform="translate(780 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">点刺挂线，回收爆点</text>
+    <circle class="player" cx="42" cy="88" r="7"/>
+    <line class="outGhost" x1="54" y1="88" x2="218" y2="88"/>
+    <line class="ret" x1="226" y1="88" x2="58" y2="88"/>
+    <circle class="target" cx="232" cy="88" r="5"/>
+    <text class="cellNote" x="16" y="150">改动：金色回收线才是强刺。</text>
+  </g>
+  <g transform="translate(1070 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">分光挂线，三线回收</text>
+    <circle class="player" cx="42" cy="88" r="7"/>
+    <line class="outGhost" x1="54" y1="88" x2="218" y2="88"/>
+    <line class="splitDash" x1="76" y1="68" x2="205" y2="70"/>
+    <line class="splitDash" x1="76" y1="108" x2="205" y2="106"/>
+    <path class="ret" d="M228 88 C174 88 120 88 58 88"/>
+    <path class="retThin" d="M212 70 C165 76 116 78 62 82"/>
+    <path class="retThin" d="M212 106 C165 100 116 98 62 94"/>
+    <circle class="target" cx="232" cy="88" r="5"/>
+    <text class="cellNote" x="16" y="150">改动：出去是标记，回来是多刃。</text>
+  </g>
+  <g transform="translate(1360 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重刺钉点，命中停顿</text>
+    <circle class="player" cx="38" cy="88" r="8"/>
+    <line class="heavyBlue" x1="55" y1="88" x2="216" y2="88"/>
+    <circle class="target" cx="232" cy="88" r="9"/>
+    <path class="impact" d="M228 65 l9 -21 M239 67 l20 -14 M241 92 l25 5 M229 111 l8 21"/>
+    <text class="cellNote" x="16" y="150">改动：细刺变钉刺，前端爆。</text>
+  </g>
+  <g transform="translate(1650 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重刺入点，侧震裂开</text>
+    <circle class="player" cx="38" cy="88" r="8"/>
+    <line class="heavyBlue" x1="55" y1="88" x2="214" y2="88"/>
+    <line class="split" x1="116" y1="70" x2="218" y2="58"/>
+    <line class="split" x1="116" y1="106" x2="218" y2="118"/>
+    <circle class="target" cx="232" cy="88" r="9"/>
+    <path class="impact" d="M229 66 l10 -21 M244 74 l24 -9 M244 102 l24 9"/>
+    <text class="cellNote" x="16" y="150">改动：钉点外缘炸出副线。</text>
+  </g>
+  <g transform="translate(1940 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重刺压住，强拉回来</text>
+    <circle class="player" cx="38" cy="88" r="8"/>
+    <line class="heavyBlue faint" x1="55" y1="88" x2="216" y2="88"/>
+    <circle class="target" cx="232" cy="88" r="9"/>
+    <path class="heavyGold" d="M227 88 C175 94 116 102 56 89"/>
+    <text class="cellNote" x="16" y="150">改动：刺中后像拔钉一样回拉。</text>
+  </g>
+  <g transform="translate(2230 420)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重刺钉点，多线回裂</text>
+    <circle class="player" cx="38" cy="88" r="8"/>
+    <line class="heavyBlue faint" x1="55" y1="88" x2="216" y2="88"/>
+    <circle class="target" cx="232" cy="88" r="9"/>
+    <path class="heavyGold" d="M227 88 C174 92 116 101 56 89"/>
+    <path class="retThin" d="M214 65 C167 70 121 77 62 82"/>
+    <path class="retThin" d="M214 111 C166 106 121 99 62 94"/>
+    <path class="split" d="M229 88 C188 69 146 65 93 68"/>
+    <text class="cellNote" x="16" y="150">改动：拔回路径撕成三条。</text>
+  </g>
+
+  <!-- Row 3: 御剑长按 -->
+  <g transform="translate(200 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">按住跟鼠标，单线追杀</text>
+    <circle class="player" cx="43" cy="122" r="7"/>
+    <path class="out" d="M50 120 C80 96 95 66 127 72 S177 126 223 73"/>
+    <circle cx="124" cy="72" r="4" fill="#66d9ff"/>
+    <circle cx="179" cy="106" r="4" fill="#66d9ff"/>
+    <text class="cellNote" x="16" y="150">改动：长按仍是灵巧滑动切线。</text>
+  </g>
+  <g transform="translate(490 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">主剑跟随，影线复刻</text>
+    <circle class="player" cx="43" cy="122" r="7"/>
+    <path class="out" d="M50 120 C80 96 95 66 127 72 S177 126 223 73"/>
+    <path class="splitDash" d="M53 106 C86 85 105 59 134 63 S181 111 225 60"/>
+    <path class="splitDash" d="M55 133 C91 111 105 83 137 88 S181 137 232 91"/>
+    <text class="cellNote" x="16" y="150">改动：鼠标轨迹留下两层残影。</text>
+  </g>
+  <g transform="translate(780 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">按住布线，松开回切</text>
+    <circle class="player" cx="43" cy="122" r="7"/>
+    <path class="outGhost" d="M50 120 C82 95 101 68 130 74 S178 121 224 75"/>
+    <path class="ret" d="M225 74 C180 113 132 113 92 96 S61 109 47 121"/>
+    <text class="cellNote" x="16" y="150">改动：滑动弱，松手回线强。</text>
+  </g>
+  <g transform="translate(1070 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">分光铺路，回收成网</text>
+    <circle class="player" cx="43" cy="122" r="7"/>
+    <path class="outGhost" d="M50 120 C82 95 101 68 130 74 S178 121 224 75"/>
+    <path class="splitDash" d="M55 106 C88 84 106 61 136 64 S184 109 227 61"/>
+    <path class="splitDash" d="M54 134 C91 113 107 86 139 89 S184 137 231 93"/>
+    <path class="ret" d="M226 75 C181 113 132 113 91 96 S60 109 47 121"/>
+    <path class="retThin" d="M229 94 C181 128 133 131 62 133"/>
+    <text class="cellNote" x="16" y="150">改动：多条铺线在松手时回卷。</text>
+  </g>
+  <g transform="translate(1360 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">压剑线蓄势，松手轰出</text>
+    <circle class="player" cx="40" cy="92" r="8"/>
+    <line x1="58" y1="92" x2="205" y2="92" stroke="#e7edf5" stroke-width="8" stroke-linecap="round" stroke-dasharray="10 10" opacity="0.55"/>
+    <line class="heavyBlue" x1="74" y1="92" x2="225" y2="92"/>
+    <circle class="impact" cx="218" cy="92" r="18"/>
+    <text class="cellNote" x="16" y="150">改动：长按从追杀改为压战线。</text>
+  </g>
+  <g transform="translate(1650 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">三道裂线同时轰出</text>
+    <circle class="player" cx="40" cy="92" r="8"/>
+    <line class="heavyBlue" x1="72" y1="92" x2="225" y2="92"/>
+    <line x1="72" y1="72" x2="210" y2="54" stroke="#b18cff" stroke-width="6" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.88"/>
+    <line x1="72" y1="112" x2="210" y2="130" stroke="#b18cff" stroke-width="6" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.88"/>
+    <circle class="impact" cx="218" cy="92" r="18"/>
+    <text class="cellNote" x="16" y="150">改动：压线释放时裂成宽域。</text>
+  </g>
+  <g transform="translate(1940 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重线轰出，再拖回</text>
+    <circle class="player" cx="40" cy="96" r="8"/>
+    <line class="heavyBlue faint" x1="72" y1="96" x2="225" y2="96"/>
+    <path class="heavyGold" d="M224 96 C178 116 117 123 59 99"/>
+    <text class="cellNote" x="16" y="150">改动：重斩后有明确回拉段。</text>
+  </g>
+  <g transform="translate(2230 610)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">重线外放，回渊收束</text>
+    <circle class="player" cx="40" cy="96" r="8"/>
+    <line class="heavyBlue faint" x1="72" y1="96" x2="225" y2="96"/>
+    <line x1="80" y1="73" x2="213" y2="54" stroke="#b18cff" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.72"/>
+    <line x1="80" y1="119" x2="213" y2="138" stroke="#b18cff" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.72"/>
+    <path class="heavyGold" d="M224 96 C178 116 117 123 59 99"/>
+    <path class="retThin" d="M212 54 C165 78 115 86 61 88"/>
+    <path class="retThin" d="M212 138 C165 114 115 106 61 104"/>
+    <text class="cellNote" x="16" y="150">改动：先宽裂，后多线坍回。</text>
+  </g>
+
+  <!-- Row 4: 环阵 -->
+  <g transform="translate(200 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">高速紧单环，向外顶压</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="45" fill="none" stroke="#66d9ff" stroke-width="4" filter="url(#glowBlue)"/>
+    <path class="outThin" d="M138 43 A45 45 0 0 1 183 88"/>
+    <use href="#blade" x="132" y="31" width="13" height="48" color="#66d9ff"/>
+    <use href="#blade" x="132" y="97" width="13" height="48" color="#66d9ff" transform="rotate(180 138 121)"/>
+    <text class="cellNote" x="16" y="150">改动：环阵是一条近身切割带。</text>
+  </g>
+  <g transform="translate(490 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">内外双薄环，分光扫身</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="39" fill="none" stroke="#66d9ff" stroke-width="3.2"/>
+    <circle cx="138" cy="88" r="58" fill="none" stroke="#b18cff" stroke-width="2.4" stroke-dasharray="12 8"/>
+    <path class="split" d="M138 30 A58 58 0 0 1 196 88"/>
+    <use href="#blade" x="132" y="21" width="13" height="48" color="#b18cff"/>
+    <use href="#blade" x="132" y="106" width="13" height="48" color="#66d9ff" transform="rotate(180 138 130)"/>
+    <text class="cellNote" x="16" y="150">改动：不留缺口，只加双层薄环。</text>
+  </g>
+  <g transform="translate(780 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">外放成线，向内回卷</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="56" fill="none" stroke="#66d9ff" stroke-width="2" stroke-dasharray="7 7" opacity="0.56"/>
+    <circle cx="138" cy="88" r="42" fill="none" stroke="#ffd866" stroke-width="4" filter="url(#glowGold)"/>
+    <path class="retThin" d="M184 88 A46 46 0 0 1 138 134"/>
+    <path class="retThin" d="M92 88 A46 46 0 0 1 138 42"/>
+    <text class="cellNote" x="16" y="150">改动：环的强读法是内收。</text>
+  </g>
+  <g transform="translate(1070 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">双层分光，回卷清周身</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="59" fill="none" stroke="#b18cff" stroke-width="2.6" stroke-dasharray="13 7"/>
+    <circle cx="138" cy="88" r="39" fill="none" stroke="#ffd866" stroke-width="3.7"/>
+    <path class="retThin" d="M194 88 A56 56 0 0 1 138 144"/>
+    <path class="retThin" d="M82 88 A56 56 0 0 1 138 32"/>
+    <path class="split" d="M177 88 A39 39 0 0 1 138 127"/>
+    <text class="cellNote" x="16" y="150">改动：外层影线也向中心卷。</text>
+  </g>
+  <g transform="translate(1360 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">十二剑罩，厚墙抗压</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="54" fill="none" stroke="#e7edf5" stroke-width="8" opacity="0.84" filter="url(#heavyGlow)"/>
+    <use href="#blade" x="132" y="16" width="14" height="54" color="#e7edf5"/>
+    <use href="#blade" x="132" y="106" width="14" height="54" color="#e7edf5" transform="rotate(180 139 133)"/>
+    <use href="#blade" x="184" y="61" width="14" height="54" color="#e7edf5" transform="rotate(90 191 88)"/>
+    <use href="#blade" x="80" y="61" width="14" height="54" color="#e7edf5" transform="rotate(-90 87 88)"/>
+    <text class="cellNote" x="16" y="150">改动：游剑环变成近身剑墙。</text>
+  </g>
+  <g transform="translate(1650 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">厚墙外顶，震环裂开</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="51" fill="none" stroke="#e7edf5" stroke-width="8" opacity="0.85" filter="url(#heavyGlow)"/>
+    <circle cx="138" cy="88" r="67" fill="none" stroke="#b18cff" stroke-width="2.6" stroke-dasharray="16 8"/>
+    <path class="split" d="M138 21 A67 67 0 0 1 205 88"/>
+    <path class="impact" d="M199 56 l20 -13 M211 88 h25 M199 120 l21 14"/>
+    <text class="cellNote" x="16" y="150">改动：剑墙外缘带分裂震波。</text>
+  </g>
+  <g transform="translate(1940 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">厚墙推出，夹回中心</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="60" fill="none" stroke="#aeeeff" stroke-width="7" opacity="0.45"/>
+    <circle cx="138" cy="88" r="42" fill="none" stroke="#ffe08a" stroke-width="8" opacity="0.9" filter="url(#heavyGlow)"/>
+    <path class="heavyGold" d="M198 88 C177 101 162 111 142 129"/>
+    <path class="heavyGold" d="M78 88 C99 75 114 65 134 47"/>
+    <text class="cellNote" x="16" y="150">改动：护罩最后向内夹杀。</text>
+  </g>
+  <g transform="translate(2230 800)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">双重厚环，塌成回渊</text>
+    <circle class="player" cx="138" cy="88" r="9"/>
+    <circle cx="138" cy="88" r="64" fill="none" stroke="#b18cff" stroke-width="5" stroke-dasharray="16 9" opacity="0.74"/>
+    <circle cx="138" cy="88" r="42" fill="none" stroke="#ffe08a" stroke-width="8" filter="url(#heavyGlow)"/>
+    <path class="retThin" d="M202 88 A64 64 0 0 1 138 152"/>
+    <path class="retThin" d="M74 88 A64 64 0 0 1 138 24"/>
+    <path class="split" d="M180 88 A42 42 0 0 1 138 130"/>
+    <text class="cellNote" x="16" y="150">改动：厚环和分光一起内坍。</text>
+  </g>
+
+  <!-- Row 5: 扇阵 -->
+  <g transform="translate(200 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">窄扇高频，密切中线</text>
+    <circle class="player" cx="42" cy="112" r="7"/>
+    <line class="outThin" x1="54" y1="112" x2="226" y2="82"/>
+    <line class="outThin" x1="54" y1="112" x2="230" y2="103"/>
+    <line class="outThin" x1="54" y1="112" x2="222" y2="124"/>
+    <use href="#blade" x="204" y="47" width="18" height="60" color="#66d9ff" transform="rotate(78 213 77)"/>
+    <text class="cellNote" x="16" y="150">改动：扇面收窄但线数更密。</text>
+  </g>
+  <g transform="translate(490 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">宽扇多线，薄幕覆盖</text>
+    <circle class="player" cx="42" cy="112" r="7"/>
+    <line class="outThin" x1="54" y1="112" x2="217" y2="55"/>
+    <line class="split" x1="54" y1="112" x2="229" y2="78"/>
+    <line class="outThin" x1="54" y1="112" x2="234" y2="103"/>
+    <line class="split" x1="54" y1="112" x2="228" y2="130"/>
+    <line class="outThin" x1="54" y1="112" x2="207" y2="146"/>
+    <text class="cellNote" x="16" y="150">改动：宽度靠分光副线铺开。</text>
+  </g>
+  <g transform="translate(780 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">窄扇扫出，回卷二段</text>
+    <circle class="player" cx="42" cy="112" r="7"/>
+    <line class="outGhost" x1="54" y1="112" x2="226" y2="82"/>
+    <line class="outGhost" x1="54" y1="112" x2="230" y2="103"/>
+    <line class="outGhost" x1="54" y1="112" x2="222" y2="124"/>
+    <path class="ret" d="M230 83 C176 101 122 120 57 112"/>
+    <text class="cellNote" x="16" y="150">改动：扇出去后收成一刀。</text>
+  </g>
+  <g transform="translate(1070 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">宽扇外扫，边线先回</text>
+    <circle class="player" cx="42" cy="112" r="7"/>
+    <line class="outGhost" x1="54" y1="112" x2="217" y2="55"/>
+    <line class="splitDash" x1="54" y1="112" x2="229" y2="78"/>
+    <line class="outGhost" x1="54" y1="112" x2="234" y2="103"/>
+    <line class="splitDash" x1="54" y1="112" x2="228" y2="130"/>
+    <path class="retThin" d="M218 55 C167 84 112 96 57 107"/>
+    <path class="ret" d="M207 146 C154 122 106 117 56 115"/>
+    <text class="cellNote" x="16" y="150">改动：分光扇面回卷成包夹。</text>
+  </g>
+  <g transform="translate(1360 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">低频厚扫，推开一侧</text>
+    <circle class="player" cx="42" cy="112" r="8"/>
+    <line class="heavyBlue" x1="58" y1="112" x2="225" y2="84"/>
+    <line class="heavyBlue" x1="58" y1="112" x2="228" y2="117"/>
+    <path class="impact" d="M219 66 l19 -15 M232 102 l26 0 M217 134 l22 17"/>
+    <text class="cellNote" x="16" y="150">改动：多薄线改成两道厚横扫。</text>
+  </g>
+  <g transform="translate(1650 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">宽厚剑幕，平行压出</text>
+    <circle class="player" cx="42" cy="112" r="8"/>
+    <line class="heavyBlue" x1="58" y1="112" x2="217" y2="58"/>
+    <line x1="58" y1="112" x2="230" y2="96" stroke="#b18cff" stroke-width="6.5" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.9"/>
+    <line class="heavyBlue" x1="58" y1="112" x2="216" y2="142"/>
+    <text class="cellNote" x="16" y="150">改动：分光不是细碎，是厚幕分层。</text>
+  </g>
+  <g transform="translate(1940 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">厚扇推出，窄线回砍</text>
+    <circle class="player" cx="42" cy="112" r="8"/>
+    <line class="heavyBlue faint" x1="58" y1="112" x2="225" y2="84"/>
+    <line class="heavyBlue faint" x1="58" y1="112" x2="228" y2="117"/>
+    <path class="heavyGold" d="M228 84 C174 103 119 124 58 112"/>
+    <text class="cellNote" x="16" y="150">改动：推出清场，回线终结。</text>
+  </g>
+  <g transform="translate(2230 990)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">厚宽扫后，多线回渊</text>
+    <circle class="player" cx="42" cy="112" r="8"/>
+    <line class="heavyBlue faint" x1="58" y1="112" x2="217" y2="58"/>
+    <line class="heavyBlue faint" x1="58" y1="112" x2="230" y2="96"/>
+    <line x1="58" y1="112" x2="216" y2="142" stroke="#b18cff" stroke-width="6.5" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.58"/>
+    <path class="retThin" d="M217 58 C168 84 113 96 58 107"/>
+    <path class="retThin" d="M216 142 C159 126 106 118 57 115"/>
+    <path class="heavyGold" d="M230 96 C174 110 116 121 58 112"/>
+    <text class="cellNote" x="16" y="150">改动：外侧先回，中线后收。</text>
+  </g>
+
+  <!-- Row 6: 贯穿阵 -->
+  <g transform="translate(200 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">同线连刺，快速穿过</text>
+    <circle class="player" cx="36" cy="88" r="7"/>
+    <line class="outThin" x1="52" y1="88" x2="231" y2="88"/>
+    <use href="#blade" x="92" y="51" width="18" height="74" color="#66d9ff" transform="rotate(90 101 88)"/>
+    <use href="#blade" x="146" y="51" width="18" height="74" color="#66d9ff" transform="rotate(90 155 88)"/>
+    <use href="#blade" x="200" y="51" width="18" height="74" color="#66d9ff" transform="rotate(90 209 88)"/>
+    <text class="cellNote" x="16" y="150">改动：十二剑排成同一条细线。</text>
+  </g>
+  <g transform="translate(490 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">三条并行细线贯穿</text>
+    <circle class="player" cx="36" cy="88" r="7"/>
+    <line class="outThin" x1="52" y1="88" x2="230" y2="88"/>
+    <line class="split" x1="65" y1="68" x2="225" y2="68"/>
+    <line class="split" x1="65" y1="108" x2="225" y2="108"/>
+    <use href="#blade" x="202" y="51" width="18" height="74" color="#66d9ff" transform="rotate(90 211 88)"/>
+    <text class="cellNote" x="16" y="150">改动：单线改成平行多线。</text>
+  </g>
+  <g transform="translate(780 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">贯出挂线，归线斩强</text>
+    <circle class="player" cx="36" cy="88" r="7"/>
+    <line class="outGhost" x1="52" y1="88" x2="230" y2="88"/>
+    <line class="ret" x1="232" y1="88" x2="52" y2="88"/>
+    <use href="#blade" x="55" y="51" width="18" height="74" color="#ffd866" transform="rotate(-90 64 88)"/>
+    <text class="cellNote" x="16" y="150">改动：远线最亮的是回来的线。</text>
+  </g>
+  <g transform="translate(1070 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">平行出去，汇成归锋</text>
+    <circle class="player" cx="36" cy="88" r="7"/>
+    <line class="outGhost" x1="52" y1="88" x2="230" y2="88"/>
+    <line class="splitDash" x1="65" y1="66" x2="225" y2="66"/>
+    <line class="splitDash" x1="65" y1="110" x2="225" y2="110"/>
+    <path class="ret" d="M231 88 C168 88 112 88 52 88"/>
+    <path class="retThin" d="M224 66 C170 74 112 80 52 86"/>
+    <path class="retThin" d="M224 110 C170 102 112 96 52 90"/>
+    <text class="cellNote" x="16" y="150">改动：多线回收时向中线合拢。</text>
+  </g>
+  <g transform="translate(1360 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">十二剑合一，巨剑贯下</text>
+    <circle class="player" cx="36" cy="88" r="8"/>
+    <line class="heavyBlue" x1="58" y1="88" x2="222" y2="88"/>
+    <use href="#giantBlade" x="188" y="19" width="42" height="138" color="#e7edf5" transform="rotate(90 209 88)"/>
+    <path class="impact" d="M224 59 l22 -18 M234 88 h28 M224 117 l22 18"/>
+    <text class="cellNote" x="16" y="150">改动：不是细刺，是巨剑一贯。</text>
+  </g>
+  <g transform="translate(1650 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">三条重线，裂阵贯穿</text>
+    <circle class="player" cx="36" cy="88" r="8"/>
+    <line class="heavyBlue" x1="58" y1="88" x2="225" y2="88"/>
+    <line x1="66" y1="62" x2="218" y2="54" stroke="#b18cff" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.9"/>
+    <line x1="66" y1="114" x2="218" y2="122" stroke="#b18cff" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.9"/>
+    <path class="impact" d="M225 55 l20 -17 M234 88 h30 M225 121 l20 17"/>
+    <text class="cellNote" x="16" y="150">改动：巨力被分成三条重锋。</text>
+  </g>
+  <g transform="translate(1940 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">巨剑贯出，厚线拔回</text>
+    <circle class="player" cx="36" cy="88" r="8"/>
+    <line class="heavyBlue faint" x1="58" y1="88" x2="222" y2="88"/>
+    <use href="#giantBlade" x="188" y="19" width="42" height="138" color="#aeeeff" transform="rotate(90 209 88)" opacity="0.5"/>
+    <line class="heavyGold" x1="225" y1="88" x2="55" y2="88"/>
+    <text class="cellNote" x="16" y="150">改动：Boss 线压住后整把拖回。</text>
+  </g>
+  <g transform="translate(2230 1180)">
+    <rect class="cell" width="275" height="170" rx="8"/>
+    <text class="cellTitle" x="16" y="25">巨剑外贯，分裂回流</text>
+    <circle class="player" cx="36" cy="88" r="8"/>
+    <line class="heavyBlue faint" x1="58" y1="88" x2="222" y2="88"/>
+    <line x1="66" y1="62" x2="218" y2="54" stroke="#b18cff" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.58"/>
+    <line x1="66" y1="114" x2="218" y2="122" stroke="#b18cff" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowPurple)" opacity="0.58"/>
+    <line class="heavyGold" x1="225" y1="88" x2="55" y2="88"/>
+    <path class="retThin" d="M218 54 C164 69 109 78 55 85"/>
+    <path class="retThin" d="M218 122 C164 107 109 98 55 91"/>
+    <text class="cellNote" x="16" y="150">改动：外贯很重，回来变回渊。</text>
+  </g>
+
+  <text class="subtitle" x="200" y="1418">设计读法：同一行横向比较“同一攻击怎样因剑体改变形态”；同一列纵向比较“同一把剑如何让六种动作保持同一个身体逻辑”。</text>
+  <text class="subtitle" x="200" y="1452">注意：环阵始终是近身形态，不开缺口；贯穿阵仍由鼠标距离触发，不替玩家自动选线。</text>
+</svg>

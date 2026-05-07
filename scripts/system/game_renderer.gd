@@ -33,6 +33,15 @@ const ART_GOLD := Color("d7bb79")
 const ART_BLUE := Color("88d8ff")
 const ART_BLUE_CORE := Color("f6fbff")
 const ART_RED := Color("df5b66")
+const CURSOR_INTENT_CORE := Color("f8fff2")
+const CURSOR_INTENT_OUTLINE := Color("010409")
+const CURSOR_INTENT_WARNING := Color("f1b46b")
+const CURSOR_INTENT_DANGER := Color("f46d5f")
+const CURSOR_INTENT_SIZE_SCALE := 0.8
+const CURSOR_INTENT_FORMATION_ALPHA := 0.94
+const CURSOR_INTENT_FORMATION_OUTLINE_ALPHA := 0.98
+const CURSOR_INTENT_FIRE_SPREAD_PIXELS := 6.0
+const CURSOR_INTENT_FIRE_JITTER_PIXELS := 1.15
 
 
 static func draw_game(main: Node2D) -> void:
@@ -308,7 +317,7 @@ static func draw_game(main: Node2D) -> void:
 	while slot_index < main._get_current_array_sword_capacity():
 		if not ready_slot_lookup.has(slot_index):
 			var empty_slot_pos: Vector2 = main._to_screen(main._get_array_sword_slot_position(slot_index))
-			var ghost_color: Color = SwordArrayController.get_soft_accent_color(main._get_sword_array_morph_state())
+			var ghost_color: Color = SwordArrayController.get_soft_accent_color(SwordArrayConfig.MODE_RING)
 			if array_channeling:
 				ghost_color.a = 0.18
 				main.draw_circle(empty_slot_pos, 3.0, ghost_color)
@@ -405,15 +414,15 @@ static func draw_game(main: Node2D) -> void:
 	var sword_base_pos: Vector2 = main._to_screen(main.sword["pos"])
 	var sword_visual_pos: Vector2 = main._get_sword_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
-	var sword_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
+	var sword_color: Color = main.COLORS["ranged_sword"]
 	var sword_angle: float = main._get_sword_visual_angle()
 	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
-	var sword_focus_strength: float = 0.06 if main.player["mode"] == main.CombatMode.MELEE else 0.26
+	var sword_focus_strength: float = 0.18 if main.player["mode"] == main.CombatMode.MELEE else 0.26
 	sword_focus_strength += sword_impact_ratio * (0.42 if main.player["mode"] == main.CombatMode.MELEE else 0.56)
 	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
 	var sword_vfx = _get_sword_vfx(main)
 	var sword_hover_blend: float = main._get_sword_hover_blend()
-	var sword_local_glow_strength: float = float(sword_vfx.local_glow_ranged_idle) if main.player["mode"] == main.CombatMode.RANGED else 0.0
+	var sword_local_glow_strength: float = float(sword_vfx.local_glow_ranged_idle)
 	var sword_glow_style: String = "idle"
 	if sword_state == main.SwordState.POINT_STRIKE:
 		var point_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
@@ -431,6 +440,9 @@ static func draw_game(main: Node2D) -> void:
 		var recall_speed_ratio: float = clampf(Vector2(main.sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_RECALL_SPEED, 0.001), 0.0, 1.0)
 		sword_local_glow_strength = float(sword_vfx.local_glow_recall_base) + float(sword_vfx.local_glow_recall_speed_scale) * recall_speed_ratio
 		sword_glow_style = "recall"
+	elif main._is_melee_swing_visual_active():
+		sword_local_glow_strength = maxf(sword_local_glow_strength, float(sword_vfx.local_glow_slice_base))
+		sword_glow_style = "slice"
 	if sword_state == main.SwordState.SLICING and sword_hover_blend > 0.0:
 		sword_local_glow_strength = lerpf(
 			sword_local_glow_strength,
@@ -472,7 +484,7 @@ static func draw_game(main: Node2D) -> void:
 		_draw_pierce_time_stop_combo(main, sword_pos, sword_forward, sword_combo_strength)
 
 	if main.player["attack_flash_timer"] > 0.0:
-		var attack_angle: float = (main.mouse_world - main.player["pos"]).angle()
+		var attack_angle: float = float(main.player.get("melee_swing_angle", (main.mouse_world - main.player["pos"]).angle()))
 		var attack_flash_ratio: float = clampf(
 			float(main.player.get("attack_flash_timer", 0.0)) / maxf(main.MELEE_ATTACK_FLASH_DURATION, 0.001),
 			0.0,
@@ -508,6 +520,7 @@ static func draw_game(main: Node2D) -> void:
 	if main._has_boss():
 		main._draw_boss_hud()
 	draw_hud_bars(main)
+	_draw_cursor_intent_indicator(main)
 
 
 static func _draw_art_background(main: Node2D) -> void:
@@ -1039,6 +1052,402 @@ static func _draw_deflected_bullet(
 	)
 
 
+static func _draw_cursor_intent_indicator(main: Node2D) -> void:
+	if main.is_start_menu_active or main.player.is_empty():
+		return
+	if int(main.player.get("mode", main.CombatMode.MELEE)) == main.CombatMode.RANGED:
+		return
+	var cursor_base_pos: Vector2 = main._to_screen(main.mouse_world)
+	var player_pos: Vector2 = main._to_screen(Vector2(main.player.get("pos", Vector2.ZERO)))
+	var aim_axis: Vector2 = cursor_base_pos - player_pos
+	var forward: Vector2 = aim_axis.normalized() if not aim_axis.is_zero_approx() else Vector2.RIGHT
+	var array_committed: bool = bool(main.player.get("array_is_firing", false)) or float(main.player.get("array_hold_ratio", 0.0)) > 0.02
+	var morph_state: Dictionary = main._get_sword_array_fire_state() if array_committed else main._get_sword_array_morph_state()
+	var mode: String = str(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+	var mode_color: Color = SwordArrayController.get_accent_color(morph_state)
+	var mode_soft_color: Color = SwordArrayController.get_soft_accent_color(morph_state)
+	var fast_strength: float = clampf(float(main.cursor_intent_fast_display), 0.0, 1.0)
+	var mode_switch_strength: float = main._get_cursor_intent_mode_switch_strength()
+	var pressure_strength: float = clampf(float(main.cursor_intent_pressure_display), 0.0, 1.0)
+	var out_of_range_strength: float = clampf(float(main.cursor_intent_out_of_range_display), 0.0, 1.0)
+	var resource_strength: float = clampf(float(main.cursor_intent_resource_display), 0.0, 1.0)
+	var active_color: Color = mode_color
+	if resource_strength > 0.04:
+		active_color = active_color.lerp(CURSOR_INTENT_DANGER, 0.72 * resource_strength)
+	elif out_of_range_strength > 0.04:
+		active_color = active_color.lerp(CURSOR_INTENT_WARNING, 0.68 * out_of_range_strength)
+	elif pressure_strength > 0.04:
+		active_color = active_color.lerp(CURSOR_INTENT_DANGER, 0.58 * pressure_strength)
+
+	var fire_strength: float = clampf(float(main.cursor_intent_fire_kick), 0.0, 1.0)
+	var fire_phase: float = float(main.cursor_intent_fire_phase)
+	var jitter_strength: float = pow(fire_strength, 0.72)
+	var cursor_pos: Vector2 = cursor_base_pos + Vector2(
+		cos(main.elapsed_time * 43.0 + fire_phase * 2.1),
+		sin(main.elapsed_time * 37.0 + fire_phase * 1.7)
+	) * CURSOR_INTENT_FIRE_JITTER_PIXELS * jitter_strength
+	var fire_spread: float = CURSOR_INTENT_FIRE_SPREAD_PIXELS * fire_strength
+
+	_draw_cursor_intent_base(main, cursor_pos, active_color, fast_strength, mode_switch_strength, fire_strength, fire_spread)
+	_draw_cursor_intent_mode_shape(main, cursor_pos, forward, mode, mode_color, mode_soft_color, fast_strength, mode_switch_strength, resource_strength, fire_strength, fire_spread)
+	_draw_cursor_intent_state_overlays(main, cursor_pos, forward, pressure_strength, out_of_range_strength, resource_strength)
+
+
+static func _draw_cursor_intent_base(
+	main: Node2D,
+	cursor_pos: Vector2,
+	active_color: Color,
+	fast_strength: float,
+	mode_switch_strength: float,
+	fire_strength: float,
+	fire_spread: float
+) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 3.0)
+	var outer_radius: float = (8.2 + fast_strength * 0.8 + mode_switch_strength * 1.3) * CURSOR_INTENT_SIZE_SCALE
+	var outer_color: Color = active_color.lerp(CURSOR_INTENT_CORE, 0.14)
+	var inner_color: Color = CURSOR_INTENT_CORE.lerp(active_color, 0.18 + pulse * 0.08)
+	main.draw_arc(
+		cursor_pos,
+		outer_radius + 1.3 * CURSOR_INTENT_SIZE_SCALE,
+		0.0,
+		TAU,
+		48,
+		_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+		3.0 + mode_switch_strength * 0.8
+	)
+	main.draw_arc(
+		cursor_pos,
+		outer_radius,
+		0.0,
+		TAU,
+		48,
+		_with_alpha(outer_color, 1.0),
+		1.45 + mode_switch_strength * 0.55
+	)
+	var inner_radius: float = maxf(outer_radius - 3.2 * CURSOR_INTENT_SIZE_SCALE, 4.2 * CURSOR_INTENT_SIZE_SCALE)
+	main.draw_arc(
+		cursor_pos,
+		inner_radius + 0.6 * CURSOR_INTENT_SIZE_SCALE,
+		-main.elapsed_time * 0.7,
+		-main.elapsed_time * 0.7 + TAU * 0.72,
+		34,
+		_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+		1.9 + mode_switch_strength * 0.55
+	)
+	main.draw_arc(
+		cursor_pos,
+		inner_radius,
+		-main.elapsed_time * 0.7,
+		-main.elapsed_time * 0.7 + TAU * 0.72,
+		34,
+		_with_alpha(inner_color, 1.0),
+		0.9 + mode_switch_strength * 0.45
+	)
+	for tick_index in range(4):
+		var tick_dir: Vector2 = Vector2.RIGHT.rotated(float(tick_index) * PI * 0.5 + main.elapsed_time * 0.12)
+		var tick_start: float = outer_radius + 1.4 * CURSOR_INTENT_SIZE_SCALE + fire_spread
+		var tick_end: float = tick_start + (4.2 + fire_strength * 1.8) * CURSOR_INTENT_SIZE_SCALE
+		main.draw_line(
+			cursor_pos + tick_dir * tick_start,
+			cursor_pos + tick_dir * tick_end,
+			_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+			2.55 + mode_switch_strength * 0.45 + fire_strength * 0.35
+		)
+		main.draw_line(
+			cursor_pos + tick_dir * (tick_start + 0.2 * CURSOR_INTENT_SIZE_SCALE),
+			cursor_pos + tick_dir * (tick_end - 0.25 * CURSOR_INTENT_SIZE_SCALE),
+			_with_alpha(CURSOR_INTENT_CORE, 1.0),
+			1.05 + mode_switch_strength * 0.3 + fire_strength * 0.15
+		)
+	main.draw_circle(cursor_pos, (3.2 + fast_strength * 0.45 + fire_strength * 0.35) * CURSOR_INTENT_SIZE_SCALE, _with_alpha(CURSOR_INTENT_OUTLINE, 1.0))
+	main.draw_circle(cursor_pos, (2.0 + fast_strength * 0.3) * CURSOR_INTENT_SIZE_SCALE, _with_alpha(active_color.lerp(CURSOR_INTENT_CORE, 0.32), 1.0))
+	main.draw_circle(cursor_pos, (0.95 + fast_strength * 0.18) * CURSOR_INTENT_SIZE_SCALE, _with_alpha(CURSOR_INTENT_CORE, 1.0))
+
+
+static func _draw_cursor_intent_mode_shape(
+	main: Node2D,
+	cursor_pos: Vector2,
+	forward: Vector2,
+	mode: String,
+	mode_color: Color,
+	mode_soft_color: Color,
+	fast_strength: float,
+	mode_switch_strength: float,
+	resource_strength: float,
+	fire_strength: float,
+	fire_spread: float
+) -> void:
+	var shape_strength: float = 0.94 + fast_strength * 0.04 + mode_switch_strength * 0.08 - resource_strength * 0.04
+	if shape_strength <= 0.02:
+		return
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			_draw_cursor_intent_ring_shape(main, cursor_pos, mode_color, mode_soft_color, shape_strength, mode_switch_strength, fire_strength, fire_spread)
+		SwordArrayConfig.MODE_FAN:
+			_draw_cursor_intent_fan_shape(main, cursor_pos, forward, mode_color, mode_soft_color, shape_strength, mode_switch_strength, fire_strength, fire_spread)
+		SwordArrayConfig.MODE_PIERCE:
+			_draw_cursor_intent_pierce_shape(main, cursor_pos, forward, mode_color, mode_soft_color, shape_strength, mode_switch_strength, fire_strength, fire_spread)
+		_:
+			_draw_cursor_intent_ring_shape(main, cursor_pos, mode_color, mode_soft_color, shape_strength, mode_switch_strength, fire_strength, fire_spread)
+
+
+static func _draw_cursor_intent_ring_shape(
+	main: Node2D,
+	cursor_pos: Vector2,
+	mode_color: Color,
+	mode_soft_color: Color,
+	shape_strength: float,
+	mode_switch_strength: float,
+	fire_strength: float,
+	fire_spread: float
+) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 4.0)
+	var radius: float = (13.4 + pulse * 0.35 + mode_switch_strength * 1.4) * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.34
+	var formation_alpha: float = clampf(CURSOR_INTENT_FORMATION_ALPHA * shape_strength, 0.0, 1.0)
+	var outline_alpha: float = clampf(CURSOR_INTENT_FORMATION_OUTLINE_ALPHA * shape_strength, 0.0, 1.0)
+	main.draw_arc(cursor_pos, radius + 0.45 * CURSOR_INTENT_SIZE_SCALE, 0.0, TAU, 48, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha), 2.0 + fire_strength * 0.35)
+	main.draw_arc(cursor_pos, radius, 0.0, TAU, 48, _with_alpha(mode_color.lerp(CURSOR_INTENT_CORE, 0.08), formation_alpha), 0.95 + fire_strength * 0.12)
+	main.draw_arc(
+		cursor_pos,
+		radius + 3.0 * CURSOR_INTENT_SIZE_SCALE,
+		main.elapsed_time * 0.9,
+		main.elapsed_time * 0.9 + TAU * 0.58,
+		28,
+		_with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha),
+		1.7 + fire_strength * 0.3
+	)
+	main.draw_arc(
+		cursor_pos,
+		radius + 3.0 * CURSOR_INTENT_SIZE_SCALE,
+		main.elapsed_time * 0.9,
+		main.elapsed_time * 0.9 + TAU * 0.58,
+		28,
+		_with_alpha(mode_soft_color.lerp(CURSOR_INTENT_CORE, 0.12), formation_alpha),
+		0.75 + fire_strength * 0.08
+	)
+	for sword_index in range(6):
+		var sword_dir: Vector2 = Vector2.RIGHT.rotated(float(sword_index) * TAU / 6.0 + main.elapsed_time * 0.18)
+		var tick_inner: float = radius - 1.8 * CURSOR_INTENT_SIZE_SCALE
+		var tick_outer: float = radius + 2.4 * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.12
+		main.draw_line(
+			cursor_pos + sword_dir * tick_inner,
+			cursor_pos + sword_dir * tick_outer,
+			_with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha),
+			1.65 + fire_strength * 0.22
+		)
+		main.draw_line(
+			cursor_pos + sword_dir * (tick_inner + 0.25 * CURSOR_INTENT_SIZE_SCALE),
+			cursor_pos + sword_dir * (tick_outer - 0.25 * CURSOR_INTENT_SIZE_SCALE),
+			_with_alpha(mode_color.lerp(CURSOR_INTENT_CORE, 0.18), formation_alpha),
+			0.72 + fire_strength * 0.08
+		)
+
+
+static func _draw_cursor_intent_fan_shape(
+	main: Node2D,
+	cursor_pos: Vector2,
+	forward: Vector2,
+	mode_color: Color,
+	mode_soft_color: Color,
+	shape_strength: float,
+	mode_switch_strength: float,
+	fire_strength: float,
+	fire_spread: float
+) -> void:
+	var origin: Vector2 = cursor_pos - forward * 2.0 * CURSOR_INTENT_SIZE_SCALE
+	var angle: float = forward.angle()
+	var arc: float = deg_to_rad(62.0 + 10.0 * mode_switch_strength)
+	var inner_radius: float = 6.8 * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.12
+	var outer_radius: float = (18.0 + mode_switch_strength * 2.0) * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.48
+	var formation_alpha: float = clampf(CURSOR_INTENT_FORMATION_ALPHA * shape_strength, 0.0, 1.0)
+	var outline_alpha: float = clampf(CURSOR_INTENT_FORMATION_OUTLINE_ALPHA * shape_strength, 0.0, 1.0)
+	main.draw_arc(origin, outer_radius + 0.45 * CURSOR_INTENT_SIZE_SCALE, angle - arc * 0.5, angle + arc * 0.5, 30, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha), 2.1 + fire_strength * 0.35)
+	main.draw_arc(origin, outer_radius, angle - arc * 0.5, angle + arc * 0.5, 30, _with_alpha(mode_color.lerp(CURSOR_INTENT_CORE, 0.08), formation_alpha), 1.0 + fire_strength * 0.12)
+	main.draw_arc(origin, inner_radius + 0.35 * CURSOR_INTENT_SIZE_SCALE, angle - arc * 0.36, angle + arc * 0.36, 18, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha), 1.45 + fire_strength * 0.25)
+	main.draw_arc(origin, inner_radius, angle - arc * 0.36, angle + arc * 0.36, 18, _with_alpha(mode_soft_color.lerp(CURSOR_INTENT_CORE, 0.12), formation_alpha), 0.72 + fire_strength * 0.08)
+	for angle_offset in [-arc * 0.5, -arc * 0.25, 0.0, arc * 0.25, arc * 0.5]:
+		var ray: Vector2 = Vector2.RIGHT.rotated(angle + angle_offset)
+		main.draw_line(
+			origin + ray * inner_radius,
+			origin + ray * outer_radius,
+			_with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha),
+			1.65 + fire_strength * 0.25
+		)
+		main.draw_line(
+			origin + ray * (inner_radius + 0.5 * CURSOR_INTENT_SIZE_SCALE),
+			origin + ray * (outer_radius - 0.5 * CURSOR_INTENT_SIZE_SCALE),
+			_with_alpha(mode_soft_color.lerp(CURSOR_INTENT_CORE, 0.1), formation_alpha),
+			0.65 + fire_strength * 0.08
+		)
+
+
+static func _draw_cursor_intent_pierce_shape(
+	main: Node2D,
+	cursor_pos: Vector2,
+	forward: Vector2,
+	mode_color: Color,
+	mode_soft_color: Color,
+	shape_strength: float,
+	mode_switch_strength: float,
+	fire_strength: float,
+	fire_spread: float
+) -> void:
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var formation_alpha: float = clampf(CURSOR_INTENT_FORMATION_ALPHA * shape_strength, 0.0, 1.0)
+	var outline_alpha: float = clampf(CURSOR_INTENT_FORMATION_OUTLINE_ALPHA * shape_strength, 0.0, 1.0)
+	var start_pos: Vector2 = cursor_pos - forward * (12.5 * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.2)
+	var tip_pos: Vector2 = cursor_pos + forward * ((22.5 + mode_switch_strength * 3.0) * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.58)
+	var mid_pos: Vector2 = cursor_pos + forward * (7.5 * CURSOR_INTENT_SIZE_SCALE + fire_spread * 0.18)
+	main.draw_line(start_pos, tip_pos, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha), 3.0 + fire_strength * 0.45)
+	main.draw_line(start_pos, tip_pos, _with_alpha(mode_color.lerp(CURSOR_INTENT_CORE, 0.18), formation_alpha), 1.25 + fire_strength * 0.15)
+	main.draw_line(start_pos + side * 2.2 * CURSOR_INTENT_SIZE_SCALE, mid_pos + side * 0.9 * CURSOR_INTENT_SIZE_SCALE, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha), 1.75 + fire_strength * 0.25)
+	main.draw_line(start_pos + side * 2.2 * CURSOR_INTENT_SIZE_SCALE, mid_pos + side * 0.9 * CURSOR_INTENT_SIZE_SCALE, _with_alpha(mode_soft_color.lerp(CURSOR_INTENT_CORE, 0.1), formation_alpha), 0.65 + fire_strength * 0.08)
+	main.draw_line(start_pos - side * 2.2 * CURSOR_INTENT_SIZE_SCALE, mid_pos - side * 0.9 * CURSOR_INTENT_SIZE_SCALE, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha), 1.75 + fire_strength * 0.25)
+	main.draw_line(start_pos - side * 2.2 * CURSOR_INTENT_SIZE_SCALE, mid_pos - side * 0.9 * CURSOR_INTENT_SIZE_SCALE, _with_alpha(mode_soft_color.lerp(CURSOR_INTENT_CORE, 0.1), formation_alpha), 0.65 + fire_strength * 0.08)
+	var outline_head := PackedVector2Array([
+		tip_pos + forward * 0.65 * CURSOR_INTENT_SIZE_SCALE,
+		tip_pos - forward * 6.7 * CURSOR_INTENT_SIZE_SCALE + side * 3.1 * CURSOR_INTENT_SIZE_SCALE,
+		tip_pos - forward * 6.7 * CURSOR_INTENT_SIZE_SCALE - side * 3.1 * CURSOR_INTENT_SIZE_SCALE,
+	])
+	var head := PackedVector2Array([
+		tip_pos,
+		tip_pos - forward * 5.6 * CURSOR_INTENT_SIZE_SCALE + side * 2.0 * CURSOR_INTENT_SIZE_SCALE,
+		tip_pos - forward * 5.6 * CURSOR_INTENT_SIZE_SCALE - side * 2.0 * CURSOR_INTENT_SIZE_SCALE,
+	])
+	_try_draw_colored_polygon(main, outline_head, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha))
+	_try_draw_colored_polygon(main, head, _with_alpha(mode_color.lerp(CURSOR_INTENT_CORE, 0.24), formation_alpha))
+	main.draw_circle(tip_pos, (2.0 + mode_switch_strength * 0.55 + fire_strength * 0.25) * CURSOR_INTENT_SIZE_SCALE, _with_alpha(CURSOR_INTENT_OUTLINE, outline_alpha))
+	main.draw_circle(tip_pos, (0.95 + mode_switch_strength * 0.3) * CURSOR_INTENT_SIZE_SCALE, _with_alpha(CURSOR_INTENT_CORE, formation_alpha))
+
+
+static func _draw_cursor_intent_state_overlays(
+	main: Node2D,
+	cursor_pos: Vector2,
+	forward: Vector2,
+	pressure_strength: float,
+	out_of_range_strength: float,
+	resource_strength: float
+) -> void:
+	if pressure_strength > 0.02:
+		_draw_cursor_pressure_overlay(main, cursor_pos, pressure_strength)
+	if out_of_range_strength > 0.02:
+		_draw_cursor_out_of_range_overlay(main, cursor_pos, forward, out_of_range_strength)
+	if resource_strength > 0.02:
+		_draw_cursor_resource_overlay(main, cursor_pos, resource_strength)
+
+
+static func _draw_cursor_pressure_overlay(main: Node2D, cursor_pos: Vector2, strength: float) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 8.0)
+	var radius: float = (13.0 + pulse * 1.4 + strength * 2.0) * CURSOR_INTENT_SIZE_SCALE
+	var pressure_color: Color = CURSOR_INTENT_DANGER.lerp(CURSOR_INTENT_CORE, 0.08 + pulse * 0.12)
+	for arc_index in range(4):
+		var start_angle: float = main.elapsed_time * 0.6 + float(arc_index) * TAU * 0.25
+		main.draw_arc(
+			cursor_pos,
+			radius + 0.7 * CURSOR_INTENT_SIZE_SCALE,
+			start_angle,
+			start_angle + TAU * 0.105,
+			8,
+			_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+			3.2 + strength * 0.8
+		)
+		main.draw_arc(
+			cursor_pos,
+			radius,
+			start_angle,
+			start_angle + TAU * 0.105,
+			8,
+			_with_alpha(pressure_color, 1.0),
+			1.5 + strength * 0.6
+		)
+
+
+static func _draw_cursor_out_of_range_overlay(main: Node2D, cursor_pos: Vector2, forward: Vector2, strength: float) -> void:
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var stretch: float = (13.5 + strength * 5.5) * CURSOR_INTENT_SIZE_SCALE
+	var half_width: float = (3.5 + strength * 1.6) * CURSOR_INTENT_SIZE_SCALE
+	var warning_color: Color = CURSOR_INTENT_WARNING.lerp(CURSOR_INTENT_CORE, 0.16)
+	main.draw_line(
+		cursor_pos + forward * stretch - side * half_width,
+		cursor_pos + forward * stretch + side * half_width,
+		_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+		3.6 + strength * 0.8
+	)
+	main.draw_line(
+		cursor_pos + forward * stretch - side * half_width,
+		cursor_pos + forward * stretch + side * half_width,
+		_with_alpha(warning_color, 1.0),
+		1.8 + strength * 0.6
+	)
+	main.draw_line(
+		cursor_pos - forward * stretch - side * half_width,
+		cursor_pos - forward * stretch + side * half_width,
+		_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+		3.0 + strength * 0.7
+	)
+	main.draw_line(
+		cursor_pos - forward * stretch - side * half_width,
+		cursor_pos - forward * stretch + side * half_width,
+		_with_alpha(warning_color, 1.0),
+		1.4 + strength * 0.5
+	)
+	var angle: float = forward.angle()
+	var arc_radius: float = (11.5 + strength * 2.0) * CURSOR_INTENT_SIZE_SCALE
+	main.draw_arc(cursor_pos, arc_radius + 0.5 * CURSOR_INTENT_SIZE_SCALE, angle + 0.72, angle + 1.52, 10, _with_alpha(CURSOR_INTENT_OUTLINE, 1.0), 2.2)
+	main.draw_arc(cursor_pos, arc_radius, angle + 0.72, angle + 1.52, 10, _with_alpha(warning_color, 1.0), 1.0)
+	main.draw_arc(cursor_pos, arc_radius + 0.5 * CURSOR_INTENT_SIZE_SCALE, angle - 1.52, angle - 0.72, 10, _with_alpha(CURSOR_INTENT_OUTLINE, 1.0), 2.2)
+	main.draw_arc(cursor_pos, arc_radius, angle - 1.52, angle - 0.72, 10, _with_alpha(warning_color, 1.0), 1.0)
+
+
+static func _draw_cursor_resource_overlay(main: Node2D, cursor_pos: Vector2, strength: float) -> void:
+	var radius: float = lerpf(8.5, 6.0, strength) * CURSOR_INTENT_SIZE_SCALE
+	for arc_index in range(3):
+		var start_angle: float = float(arc_index) * TAU / 3.0 + main.elapsed_time * 0.22
+		main.draw_arc(
+			cursor_pos,
+			radius + 0.6 * CURSOR_INTENT_SIZE_SCALE,
+			start_angle,
+			start_angle + TAU * 0.13,
+			7,
+			_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+			2.7
+		)
+		main.draw_arc(
+			cursor_pos,
+			radius,
+			start_angle,
+			start_angle + TAU * 0.13,
+			7,
+			_with_alpha(CURSOR_INTENT_DANGER.lerp(CURSOR_INTENT_WARNING, 0.26), 1.0),
+			1.5
+		)
+	var cross_half: float = (3.0 + strength * 1.1) * CURSOR_INTENT_SIZE_SCALE
+	main.draw_line(
+		cursor_pos + Vector2(-cross_half, -cross_half),
+		cursor_pos + Vector2(cross_half, cross_half),
+		_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+		3.0 + strength * 0.5
+	)
+	main.draw_line(
+		cursor_pos + Vector2(-cross_half, -cross_half),
+		cursor_pos + Vector2(cross_half, cross_half),
+		_with_alpha(CURSOR_INTENT_DANGER.lerp(CURSOR_INTENT_CORE, 0.08), 1.0),
+		1.4 + strength * 0.4
+	)
+	main.draw_line(
+		cursor_pos + Vector2(cross_half, -cross_half),
+		cursor_pos + Vector2(-cross_half, cross_half),
+		_with_alpha(CURSOR_INTENT_OUTLINE, 1.0),
+		3.0 + strength * 0.5
+	)
+	main.draw_line(
+		cursor_pos + Vector2(cross_half, -cross_half),
+		cursor_pos + Vector2(-cross_half, cross_half),
+		_with_alpha(CURSOR_INTENT_DANGER.lerp(CURSOR_INTENT_CORE, 0.08), 1.0),
+		1.4 + strength * 0.4
+	)
+
+
 static func _draw_array_distance_guides(main: Node2D, player_pos: Vector2, strength: float) -> void:
 	var guide_strength: float = clampf(strength, 0.0, 1.0)
 	if guide_strength <= 0.01:
@@ -1204,6 +1613,7 @@ static func _draw_current_array_mode_hint(main: Node2D, player_pos: Vector2, str
 				)
 		SwordArrayConfig.MODE_FAN:
 			var fan_arc: float = float(SwordArrayConfig.get_profile(SwordArrayConfig.MODE_FAN).get("arc", deg_to_rad(60.0))) * 1.38
+			var fan_inner_radius: float = main.PLAYER_RADIUS
 			var fan_radius: float = main.PLAYER_RADIUS + 46.0 + pulse * 4.0
 			main.draw_arc(
 				player_pos,
@@ -1216,7 +1626,7 @@ static func _draw_current_array_mode_hint(main: Node2D, player_pos: Vector2, str
 			)
 			main.draw_arc(
 				player_pos,
-				fan_radius - 16.0,
+				fan_inner_radius,
 				angle - fan_arc * 0.34,
 				angle + fan_arc * 0.34,
 				20,
@@ -1224,7 +1634,7 @@ static func _draw_current_array_mode_hint(main: Node2D, player_pos: Vector2, str
 				1.2
 			)
 			main.draw_line(
-				player_pos + forward * (main.PLAYER_RADIUS + 12.0),
+				player_pos + forward * fan_inner_radius,
 				player_pos + forward * (fan_radius + 5.0),
 				_with_alpha(color.lerp(Color.WHITE, 0.1), 0.08 * hint_strength),
 				1.0

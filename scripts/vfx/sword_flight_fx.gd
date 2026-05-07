@@ -1002,7 +1002,20 @@ func _clear_particle_array(particles_list: Array) -> void:
 
 
 func _should_show_body_support(sword_state: int) -> bool:
-	return _get_source_player_mode() == main.CombatMode.RANGED or sword_state != main.SwordState.ORBITING
+	return (
+		_get_source_player_mode() == main.CombatMode.RANGED
+		or _get_source_player_mode() == main.CombatMode.MELEE
+		or sword_state != main.SwordState.ORBITING
+	)
+
+
+func _is_source_melee_swinging() -> bool:
+	return (
+		not _uses_clone_source()
+		and main != null
+		and main.has_method("_is_melee_swing_visual_active")
+		and bool(main.call("_is_melee_swing_visual_active"))
+	)
 
 
 func _get_sword_visual_forward() -> Vector2:
@@ -1160,7 +1173,7 @@ func _configure_segment_backscatter_particles(
 
 func _update_body_base() -> void:
 	var sword_state: int = _get_source_sword_state()
-	var show_body: bool = _get_source_player_mode() == main.CombatMode.RANGED or sword_state != main.SwordState.ORBITING
+	var show_body: bool = _should_show_body_support(sword_state)
 	if not show_body:
 		_clear_polygon(base_blade_fill)
 		_clear_polygon(base_blade_core_fill)
@@ -1205,7 +1218,7 @@ func _update_body_base() -> void:
 	var guard_half_span := 3.05 * scale
 	var guard_half_thickness := 0.58 * scale
 
-	var base_color: Color = main.COLORS["melee_sword"] if _get_source_player_mode() == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
+	var base_color: Color = main.COLORS["ranged_sword"]
 	var blade_color: Color = base_color.lerp(ART_BLUE_CORE, 0.16 + 0.08 * focus_strength)
 	var blade_edge_color: Color = base_color.lerp(ART_BLUE_CORE, 0.24 + 0.08 * focus_strength)
 	var blade_core_color: Color = ART_BLUE_CORE.lerp(Color.WHITE, 0.42 + 0.12 * focus_strength)
@@ -1736,6 +1749,7 @@ func _update_particles() -> void:
 func _update_haze() -> void:
 	var sword_state: int = _get_source_sword_state()
 	var is_flying: bool = sword_state != main.SwordState.ORBITING
+	var is_melee_swinging: bool = _is_source_melee_swinging()
 	var show_body: bool = _should_show_body_support(sword_state)
 	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
@@ -1754,7 +1768,7 @@ func _update_haze() -> void:
 	trail_haze.visible = false
 	front_haze.visible = false
 
-	var turn_slice_active: bool = is_flying and (speed_ratio > 0.18 or trail_turn_strength > 0.18)
+	var turn_slice_active: bool = (is_flying or is_melee_swinging) and (speed_ratio > 0.18 or trail_turn_strength > 0.18)
 	turn_slice.visible = turn_slice_active
 	if turn_slice_active:
 		turn_slice.global_position = sword_pos - motion_forward * (18.0 + 10.0 * speed_ratio)
@@ -1771,6 +1785,7 @@ func _update_distortion(_delta: float) -> void:
 	var source_sword: Dictionary = _get_source_sword()
 	var sword_state: int = _get_source_sword_state()
 	var is_flying: bool = sword_state != main.SwordState.ORBITING
+	var is_melee_swinging: bool = _is_source_melee_swinging()
 	var sword_visual_pos: Vector2 = _get_source_visual_position()
 	var sword_pos: Vector2 = main._to_screen(sword_visual_pos)
 	var sword_velocity: Vector2 = _get_source_velocity()
@@ -1782,7 +1797,7 @@ func _update_distortion(_delta: float) -> void:
 		trail_turn_strength = clampf(float(trail_points[trail_points.size() - 1].get("turn_strength", 0.0)), 0.0, 1.0)
 	var glow_strength: float = _get_local_glow_strength()
 	var impact_ratio: float = _get_source_impact_ratio()
-	var distortion_active: bool = 扭曲启用 and is_flying and (
+	var distortion_active: bool = 扭曲启用 and (is_flying or is_melee_swinging) and (
 		speed_ratio > 扭曲速度阈值
 		or trail_turn_strength > 扭曲转向阈值
 		or impact_ratio > 0.0
@@ -2048,7 +2063,7 @@ func _get_local_glow_strength() -> float:
 	var vfx = main.get_sword_vfx_profile()
 	var source_sword: Dictionary = _get_source_sword()
 	var sword_state: int = _get_source_sword_state()
-	var glow_strength: float = float(vfx.local_glow_ranged_idle) if _get_source_player_mode() == main.CombatMode.RANGED else 0.0
+	var glow_strength: float = float(vfx.local_glow_ranged_idle) if _should_show_body_support(sword_state) else 0.0
 	if sword_state == main.SwordState.POINT_STRIKE:
 		var point_speed_ratio: float = clampf(Vector2(source_sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_POINT_STRIKE_SPEED, 0.001), 0.0, 1.0)
 		glow_strength = float(vfx.local_glow_point_base) + float(vfx.local_glow_point_speed_scale) * point_speed_ratio
@@ -2061,6 +2076,8 @@ func _get_local_glow_strength() -> float:
 	elif sword_state == main.SwordState.RECALLING:
 		var recall_speed_ratio: float = clampf(Vector2(source_sword.get("vel", Vector2.ZERO)).length() / maxf(main.SWORD_RECALL_SPEED, 0.001), 0.0, 1.0)
 		glow_strength = float(vfx.local_glow_recall_base) + float(vfx.local_glow_recall_speed_scale) * recall_speed_ratio
+	elif _is_source_melee_swinging():
+		glow_strength = maxf(glow_strength, float(vfx.local_glow_slice_base))
 	var impact_ratio: float = _get_source_impact_ratio()
 	glow_strength = clampf(
 		glow_strength

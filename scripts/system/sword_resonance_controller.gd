@@ -3,6 +3,7 @@ class_name SwordResonanceController
 
 const SwordArrayConfig = preload("res://scripts/system/sword_array_config.gd")
 
+const RESONANCE_ENABLED := false
 const MODE_NONE := ""
 const RESONANCE_DURATION := 5.0
 const RESONANCE_FADE_WARNING_TIME := 1.25
@@ -29,16 +30,30 @@ static func initialize_player_state(player: Dictionary) -> void:
 	player["resonance_kill_score"] = 0.0
 
 
+static func is_enabled() -> bool:
+	return RESONANCE_ENABLED
+
+
 static func update(main: Node, delta: float) -> void:
 	var player: Dictionary = main.player
 	if not player.has("resonance_mode"):
 		initialize_player_state(player)
+	if not RESONANCE_ENABLED:
+		_clear_resonance(player)
+		player["resonance_stance_mode"] = MODE_NONE
+		player["resonance_stance_timer"] = 0.0
+		player["resonance_kill_mode"] = MODE_NONE
+		player["resonance_kill_window_timer"] = 0.0
+		player["resonance_kill_score"] = 0.0
+		return
 	_tick_current_resonance(player, delta)
 	_update_stance_gain(main, player, delta)
 	_update_kill_window(player, delta)
 
 
 static func record_array_kill(main: Node, mode: String, weight := 1.0) -> void:
+	if not RESONANCE_ENABLED:
+		return
 	var normalized_mode: String = _normalize_mode(mode)
 	if normalized_mode == MODE_NONE:
 		return
@@ -60,6 +75,8 @@ static func record_array_kill(main: Node, mode: String, weight := 1.0) -> void:
 
 
 static func peek_array_combo(player: Dictionary, target_mode: String) -> String:
+	if not RESONANCE_ENABLED:
+		return COMBO_NONE
 	var resonance_mode: String = get_mode(player)
 	if resonance_mode == SwordArrayConfig.MODE_RING and _normalize_mode(target_mode) == SwordArrayConfig.MODE_PIERCE:
 		return COMBO_RING_TO_PIERCE
@@ -67,6 +84,8 @@ static func peek_array_combo(player: Dictionary, target_mode: String) -> String:
 
 
 static func consume_array_combo(player: Dictionary, target_mode: String) -> String:
+	if not RESONANCE_ENABLED:
+		return COMBO_NONE
 	var combo_id: String = peek_array_combo(player, target_mode)
 	if combo_id != COMBO_NONE:
 		_clear_resonance(player)
@@ -74,6 +93,8 @@ static func consume_array_combo(player: Dictionary, target_mode: String) -> Stri
 
 
 static func peek_time_stop_combo(player: Dictionary) -> String:
+	if not RESONANCE_ENABLED:
+		return COMBO_NONE
 	match get_mode(player):
 		SwordArrayConfig.MODE_FAN:
 			return COMBO_FAN_TIME_STOP
@@ -84,6 +105,8 @@ static func peek_time_stop_combo(player: Dictionary) -> String:
 
 
 static func consume_time_stop_combo(player: Dictionary) -> String:
+	if not RESONANCE_ENABLED:
+		return COMBO_NONE
 	var combo_id: String = peek_time_stop_combo(player)
 	if combo_id != COMBO_NONE:
 		_clear_resonance(player)
@@ -91,10 +114,14 @@ static func consume_time_stop_combo(player: Dictionary) -> String:
 
 
 static func get_mode(player: Dictionary) -> String:
+	if not RESONANCE_ENABLED:
+		return MODE_NONE
 	return _normalize_mode(String(player.get("resonance_mode", MODE_NONE)))
 
 
 static func get_color(mode: String) -> Color:
+	if not RESONANCE_ENABLED:
+		return Color.TRANSPARENT
 	match _normalize_mode(mode):
 		SwordArrayConfig.MODE_RING:
 			return Color("8ff8e7")
@@ -107,6 +134,8 @@ static func get_color(mode: String) -> Color:
 
 
 static func get_display_name(mode: String) -> String:
+	if not RESONANCE_ENABLED:
+		return ""
 	match _normalize_mode(mode):
 		SwordArrayConfig.MODE_RING:
 			return "环式余韵"
@@ -119,6 +148,8 @@ static func get_display_name(mode: String) -> String:
 
 
 static func get_strength(player: Dictionary) -> float:
+	if not RESONANCE_ENABLED:
+		return 0.0
 	var mode: String = get_mode(player)
 	if mode == MODE_NONE:
 		return 0.0
@@ -132,6 +163,8 @@ static func get_strength(player: Dictionary) -> float:
 
 
 static func get_flash_strength(player: Dictionary) -> float:
+	if not RESONANCE_ENABLED:
+		return 0.0
 	var flash_timer: float = maxf(float(player.get("resonance_flash_timer", 0.0)), 0.0)
 	if flash_timer <= 0.0:
 		return 0.0
@@ -139,6 +172,8 @@ static func get_flash_strength(player: Dictionary) -> float:
 
 
 static func is_expiring(player: Dictionary) -> bool:
+	if not RESONANCE_ENABLED:
+		return false
 	return get_mode(player) != MODE_NONE and float(player.get("resonance_timer", 0.0)) <= RESONANCE_FADE_WARNING_TIME
 
 
@@ -183,6 +218,8 @@ static func _update_kill_window(player: Dictionary, delta: float) -> void:
 
 
 static func _grant_resonance(player: Dictionary, mode: String, reason: String, flash := true) -> void:
+	if not RESONANCE_ENABLED:
+		return
 	var normalized_mode: String = _normalize_mode(mode)
 	if normalized_mode == MODE_NONE:
 		return

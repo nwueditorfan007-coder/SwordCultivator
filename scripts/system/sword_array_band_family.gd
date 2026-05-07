@@ -32,6 +32,8 @@ static func build_arc_preview_from_runtime(
 	var inner_radius: float = maxf(outer_radius - band_thickness, 0.0)
 	var center_offset: float = float(blended_preset.get("center_offset", 0.0)) * lerpf(0.42, 1.0, active_ratio)
 	var arc: float = clampf(float(blended_preset.get("arc", 0.0)), 0.0, TAU)
+	if blended_preset.has("inner_edge_touch_distance"):
+		center_offset = float(blended_preset.get("inner_edge_touch_distance", center_offset + inner_radius)) - inner_radius
 	var center: Vector2 = main.player["pos"] + aim_vector * center_offset
 	var side_vector: Vector2 = aim_vector.rotated(PI * 0.5)
 	var tail: Vector2 = center + aim_vector * inner_radius
@@ -687,7 +689,7 @@ static func build_unified_fan_pierce_preview(
 
 	var target_arc: float = maxf(float(blended_preset.get("arc", 0.08)), 0.02)
 	var stable_arc: float = float(stable_fan_preview.get("arc", target_arc))
-	var stable_center_offset: float = stable_fan_preview.get("center", main.player["pos"]).distance_to(main.player["pos"])
+	var stable_center_offset: float = (stable_fan_preview.get("center", main.player["pos"]) - main.player["pos"]).dot(aim_vector)
 	var target_center_offset: float = 0.0
 	var stable_inner_radius: float = float(stable_fan_preview.get("inner_radius", 0.0))
 	var stable_outer_radius: float = float(stable_fan_preview.get("outer_radius", 0.0))
@@ -706,6 +708,10 @@ static func build_unified_fan_pierce_preview(
 	var preview_inner_radius: float = lerpf(stable_inner_radius, target_inner_radius, radius_blend)
 	var preview_outer_radius: float = lerpf(stable_outer_radius, target_outer_radius, radius_blend)
 	var preview_center_offset: float = lerpf(stable_center_offset, target_center_offset, center_blend)
+	if start_preset.has("inner_edge_touch_distance"):
+		var from_touch_distance: float = float(start_preset.get("inner_edge_touch_distance", preview_center_offset + preview_inner_radius))
+		var to_touch_distance: float = target_inner_radius
+		preview_center_offset = lerpf(from_touch_distance, to_touch_distance, radius_blend) - preview_inner_radius
 	var preview_center: Vector2 = main.player["pos"] + aim_vector * preview_center_offset
 
 	return {

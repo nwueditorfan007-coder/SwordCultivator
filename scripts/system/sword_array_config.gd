@@ -27,7 +27,22 @@ const FIRED_GUIDANCE_MAX_DISTANCE := 240.0
 const RING_SORTIE_RANGE_SCALE := 0.7
 const RING_ACTIVE_RADIUS := 68.0
 const RING_SORTIE_TARGET_DISTANCE := (RING_ACTIVE_RADIUS + 124.0) * RING_SORTIE_RANGE_SCALE
-const PIERCE_SORTIE_LAUNCH_PLAYER_DISTANCE := 132.0
+const FAN_INNER_EDGE_PLAYER_TOUCH_DISTANCE := 15.0
+const FAN_PRESSURE_BAND_FORWARD_LENGTH := 142.0
+const FAN_PRESSURE_BAND_THICKNESS := 88.0
+const FAN_PRESSURE_BAND_CENTER_OFFSET := FAN_INNER_EDGE_PLAYER_TOUCH_DISTANCE - (FAN_PRESSURE_BAND_FORWARD_LENGTH - FAN_PRESSURE_BAND_THICKNESS)
+const PIERCE_PREVIEW_FRONT_DISTANCE := 28.0
+const PIERCE_PREVIEW_TIP_OFFSET := 150.0
+const PIERCE_START_OFFSET := PIERCE_PREVIEW_FRONT_DISTANCE
+const PIERCE_IDLE_START_OFFSET := PIERCE_PREVIEW_FRONT_DISTANCE
+const PIERCE_PREVIEW_LENGTH := PIERCE_PREVIEW_TIP_OFFSET
+const PIERCE_IDLE_TIP_OFFSET := 112.0
+const PIERCE_TIP_OFFSET := PIERCE_PREVIEW_TIP_OFFSET
+const PIERCE_FIRE_OFFSET := PIERCE_PREVIEW_FRONT_DISTANCE + 16.0
+const PIERCE_MIN_SLOT_FORWARD_GAP := 20.0
+const PIERCE_IDLE_MIN_SLOT_FORWARD_GAP := 16.0
+const PIERCE_SORTIE_LAUNCH_PLAYER_DISTANCE := 96.0
+const PIERCE_SORTIE_TARGET_OFFSET := 400.0 - PIERCE_TIP_OFFSET
 
 const RING_THRESHOLD := 160.0
 const FAN_THRESHOLD := 420.0
@@ -90,7 +105,7 @@ const MODE_PROFILES := {
 		"fire_particles_base": 5,
 		"fire_particles_per_shot": 1,
 		"fire_particles_cap": 18,
-		"fire_offset": 40.0,
+		"fire_offset": FAN_INNER_EDGE_PLAYER_TOUCH_DISTANCE,
 		"fire_shake": 2.4,
 		"sortie_target_offset": 180.0,
 		"sortie_max_distance": 380.0,
@@ -107,16 +122,18 @@ const MODE_PROFILES := {
 	},
 	MODE_PIERCE: {
 		"spread": 0.08,
-		"start_offset": 68.0,
-		"idle_start_offset": 42.0,
+		"start_offset": PIERCE_START_OFFSET,
+		"idle_start_offset": PIERCE_IDLE_START_OFFSET,
 		"slot_step": 26.0,
 		"idle_slot_step": 20.0,
-		"preview_length": 220.0,
+		"min_slot_forward_gap": PIERCE_MIN_SLOT_FORWARD_GAP,
+		"idle_min_slot_forward_gap": PIERCE_IDLE_MIN_SLOT_FORWARD_GAP,
+		"preview_length": PIERCE_PREVIEW_LENGTH,
 		"preview_length_idle_scale": 0.65,
 		"preview_half_width": 3.5,
 		"idle_half_width": 10.0,
-		"idle_tip_offset": 118.0,
-		"tip_offset": 220.0,
+		"idle_tip_offset": PIERCE_IDLE_TIP_OFFSET,
+		"tip_offset": PIERCE_TIP_OFFSET,
 		"tip_radius_idle": 4.0,
 		"tip_radius": 7.0,
 		"wedge_length_idle": 20.0,
@@ -131,10 +148,10 @@ const MODE_PROFILES := {
 		"fire_particles_base": 4,
 		"fire_particles_per_shot": 2,
 		"fire_particles_cap": 22,
-		"fire_offset": 72.0,
+		"fire_offset": PIERCE_FIRE_OFFSET,
 		"fire_shake": 2.8,
 		"sortie_launch_player_distance": PIERCE_SORTIE_LAUNCH_PLAYER_DISTANCE,
-		"sortie_target_offset": 180.0,
+		"sortie_target_offset": PIERCE_SORTIE_TARGET_OFFSET,
 		"sortie_max_distance": 620.0,
 		"sortie_guidance_max_distance": 320.0,
 		"sortie_min_distance": 220.0,
@@ -171,9 +188,10 @@ const SHAPE_PRESETS := {
 		"dominant_mode": MODE_FAN,
 		"section_count": 8,
 		"arc": deg_to_rad(60.0),
-		"center_offset": 18.0,
-		"forward_length": 142.0,
-		"band_thickness": 88.0,
+		"center_offset": FAN_PRESSURE_BAND_CENTER_OFFSET,
+		"forward_length": FAN_PRESSURE_BAND_FORWARD_LENGTH,
+		"band_thickness": FAN_PRESSURE_BAND_THICKNESS,
+		"inner_edge_touch_distance": FAN_INNER_EDGE_PLAYER_TOUCH_DISTANCE,
 		"front_taper": 0.12,
 		"rear_taper": 0.0,
 		"tip_emphasis": 0.18,
