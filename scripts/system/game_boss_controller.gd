@@ -228,10 +228,12 @@ static func update_silk_damage(main: Node, delta: float) -> void:
 
 static func spawn_boss(main: Node) -> void:
 	main._clear_target_hurtboxes("boss")
+	var spawn_pos: Vector2 = main._get_boss_spawn_position() if main.has_method("_get_boss_spawn_position") else Vector2(main.ARENA_SIZE.x * 0.5, -150.0)
+	var anchor_pos: Vector2 = main._get_boss_anchor_position() if main.has_method("_get_boss_anchor_position") else Vector2(main.ARENA_SIZE.x * 0.5, 150.0)
 	main.boss = {
 		"id": main._next_id("boss"),
 		"descriptor_provider_id": TargetDescriptorRegistry.PROVIDER_BOSS,
-		"pos": Vector2(main.ARENA_SIZE.x * 0.5, -150.0),
+		"pos": spawn_pos,
 		"radius": main.BOSS_RADIUS,
 		"target_profile_id": TargetProfiles.PROFILE_BOSS_BODY,
 		"health": main.BOSS_MAX_HEALTH,
@@ -242,7 +244,7 @@ static func spawn_boss(main: Node) -> void:
 		"silks": [],
 		"is_vulnerable": false,
 		"vulnerable_timer": 0.0,
-		"target_pos": Vector2(main.ARENA_SIZE.x * 0.5, 150.0),
+		"target_pos": anchor_pos,
 		"hit_flash_timer": 0.0,
 		"hit_flash_color": Color.WHITE,
 		"hit_reaction_timer": 0.0,
@@ -255,16 +257,18 @@ static func spawn_boss(main: Node) -> void:
 static func spawn_puppets(main: Node, count: int) -> void:
 	if not has_boss(main):
 		return
+	var arena_size: Vector2 = main._get_arena_size() if main.has_method("_get_arena_size") else main.ARENA_SIZE
+	var center_pos: Vector2 = main._get_boss_center_position() if main.has_method("_get_boss_center_position") else main.ARENA_SIZE * 0.5
 	var puppet_count: int = 0
 	while puppet_count < count:
 		var angle: float = randf_range(0.0, TAU)
 		var distance: float = randf_range(200.0, 300.0)
-		var puppet_pos: Vector2 = Vector2(main.ARENA_SIZE.x * 0.5, main.ARENA_SIZE.y * 0.5) + Vector2.RIGHT.rotated(angle) * distance
+		var puppet_pos: Vector2 = center_pos + Vector2.RIGHT.rotated(angle) * distance
 		var puppet_id: String = main._next_id("puppet")
 		var puppet: Dictionary = main._spawn_enemy(main.PUPPET)
 		var previous_puppet_id: String = str(puppet.get("id", ""))
 		puppet["id"] = puppet_id
-		puppet["pos"] = puppet_pos.clamp(Vector2(main.PUPPET_RADIUS, main.PUPPET_RADIUS), main.ARENA_SIZE - Vector2(main.PUPPET_RADIUS, main.PUPPET_RADIUS))
+		puppet["pos"] = puppet_pos.clamp(Vector2(main.PUPPET_RADIUS, main.PUPPET_RADIUS), arena_size - Vector2(main.PUPPET_RADIUS, main.PUPPET_RADIUS))
 		puppet["melee_timer"] = 0.0
 		main._clear_target_hurtboxes(previous_puppet_id)
 		main._register_enemy_hurtboxes(puppet)
@@ -454,18 +458,21 @@ static func _choose_next_boss_state(main: Node) -> void:
 		next_states = [main.BOSS_THOUSAND_SILKS, main.BOSS_PUPPET_AMBUSH]
 	var next_state: String = next_states[randi() % next_states.size()]
 	main.boss["state"] = next_state
+	var top_pos: Vector2 = main._get_boss_top_position() if main.has_method("_get_boss_top_position") else Vector2(main.ARENA_SIZE.x * 0.5, 100.0)
+	var center_pos: Vector2 = main._get_boss_center_position() if main.has_method("_get_boss_center_position") else main.ARENA_SIZE * 0.5
+	var anchor_pos: Vector2 = main._get_boss_anchor_position() if main.has_method("_get_boss_anchor_position") else Vector2(main.ARENA_SIZE.x * 0.5, 150.0)
 	match next_state:
 		main.BOSS_THOUSAND_SILKS:
 			main.boss["state_timer"] = 4.0
-			main.boss["target_pos"] = Vector2(main.ARENA_SIZE.x * 0.5, 100.0)
+			main.boss["target_pos"] = top_pos
 		main.BOSS_PUPPET_AMBUSH:
 			main.boss["state_timer"] = 6.5
-			main.boss["target_pos"] = Vector2(main.ARENA_SIZE.x * 0.5, 100.0)
+			main.boss["target_pos"] = top_pos
 			spawn_puppets(main, 2 if main.boss["phase"] == 1 else 4)
 			main.boss["is_vulnerable"] = false
 		main.BOSS_SILK_CAGE:
 			main.boss["state_timer"] = 5.0
-			main.boss["target_pos"] = Vector2(main.ARENA_SIZE.x * 0.5, main.ARENA_SIZE.y * 0.5)
+			main.boss["target_pos"] = center_pos
 		main.BOSS_NEEDLE_RETURN:
 			main.boss["state_timer"] = 3.5
-			main.boss["target_pos"] = Vector2(main.ARENA_SIZE.x * 0.5, 150.0)
+			main.boss["target_pos"] = anchor_pos

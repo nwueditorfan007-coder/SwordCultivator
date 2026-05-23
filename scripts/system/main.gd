@@ -136,6 +136,48 @@ const LOOKDEV_CONTROLS := [
 const ARENA_SIZE := Vector2(800.0, 600.0)
 const ARENA_ORIGIN := Vector2(240.0, 72.0)
 const ARENA_RECT := Rect2(ARENA_ORIGIN, ARENA_SIZE)
+const BASE_ARENA_SIZE := ARENA_SIZE
+const LARGE_ARENA_SIZE := Vector2(4000.0, 1800.0)
+const LARGE_ARENA_PLAYER_START := Vector2(500.0, 900.0)
+const LARGE_ARENA_CORE_POS := Vector2(3150.0, 900.0)
+const LARGE_ARENA_UPPER_EYE_POS := Vector2(2100.0, 430.0)
+const LARGE_ARENA_LOWER_EYE_POS := Vector2(2300.0, 1370.0)
+const LARGE_ARENA_BOSS_SPAWN_POS := Vector2(3150.0, 620.0)
+const LARGE_ARENA_BOSS_ANCHOR_POS := Vector2(3150.0, 760.0)
+const LARGE_ARENA_BOSS_CENTER_POS := Vector2(3150.0, 900.0)
+const LARGE_ARENA_CORE_KEY := "core"
+const LARGE_ARENA_UPPER_EYE_KEY := "upper_eye"
+const LARGE_ARENA_LOWER_EYE_KEY := "lower_eye"
+const LARGE_ARENA_STATE_SEALED := "sealed"
+const LARGE_ARENA_STATE_VULNERABLE := "vulnerable"
+const LARGE_ARENA_STATE_DESTROYED := "destroyed"
+const LARGE_ARENA_PLAYER_SPEED := 430.0
+const LARGE_ARENA_EYE_RADIUS := 46.0
+const LARGE_ARENA_CORE_RADIUS := 64.0
+const LARGE_ARENA_EYE_HEALTH := 520.0
+const LARGE_ARENA_CORE_HEALTH := 980.0
+const LARGE_ARENA_MAX_PURSUERS := 2
+const LARGE_ARENA_GUARDS_PER_EYE := 1
+const LARGE_ARENA_MAX_INTERCEPTORS := 2
+const LARGE_ARENA_PURSUER_INTERVAL := 4.6
+const LARGE_ARENA_GUARD_CHECK_INTERVAL := 2.0
+const LARGE_ARENA_INTERCEPTOR_INTERVAL := 6.0
+const LARGE_ARENA_UPPER_THREAT_RECT := Rect2(Vector2(1700.0, 750.0), Vector2(1200.0, 300.0))
+const LARGE_ARENA_LOWER_THREAT_RECT := Rect2(Vector2(1680.0, 1140.0), Vector2(1080.0, 360.0))
+const LARGE_ARENA_TOP_ROUTE_RECT := Rect2(Vector2(1380.0, 180.0), Vector2(1700.0, 260.0))
+const LARGE_ARENA_THREAT_DAMAGE_PER_SECOND := 7.5
+const LARGE_ARENA_WIND_SPEED_MULTIPLIER := 0.58
+const LARGE_ARENA_PURSUER_HEALTH := 78.0
+const LARGE_ARENA_GUARD_HEALTH := 92.0
+const LARGE_ARENA_INTERCEPTOR_SHOOTER_HEALTH := 110.0
+const LARGE_ARENA_INTERCEPTOR_HEAVY_HEALTH := 190.0
+const LARGE_ARENA_PURSUER_SPEED_SCALE := 3.25
+const LARGE_ARENA_INTERCEPTOR_SPEED_SCALE := 2.35
+const LARGE_ARENA_STRAY_GUARD_SPEED_SCALE := 1.55
+const LARGE_ARENA_GUARD_ORBIT_ANGULAR_SPEED := 1.18
+const LARGE_ARENA_GUARD_REPOSITION_SPEED := 340.0
+const LARGE_ARENA_GUARD_PLAYER_BIAS_RADIUS := 620.0
+const LARGE_ARENA_GUARD_PLAYER_BIAS := 0.28
 
 const PLAYER_RADIUS := 15.0
 const PLAYER_MAX_HEALTH := 100.0
@@ -153,6 +195,91 @@ const MELEE_SWORD_TIP_FORWARD_OFFSET := 24.4 * MELEE_SWORD_VISUAL_SCALE
 const MELEE_SWORD_CENTER_DISTANCE := SWORD_MELEE_RANGE - MELEE_SWORD_TIP_FORWARD_OFFSET
 const MELEE_SWORD_READY_SIDE := -1.0
 const MELEE_SWORD_SWING_SIDE := -MELEE_SWORD_READY_SIDE
+const MELEE_COMBO_STAGE_COUNT := 3
+const MELEE_COMBO_RESET_WINDOW := 0.74
+const MELEE_FOCUSED_CHAIN_GAP := 0.04
+const MELEE_INPUT_BUFFER_WINDOW := 0.22
+const MELEE_SHADOW_STRIKE_DELAY := 0.07
+const MELEE_SHADOW_DAMAGE_SCALAR := 0.3
+const MELEE_SHADOW_FLASH_DURATION := 0.12
+const MELEE_HITSTOP_BASE_DURATION := 0.018
+const MELEE_FOCUSED_SLASH_DAMAGE_SCALAR := 0.86
+const MELEE_FOCUSED_SLASH_RANGE := 138.0
+const MELEE_FOCUSED_SLASH_VISUAL_RANGE := 96.0
+const MELEE_FOCUSED_SLASH_ARC := PI * 24.0 / 180.0
+const MELEE_FOCUSED_SLASH_HIT_WIDTH := 13.0
+const MELEE_ACTION_PHASE_IDLE := "idle"
+const MELEE_ACTION_PHASE_STARTUP := "startup"
+const MELEE_ACTION_PHASE_ACTIVE := "active"
+const MELEE_ACTION_PHASE_RECOVERY := "recovery"
+const MELEE_TEST_PROFILE_LIGHT_BROAD_SPLIT := "light_broad_split"
+const MELEE_TEST_PROFILE_LIGHT_LONG_FOCUS := "light_long_focus"
+const MELEE_TEST_PROFILE_HEAVY_BROAD_FOCUS := "heavy_broad_focus"
+const MELEE_TEST_PROFILE_HEAVY_LONG_SPLIT := "heavy_long_split"
+const MELEE_TEST_PROFILE_IDS := [
+	MELEE_TEST_PROFILE_LIGHT_BROAD_SPLIT,
+	MELEE_TEST_PROFILE_LIGHT_LONG_FOCUS,
+	MELEE_TEST_PROFILE_HEAVY_BROAD_FOCUS,
+	MELEE_TEST_PROFILE_HEAVY_LONG_SPLIT,
+]
+const MELEE_TEST_PROFILES := {
+	MELEE_TEST_PROFILE_LIGHT_BROAD_SPLIT: {
+		"name": "流萤阔刃分光剑",
+		"traits": ["轻灵", "阔刃", "分光"],
+		"tempo_shape": "light",
+		"blade_shape": "broad",
+		"spirit_shape": "split",
+		"time_scalar": 0.76,
+		"hitstop_scalar": 0.72,
+		"shake_scalar": 0.82,
+		"poise_scalar": 0.9,
+		"split": true,
+		"shadow_delay": 0.055,
+		"shadow_damage_scalar": 0.28,
+		"color": Color("7dd3fc"),
+	},
+	MELEE_TEST_PROFILE_LIGHT_LONG_FOCUS: {
+		"name": "惊鸿长锋凝锋剑",
+		"traits": ["轻灵", "长锋", "凝锋"],
+		"tempo_shape": "light",
+		"blade_shape": "long",
+		"spirit_shape": "focus",
+		"time_scalar": 0.78,
+		"hitstop_scalar": 0.82,
+		"shake_scalar": 0.86,
+		"poise_scalar": 0.92,
+		"split": false,
+		"color": Color("a7f3d0"),
+	},
+	MELEE_TEST_PROFILE_HEAVY_BROAD_FOCUS: {
+		"name": "沉岳阔刃凝锋剑",
+		"traits": ["重势", "阔刃", "凝锋"],
+		"tempo_shape": "heavy",
+		"blade_shape": "broad",
+		"spirit_shape": "focus",
+		"time_scalar": 1.16,
+		"hitstop_scalar": 1.42,
+		"shake_scalar": 1.36,
+		"poise_scalar": 1.28,
+		"split": false,
+		"color": Color("fca5a5"),
+	},
+	MELEE_TEST_PROFILE_HEAVY_LONG_SPLIT: {
+		"name": "坠星长锋分光剑",
+		"traits": ["重势", "长锋", "分光"],
+		"tempo_shape": "heavy",
+		"blade_shape": "long",
+		"spirit_shape": "split",
+		"time_scalar": 1.14,
+		"hitstop_scalar": 1.32,
+		"shake_scalar": 1.28,
+		"poise_scalar": 1.22,
+		"split": true,
+		"shadow_delay": 0.085,
+		"shadow_damage_scalar": 0.32,
+		"color": Color("c084fc"),
+	},
+}
 const SWORD_TAP_THRESHOLD := 0.15
 const SWORD_POINT_STRIKE_SPEED := 80.0 * 60.0
 const SWORD_RECALL_SPEED := 60.0 * 60.0
@@ -428,6 +555,35 @@ const RING_LEECH := "ring_leech"
 const DRAPE_PRIEST := "drape_priest"
 const MIRROR_NEEDLER := "mirror_needler"
 const PUPPET := "puppet"
+const FORMATION_EYE := "formation_eye"
+const FORMATION_CORE := "formation_core"
+
+const SWORD_SPIRIT_HIGH_VALUE_ENEMY_TYPES := [
+	MIRROR_NEEDLER,
+	CASTER,
+	DRAPE_PRIEST,
+]
+const SWORD_SPIRIT_INTENT_MIN_FORWARD := 36.0
+const SWORD_SPIRIT_INTENT_DEPTH := 560.0
+const SWORD_SPIRIT_GUARD_RADIUS := 190.0
+const SWORD_SPIRIT_GUARD_BULLET_RADIUS := 150.0
+const SWORD_SPIRIT_GUARD_RECOMMEND_SCORE := 0.62
+const SWORD_SPIRIT_GUARD_STEAL_MARGIN := 0.18
+const SWORD_SPIRIT_SWEEP_MIN_DISTANCE := 88.0
+const SWORD_SPIRIT_SWEEP_MAX_DISTANCE := 410.0
+const SWORD_SPIRIT_SWEEP_MAX_ANGLE := 0.82
+const SWORD_SPIRIT_SWEEP_HALF_WIDTH := 230.0
+const SWORD_SPIRIT_SWEEP_SPREAD_TARGET := 180.0
+const SWORD_SPIRIT_SWEEP_RECOMMEND_SCORE := 0.34
+const SWORD_SPIRIT_PIERCE_MAX_ANGLE := 0.34
+const SWORD_SPIRIT_PIERCE_CORRIDOR_HALF_WIDTH := 42.0
+const SWORD_SPIRIT_CURSOR_LOCK_RADIUS := 62.0
+const SWORD_SPIRIT_BOSS_CORE_CURSOR_LOCK_RADIUS := 92.0
+const SWORD_SPIRIT_BOSS_CORE_CORRIDOR_HALF_WIDTH := 82.0
+const SWORD_SPIRIT_PIERCE_RECOMMEND_SCORE := 0.34
+const SWORD_SPIRIT_FOLLOWUP_RECOMMEND_SCORE := 0.38
+const SWORD_SPIRIT_TAKEOVER_ENABLED := true
+const SWORD_SPIRIT_TAKEOVER_PIERCE_OVERSHOOT := 240.0
 
 const SPAWN_ENTRY_ENEMY := "enemy"
 const SPAWN_ENTRY_PACKAGE := "package"
@@ -546,6 +702,8 @@ const COLORS := {
 	"drape_priest": Color("38bdf8"),
 	"mirror_needler": Color("e5e7eb"),
 	"puppet": Color("a78bfa"),
+	"formation_eye": Color("38d5ff"),
+	"formation_core": Color("facc15"),
 	"bullet": Color("f5efe6"),
 	"frozen": Color("00ffff"),
 	"array_sword": Color("7dd3fc"),
@@ -605,6 +763,7 @@ const START_MENU_OPERATION_TEXT_DISTANCE := """[b]WASD 移动[/b]
 
 @export var sword_vfx_profile: SwordVfxProfile = DEFAULT_SWORD_VFX_PROFILE
 @export var use_node_sword_flight_vfx := true
+@export var large_arena_test_enabled := true
 @export_group("Hover Preset")
 @export_enum("稳悬", "均衡", "灵动", "仙逸") var sword_hover_preset := 1
 @export var sword_hover_preset_next_key: Key = KEY_NONE
@@ -637,6 +796,15 @@ var target_event_system: TargetEventSystem = TargetEventSystem.new()
 var target_writeback_adapters: TargetWritebackAdapters = TargetWritebackAdapters.new()
 var combat_runtime: Dictionary = {}
 var enemy_packages: Dictionary = {}
+var large_arena_camera_center: Vector2 = BASE_ARENA_SIZE * 0.5
+var large_arena_camera_zoom: float = 1.0
+var large_arena_objective_ids: Dictionary = {}
+var large_arena_objective_states: Dictionary = {}
+var large_arena_completed: bool = false
+var large_arena_pursuer_timer: float = 0.0
+var large_arena_guard_timer: float = 0.0
+var large_arena_interceptor_timer: float = 0.0
+var large_arena_pressure_label: String = ""
 
 var wave: int = 1
 var enemies_to_spawn: int = WAVE_BASE_ENEMIES
@@ -647,6 +815,7 @@ var is_game_over: bool = false
 var screen_shake: float = 0.0
 var elapsed_time: float = 0.0
 var id_counter: int = 0
+var current_melee_test_profile_index: int = 0
 var status_message: String = ""
 var status_message_timer: float = 0.0
 var status_message_color: Color = Color.WHITE
@@ -687,6 +856,12 @@ var cursor_intent_out_of_range_display: float = 0.0
 var cursor_intent_resource_display: float = 0.0
 var cursor_intent_fire_kick: float = 0.0
 var cursor_intent_fire_phase: float = 0.0
+var sword_spirit_intent_debug: Dictionary = {}
+var sword_spirit_takeover_plan: Array[String] = []
+var sword_spirit_takeover_plan_index: int = 0
+var sword_spirit_takeover_plan_signature: String = ""
+var sword_spirit_takeover_last_mode: String = ""
+var sword_spirit_takeover_last_reason: String = ""
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
 var array_control_scheme: String = ARRAY_CONTROL_SCHEME_DISTANCE
@@ -705,6 +880,66 @@ var lookdev_reset_button: Button = null
 var lookdev_save_preview_button: Button = null
 var lookdev_save_game_button: Button = null
 var lookdev_source_sword_vfx_profile: SwordVfxProfile = null
+
+
+func _is_large_arena_test_enabled() -> bool:
+	return large_arena_test_enabled and not lookdev_mode
+
+
+func _get_arena_size() -> Vector2:
+	return LARGE_ARENA_SIZE if _is_large_arena_test_enabled() else BASE_ARENA_SIZE
+
+
+func _get_initial_player_position() -> Vector2:
+	return LARGE_ARENA_PLAYER_START if _is_large_arena_test_enabled() else BASE_ARENA_SIZE * 0.5
+
+
+func _get_player_move_speed() -> float:
+	if not _is_large_arena_test_enabled():
+		return PLAYER_SPEED
+	var speed := LARGE_ARENA_PLAYER_SPEED
+	if not player.is_empty() and _is_large_arena_lower_wind_active_at(Vector2(player.get("pos", LARGE_ARENA_PLAYER_START))):
+		speed *= LARGE_ARENA_WIND_SPEED_MULTIPLIER
+	return speed
+
+
+func _is_large_arena_lower_wind_active_at(world_pos: Vector2) -> bool:
+	return (
+		_is_large_arena_test_enabled()
+		and _is_large_arena_objective_alive(LARGE_ARENA_LOWER_EYE_KEY)
+		and LARGE_ARENA_LOWER_THREAT_RECT.has_point(world_pos)
+	)
+
+
+func _get_large_arena_screen_rect() -> Rect2:
+	return get_viewport_rect()
+
+
+func _get_large_arena_camera_half_extents() -> Vector2:
+	return _get_large_arena_screen_rect().size * 0.5 / maxf(large_arena_camera_zoom, 0.001)
+
+
+func _clamp_large_arena_camera_center(center: Vector2) -> Vector2:
+	var arena_size := _get_arena_size()
+	var half_extents := _get_large_arena_camera_half_extents()
+	var min_center := half_extents
+	var max_center := arena_size - half_extents
+	if max_center.x < min_center.x:
+		min_center.x = arena_size.x * 0.5
+		max_center.x = min_center.x
+	if max_center.y < min_center.y:
+		min_center.y = arena_size.y * 0.5
+		max_center.y = min_center.y
+	return center.clamp(min_center, max_center)
+
+
+func _get_large_arena_visible_world_rect() -> Rect2:
+	var half_extents := _get_large_arena_camera_half_extents()
+	return Rect2(large_arena_camera_center - half_extents, half_extents * 2.0)
+
+
+func _get_screen_play_rect() -> Rect2:
+	return _get_large_arena_screen_rect() if _is_large_arena_test_enabled() else ARENA_RECT
 
 
 func get_sword_vfx_profile() -> SwordVfxProfile:
@@ -767,12 +1002,13 @@ func _get_melee_sword_visual_angle() -> float:
 	if not _is_melee_swing_visual_active():
 		return base_angle - MELEE_SWORD_SWING_ARC * 0.5 * MELEE_SWORD_READY_SIDE
 	base_angle = float(player.get("melee_swing_angle", base_angle))
+	var swing_arc: float = maxf(float(player.get("melee_swing_arc", MELEE_SWORD_SWING_ARC)), 0.001)
 	var swing_side: float = float(player.get("melee_swing_side", MELEE_SWORD_SWING_SIDE))
 	if is_zero_approx(swing_side):
 		swing_side = MELEE_SWORD_SWING_SIDE
 	var swing_progress: float = _get_melee_swing_progress()
 	var eased_progress: float = 1.0 - pow(1.0 - swing_progress, 3.0)
-	return base_angle + lerpf(-MELEE_SWORD_SWING_ARC * 0.5, MELEE_SWORD_SWING_ARC * 0.5, eased_progress) * swing_side
+	return base_angle + lerpf(-swing_arc * 0.5, swing_arc * 0.5, eased_progress) * swing_side
 
 
 func _get_held_melee_sword_position() -> Vector2:
@@ -780,7 +1016,9 @@ func _get_held_melee_sword_position() -> Vector2:
 	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
 	if sword_forward.is_zero_approx():
 		sword_forward = _get_held_sword_aim_direction()
-	return player["pos"] + sword_forward.normalized() * MELEE_SWORD_CENTER_DISTANCE
+	var swing_range: float = float(player.get("melee_swing_range", SWORD_MELEE_RANGE))
+	var center_distance: float = maxf(swing_range - MELEE_SWORD_TIP_FORWARD_OFFSET, SWORD_RADIUS)
+	return player["pos"] + sword_forward.normalized() * center_distance
 
 
 func _get_sword_hover_preset_data() -> Dictionary:
@@ -793,6 +1031,95 @@ func _get_sword_hover_preset_data() -> Dictionary:
 func _get_sword_hover_preset_name() -> String:
 	var preset_data := _get_sword_hover_preset_data()
 	return str(preset_data.get("name", "均衡"))
+
+
+func _get_current_melee_test_profile_id() -> String:
+	if MELEE_TEST_PROFILE_IDS.is_empty():
+		return ""
+	var profile_index: int = clampi(current_melee_test_profile_index, 0, MELEE_TEST_PROFILE_IDS.size() - 1)
+	return str(MELEE_TEST_PROFILE_IDS[profile_index])
+
+
+func _get_current_melee_test_profile_data() -> Dictionary:
+	var profile_id: String = _get_current_melee_test_profile_id()
+	return MELEE_TEST_PROFILES.get(profile_id, {})
+
+
+func _get_current_melee_test_profile_name() -> String:
+	return str(_get_current_melee_test_profile_data().get("name", "测试剑"))
+
+
+func _get_current_melee_test_profile_traits_text() -> String:
+	var profile_data: Dictionary = _get_current_melee_test_profile_data()
+	var traits: Array = profile_data.get("traits", [])
+	var trait_text := ""
+	for index in range(traits.size()):
+		if index > 0:
+			trait_text += " / "
+		trait_text += str(traits[index])
+	return trait_text
+
+
+func _get_current_melee_test_profile_hud_text() -> String:
+	var trait_text: String = _get_current_melee_test_profile_traits_text()
+	if trait_text == "":
+		return _get_current_melee_test_profile_name()
+	return "%s（%s）" % [_get_current_melee_test_profile_name(), trait_text]
+
+
+func _get_melee_action_phase_text() -> String:
+	match str(player.get("melee_action_phase", MELEE_ACTION_PHASE_IDLE)):
+		"startup":
+			return "前摇"
+		"active":
+			return "命中"
+		"recovery":
+			return "收招"
+		_:
+			return "待机"
+
+
+func _get_current_melee_action_hud_text() -> String:
+	if bool(player.get("melee_action_active", false)):
+		var stage_data: Dictionary = player.get("melee_action_stage_data", {})
+		var buffer_text: String = " | 已缓存" if bool(player.get("melee_input_buffered", false)) else ""
+		if bool(stage_data.get("focused_action", false)) or bool(stage_data.get("focused_slash", false)):
+			return "%s / %s%s" % [
+				str(stage_data.get("name", "凝锋一刀")),
+				_get_melee_action_phase_text(),
+				buffer_text,
+			]
+		return "%d段 %s / %s%s" % [
+			int(stage_data.get("stage", player.get("melee_combo_stage", 0))),
+			str(stage_data.get("name", "普攻")),
+			_get_melee_action_phase_text(),
+			buffer_text,
+		]
+	if bool(player.get("melee_auto_combo_active", false)):
+		return "凝锋一刀待发"
+	return "待机"
+
+
+func _cycle_melee_test_profile(direction: int) -> void:
+	if MELEE_TEST_PROFILE_IDS.is_empty():
+		return
+	current_melee_test_profile_index = posmod(current_melee_test_profile_index + direction, MELEE_TEST_PROFILE_IDS.size())
+	_clear_melee_auto_combo()
+	_clear_melee_action()
+	player["melee_combo_stage"] = 0
+	player["melee_combo_timer"] = 0.0
+	player["melee_input_buffered"] = false
+	player["melee_input_buffer_timer"] = 0.0
+	player["melee_shadow_strikes"] = []
+	player["melee_shadow_flashes"] = []
+	player["melee_flash_stage_data"] = {}
+	var profile_data: Dictionary = _get_current_melee_test_profile_data()
+	var profile_color: Color = profile_data.get("color", COLORS["melee_sword"])
+	var message: String = "普攻测试：%s" % _get_current_melee_test_profile_hud_text()
+	_show_status_message(message, profile_color, 1.2)
+	_show_focus_status_message("普攻：%s" % _get_current_melee_test_profile_name(), profile_color, 0.58)
+	_update_ui()
+	queue_redraw()
 
 
 func _matches_configured_key(event: InputEventKey, keycode: Key) -> bool:
@@ -1095,8 +1422,13 @@ func _process(delta: float) -> void:
 	_update_array_swords(delta)
 	_update_particles(bullet_time_delta)
 	_update_sword_hit_effects(delta)
-	_update_wave(delta)
+	if _is_large_arena_test_enabled():
+		_update_large_arena_test(delta)
+	else:
+		_update_wave(delta)
+	_update_large_arena_camera(delta)
 	_update_cursor_intent_indicator(delta)
+	_update_sword_spirit_intent_debug()
 	_apply_debug_runtime_overrides()
 
 	if player["health"] <= 0.0:
@@ -1159,7 +1491,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					_sync_desktop_mouse_visibility_to_game_state()
 					return
 				left_mouse_held = true
-				if sword["state"] == SwordState.ORBITING and player["attack_cooldown"] <= 0.0:
+				if sword["state"] == SwordState.ORBITING:
 					_perform_melee_attack()
 			else:
 				left_mouse_held = false
@@ -1553,6 +1885,7 @@ func _consume_lookdev_event(event_key: String) -> bool:
 
 func _reset_game() -> void:
 	GameStateFactory.reset_runtime(self )
+	_reset_large_arena_test_state()
 	_reset_time_rift_fx()
 	action_failure_cooldowns.clear()
 	energy_feedback_timer = 0.0
@@ -1570,9 +1903,364 @@ func _reset_game() -> void:
 	array_mode_confirm_mode = ""
 	array_mode_confirm_angle = 0.0
 	array_distance_guide_timer = 0.0
+	_reset_sword_spirit_takeover_state()
 	_reset_cursor_intent_indicator()
 	_show_wave_unlock_feedback(wave)
 	_sync_desktop_mouse_visibility_to_game_state()
+
+
+func _reset_large_arena_test_state() -> void:
+	large_arena_camera_zoom = 1.0
+	large_arena_camera_center = _get_initial_player_position()
+	large_arena_objective_ids = {}
+	large_arena_objective_states = {}
+	large_arena_completed = false
+	large_arena_pursuer_timer = 3.2
+	large_arena_guard_timer = 0.5
+	large_arena_interceptor_timer = 9999.0
+	large_arena_pressure_label = ""
+	if not _is_large_arena_test_enabled():
+		return
+	wave = 1
+	enemies_to_spawn = 0
+	wave_spawn_queue.clear()
+	spawn_timer = 9999.0
+	boss.clear()
+	if not player.is_empty():
+		player["pos"] = LARGE_ARENA_PLAYER_START
+		player["vel"] = Vector2.ZERO
+		player["health"] = PLAYER_MAX_HEALTH
+		player["energy"] = PLAYER_MAX_ENERGY
+	if not sword.is_empty():
+		sword["pos"] = LARGE_ARENA_PLAYER_START
+		sword["prev_pos"] = LARGE_ARENA_PLAYER_START
+		sword["target_pos"] = LARGE_ARENA_PLAYER_START
+		sword["vel"] = Vector2.ZERO
+	mouse_world = (LARGE_ARENA_PLAYER_START + Vector2(360.0, -80.0)).clamp(Vector2.ZERO, LARGE_ARENA_SIZE)
+	cursor_intent_previous_mouse_world = mouse_world
+	large_arena_objective_states = {
+		LARGE_ARENA_UPPER_EYE_KEY: LARGE_ARENA_STATE_VULNERABLE,
+		LARGE_ARENA_LOWER_EYE_KEY: LARGE_ARENA_STATE_VULNERABLE,
+		LARGE_ARENA_CORE_KEY: LARGE_ARENA_STATE_SEALED,
+	}
+	_spawn_large_arena_objective(FORMATION_EYE, LARGE_ARENA_UPPER_EYE_KEY, LARGE_ARENA_UPPER_EYE_POS)
+	_spawn_large_arena_objective(FORMATION_EYE, LARGE_ARENA_LOWER_EYE_KEY, LARGE_ARENA_LOWER_EYE_POS)
+	_spawn_large_arena_objective(FORMATION_CORE, LARGE_ARENA_CORE_KEY, LARGE_ARENA_CORE_POS)
+	large_arena_camera_center = LARGE_ARENA_PLAYER_START
+	game_over_label.text = "力竭身亡"
+	_show_status_message("破云阵场：先破双阵眼，再斩阵心", COLORS["formation_core"], 1.8)
+
+
+func _spawn_large_arena_objective(enemy_type: String, objective_key: String, position: Vector2) -> Dictionary:
+	var objective: Dictionary = _spawn_enemy(enemy_type, position)
+	objective["large_arena_role"] = "objective"
+	objective["large_arena_objective_key"] = objective_key
+	objective["large_arena_state"] = str(large_arena_objective_states.get(objective_key, LARGE_ARENA_STATE_VULNERABLE))
+	objective["is_large_arena_objective"] = true
+	large_arena_objective_ids[objective_key] = str(objective.get("id", ""))
+	return objective
+
+
+func _get_large_arena_objective(objective_key: String) -> Variant:
+	var objective_id: String = str(large_arena_objective_ids.get(objective_key, ""))
+	if objective_id == "":
+		return null
+	return _find_enemy_by_id(objective_id)
+
+
+func _is_large_arena_objective_alive(objective_key: String) -> bool:
+	var objective: Variant = _get_large_arena_objective(objective_key)
+	return objective != null and not bool(objective.get("is_dying", false)) and float(objective.get("health", 0.0)) > 0.0
+
+
+func _is_large_arena_objective_enemy(enemy: Dictionary) -> bool:
+	return bool(enemy.get("is_large_arena_objective", false)) or str(enemy.get("type", "")) == FORMATION_EYE or str(enemy.get("type", "")) == FORMATION_CORE
+
+
+func _get_large_arena_destroyed_eye_count() -> int:
+	var destroyed := 0
+	for key in [LARGE_ARENA_UPPER_EYE_KEY, LARGE_ARENA_LOWER_EYE_KEY]:
+		if str(large_arena_objective_states.get(key, "")) == LARGE_ARENA_STATE_DESTROYED:
+			destroyed += 1
+	return destroyed
+
+
+func _sync_large_arena_core_state() -> void:
+	if not _is_large_arena_test_enabled() or large_arena_completed:
+		return
+	var core: Variant = _get_large_arena_objective(LARGE_ARENA_CORE_KEY)
+	if core == null:
+		return
+	if _get_large_arena_destroyed_eye_count() >= 2 and str(large_arena_objective_states.get(LARGE_ARENA_CORE_KEY, "")) == LARGE_ARENA_STATE_SEALED:
+		large_arena_objective_states[LARGE_ARENA_CORE_KEY] = LARGE_ARENA_STATE_VULNERABLE
+		core["large_arena_state"] = LARGE_ARENA_STATE_VULNERABLE
+		large_arena_interceptor_timer = 2.6
+		_dismiss_large_arena_pressure_enemies("pursuer")
+		_spawn_large_arena_boss()
+		_show_status_message("双阵眼已破，阵心暴露", COLORS["formation_core"], 1.4)
+		_create_particles(Vector2(core.get("pos", LARGE_ARENA_CORE_POS)), COLORS["formation_core"], 26)
+
+
+func _spawn_large_arena_boss() -> void:
+	if not _is_large_arena_test_enabled() or _has_boss():
+		return
+	_spawn_boss()
+	if not _has_boss():
+		return
+	boss["large_arena_role"] = "boss"
+	boss["pos"] = LARGE_ARENA_BOSS_SPAWN_POS
+	boss["target_pos"] = LARGE_ARENA_BOSS_ANCHOR_POS
+	boss["health"] = BOSS_MAX_HEALTH
+	boss["max_health"] = BOSS_MAX_HEALTH
+	boss["state_timer"] = 1.2
+	_register_boss_hurtboxes()
+	_create_particles(LARGE_ARENA_BOSS_ANCHOR_POS, COLORS["boss_body"], 34)
+	_show_status_message("阵主现身", COLORS["boss_body"], 1.5)
+
+
+func _handle_large_arena_objective_destroyed(enemy: Dictionary) -> void:
+	if not _is_large_arena_test_enabled():
+		return
+	var objective_key: String = str(enemy.get("large_arena_objective_key", ""))
+	if objective_key == "":
+		return
+	if str(large_arena_objective_states.get(objective_key, "")) == LARGE_ARENA_STATE_DESTROYED:
+		return
+	large_arena_objective_states[objective_key] = LARGE_ARENA_STATE_DESTROYED
+	enemy["large_arena_state"] = LARGE_ARENA_STATE_DESTROYED
+	match objective_key:
+		LARGE_ARENA_UPPER_EYE_KEY:
+			_dismiss_large_arena_pressure_enemies("eye_guard", objective_key)
+			_show_status_message("上层阵眼破，中央炮线熄灭", COLORS["formation_eye"], 1.2)
+		LARGE_ARENA_LOWER_EYE_KEY:
+			_dismiss_large_arena_pressure_enemies("eye_guard", objective_key)
+			_show_status_message("下层阵眼破，风场散去", COLORS["formation_eye"], 1.2)
+		LARGE_ARENA_CORE_KEY:
+			_complete_large_arena_test()
+	_sync_large_arena_core_state()
+
+
+func _complete_large_arena_test() -> void:
+	if large_arena_completed:
+		return
+	large_arena_completed = true
+	left_mouse_held = false
+	right_mouse_held = false
+	is_game_over = true
+	game_over_label.text = "破阵功成"
+	game_over_label.visible = true
+	_set_desktop_mouse_visible(true)
+	_show_status_message("阵心已破", COLORS["formation_core"], 2.0)
+
+
+func _update_large_arena_test(delta: float) -> void:
+	if not _is_large_arena_test_enabled() or large_arena_completed:
+		return
+	_sync_large_arena_core_state()
+	_update_large_arena_pressure_fields(delta)
+	_update_large_arena_spawns(delta)
+
+
+func _update_large_arena_pressure_fields(delta: float) -> void:
+	large_arena_pressure_label = ""
+	var player_pos: Vector2 = Vector2(player.get("pos", Vector2.ZERO))
+	if _is_large_arena_objective_alive(LARGE_ARENA_UPPER_EYE_KEY) and LARGE_ARENA_UPPER_THREAT_RECT.has_point(player_pos):
+		large_arena_pressure_label = "中路炮线"
+		if _apply_player_damage(LARGE_ARENA_THREAT_DAMAGE_PER_SECOND * delta, "large_arena_beam"):
+			screen_shake = maxf(screen_shake, 1.5)
+	if _is_large_arena_lower_wind_active_at(player_pos):
+		large_arena_pressure_label = "下层风场"
+
+
+func _update_large_arena_spawns(delta: float) -> void:
+	large_arena_pursuer_timer -= delta
+	large_arena_guard_timer -= delta
+	large_arena_interceptor_timer -= delta
+	if large_arena_pursuer_timer <= 0.0:
+		large_arena_pursuer_timer = LARGE_ARENA_PURSUER_INTERVAL
+		_spawn_large_arena_pursuer_if_needed()
+	if large_arena_guard_timer <= 0.0:
+		large_arena_guard_timer = LARGE_ARENA_GUARD_CHECK_INTERVAL
+		_spawn_large_arena_guards_if_needed()
+	if str(large_arena_objective_states.get(LARGE_ARENA_CORE_KEY, "")) == LARGE_ARENA_STATE_VULNERABLE and large_arena_interceptor_timer <= 0.0:
+		large_arena_interceptor_timer = LARGE_ARENA_INTERCEPTOR_INTERVAL
+		_spawn_large_arena_interceptor_if_needed()
+
+
+func _count_large_arena_enemies(role: String, objective_key := "") -> int:
+	var count := 0
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if bool(enemy.get("is_dying", false)) or float(enemy.get("health", 0.0)) <= 0.0:
+			continue
+		if str(enemy.get("large_arena_role", "")) != role:
+			continue
+		if objective_key != "" and str(enemy.get("large_arena_objective_key", "")) != objective_key:
+			continue
+		count += 1
+	return count
+
+
+func _dismiss_large_arena_pressure_enemies(role: String, objective_key := "") -> void:
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if bool(enemy.get("is_dying", false)) or float(enemy.get("health", 0.0)) <= 0.0:
+			continue
+		if str(enemy.get("large_arena_role", "")) != role:
+			continue
+		if objective_key != "" and str(enemy.get("large_arena_objective_key", "")) != objective_key:
+			continue
+		enemy["large_arena_dismissed"] = true
+		enemy["score"] = 0
+		_begin_enemy_death(enemy)
+
+
+func _spawn_large_arena_pursuer_if_needed() -> void:
+	if _count_large_arena_enemies("pursuer") >= LARGE_ARENA_MAX_PURSUERS:
+		return
+	var player_pos: Vector2 = Vector2(player.get("pos", LARGE_ARENA_PLAYER_START))
+	var player_vel: Vector2 = Vector2(player.get("vel", Vector2.ZERO))
+	var back_dir := -player_vel.normalized() if player_vel.length() > 20.0 else Vector2.LEFT
+	var spawn_pos := (player_pos + back_dir * randf_range(330.0, 520.0) + Vector2(0.0, randf_range(-220.0, 220.0))).clamp(Vector2(40.0, 40.0), LARGE_ARENA_SIZE - Vector2(40.0, 40.0))
+	var enemy: Dictionary = _spawn_enemy(RING_LEECH, spawn_pos)
+	_apply_large_arena_enemy_tuning(enemy, "pursuer")
+	enemy["score"] = 10
+
+
+func _spawn_large_arena_guards_if_needed() -> void:
+	for objective_key in [LARGE_ARENA_UPPER_EYE_KEY, LARGE_ARENA_LOWER_EYE_KEY]:
+		if not _is_large_arena_objective_alive(objective_key):
+			continue
+		var target: Variant = _get_large_arena_objective(objective_key)
+		if target == null:
+			continue
+		while _count_large_arena_enemies("eye_guard", objective_key) < LARGE_ARENA_GUARDS_PER_EYE:
+			var angle := randf_range(-PI, PI)
+			var radius := randf_range(120.0, 190.0)
+			var spawn_pos := (Vector2(target.get("pos", Vector2.ZERO)) + Vector2.RIGHT.rotated(angle) * radius).clamp(Vector2(40.0, 40.0), LARGE_ARENA_SIZE - Vector2(40.0, 40.0))
+			var guard: Dictionary = _spawn_enemy(SHOOTER, spawn_pos)
+			_apply_large_arena_enemy_tuning(guard, "eye_guard", objective_key)
+			guard["guard_angle"] = angle
+			guard["guard_radius"] = radius
+			guard["score"] = 12
+
+
+func _spawn_large_arena_interceptor_if_needed() -> void:
+	if _count_large_arena_enemies("interceptor") >= LARGE_ARENA_MAX_INTERCEPTORS:
+		return
+	var core_pos := LARGE_ARENA_CORE_POS
+	var spawn_pos := (core_pos + Vector2(randf_range(-620.0, -360.0), randf_range(-260.0, 260.0))).clamp(Vector2(60.0, 60.0), LARGE_ARENA_SIZE - Vector2(60.0, 60.0))
+	var enemy_type := HEAVY if randf() < 0.45 else SHOOTER
+	var enemy: Dictionary = _spawn_enemy(enemy_type, spawn_pos)
+	_apply_large_arena_enemy_tuning(enemy, "interceptor")
+	enemy["score"] = 18
+
+
+func _apply_large_arena_enemy_tuning(enemy: Dictionary, role: String, objective_key := "") -> void:
+	enemy["large_arena_role"] = role
+	if objective_key != "":
+		enemy["large_arena_objective_key"] = objective_key
+	match role:
+		"pursuer":
+			_set_enemy_max_health(enemy, LARGE_ARENA_PURSUER_HEALTH)
+			enemy["move_speed_multiplier"] = LARGE_ARENA_PURSUER_SPEED_SCALE
+			enemy["shoot_cooldown"] = minf(float(enemy.get("shoot_cooldown", RING_LEECH_COOLDOWN)), RING_LEECH_COOLDOWN * 0.65)
+		"eye_guard":
+			_set_enemy_max_health(enemy, LARGE_ARENA_GUARD_HEALTH)
+			enemy["move_speed_multiplier"] = 1.0
+			enemy["shoot_cooldown"] = minf(float(enemy.get("shoot_cooldown", SHOOTER_COOLDOWN)), SHOOTER_COOLDOWN * 0.75)
+		"interceptor":
+			if str(enemy.get("type", "")) == HEAVY:
+				_set_enemy_max_health(enemy, LARGE_ARENA_INTERCEPTOR_HEAVY_HEALTH)
+			else:
+				_set_enemy_max_health(enemy, LARGE_ARENA_INTERCEPTOR_SHOOTER_HEALTH)
+			enemy["move_speed_multiplier"] = LARGE_ARENA_INTERCEPTOR_SPEED_SCALE
+			enemy["shoot_cooldown"] = minf(float(enemy.get("shoot_cooldown", SHOOTER_COOLDOWN)), SHOOTER_COOLDOWN * 0.85)
+		"stray_guard":
+			enemy["move_speed_multiplier"] = LARGE_ARENA_STRAY_GUARD_SPEED_SCALE
+
+
+func _set_enemy_max_health(enemy: Dictionary, max_health: float) -> void:
+	var resolved_health := maxf(max_health, 1.0)
+	enemy["health"] = resolved_health
+	enemy["max_health"] = resolved_health
+
+
+func _get_enemy_move_speed_scale(enemy: Dictionary) -> float:
+	return maxf(float(enemy.get("move_speed_multiplier", 1.0)), 0.0)
+
+
+func _update_large_arena_enemy_role(enemy: Dictionary, delta: float) -> bool:
+	var role: String = str(enemy.get("large_arena_role", ""))
+	if role == "objective":
+		enemy["vel"] = Vector2.ZERO
+		return true
+	if role != "eye_guard":
+		return false
+	var objective_key: String = str(enemy.get("large_arena_objective_key", ""))
+	var target: Variant = _get_large_arena_objective(objective_key)
+	if target == null or not _is_large_arena_objective_alive(objective_key):
+		_apply_large_arena_enemy_tuning(enemy, "stray_guard")
+		return false
+	var angle: float = float(enemy.get("guard_angle", 0.0)) + delta * LARGE_ARENA_GUARD_ORBIT_ANGULAR_SPEED
+	var radius: float = float(enemy.get("guard_radius", 150.0))
+	enemy["guard_angle"] = wrapf(angle, -PI, PI)
+	var target_pos: Vector2 = Vector2(target.get("pos", Vector2.ZERO))
+	var player_pos: Vector2 = Vector2(player.get("pos", Vector2.ZERO))
+	var desired_pos: Vector2 = target_pos + Vector2.RIGHT.rotated(angle) * radius
+	if player_pos.distance_to(target_pos) <= LARGE_ARENA_GUARD_PLAYER_BIAS_RADIUS:
+		desired_pos = desired_pos.lerp(player_pos, LARGE_ARENA_GUARD_PLAYER_BIAS)
+	enemy["pos"] = Vector2(enemy.get("pos", Vector2.ZERO)).move_toward(desired_pos, LARGE_ARENA_GUARD_REPOSITION_SPEED * delta)
+	var to_player: Vector2 = player_pos - Vector2(enemy.get("pos", Vector2.ZERO))
+	enemy["shoot_cooldown"] = float(enemy.get("shoot_cooldown", 0.0)) - delta
+	if enemy["shoot_cooldown"] <= 0.0 and not to_player.is_zero_approx():
+		enemy["shoot_cooldown"] = SHOOTER_COOLDOWN * 0.82
+		_spawn_bullet(
+			enemy["pos"],
+			to_player.normalized() * BULLET_SPEED,
+			"small",
+			enemy["id"],
+			COLORS["bullet"],
+			{
+				"family": BULLET_FAMILY_NEEDLE,
+				"source_enemy_type": SHOOTER,
+			}
+		)
+	_clamp_enemy_to_arena(enemy)
+	return true
+
+
+func _update_large_arena_camera(_delta: float) -> void:
+	if not _is_large_arena_test_enabled() or player.is_empty():
+		large_arena_camera_center = BASE_ARENA_SIZE * 0.5
+		return
+	var previous_center := large_arena_camera_center
+	var player_pos: Vector2 = Vector2(player.get("pos", LARGE_ARENA_PLAYER_START))
+	large_arena_camera_center = player_pos
+	_compensate_large_arena_virtual_cursor_for_camera(large_arena_camera_center - previous_center)
+
+
+func _compensate_large_arena_virtual_cursor_for_camera(camera_delta: Vector2) -> void:
+	if camera_delta.is_zero_approx() or not _should_use_virtual_mouse_motion():
+		return
+	mouse_world = (mouse_world + camera_delta).clamp(Vector2.ZERO, _get_arena_size())
+	cursor_intent_previous_mouse_world = (cursor_intent_previous_mouse_world + camera_delta).clamp(Vector2.ZERO, _get_arena_size())
+
+
+func _get_nearest_large_arena_live_objective(from_pos: Vector2) -> Variant:
+	var best: Variant = null
+	var best_distance := INF
+	for objective_key in [LARGE_ARENA_UPPER_EYE_KEY, LARGE_ARENA_LOWER_EYE_KEY, LARGE_ARENA_CORE_KEY]:
+		if str(large_arena_objective_states.get(objective_key, "")) == LARGE_ARENA_STATE_DESTROYED:
+			continue
+		var objective: Variant = _get_large_arena_objective(objective_key)
+		if objective == null:
+			continue
+		var distance := from_pos.distance_to(Vector2(objective.get("pos", Vector2.ZERO)))
+		if distance < best_distance:
+			best_distance = distance
+			best = objective
+	return best
 
 
 func _update_player(delta: float, player_delta: float) -> void:
@@ -1581,19 +2269,208 @@ func _update_player(delta: float, player_delta: float) -> void:
 		player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
 		player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
 		player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
+		_update_melee_combo_state(delta)
 		return
 	var move_input: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if not move_input.is_zero_approx():
-		player["vel"] = move_input.normalized() * PLAYER_SPEED
+		player["vel"] = move_input.normalized() * _get_player_move_speed()
 	else:
 		player["vel"] = player["vel"].lerp(Vector2.ZERO, min(delta * 8.0, 1.0))
 
 	player["pos"] += player["vel"] * player_delta
-	player["pos"] = player["pos"].clamp(Vector2(PLAYER_RADIUS, PLAYER_RADIUS), ARENA_SIZE - Vector2(PLAYER_RADIUS, PLAYER_RADIUS))
+	player["pos"] = player["pos"].clamp(Vector2(PLAYER_RADIUS, PLAYER_RADIUS), _get_arena_size() - Vector2(PLAYER_RADIUS, PLAYER_RADIUS))
 
 	player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
 	player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
 	player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
+	_update_melee_combo_state(delta)
+
+
+func _update_melee_combo_state(delta: float) -> void:
+	var combo_timer: float = maxf(float(player.get("melee_combo_timer", 0.0)) - delta, 0.0)
+	player["melee_combo_timer"] = combo_timer
+	_update_melee_input_buffer(delta)
+	_update_melee_action(delta)
+	_update_melee_auto_combo(delta)
+	_update_melee_shadow_strikes(delta)
+	_update_melee_shadow_flashes(delta)
+	if (
+		is_zero_approx(combo_timer)
+		and not bool(player.get("melee_auto_combo_active", false))
+		and not bool(player.get("melee_action_active", false))
+	):
+		player["melee_combo_stage"] = 0
+
+
+func _update_melee_input_buffer(delta: float) -> void:
+	if not bool(player.get("melee_input_buffered", false)):
+		return
+	var buffer_timer: float = maxf(float(player.get("melee_input_buffer_timer", 0.0)) - delta, 0.0)
+	player["melee_input_buffer_timer"] = buffer_timer
+	if is_zero_approx(buffer_timer):
+		player["melee_input_buffered"] = false
+
+
+func _update_melee_action(delta: float) -> void:
+	if not bool(player.get("melee_action_active", false)):
+		return
+	if not _is_held_melee_sword_active():
+		_clear_melee_action()
+		return
+	var stage_data: Dictionary = player.get("melee_action_stage_data", {})
+	var previous_elapsed: float = float(player.get("melee_action_elapsed", 0.0))
+	var elapsed: float = previous_elapsed + delta
+	player["melee_action_elapsed"] = elapsed
+	player["melee_action_phase"] = _get_melee_action_phase_for_elapsed(stage_data, elapsed)
+	var hit_time: float = maxf(float(stage_data.get("startup", 0.0)), 0.0)
+	if not bool(player.get("melee_action_hit_done", false)) and previous_elapsed < hit_time and elapsed >= hit_time:
+		player["melee_action_hit_done"] = true
+		var attack_direction: Vector2 = Vector2(player.get("melee_action_direction", _get_melee_attack_direction()))
+		_resolve_melee_action_hit(stage_data, attack_direction)
+	var total_duration: float = maxf(float(stage_data.get("total_duration", player.get("melee_action_duration", 0.0))), 0.001)
+	if elapsed >= total_duration:
+		_finish_melee_action()
+
+
+func _get_melee_action_phase_for_elapsed(stage_data: Dictionary, elapsed: float) -> String:
+	var startup: float = maxf(float(stage_data.get("startup", 0.0)), 0.0)
+	var active: float = maxf(float(stage_data.get("active", 0.0)), 0.0)
+	if elapsed < startup:
+		return MELEE_ACTION_PHASE_STARTUP
+	if elapsed < startup + active:
+		return MELEE_ACTION_PHASE_ACTIVE
+	return MELEE_ACTION_PHASE_RECOVERY
+
+
+func _resolve_melee_action_hit(stage_data: Dictionary, attack_direction: Vector2) -> void:
+	player["attack_flash_duration"] = maxf(float(stage_data.get("flash_duration", MELEE_ATTACK_FLASH_DURATION)), 0.04)
+	player["attack_flash_timer"] = player["attack_flash_duration"]
+	player["melee_flash_color"] = stage_data.get("color", COLORS["melee_sword"])
+	player["melee_flash_inner_color"] = stage_data.get("inner_color", COLORS["melee_sword"].lerp(Color.WHITE, 0.42))
+	player["melee_flash_stage_data"] = stage_data
+	_apply_melee_arc_attack(stage_data, attack_direction, false)
+	if bool(stage_data.get("split_shadow", false)):
+		_queue_melee_shadow_strike(stage_data, attack_direction)
+
+
+func _finish_melee_action() -> void:
+	var should_chain_buffer: bool = (
+		bool(player.get("melee_input_buffered", false))
+		and float(player.get("melee_input_buffer_timer", 0.0)) > 0.0
+		and not bool(player.get("melee_auto_combo_active", false))
+	)
+	_clear_melee_action()
+	if should_chain_buffer:
+		player["melee_input_buffered"] = false
+		player["melee_input_buffer_timer"] = 0.0
+		var profile_data: Dictionary = _get_current_melee_test_profile_data()
+		var next_stage: int = 1 if _is_melee_focus_profile(profile_data) else _get_next_melee_combo_stage()
+		_start_melee_combo_stage(next_stage, _get_melee_attack_direction())
+
+
+func _clear_melee_action() -> void:
+	player["melee_action_active"] = false
+	player["melee_action_phase"] = MELEE_ACTION_PHASE_IDLE
+	player["melee_action_elapsed"] = 0.0
+	player["melee_action_duration"] = 0.0
+	player["melee_action_hit_done"] = false
+	player["melee_action_stage_data"] = {}
+
+
+func _update_melee_auto_combo(delta: float) -> void:
+	if not bool(player.get("melee_auto_combo_active", false)):
+		return
+	if not _is_held_melee_sword_active():
+		_clear_melee_auto_combo()
+		return
+	if bool(player.get("melee_action_active", false)):
+		return
+	var queue: Array = player.get("melee_auto_combo_queue", [])
+	if queue.is_empty():
+		_clear_melee_auto_combo()
+		return
+	var timer: float = float(player.get("melee_auto_combo_timer", 0.0)) - delta
+	if timer > 0.0:
+		player["melee_auto_combo_timer"] = timer
+		return
+	var stage_index: int = int(queue.pop_front())
+	player["melee_auto_combo_queue"] = queue
+	var attack_direction: Vector2 = Vector2(player.get("melee_auto_combo_direction", _get_melee_attack_direction()))
+	if attack_direction.is_zero_approx():
+		attack_direction = _get_melee_attack_direction()
+	_start_melee_combo_stage(stage_index, attack_direction)
+	player["melee_auto_combo_timer"] = MELEE_FOCUSED_CHAIN_GAP
+
+
+func _clear_melee_auto_combo() -> void:
+	player["melee_auto_combo_active"] = false
+	player["melee_auto_combo_queue"] = []
+	player["melee_auto_combo_timer"] = 0.0
+
+
+func _update_melee_shadow_strikes(delta: float) -> void:
+	var shadow_strikes: Array = player.get("melee_shadow_strikes", [])
+	var index: int = shadow_strikes.size() - 1
+	while index >= 0:
+		var strike: Dictionary = shadow_strikes[index]
+		strike["timer"] = float(strike.get("timer", 0.0)) - delta
+		if float(strike.get("timer", 0.0)) <= 0.0:
+			var stage_data: Dictionary = strike.get("stage_data", {})
+			var strike_direction: Vector2 = Vector2(strike.get("direction", _get_melee_attack_direction()))
+			if strike_direction.is_zero_approx():
+				strike_direction = _get_melee_attack_direction()
+			_apply_melee_arc_attack(stage_data, strike_direction, true)
+			_push_melee_shadow_flash(stage_data, strike_direction)
+			shadow_strikes.remove_at(index)
+		else:
+			shadow_strikes[index] = strike
+		index -= 1
+	player["melee_shadow_strikes"] = shadow_strikes
+
+
+func _push_melee_shadow_flash(stage_data: Dictionary, attack_direction: Vector2) -> void:
+	var shadow_flashes: Array = player.get("melee_shadow_flashes", [])
+	var direction: Vector2 = attack_direction.normalized()
+	if direction.is_zero_approx():
+		direction = _get_melee_attack_direction()
+	shadow_flashes.append({
+		"timer": float(stage_data.get("flash_duration", MELEE_SHADOW_FLASH_DURATION)),
+		"duration": float(stage_data.get("flash_duration", MELEE_SHADOW_FLASH_DURATION)),
+		"angle": direction.angle() + float(stage_data.get("angle_offset", 0.0)),
+		"range": float(stage_data.get("range", SWORD_MELEE_RANGE)),
+		"arc": float(stage_data.get("arc", SWORD_MELEE_ARC)),
+		"visual_range": float(stage_data.get("visual_range", stage_data.get("range", SWORD_MELEE_RANGE))),
+		"damage_shape": str(stage_data.get("damage_shape", "broad_arc")),
+		"vfx_shape": str(stage_data.get("vfx_shape", "broad_split")),
+		"blade_shape": str(stage_data.get("blade_shape", "broad")),
+		"spirit_shape": str(stage_data.get("spirit_shape", "split")),
+		"deflect_range": float(stage_data.get("deflect_range", stage_data.get("range", SWORD_MELEE_RANGE))),
+		"deflect_arc": float(stage_data.get("deflect_arc", stage_data.get("arc", SWORD_MELEE_ARC))),
+		"draw_deflect_shape": false,
+		"line_start_offset": float(stage_data.get("line_start_offset", 8.0)),
+		"hit_width": float(stage_data.get("hit_width", MELEE_FOCUSED_SLASH_HIT_WIDTH)),
+		"focused_phase": str(stage_data.get("focused_phase", "split")),
+		"origin_offset": direction.orthogonal().normalized() * float(stage_data.get("origin_side_offset", 0.0)) + direction * float(stage_data.get("origin_forward_offset", 0.0)),
+		"color": stage_data.get("color", Color("c084fc")),
+		"inner_color": stage_data.get("inner_color", Color("e9d5ff")),
+	})
+	while shadow_flashes.size() > 6:
+		shadow_flashes.remove_at(0)
+	player["melee_shadow_flashes"] = shadow_flashes
+
+
+func _update_melee_shadow_flashes(delta: float) -> void:
+	var shadow_flashes: Array = player.get("melee_shadow_flashes", [])
+	var index: int = shadow_flashes.size() - 1
+	while index >= 0:
+		var flash: Dictionary = shadow_flashes[index]
+		flash["timer"] = float(flash.get("timer", 0.0)) - delta
+		if float(flash.get("timer", 0.0)) <= 0.0:
+			shadow_flashes.remove_at(index)
+		else:
+			shadow_flashes[index] = flash
+		index -= 1
+	player["melee_shadow_flashes"] = shadow_flashes
 
 
 func _get_bullet_time_recovery_duration() -> float:
@@ -2238,7 +3115,7 @@ func _can_use_array_attack() -> bool:
 	if not _is_any_array_unlocked():
 		_show_locked_skill_feedback(SwordArrayConfig.MODE_RING)
 		return false
-	var mode: String = _get_array_batch_mode()
+	var mode: String = _get_effective_array_batch_mode()
 	if not _is_array_mode_unlocked(mode):
 		_show_locked_skill_feedback(mode)
 		return false
@@ -2374,6 +3251,9 @@ func _build_array_sword(slot_index: int) -> Dictionary:
 		"guidance_volley_count": - 1,
 		"guidance_burst_step": 0,
 		"guidance_total_count": - 1,
+		"guidance_state_source": {},
+		"guidance_override_target_pos": Vector2.ZERO,
+		"guidance_override_target_kind": "",
 		"has_hit_target": false,
 		"remaining_penetration": 1,
 		"hit_target_cooldowns": {},
@@ -2396,6 +3276,9 @@ func _reset_array_sword_sortie_state(array_sword: Dictionary) -> void:
 	array_sword["guidance_volley_count"] = -1
 	array_sword["guidance_burst_step"] = 0
 	array_sword["guidance_total_count"] = -1
+	array_sword["guidance_state_source"] = {}
+	array_sword["guidance_override_target_pos"] = Vector2.ZERO
+	array_sword["guidance_override_target_kind"] = ""
 	array_sword["has_hit_target"] = false
 	array_sword["remaining_penetration"] = _get_array_sword_penetration_targets(travel_mode)
 	array_sword["hit_target_cooldowns"] = {}
@@ -2616,11 +3499,11 @@ func _emit_action_feedback_sfx(_reason_key: String) -> void:
 
 
 func _is_flying_sword_unlocked() -> bool:
-	return lookdev_mode or debug_calibration_mode or wave >= UNLOCK_WAVE_FLYING_SWORD
+	return _is_large_arena_test_enabled() or lookdev_mode or debug_calibration_mode or wave >= UNLOCK_WAVE_FLYING_SWORD
 
 
 func _is_array_mode_unlocked(mode: String) -> bool:
-	if lookdev_mode or debug_calibration_mode:
+	if _is_large_arena_test_enabled() or lookdev_mode or debug_calibration_mode:
 		return true
 	match mode:
 		SwordArrayConfig.MODE_PIERCE:
@@ -2731,7 +3614,7 @@ func _build_array_energy_forecast() -> Dictionary:
 	}
 	if not _should_array_consume_energy() or not _should_evaluate_array_energy_forecast():
 		return forecast
-	var mode: String = _get_array_batch_mode()
+	var mode: String = _get_effective_array_batch_mode()
 	var ready_count: int = _get_ready_array_sword_count()
 	if ready_count <= 0 or not _can_fire_array_batch(mode, ready_count):
 		return forecast
@@ -2973,6 +3856,660 @@ func _cursor_intent_smoothstep(value: float) -> float:
 	return t * t * (3.0 - 2.0 * t)
 
 
+func _update_sword_spirit_intent_debug() -> void:
+	sword_spirit_intent_debug = _build_sword_spirit_intent_debug()
+
+
+func _build_sword_spirit_intent_debug() -> Dictionary:
+	if player.is_empty():
+		return {
+			"guard_score": 0.0,
+			"sweep_score": 0.0,
+			"pierce_score": 0.0,
+			"recommendation": "静默",
+			"plan": "-",
+			"reason": "等待玩家状态",
+			"target_pos": Vector2.ZERO,
+			"target_kind": "",
+		}
+	var player_pos: Vector2 = Vector2(player.get("pos", Vector2.ZERO))
+	var aim_dir: Vector2 = _get_sword_spirit_aim_direction(player_pos)
+	var guard_data: Dictionary = _calculate_sword_spirit_guard_intent(player_pos)
+	var sweep_data: Dictionary = _calculate_sword_spirit_sweep_intent(player_pos, aim_dir)
+	var pierce_data: Dictionary = _calculate_sword_spirit_pierce_intent(player_pos, aim_dir)
+	var recommendation_data: Dictionary = _build_sword_spirit_recommendation(guard_data, sweep_data, pierce_data)
+	var ignored_invulnerable_count: int = _count_sword_spirit_ignored_invulnerable_enemies()
+	var active_silk_count: int = _count_sword_spirit_active_silks()
+	var reason: String = str(recommendation_data.get("reason", ""))
+	if active_silk_count > 0 and not _is_boss_core_open():
+		if reason == "未见强压力":
+			reason = "丝线%d需御剑切断" % active_silk_count
+		else:
+			reason = "%s；丝线%d需御剑" % [reason, active_silk_count]
+	if ignored_invulnerable_count > 0:
+		if reason == "未见强压力":
+			reason = "忽略无效傀儡%d；优先切丝/等破绽" % ignored_invulnerable_count
+		else:
+			reason = "%s；忽略无效傀儡%d" % [reason, ignored_invulnerable_count]
+	return {
+		"guard_score": float(guard_data.get("score", 0.0)),
+		"sweep_score": float(sweep_data.get("score", 0.0)),
+		"pierce_score": float(pierce_data.get("score", 0.0)),
+		"recommendation": str(recommendation_data.get("recommendation", "")),
+		"plan": str(recommendation_data.get("plan", "")),
+		"plan_modes": recommendation_data.get("plan_modes", []),
+		"reason": reason,
+		"target_pos": recommendation_data.get("target_pos", Vector2.ZERO),
+		"target_kind": str(recommendation_data.get("target_kind", "")),
+		"guard_reason": str(guard_data.get("reason", "")),
+		"sweep_reason": str(sweep_data.get("reason", "")),
+		"pierce_reason": str(pierce_data.get("reason", "")),
+		"ignored_invulnerable_count": ignored_invulnerable_count,
+		"active_silk_count": active_silk_count,
+	}
+
+
+func _get_sword_spirit_aim_direction(player_pos: Vector2) -> Vector2:
+	var aim_vector: Vector2 = mouse_world - player_pos
+	if not aim_vector.is_zero_approx():
+		return aim_vector.normalized()
+	var sword_vector: Vector2 = Vector2(sword.get("pos", player_pos)) - player_pos
+	if not sword_vector.is_zero_approx():
+		return sword_vector.normalized()
+	return Vector2.RIGHT
+
+
+func _should_ignore_sword_spirit_formation_enemy(enemy: Dictionary) -> bool:
+	if _should_ignore_cursor_pressure_enemy(enemy):
+		return true
+	return _is_sword_spirit_invulnerable_formation_enemy(enemy)
+
+
+func _is_sword_spirit_invulnerable_formation_enemy(enemy: Dictionary) -> bool:
+	var enemy_type: String = str(enemy.get("type", ""))
+	if enemy_type != PUPPET:
+		return false
+	# Boss 牵丝傀儡本体不吃剑阵伤害；剑灵编阵不应把它当成可解决目标。
+	return _has_boss()
+
+
+func _count_sword_spirit_ignored_invulnerable_enemies() -> int:
+	var ignored_count: int = 0
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if _should_ignore_cursor_pressure_enemy(enemy):
+			continue
+		if _is_sword_spirit_invulnerable_formation_enemy(enemy):
+			ignored_count += 1
+	return ignored_count
+
+
+func _count_sword_spirit_active_silks() -> int:
+	if not _has_boss():
+		return 0
+	var active_count: int = 0
+	for silk_variant in boss.get("silks", []):
+		var silk: Dictionary = silk_variant
+		if bool(silk.get("is_active", false)) and float(silk.get("health", 0.0)) > 0.0:
+			active_count += 1
+	return active_count
+
+
+func _calculate_sword_spirit_guard_intent(player_pos: Vector2) -> Dictionary:
+	var best_score: float = 0.0
+	var best_reason: String = "近身安全"
+	var nearby_count: int = 0
+	var health_ratio: float = clampf(float(player.get("health", PLAYER_MAX_HEALTH)) / PLAYER_MAX_HEALTH, 0.0, 1.0)
+	var low_health_pressure: float = 1.0 - health_ratio
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if _should_ignore_sword_spirit_formation_enemy(enemy):
+			continue
+		var enemy_pos: Vector2 = Vector2(enemy.get("pos", Vector2.ZERO))
+		var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
+		var edge_distance: float = player_pos.distance_to(enemy_pos) - enemy_radius - PLAYER_RADIUS
+		if edge_distance > SWORD_SPIRIT_GUARD_RADIUS:
+			continue
+		nearby_count += 1
+		var proximity: float = 1.0 - _cursor_intent_smoothstep(inverse_lerp(0.0, SWORD_SPIRIT_GUARD_RADIUS, maxf(edge_distance, 0.0)))
+		var enemy_type: String = str(enemy.get("type", SHOOTER))
+		var type_weight: float = _get_sword_spirit_guard_type_weight(enemy_type)
+		var approach_strength: float = _get_sword_spirit_approach_strength(enemy, player_pos, enemy_pos)
+		var contact_bonus: float = 0.18 if edge_distance <= 10.0 else 0.0
+		var score: float = clampf(
+			proximity * (0.50 + type_weight * 0.30 + approach_strength * 0.26)
+			+ low_health_pressure * proximity * 0.24
+			+ contact_bonus,
+			0.0,
+			1.0
+		)
+		if score > best_score:
+			best_score = score
+			best_reason = "近身%s %.0f" % [_get_sword_spirit_enemy_label(enemy_type), maxf(edge_distance, 0.0)]
+	var crowd_bonus: float = minf(float(maxi(nearby_count - 1, 0)) * 0.07, 0.21)
+	if best_score > 0.0:
+		best_score = clampf(best_score + crowd_bonus, 0.0, 1.0)
+		if nearby_count >= 2:
+			best_reason = "%s +%d" % [best_reason, nearby_count - 1]
+	var bullet_data: Dictionary = _calculate_sword_spirit_guard_bullet_intent(player_pos)
+	var bullet_score: float = float(bullet_data.get("score", 0.0))
+	if bullet_score > best_score:
+		best_score = bullet_score
+		best_reason = str(bullet_data.get("reason", best_reason))
+	elif bullet_score > 0.0 and best_score > 0.0:
+		best_score = clampf(best_score + bullet_score * 0.18, 0.0, 1.0)
+	return {
+		"score": best_score,
+		"reason": best_reason,
+	}
+
+
+func _calculate_sword_spirit_guard_bullet_intent(player_pos: Vector2) -> Dictionary:
+	var best_score: float = 0.0
+	var pressure_count: int = 0
+	for bullet_variant in bullets:
+		var bullet: Dictionary = bullet_variant
+		if str(bullet.get("state", "")) != "normal":
+			continue
+		var bullet_pos: Vector2 = Vector2(bullet.get("pos", Vector2.ZERO))
+		var bullet_radius: float = float(bullet.get("radius", BULLET_RADIUS))
+		var edge_distance: float = player_pos.distance_to(bullet_pos) - bullet_radius - PLAYER_RADIUS
+		if edge_distance > SWORD_SPIRIT_GUARD_BULLET_RADIUS:
+			continue
+		pressure_count += 1
+		var proximity: float = 1.0 - _cursor_intent_smoothstep(inverse_lerp(0.0, SWORD_SPIRIT_GUARD_BULLET_RADIUS, maxf(edge_distance, 0.0)))
+		var to_player: Vector2 = player_pos - bullet_pos
+		var bullet_velocity: Vector2 = Vector2(bullet.get("vel", Vector2.ZERO))
+		var approach_strength: float = 0.0
+		if not to_player.is_zero_approx() and not bullet_velocity.is_zero_approx():
+			var approach_speed: float = bullet_velocity.dot(to_player.normalized())
+			approach_strength = _cursor_intent_smoothstep(inverse_lerp(20.0, 260.0, approach_speed))
+		var type_weight: float = 1.0 if str(bullet.get("type", "")) == "large" else 0.78
+		var score: float = clampf(proximity * (0.42 + approach_strength * 0.46 + type_weight * 0.16), 0.0, 1.0)
+		best_score = maxf(best_score, score)
+	if pressure_count >= 2:
+		best_score = clampf(best_score + minf(float(pressure_count - 1) * 0.07, 0.21), 0.0, 1.0)
+	return {
+		"score": best_score,
+		"reason": "近身弹幕%d" % pressure_count if pressure_count > 0 else "近身弹幕安全",
+	}
+
+
+func _get_sword_spirit_guard_type_weight(enemy_type: String) -> float:
+	match enemy_type:
+		TANK, HEAVY, PUPPET:
+			return 1.0
+		RING_LEECH:
+			return 0.86
+		MIRROR_NEEDLER:
+			return 0.62
+		CASTER, DRAPE_PRIEST:
+			return 0.54
+		_:
+			return 0.48
+
+
+func _get_sword_spirit_approach_strength(enemy: Dictionary, player_pos: Vector2, enemy_pos: Vector2) -> float:
+	var to_player: Vector2 = player_pos - enemy_pos
+	var enemy_velocity: Vector2 = Vector2(enemy.get("vel", Vector2.ZERO))
+	if to_player.is_zero_approx() or enemy_velocity.is_zero_approx():
+		return 0.0
+	var approach_speed: float = enemy_velocity.dot(to_player.normalized())
+	return _cursor_intent_smoothstep(inverse_lerp(20.0, 170.0, approach_speed))
+
+
+func _calculate_sword_spirit_sweep_intent(player_pos: Vector2, aim_dir: Vector2) -> Dictionary:
+	var lane_count: int = 0
+	var mid_count: int = 0
+	var min_lateral: float = 0.0
+	var max_lateral: float = 0.0
+	var has_lateral_sample: bool = false
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if _should_ignore_sword_spirit_formation_enemy(enemy):
+			continue
+		var enemy_pos: Vector2 = Vector2(enemy.get("pos", Vector2.ZERO))
+		var to_enemy: Vector2 = enemy_pos - player_pos
+		if to_enemy.is_zero_approx():
+			continue
+		var forward_distance: float = to_enemy.dot(aim_dir)
+		if forward_distance < SWORD_SPIRIT_INTENT_MIN_FORWARD or forward_distance > SWORD_SPIRIT_INTENT_DEPTH:
+			continue
+		var angle: float = absf(aim_dir.angle_to(to_enemy.normalized()))
+		if angle > SWORD_SPIRIT_SWEEP_MAX_ANGLE:
+			continue
+		var signed_lateral: float = aim_dir.cross(to_enemy)
+		if absf(signed_lateral) > SWORD_SPIRIT_SWEEP_HALF_WIDTH:
+			continue
+		lane_count += 1
+		if forward_distance >= SWORD_SPIRIT_SWEEP_MIN_DISTANCE and forward_distance <= SWORD_SPIRIT_SWEEP_MAX_DISTANCE:
+			mid_count += 1
+		if not has_lateral_sample:
+			min_lateral = signed_lateral
+			max_lateral = signed_lateral
+			has_lateral_sample = true
+		else:
+			min_lateral = minf(min_lateral, signed_lateral)
+			max_lateral = maxf(max_lateral, signed_lateral)
+	if lane_count <= 0:
+		return {
+			"score": 0.0,
+			"reason": "主方向无面压力",
+		}
+	var lateral_spread: float = max_lateral - min_lateral
+	var count_score: float = _cursor_intent_smoothstep(inverse_lerp(1.0, 5.0, float(lane_count)))
+	var mid_score: float = _cursor_intent_smoothstep(inverse_lerp(1.0, 4.0, float(mid_count)))
+	var spread_score: float = _cursor_intent_smoothstep(inverse_lerp(35.0, SWORD_SPIRIT_SWEEP_SPREAD_TARGET, lateral_spread))
+	var score: float = clampf(count_score * 0.42 + mid_score * 0.28 + spread_score * 0.30, 0.0, 1.0)
+	if lane_count == 1:
+		score *= 0.45
+	return {
+		"score": score,
+		"reason": "主向%d敌 横展%.0f" % [lane_count, lateral_spread],
+	}
+
+
+func _calculate_sword_spirit_pierce_intent(player_pos: Vector2, aim_dir: Vector2) -> Dictionary:
+	var cursor_lock_score: float = 0.0
+	var cursor_lock_reason: String = "准星未锁关键"
+	var corridor_count: int = 0
+	var high_value_count: int = 0
+	var min_forward: float = 0.0
+	var max_forward: float = 0.0
+	var has_forward_sample: bool = false
+	var boss_core_score: float = 0.0
+	var boss_core_reason: String = ""
+	var target_pos: Vector2 = Vector2.ZERO
+	var target_kind: String = ""
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if _should_ignore_sword_spirit_formation_enemy(enemy):
+			continue
+		var enemy_pos: Vector2 = Vector2(enemy.get("pos", Vector2.ZERO))
+		var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
+		var enemy_type: String = str(enemy.get("type", SHOOTER))
+		var to_enemy: Vector2 = enemy_pos - player_pos
+		var cursor_distance: float = mouse_world.distance_to(enemy_pos)
+		var cursor_lock: float = 1.0 - _cursor_intent_smoothstep(
+			inverse_lerp(enemy_radius + 10.0, enemy_radius + SWORD_SPIRIT_CURSOR_LOCK_RADIUS, cursor_distance)
+		)
+		if cursor_lock > 0.0:
+			var lock_score: float = cursor_lock * _get_sword_spirit_pierce_value_weight(enemy)
+			if lock_score > cursor_lock_score:
+				cursor_lock_score = lock_score
+				cursor_lock_reason = "准星%s" % _get_sword_spirit_enemy_label(enemy_type)
+				target_pos = enemy_pos
+				target_kind = "enemy"
+		if to_enemy.is_zero_approx():
+			continue
+		var forward_distance: float = to_enemy.dot(aim_dir)
+		if forward_distance < SWORD_SPIRIT_INTENT_MIN_FORWARD or forward_distance > SWORD_SPIRIT_INTENT_DEPTH:
+			continue
+		var angle: float = absf(aim_dir.angle_to(to_enemy.normalized()))
+		var lateral_distance: float = absf(aim_dir.cross(to_enemy))
+		var corridor_width: float = enemy_radius + SWORD_SPIRIT_PIERCE_CORRIDOR_HALF_WIDTH
+		if angle > SWORD_SPIRIT_PIERCE_MAX_ANGLE or lateral_distance > corridor_width:
+			continue
+		corridor_count += 1
+		if _is_sword_spirit_high_value_enemy(enemy):
+			high_value_count += 1
+		if not has_forward_sample:
+			min_forward = forward_distance
+			max_forward = forward_distance
+			has_forward_sample = true
+		else:
+			min_forward = minf(min_forward, forward_distance)
+			max_forward = maxf(max_forward, forward_distance)
+	var line_score: float = 0.0
+	var forward_spread: float = 0.0
+	if corridor_count >= 2:
+		forward_spread = max_forward - min_forward
+		var line_count_score: float = _cursor_intent_smoothstep(inverse_lerp(1.0, 4.0, float(corridor_count)))
+		var line_depth_score: float = _cursor_intent_smoothstep(inverse_lerp(90.0, 360.0, forward_spread))
+		line_score = clampf(line_count_score * 0.46 + line_depth_score * 0.28, 0.0, 0.74)
+	var high_value_score: float = minf(float(high_value_count) * 0.24, 0.42)
+	var boss_core_data: Dictionary = _calculate_sword_spirit_boss_core_pierce_intent(player_pos, aim_dir)
+	boss_core_score = float(boss_core_data.get("score", 0.0))
+	boss_core_reason = str(boss_core_data.get("reason", ""))
+	var primary_score: float = maxf(maxf(cursor_lock_score, line_score), boss_core_score)
+	var score: float = clampf(primary_score + high_value_score, 0.0, 1.0)
+	var reason: String = cursor_lock_reason
+	if boss_core_score >= maxf(cursor_lock_score, line_score) and boss_core_score > 0.0:
+		reason = boss_core_reason
+		target_pos = Vector2(boss_core_data.get("target_pos", Vector2.ZERO))
+		target_kind = str(boss_core_data.get("target_kind", ""))
+	elif line_score > cursor_lock_score:
+		reason = "成线%d敌 纵深%.0f" % [corridor_count, forward_spread]
+		target_kind = ""
+		target_pos = Vector2.ZERO
+	if high_value_count > 0 and score > 0.0:
+		reason = "%s +关键%d" % [reason, high_value_count]
+	return {
+		"score": score,
+		"reason": reason,
+		"target_pos": target_pos,
+		"target_kind": target_kind if score > 0.0 else "",
+	}
+
+
+func _calculate_sword_spirit_boss_core_pierce_intent(player_pos: Vector2, aim_dir: Vector2) -> Dictionary:
+	if not _is_boss_core_open():
+		return {
+			"score": 0.0,
+			"reason": "Boss未开窗",
+			"target_pos": Vector2.ZERO,
+			"target_kind": "",
+		}
+	var boss_pos: Vector2 = Vector2(boss.get("pos", Vector2.ZERO))
+	var boss_radius: float = float(boss.get("radius", BOSS_RADIUS))
+	var cursor_distance: float = mouse_world.distance_to(boss_pos)
+	var cursor_lock: float = 1.0 - _cursor_intent_smoothstep(
+		inverse_lerp(boss_radius + 12.0, boss_radius + SWORD_SPIRIT_BOSS_CORE_CURSOR_LOCK_RADIUS, cursor_distance)
+	)
+	var to_boss: Vector2 = boss_pos - player_pos
+	var corridor_score: float = 0.0
+	if not to_boss.is_zero_approx():
+		var forward_distance: float = to_boss.dot(aim_dir)
+		var lateral_distance: float = absf(aim_dir.cross(to_boss))
+		var angle: float = absf(aim_dir.angle_to(to_boss.normalized()))
+		var is_in_corridor: bool = (
+			forward_distance >= SWORD_SPIRIT_INTENT_MIN_FORWARD
+			and forward_distance <= SWORD_SPIRIT_INTENT_DEPTH
+			and lateral_distance <= boss_radius + SWORD_SPIRIT_BOSS_CORE_CORRIDOR_HALF_WIDTH
+			and angle <= SWORD_SPIRIT_SWEEP_MAX_ANGLE
+		)
+		if is_in_corridor:
+			var lateral_score: float = 1.0 - _cursor_intent_smoothstep(
+				inverse_lerp(boss_radius * 0.45, boss_radius + SWORD_SPIRIT_BOSS_CORE_CORRIDOR_HALF_WIDTH, lateral_distance)
+			)
+			corridor_score = clampf(0.56 + lateral_score * 0.24, 0.0, 0.84)
+	var score: float = clampf(maxf(cursor_lock * 0.96, corridor_score), 0.0, 1.0)
+	return {
+		"score": score,
+		"reason": "Boss破绽" if score > 0.0 else "Boss破绽未入剑意",
+		"target_pos": boss_pos if score > 0.0 else Vector2.ZERO,
+		"target_kind": "boss_core" if score > 0.0 else "",
+	}
+
+
+func _build_sword_spirit_recommendation(guard_data: Dictionary, sweep_data: Dictionary, pierce_data: Dictionary) -> Dictionary:
+	var guard_score: float = float(guard_data.get("score", 0.0))
+	var sweep_score: float = float(sweep_data.get("score", 0.0))
+	var pierce_score: float = float(pierce_data.get("score", 0.0))
+	var strongest_non_guard: float = maxf(sweep_score, pierce_score)
+	if guard_score >= SWORD_SPIRIT_GUARD_RECOMMEND_SCORE and guard_score >= strongest_non_guard - SWORD_SPIRIT_GUARD_STEAL_MARGIN:
+		if pierce_score >= SWORD_SPIRIT_FOLLOWUP_RECOMMEND_SCORE and pierce_score >= sweep_score:
+			return {
+				"recommendation": "环阵护主后贯穿",
+				"plan": "环 -> 贯",
+				"plan_modes": [SwordArrayConfig.MODE_RING, SwordArrayConfig.MODE_PIERCE],
+				"reason": "%s；%s" % [str(guard_data.get("reason", "")), str(pierce_data.get("reason", ""))],
+				"target_pos": pierce_data.get("target_pos", Vector2.ZERO),
+				"target_kind": str(pierce_data.get("target_kind", "")),
+			}
+		if sweep_score >= SWORD_SPIRIT_FOLLOWUP_RECOMMEND_SCORE:
+			return {
+				"recommendation": "环阵护主后扫面",
+				"plan": "环 -> 扇",
+				"plan_modes": [SwordArrayConfig.MODE_RING, SwordArrayConfig.MODE_FAN],
+				"reason": "%s；%s" % [str(guard_data.get("reason", "")), str(sweep_data.get("reason", ""))],
+			}
+		return {
+			"recommendation": "环阵护主",
+			"plan": "环",
+			"plan_modes": [SwordArrayConfig.MODE_RING],
+			"reason": str(guard_data.get("reason", "")),
+		}
+	if pierce_score >= SWORD_SPIRIT_PIERCE_RECOMMEND_SCORE and pierce_score >= sweep_score:
+		return {
+			"recommendation": "贯穿破线",
+			"plan": "贯",
+			"plan_modes": [SwordArrayConfig.MODE_PIERCE],
+			"reason": str(pierce_data.get("reason", "")),
+			"target_pos": pierce_data.get("target_pos", Vector2.ZERO),
+			"target_kind": str(pierce_data.get("target_kind", "")),
+		}
+	if sweep_score >= SWORD_SPIRIT_SWEEP_RECOMMEND_SCORE:
+		return {
+			"recommendation": "扇阵扫面",
+			"plan": "扇",
+			"plan_modes": [SwordArrayConfig.MODE_FAN],
+			"reason": str(sweep_data.get("reason", "")),
+		}
+	var current_mode: String = str(player.get("array_mode", SwordArrayConfig.MODE_RING))
+	return {
+		"recommendation": "保持当前剑阵",
+		"plan": _get_sword_spirit_mode_short_name(current_mode),
+		"plan_modes": [current_mode],
+		"reason": "未见强压力",
+	}
+
+
+func _is_sword_spirit_takeover_enabled() -> bool:
+	return SWORD_SPIRIT_TAKEOVER_ENABLED and _is_any_array_unlocked()
+
+
+func _reset_sword_spirit_takeover_state() -> void:
+	sword_spirit_takeover_plan.clear()
+	sword_spirit_takeover_plan_index = 0
+	sword_spirit_takeover_plan_signature = ""
+	sword_spirit_takeover_last_mode = ""
+	sword_spirit_takeover_last_reason = ""
+	if not player.is_empty():
+		player["array_effective_fire_mode"] = str(player.get("array_mode", SwordArrayConfig.MODE_RING))
+
+
+func _prepare_sword_spirit_takeover_plan(force := false) -> void:
+	if not _is_sword_spirit_takeover_enabled():
+		_reset_sword_spirit_takeover_state()
+		return
+	if not force and sword_spirit_takeover_plan_index < sword_spirit_takeover_plan.size():
+		return
+	if force or sword_spirit_intent_debug.is_empty():
+		_update_sword_spirit_intent_debug()
+	var plan_modes: Array[String] = _get_sword_spirit_debug_plan_modes()
+	if plan_modes.is_empty():
+		var fallback_mode: String = _get_unlocked_sword_spirit_takeover_mode(_get_array_batch_mode())
+		if fallback_mode != "":
+			plan_modes.append(fallback_mode)
+	var signature: String = _build_sword_spirit_takeover_signature(plan_modes)
+	if not force and signature == sword_spirit_takeover_plan_signature and not sword_spirit_takeover_plan.is_empty():
+		sword_spirit_takeover_plan_index = 0
+		sword_spirit_takeover_last_reason = str(sword_spirit_intent_debug.get("reason", ""))
+		return
+	sword_spirit_takeover_plan = plan_modes
+	sword_spirit_takeover_plan_index = 0
+	sword_spirit_takeover_plan_signature = signature
+	sword_spirit_takeover_last_reason = str(sword_spirit_intent_debug.get("reason", ""))
+
+
+func _get_sword_spirit_debug_plan_modes() -> Array[String]:
+	var resolved_modes: Array[String] = []
+	var raw_modes: Variant = sword_spirit_intent_debug.get("plan_modes", [])
+	if typeof(raw_modes) != TYPE_ARRAY:
+		return resolved_modes
+	for mode_variant in raw_modes:
+		var mode: String = _get_unlocked_sword_spirit_takeover_mode(str(mode_variant))
+		if mode == "":
+			continue
+		if not resolved_modes.is_empty() and resolved_modes[resolved_modes.size() - 1] == mode:
+			continue
+		resolved_modes.append(mode)
+	return resolved_modes
+
+
+func _get_unlocked_sword_spirit_takeover_mode(mode: String) -> String:
+	if _is_array_mode_unlocked(mode):
+		return mode
+	if mode == SwordArrayConfig.MODE_PIERCE and _is_array_mode_unlocked(SwordArrayConfig.MODE_FAN):
+		return SwordArrayConfig.MODE_FAN
+	if _is_array_mode_unlocked(SwordArrayConfig.MODE_RING):
+		return SwordArrayConfig.MODE_RING
+	return ""
+
+
+func _build_sword_spirit_takeover_signature(plan_modes: Array[String]) -> String:
+	if plan_modes.is_empty():
+		return ""
+	var parts: Array[String] = []
+	for mode in plan_modes:
+		parts.append(mode)
+	return " > ".join(parts)
+
+
+func _peek_sword_spirit_takeover_mode() -> String:
+	if not _is_sword_spirit_takeover_enabled():
+		return ""
+	_prepare_sword_spirit_takeover_plan(false)
+	if sword_spirit_takeover_plan_index < 0 or sword_spirit_takeover_plan_index >= sword_spirit_takeover_plan.size():
+		return ""
+	return sword_spirit_takeover_plan[sword_spirit_takeover_plan_index]
+
+
+func _advance_sword_spirit_takeover_plan(fired_mode: String) -> void:
+	if not _is_sword_spirit_takeover_enabled():
+		return
+	sword_spirit_takeover_last_mode = fired_mode
+	if sword_spirit_takeover_plan_index < sword_spirit_takeover_plan.size():
+		sword_spirit_takeover_plan_index += 1
+
+
+func _get_effective_array_batch_mode() -> String:
+	var takeover_mode: String = _peek_sword_spirit_takeover_mode()
+	if takeover_mode != "":
+		return takeover_mode
+	return _get_array_batch_mode()
+
+
+func _get_effective_array_fire_state() -> Dictionary:
+	var takeover_mode: String = _peek_sword_spirit_takeover_mode()
+	if takeover_mode != "":
+		return SwordArrayConfig.get_mode_state(takeover_mode)
+	return _get_sword_array_fire_state()
+
+
+func _get_array_fire_override_target_pos_for_mode(mode: String):
+	if mode != SwordArrayConfig.MODE_PIERCE:
+		return null
+	return mouse_world
+
+
+func _get_array_fire_override_target_kind_for_mode(mode: String) -> String:
+	var target_pos_variant: Variant = _get_array_fire_override_target_pos_for_mode(mode)
+	if typeof(target_pos_variant) != TYPE_VECTOR2:
+		return ""
+	return "cursor"
+
+
+func _resolve_array_sword_override_fire_target(launch_origin: Vector2, target_pos: Vector2, target_kind: String, travel_mode: String):
+	if travel_mode != SwordArrayConfig.MODE_PIERCE:
+		return null
+	if target_kind != "cursor":
+		return null
+	return _build_sword_spirit_pierce_target_point(launch_origin, target_pos)
+
+
+func _build_sword_spirit_pierce_target_point(launch_origin: Vector2, target_pos: Vector2) -> Vector2:
+	var pierce_direction: Vector2 = target_pos - launch_origin
+	if pierce_direction.is_zero_approx() and not player.is_empty():
+		pierce_direction = target_pos - Vector2(player.get("pos", target_pos))
+	if pierce_direction.is_zero_approx() and not player.is_empty():
+		pierce_direction = _get_sword_spirit_aim_direction(Vector2(player.get("pos", Vector2.ZERO)))
+	if pierce_direction.is_zero_approx():
+		pierce_direction = Vector2.RIGHT
+	return target_pos + pierce_direction.normalized() * SWORD_SPIRIT_TAKEOVER_PIERCE_OVERSHOOT
+
+
+func _get_array_sword_guidance_override_target_point(array_sword: Dictionary):
+	var target_kind: String = str(array_sword.get("guidance_override_target_kind", ""))
+	if target_kind == "":
+		return null
+	var raw_target_pos: Variant = array_sword.get("guidance_override_target_pos", Vector2.ZERO)
+	if typeof(raw_target_pos) != TYPE_VECTOR2:
+		return null
+	return _resolve_array_sword_override_fire_target(
+		Vector2(array_sword.get("pos", Vector2.ZERO)),
+		Vector2(raw_target_pos),
+		target_kind,
+		str(array_sword.get("travel_mode", SwordArrayConfig.MODE_RING))
+	)
+
+
+func _format_sword_spirit_intent_debug() -> String:
+	if sword_spirit_intent_debug.is_empty():
+		return "剑灵P0：等待判断"
+	var takeover_suffix: String = ""
+	if _is_sword_spirit_takeover_enabled():
+		var queued_mode: String = ""
+		if sword_spirit_takeover_plan_index >= 0 and sword_spirit_takeover_plan_index < sword_spirit_takeover_plan.size():
+			queued_mode = sword_spirit_takeover_plan[sword_spirit_takeover_plan_index]
+		elif sword_spirit_takeover_last_mode != "":
+			queued_mode = sword_spirit_takeover_last_mode
+		if queued_mode != "":
+			takeover_suffix = " | 接管%s" % _get_sword_spirit_mode_short_name(queued_mode)
+	return "剑灵P0：护 %.2f | 扫 %.2f | 破 %.2f | %s%s | %s" % [
+		float(sword_spirit_intent_debug.get("guard_score", 0.0)),
+		float(sword_spirit_intent_debug.get("sweep_score", 0.0)),
+		float(sword_spirit_intent_debug.get("pierce_score", 0.0)),
+		str(sword_spirit_intent_debug.get("plan", "")),
+		takeover_suffix,
+		str(sword_spirit_intent_debug.get("reason", "")),
+	]
+
+
+func _is_sword_spirit_high_value_enemy(enemy: Dictionary) -> bool:
+	return SWORD_SPIRIT_HIGH_VALUE_ENEMY_TYPES.has(str(enemy.get("type", "")))
+
+
+func _get_sword_spirit_pierce_value_weight(enemy: Dictionary) -> float:
+	var enemy_type: String = str(enemy.get("type", SHOOTER))
+	match enemy_type:
+		MIRROR_NEEDLER:
+			if float(enemy.get("charge_timer", 0.0)) > 0.0 or float(enemy.get("mirror_vulnerable_timer", 0.0)) > 0.0:
+				return 1.0
+			return 0.88
+		CASTER:
+			return 0.82
+		DRAPE_PRIEST:
+			return 0.86
+		_:
+			return 0.46
+
+
+func _get_sword_spirit_enemy_label(enemy_type: String) -> String:
+	match enemy_type:
+		SHOOTER:
+			return "射手"
+		TANK:
+			return "盾敌"
+		CASTER:
+			return "法师"
+		HEAVY:
+			return "重敌"
+		RING_LEECH:
+			return "环蚀"
+		DRAPE_PRIEST:
+			return "织幕"
+		MIRROR_NEEDLER:
+			return "镜针"
+		PUPPET:
+			return "傀儡"
+		_:
+			return enemy_type
+
+
+func _get_sword_spirit_mode_short_name(mode: String) -> String:
+	match mode:
+		SwordArrayConfig.MODE_RING:
+			return "环"
+		SwordArrayConfig.MODE_FAN:
+			return "扇"
+		SwordArrayConfig.MODE_PIERCE:
+			return "贯"
+		_:
+			return "现"
+
+
 func _get_array_stable_mode_from_state(state: Dictionary) -> String:
 	var completed_state: Dictionary = SwordArrayConfig.complete_morph_state(state)
 	var visual_from_mode: String = str(completed_state.get("visual_from_mode", ""))
@@ -3009,6 +4546,8 @@ func _get_current_operation_guide_text() -> String:
 
 
 func _get_progression_hint_text() -> String:
+	if _is_large_arena_test_enabled():
+		return "%s | WASD 移动 | 左键/右键 御剑 | 长按左键 剑阵环/扇/贯 | F7 战斗调试" % _get_large_arena_goal_text()
 	var hint_parts: Array[String] = [
 		"WASD 移动",
 		"左键 挥剑",
@@ -3304,11 +4843,12 @@ func _refresh_sword_array_live_state() -> void:
 func _begin_sword_array_firing() -> void:
 	if not _can_use_array_attack():
 		return
-	var mode: String = _get_array_batch_mode()
+	_refresh_sword_array_live_state()
+	_prepare_sword_spirit_takeover_plan(true)
+	var mode: String = _get_effective_array_batch_mode()
 	if not _can_fire_array_batch(mode, _get_ready_array_sword_count()):
 		_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
 		return
-	_refresh_sword_array_live_state()
 	player["array_is_firing"] = true
 	player["array_release_progress"] = 1.0
 	player["array_packet_remainder"] = 0.0
@@ -3322,7 +4862,7 @@ func _update_sword_array_continuous_firing(delta: float) -> void:
 	if not _can_use_array_attack():
 		_reset_sword_array_hold_state()
 		return
-	var morph_state: Dictionary = _get_sword_array_fire_state()
+	var morph_state: Dictionary = _get_effective_array_fire_state()
 	var mode: String = String(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
 	var ready_count: int = _get_ready_array_sword_count()
 	var release_profile: Dictionary = SwordArrayController.get_fire_release_profile(
@@ -3334,6 +4874,8 @@ func _update_sword_array_continuous_firing(delta: float) -> void:
 	player["array_release_progress"] = min(float(player.get("array_release_progress", 0.0)) + delta * release_rate, 1.25)
 	var release_count: int = 0
 	while player["array_release_progress"] >= 1.0 and release_count < 12:
+		morph_state = _get_effective_array_fire_state()
+		mode = String(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
 		ready_count = _get_ready_array_sword_count()
 		if not _can_fire_array_batch(mode, ready_count):
 			_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
@@ -3346,7 +4888,7 @@ func _update_sword_array_continuous_firing(delta: float) -> void:
 			return
 		player["array_release_progress"] -= 1.0
 		release_count += 1
-		morph_state = _get_sword_array_fire_state()
+		morph_state = _get_effective_array_fire_state()
 		release_profile = SwordArrayController.get_fire_release_profile(
 			self ,
 			morph_state,
@@ -3578,6 +5120,7 @@ func _reset_sword_array_hold_state() -> void:
 	player["array_release_progress"] = 0.0
 	player["array_packet_remainder"] = 0.0
 	player["array_fire_index"] = 0
+	_reset_sword_spirit_takeover_state()
 	_refresh_sword_array_live_state()
 
 
@@ -3929,6 +5472,11 @@ func _damage_enemy(enemy: Dictionary, damage: float, damage_source: String) -> v
 		return
 	if bool(enemy.get("is_dying", false)):
 		return
+	if _is_large_arena_test_enabled() and str(enemy.get("type", "")) == FORMATION_CORE and str(large_arena_objective_states.get(LARGE_ARENA_CORE_KEY, LARGE_ARENA_STATE_SEALED)) != LARGE_ARENA_STATE_VULNERABLE:
+		enemy["hit_flash_timer"] = maxf(float(enemy.get("hit_flash_timer", 0.0)), ENEMY_HIT_FLASH_DURATION)
+		enemy["hit_flash_color"] = COLORS["formation_core"]
+		_show_action_failure("阵心封印未破", "large_arena_core_sealed", COLORS["formation_core"], "large_arena")
+		return
 	var resolved_damage: float = damage
 	if not _has_debug_flag("one_hit_kill"):
 		resolved_damage *= maxf(float(enemy.get("damage_taken_multiplier", 1.0)), 0.0)
@@ -3953,6 +5501,8 @@ func _begin_enemy_death(enemy: Dictionary) -> void:
 	enemy["death_feedback_color"] = Color.WHITE
 	enemy["stagger_timer"] = 0.0
 	enemy["vel"] = Vector2.ZERO
+	if _is_large_arena_objective_enemy(enemy):
+		_handle_large_arena_objective_destroyed(enemy)
 	if enemy.has("melee_timer"):
 		enemy["melee_timer"] = 0.0
 	_clear_target_runtime_state(str(enemy.get("id", "")))
@@ -3987,7 +5537,7 @@ func _reset_enemy_runtime_modifiers() -> void:
 func _clamp_enemy_to_arena(enemy: Dictionary) -> void:
 	var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
 	var clamp_min: Vector2 = Vector2.ONE * enemy_radius
-	var clamp_max: Vector2 = ARENA_SIZE - clamp_min
+	var clamp_max: Vector2 = _get_arena_size() - clamp_min
 	enemy["pos"] = Vector2(enemy.get("pos", Vector2.ZERO)).clamp(clamp_min, clamp_max)
 
 
@@ -4319,7 +5869,7 @@ func _update_ring_leech_package_member(enemy: Dictionary, to_player: Vector2, di
 			step_scale = 1.2
 		ENEMY_PACKAGE_PHASE_ENGAGE:
 			step_scale = 1.0
-	var max_step: float = RING_LEECH_SPEED * float(enemy.get("package_speed_multiplier", 1.0)) * step_scale * delta
+	var max_step: float = RING_LEECH_SPEED * _get_enemy_move_speed_scale(enemy) * float(enemy.get("package_speed_multiplier", 1.0)) * step_scale * delta
 	if not move_direction.is_zero_approx():
 		var catchup_scale: float = clampf(move_direction.length() / maxf(float(enemy.get("package_radius", 1.0)), 1.0), 0.72, 1.35)
 		enemy["pos"] += move_direction.limit_length(max_step * catchup_scale)
@@ -4352,7 +5902,7 @@ func _update_ring_leech_enemy(enemy: Dictionary, to_player: Vector2, distance: f
 	if distance < PLAYER_RADIUS + float(enemy.get("radius", RING_LEECH_RADIUS)) + 10.0:
 		move_direction -= to_player.normalized() * 0.75
 	if not move_direction.is_zero_approx():
-		enemy["pos"] += move_direction.normalized() * RING_LEECH_SPEED * delta
+		enemy["pos"] += move_direction.normalized() * RING_LEECH_SPEED * _get_enemy_move_speed_scale(enemy) * delta
 	_clamp_enemy_to_arena(enemy)
 	enemy["shoot_cooldown"] -= delta
 	if enemy["shoot_cooldown"] > 0.0 or distance > RING_LEECH_FIRE_DISTANCE:
@@ -4509,14 +6059,21 @@ func _update_enemies(delta: float, feedback_delta := -1.0) -> void:
 			enemy["vel"] = Vector2.ZERO
 			index -= 1
 			continue
+		if _is_large_arena_test_enabled() and _update_large_arena_enemy_role(enemy, delta):
+			if enemy["health"] <= 0.0:
+				_begin_enemy_death(enemy)
+			index -= 1
+			continue
 		var to_player: Vector2 = player["pos"] - enemy["pos"]
 		var distance: float = max(to_player.length(), 0.001)
+		var enemy_move_speed_scale := _get_enemy_move_speed_scale(enemy)
 		match enemy["type"]:
 			SHOOTER:
+				var shooter_speed := SHOOTER_SPEED * enemy_move_speed_scale
 				if distance > 200.0:
-					enemy["pos"] += to_player.normalized() * SHOOTER_SPEED * delta
+					enemy["pos"] += to_player.normalized() * shooter_speed * delta
 				elif distance < 150.0:
-					enemy["pos"] -= to_player.normalized() * SHOOTER_SPEED * delta
+					enemy["pos"] -= to_player.normalized() * shooter_speed * delta
 				enemy["shoot_cooldown"] -= delta
 				if enemy["shoot_cooldown"] <= 0.0:
 					enemy["shoot_cooldown"] = SHOOTER_COOLDOWN
@@ -4532,7 +6089,7 @@ func _update_enemies(delta: float, feedback_delta := -1.0) -> void:
 						}
 					)
 			TANK:
-				enemy["pos"] += to_player.normalized() * TANK_SPEED * delta
+				enemy["pos"] += to_player.normalized() * TANK_SPEED * enemy_move_speed_scale * delta
 				if distance < enemy["radius"] + PLAYER_RADIUS:
 					if _apply_player_damage(30.0 * delta, TANK):
 						screen_shake = max(screen_shake, 2.0)
@@ -4540,9 +6097,9 @@ func _update_enemies(delta: float, feedback_delta := -1.0) -> void:
 				enemy["move_timer"] -= delta
 				if enemy["move_timer"] <= 0.0:
 					enemy["move_timer"] = randf_range(1.0, 2.0)
-					enemy["vel"] = Vector2.RIGHT.rotated(randf_range(0.0, TAU)) * CASTER_SPEED
+					enemy["vel"] = Vector2.RIGHT.rotated(randf_range(0.0, TAU)) * CASTER_SPEED * enemy_move_speed_scale
 				enemy["pos"] += enemy["vel"] * delta
-				enemy["pos"] = enemy["pos"].clamp(Vector2(enemy["radius"], enemy["radius"]), ARENA_SIZE - Vector2(enemy["radius"], enemy["radius"]))
+				enemy["pos"] = enemy["pos"].clamp(Vector2(enemy["radius"], enemy["radius"]), _get_arena_size() - Vector2(enemy["radius"], enemy["radius"]))
 				enemy["shoot_cooldown"] -= delta
 				if enemy["shoot_cooldown"] <= 0.0:
 					enemy["shoot_cooldown"] = CASTER_COOLDOWN
@@ -4562,7 +6119,7 @@ func _update_enemies(delta: float, feedback_delta := -1.0) -> void:
 						)
 						spoke += 1
 			HEAVY:
-				enemy["pos"] += to_player.normalized() * HEAVY_SPEED * delta
+				enemy["pos"] += to_player.normalized() * HEAVY_SPEED * enemy_move_speed_scale * delta
 				enemy["shoot_cooldown"] -= delta
 				if enemy["shoot_cooldown"] <= 0.0:
 					enemy["shoot_cooldown"] = HEAVY_COOLDOWN
@@ -4840,13 +6397,22 @@ func _ring_guard_clears_bullet(bullet: Dictionary) -> bool:
 
 
 func _is_ring_guard_active() -> bool:
-	return bool(player.get("array_is_firing", false)) and _get_array_batch_mode() == SwordArrayConfig.MODE_RING
+	if not bool(player.get("array_is_firing", false)):
+		return false
+	if str(player.get("array_effective_fire_mode", _get_array_batch_mode())) == SwordArrayConfig.MODE_RING:
+		return true
+	for array_sword in array_swords:
+		if String(array_sword.get("state", "")) == "outbound" and String(array_sword.get("travel_mode", "")) == SwordArrayConfig.MODE_RING:
+			return true
+	return false
 
 
 func _begin_array_sword_return(array_sword: Dictionary) -> void:
 	_clear_array_sword_attack_instance(array_sword)
 	array_sword["state"] = "returning"
 	array_sword["guidance_active"] = false
+	array_sword["guidance_override_target_pos"] = Vector2.ZERO
+	array_sword["guidance_override_target_kind"] = ""
 	array_sword["trail_timer"] = 0.0
 
 
@@ -4861,15 +6427,24 @@ func _update_guided_array_sword(array_sword: Dictionary, delta: float) -> void:
 	if not should_keep_guiding:
 		array_sword["guidance_active"] = false
 		return
-	var target_point: Vector2 = SwordArrayController.get_fire_target(
-		self ,
-		_get_sword_array_fire_state(),
-		int(array_sword.get("guidance_fire_index", 0)),
-		array_sword["pos"],
-		int(array_sword.get("guidance_volley_count", -1)),
-		int(array_sword.get("guidance_burst_step", 0)),
-		int(array_sword.get("guidance_total_count", -1))
-	)
+	var guidance_state_source = _get_sword_array_fire_state()
+	var locked_guidance_state: Variant = array_sword.get("guidance_state_source", {})
+	if typeof(locked_guidance_state) == TYPE_DICTIONARY and not (locked_guidance_state as Dictionary).is_empty():
+		guidance_state_source = locked_guidance_state
+	var override_target_point: Variant = _get_array_sword_guidance_override_target_point(array_sword)
+	var target_point: Vector2
+	if typeof(override_target_point) == TYPE_VECTOR2:
+		target_point = override_target_point
+	else:
+		target_point = SwordArrayController.get_fire_target(
+			self ,
+			guidance_state_source,
+			int(array_sword.get("guidance_fire_index", 0)),
+			array_sword["pos"],
+			int(array_sword.get("guidance_volley_count", -1)),
+			int(array_sword.get("guidance_burst_step", 0)),
+			int(array_sword.get("guidance_total_count", -1))
+		)
 	var desired_direction: Vector2 = target_point - array_sword["pos"]
 	if desired_direction.is_zero_approx():
 		desired_direction = array_sword["vel"]
@@ -4879,6 +6454,8 @@ func _update_guided_array_sword(array_sword: Dictionary, delta: float) -> void:
 		desired_direction = Vector2.RIGHT
 	var desired_forward: Vector2 = desired_direction.normalized()
 	var guidance_tangent_bias: float = _get_array_sword_guidance_tangent_bias(travel_mode)
+	if typeof(override_target_point) == TYPE_VECTOR2 and travel_mode == SwordArrayConfig.MODE_PIERCE:
+		guidance_tangent_bias = 0.0
 	if guidance_tangent_bias > 0.0:
 		var guidance_progress: float = clampf(float(array_sword.get("guidance_elapsed", 0.0)) / maxf(SwordArrayConfig.FIRED_GUIDANCE_DURATION, 0.001), 0.0, 1.0)
 		var tangent_fade: float = 1.0 - guidance_progress
@@ -5044,48 +6621,517 @@ func _update_wave(delta: float) -> void:
 
 
 func _perform_melee_attack() -> void:
+	if bool(player.get("melee_auto_combo_active", false)):
+		return
+	var profile_data: Dictionary = _get_current_melee_test_profile_data()
+	var attack_direction: Vector2 = _get_melee_attack_direction()
+	if bool(player.get("melee_action_active", false)):
+		_buffer_melee_attack_input()
+		return
+	if _is_melee_focus_profile(profile_data):
+		_clear_melee_auto_combo()
+		player["melee_combo_stage"] = 0
+		player["melee_combo_timer"] = 0.0
+		_start_melee_combo_stage(1, attack_direction)
+		return
+	_start_melee_combo_stage(_get_next_melee_combo_stage(), attack_direction)
+
+
+func _buffer_melee_attack_input() -> void:
+	player["melee_input_buffered"] = true
+	player["melee_input_buffer_timer"] = MELEE_INPUT_BUFFER_WINDOW
+
+
+func _get_melee_attack_direction() -> Vector2:
 	var attack_direction: Vector2 = mouse_world - player["pos"]
 	if attack_direction.is_zero_approx():
+		attack_direction = _get_held_sword_aim_direction()
+	if attack_direction.is_zero_approx():
 		attack_direction = Vector2.RIGHT
-	player["attack_cooldown"] = SWORD_MELEE_COOLDOWN
-	_start_melee_swing_visual(attack_direction)
-	var melee_attack_instance: Dictionary = _build_attack_instance(AttackProfiles.PROFILE_MELEE_SLASH, "player", "melee")
-	var melee_attack_instance_id: String = str(melee_attack_instance.get("id", ""))
-	var melee_attack_profile_id: String = str(melee_attack_instance.get("profile_id", AttackProfiles.PROFILE_MELEE_SLASH))
-	var detection_result: Dictionary = hit_detection.collect_melee_arc_targets(
-		self ,
-		player["pos"],
-		attack_direction,
-		SWORD_MELEE_RANGE,
-		SWORD_MELEE_ARC,
-		melee_attack_profile_id,
-		DAMAGE_SOURCE_MELEE,
-		{
-			"exclude_enemy_types": [PUPPET],
-			"bullet_range_bonus": 20.0,
-		}
-	)
+	return attack_direction.normalized()
 
-	for bullet_contact_variant in detection_result.get("bullet_contacts", []):
-		var bullet_contact: Dictionary = bullet_contact_variant
-		var bullet: Variant = bullet_contact.get("bullet", null)
-		if bullet == null:
-			continue
-		var bullet_color: Color = bullet.get("color", COLORS["bullet"])
-		_deflect_enemy_bullet(bullet, attack_direction)
-		_emit_sword_hit_effect(
-			bullet_contact.get("contact_point", bullet["pos"]),
-			attack_direction,
-			COLORS["melee_sword"].lerp(bullet_color, 0.18),
-			1.0,
-			"deflect",
-			{
+
+func _get_next_melee_combo_stage() -> int:
+	if float(player.get("melee_combo_timer", 0.0)) <= 0.0:
+		return 1
+	var next_stage: int = int(player.get("melee_combo_stage", 0)) + 1
+	if next_stage > MELEE_COMBO_STAGE_COUNT:
+		next_stage = 1
+	return next_stage
+
+
+func _is_melee_focus_profile(profile_data: Dictionary) -> bool:
+	return bool(profile_data.get("focused", false)) or str(profile_data.get("spirit_shape", "")) == "focus"
+
+
+func _apply_melee_trait_profile_to_stage(stage_data: Dictionary, profile_data: Dictionary, stage_index: int) -> void:
+	var tempo_shape: String = str(profile_data.get("tempo_shape", "light"))
+	var blade_shape: String = str(profile_data.get("blade_shape", "broad"))
+	var spirit_shape: String = str(profile_data.get("spirit_shape", "split"))
+	stage_data["tempo_shape"] = tempo_shape
+	stage_data["blade_shape"] = blade_shape
+	stage_data["spirit_shape"] = spirit_shape
+	stage_data["deflect_shape"] = "guard_arc"
+	stage_data["damage_shape"] = "broad_arc"
+	stage_data["vfx_shape"] = "broad_split" if spirit_shape == "split" else "broad_focus"
+	stage_data["deflect_range"] = maxf(float(stage_data.get("range", SWORD_MELEE_RANGE)) + 18.0, SWORD_MELEE_RANGE + 20.0)
+	stage_data["deflect_arc"] = maxf(float(stage_data.get("arc", SWORD_MELEE_ARC)), PI * 1.08)
+	stage_data["deflect_bullet_range_bonus"] = 10.0
+	stage_data["draw_deflect_shape"] = false
+	stage_data["focused_phase"] = "focus" if spirit_shape == "focus" else "split"
+	if tempo_shape == "light":
+		stage_data["startup"] = maxf(float(stage_data.get("startup", 0.0)) - 0.018, 0.035)
+		stage_data["active"] = maxf(float(stage_data.get("active", 0.0)) - 0.006, 0.035)
+		stage_data["recovery"] = maxf(float(stage_data.get("recovery", 0.0)) - 0.032, 0.075)
+		stage_data["swing_arc"] = float(stage_data.get("swing_arc", MELEE_SWORD_SWING_ARC)) + PI * 8.0 / 180.0
+	else:
+		stage_data["startup"] = float(stage_data.get("startup", 0.0)) + 0.028 + 0.008 * float(stage_index - 1)
+		stage_data["active"] = float(stage_data.get("active", 0.0)) + 0.008
+		stage_data["recovery"] = float(stage_data.get("recovery", 0.0)) + 0.038
+		stage_data["shake"] = float(stage_data.get("shake", 0.0)) + 1.0 + 0.35 * float(stage_index - 1)
+		stage_data["hitstop"] = float(stage_data.get("hitstop", 0.0)) + 0.004 + 0.002 * float(stage_index - 1)
+		stage_data["poise_scalar"] = float(stage_data.get("poise_scalar", 1.0)) + 0.08
+	if blade_shape == "long":
+		var is_third_stage := 1.0 if stage_index == 3 else 0.0
+		var is_second_stage := 1.0 if stage_index == 2 else 0.0
+		var is_heavy_tempo := 1.0 if tempo_shape == "heavy" else 0.0
+		stage_data["damage_shape"] = "long_line"
+		stage_data["vfx_shape"] = "long_split" if spirit_shape == "split" else "long_focus"
+		stage_data["range"] = float(stage_data.get("range", SWORD_MELEE_RANGE)) + 34.0 + 8.0 * is_third_stage
+		stage_data["visual_range"] = float(stage_data.get("range", SWORD_MELEE_RANGE)) + 8.0
+		stage_data["arc"] = PI * (28.0 + 4.0 * is_second_stage) / 180.0
+		stage_data["hit_width"] = 11.0 + 1.5 * is_heavy_tempo
+		stage_data["line_start_offset"] = 10.0
+		stage_data["swing_arc"] = PI * (44.0 + 6.0 * is_third_stage) / 180.0
+		stage_data["close_damage_range"] = 74.0 + 8.0 * is_heavy_tempo
+		stage_data["close_damage_arc"] = PI * (0.82 + 0.06 * is_heavy_tempo)
+		stage_data["deflect_range"] = maxf(float(stage_data.get("range", SWORD_MELEE_RANGE)) - 18.0, SWORD_MELEE_RANGE + 24.0)
+		stage_data["deflect_arc"] = PI * (1.08 + 0.04 * is_heavy_tempo)
+		stage_data["deflect_bullet_range_bonus"] = 18.0
+		stage_data["draw_deflect_shape"] = true
+		stage_data["angle_offset"] = float(stage_data.get("angle_offset", 0.0)) * 0.45
+	else:
+		var broad_arc: float = PI * 142.0 / 180.0
+		var broad_range: float = 106.0
+		match stage_index:
+			2:
+				broad_arc = PI * 178.0 / 180.0
+				broad_range = 96.0
+			3:
+				broad_arc = PI * 154.0 / 180.0
+				broad_range = 112.0
+		stage_data["range"] = broad_range
+		stage_data["visual_range"] = broad_range + 8.0
+		stage_data["arc"] = broad_arc
+		stage_data["swing_arc"] = maxf(float(stage_data.get("swing_arc", MELEE_SWORD_SWING_ARC)), broad_arc + PI * 24.0 / 180.0)
+		stage_data["deflect_range"] = maxf(broad_range + 20.0, SWORD_MELEE_RANGE + 18.0)
+		stage_data["deflect_arc"] = maxf(broad_arc, PI * 1.16)
+		stage_data["deflect_bullet_range_bonus"] = 12.0
+	if spirit_shape == "focus":
+		stage_data["split_shadow"] = false
+		stage_data["damage_scalar"] = float(stage_data.get("damage_scalar", 1.0)) * 1.05
+		stage_data["hitstop"] = float(stage_data.get("hitstop", 0.0)) + (0.004 if tempo_shape == "light" else 0.008)
+		stage_data["shake"] = float(stage_data.get("shake", 0.0)) + (0.45 if tempo_shape == "light" else 0.9)
+		stage_data["inner_color"] = Color("ffffff")
+	else:
+		stage_data["split_shadow"] = true
+		stage_data["damage_scalar"] = float(stage_data.get("damage_scalar", 1.0)) * 0.94
+		stage_data["active"] = float(stage_data.get("active", 0.0)) + 0.006
+		stage_data["shadow_delay"] = float(profile_data.get("shadow_delay", MELEE_SHADOW_STRIKE_DELAY))
+		stage_data["shadow_damage_scalar"] = float(profile_data.get("shadow_damage_scalar", MELEE_SHADOW_DAMAGE_SCALAR))
+
+
+func _start_melee_combo_stage(stage_index: int, attack_direction: Vector2, is_shadow := false) -> void:
+	var stage_data: Dictionary = _get_melee_combo_stage_data(stage_index, is_shadow)
+	var swing_direction: Vector2 = attack_direction.normalized()
+	if swing_direction.is_zero_approx():
+		swing_direction = _get_melee_attack_direction()
+	if is_shadow:
+		_apply_melee_arc_attack(stage_data, swing_direction, true)
+		_push_melee_shadow_flash(stage_data, swing_direction)
+		return
+	if not is_shadow:
+		player["melee_combo_stage"] = clampi(stage_index, 1, MELEE_COMBO_STAGE_COUNT)
+		player["melee_combo_timer"] = MELEE_COMBO_RESET_WINDOW
+	player["attack_cooldown"] = maxf(float(player.get("attack_cooldown", 0.0)), float(stage_data.get("total_duration", SWORD_MELEE_COOLDOWN)))
+	player["melee_action_active"] = true
+	player["melee_action_phase"] = MELEE_ACTION_PHASE_STARTUP
+	player["melee_action_elapsed"] = 0.0
+	player["melee_action_duration"] = float(stage_data.get("total_duration", MELEE_SWORD_SWING_DURATION))
+	player["melee_action_hit_done"] = false
+	player["melee_action_stage_data"] = stage_data
+	player["melee_action_direction"] = swing_direction
+	_start_melee_swing_visual(swing_direction, stage_data)
+
+
+func _get_melee_combo_stage_data(stage_index: int, is_shadow := false) -> Dictionary:
+	var normalized_stage: int = clampi(stage_index, 1, MELEE_COMBO_STAGE_COUNT)
+	var profile_data: Dictionary = _get_current_melee_test_profile_data()
+	if _is_melee_focus_profile(profile_data):
+		return _get_focused_melee_stage_data(profile_data, is_shadow)
+	var stage_data: Dictionary = {}
+	match normalized_stage:
+		1:
+			stage_data = {
+				"stage": 1,
+				"name": "起手外斩",
+				"damage_scalar": 0.38,
+				"range": 120.0,
+				"arc": PI * 65.0 / 180.0,
+				"startup": 0.10,
+				"active": 0.065,
+				"recovery": 0.15,
+				"swing_arc": PI * 132.0 / 180.0,
+				"swing_side": MELEE_SWORD_SWING_SIDE,
+				"angle_offset": -0.16,
+				"shake": 4.4,
+				"hitstop": MELEE_HITSTOP_BASE_DURATION * 1.05,
+				"poise_scalar": 1.0,
+				"bullet_range_bonus": 22.0,
+				"color": Color("93c5fd"),
+				"inner_color": Color("fef3c7"),
+				"spark_count": 3,
+			}
+		2:
+			stage_data = {
+				"stage": 2,
+				"name": "中段反扫",
+				"damage_scalar": 0.28,
+				"range": 88.0,
+				"arc": PI * 145.0 / 180.0,
+				"startup": 0.08,
+				"active": 0.08,
+				"recovery": 0.16,
+				"swing_arc": PI * 172.0 / 180.0,
+				"swing_side": -MELEE_SWORD_SWING_SIDE,
+				"angle_offset": 0.0,
+				"shake": 3.8,
+				"hitstop": MELEE_HITSTOP_BASE_DURATION * 0.88,
+				"poise_scalar": 1.0,
+				"bullet_range_bonus": 16.0,
+				"color": Color("67e8f9"),
+				"inner_color": Color("ecfeff"),
+				"spark_count": 3,
+			}
+		_:
+			stage_data = {
+				"stage": 3,
+				"name": "收鞘回斩",
+				"damage_scalar": 0.46,
+				"range": 112.0,
+				"arc": PI * 90.0 / 180.0,
+				"startup": 0.14,
+				"active": 0.08,
+				"recovery": 0.23,
+				"swing_arc": PI * 138.0 / 180.0,
+				"swing_side": MELEE_SWORD_READY_SIDE,
+				"angle_offset": 0.18,
+				"shake": 5.2,
+				"hitstop": MELEE_HITSTOP_BASE_DURATION * 1.55,
+				"poise_scalar": 1.0,
+				"bullet_range_bonus": 18.0,
+				"color": Color("facc15"),
+				"inner_color": Color("fff7ed"),
 				"spark_count": 4,
 			}
-		)
-		_add_player_energy(ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0))
-		screen_shake = max(screen_shake, 3.0)
+	var profile_color: Color = profile_data.get("color", COLORS["melee_sword"])
+	_apply_melee_trait_profile_to_stage(stage_data, profile_data, normalized_stage)
+	var time_scalar: float = maxf(float(profile_data.get("time_scalar", 1.0)), 0.05)
+	stage_data["startup"] = maxf(float(stage_data.get("startup", 0.0)) * time_scalar, 0.025)
+	stage_data["active"] = maxf(float(stage_data.get("active", 0.0)) * time_scalar, 0.035)
+	stage_data["recovery"] = maxf(float(stage_data.get("recovery", 0.0)) * time_scalar, 0.045)
+	stage_data["hitstop"] = maxf(float(stage_data.get("hitstop", 0.0)) * float(profile_data.get("hitstop_scalar", 1.0)), 0.0)
+	stage_data["shake"] = maxf(float(stage_data.get("shake", 0.0)) * float(profile_data.get("shake_scalar", 1.0)), 0.0)
+	stage_data["poise_scalar"] = maxf(float(stage_data.get("poise_scalar", 1.0)) * float(profile_data.get("poise_scalar", 1.0)), 0.0)
+	stage_data["color"] = (stage_data.get("color", COLORS["melee_sword"]) as Color).lerp(profile_color, 0.28)
+	if bool(profile_data.get("opening", false)) and normalized_stage == 1:
+		stage_data["damage_scalar"] = float(stage_data.get("damage_scalar", 1.0)) * 1.35
+		stage_data["range"] = float(stage_data.get("range", SWORD_MELEE_RANGE)) + 18.0
+		stage_data["arc"] = float(stage_data.get("arc", SWORD_MELEE_ARC)) + PI * 14.0 / 180.0
+		stage_data["swing_arc"] = float(stage_data.get("swing_arc", MELEE_SWORD_SWING_ARC)) + PI * 16.0 / 180.0
+		stage_data["startup"] = maxf(float(stage_data.get("startup", 0.0)) - 0.015, 0.025)
+		stage_data["shake"] = float(stage_data.get("shake", 0.0)) + 0.7
+		stage_data["color"] = Color("60a5fa").lerp(profile_color, 0.2)
+		stage_data["inner_color"] = Color("fef08a")
+	if bool(profile_data.get("returning", false)) and normalized_stage == 3:
+		stage_data["damage_scalar"] = float(stage_data.get("damage_scalar", 1.0)) * 1.35
+		stage_data["range"] = float(stage_data.get("range", SWORD_MELEE_RANGE)) + 14.0
+		stage_data["arc"] = float(stage_data.get("arc", SWORD_MELEE_ARC)) + PI * 8.0 / 180.0
+		stage_data["swing_arc"] = float(stage_data.get("swing_arc", MELEE_SWORD_SWING_ARC)) + PI * 18.0 / 180.0
+		stage_data["startup"] = float(stage_data.get("startup", 0.0)) + 0.025
+		stage_data["shake"] = float(stage_data.get("shake", 0.0)) + 0.9
+		stage_data["hitstop"] = float(stage_data.get("hitstop", 0.0)) + 0.006
+		stage_data["color"] = Color("f59e0b").lerp(profile_color, 0.16)
+		stage_data["inner_color"] = Color("fff7ed")
+	var total_duration: float = (
+		float(stage_data.get("startup", 0.0))
+		+ float(stage_data.get("active", 0.0))
+		+ float(stage_data.get("recovery", 0.0))
+	)
+	stage_data["total_duration"] = maxf(total_duration, 0.05)
+	stage_data["swing_duration"] = stage_data["total_duration"]
+	stage_data["cooldown"] = stage_data["total_duration"]
+	stage_data["split_shadow"] = bool(stage_data.get("split_shadow", bool(profile_data.get("split", false)))) and not is_shadow
+	stage_data["deflect_bullets"] = not is_shadow
+	stage_data["grant_energy"] = not is_shadow
+	stage_data["flash_duration"] = minf(maxf(float(stage_data.get("active", MELEE_ATTACK_FLASH_DURATION)) + 0.08, 0.08), MELEE_ATTACK_FLASH_DURATION * 1.65)
+	stage_data["profile_name"] = str(profile_data.get("name", "测试剑"))
+	if is_shadow:
+		stage_data["damage_scalar"] = float(stage_data.get("damage_scalar", 1.0)) * float(stage_data.get("shadow_damage_scalar", MELEE_SHADOW_DAMAGE_SCALAR))
+		if str(stage_data.get("damage_shape", "broad_arc")) == "long_line":
+			stage_data["range"] = float(stage_data.get("range", SWORD_MELEE_RANGE)) + 18.0
+			stage_data["visual_range"] = float(stage_data.get("visual_range", stage_data.get("range", SWORD_MELEE_RANGE))) + 12.0
+			stage_data["hit_width"] = float(stage_data.get("hit_width", MELEE_FOCUSED_SLASH_HIT_WIDTH)) + 1.0
+		else:
+			stage_data["range"] = float(stage_data.get("range", SWORD_MELEE_RANGE)) + 8.0
+			stage_data["visual_range"] = float(stage_data.get("visual_range", stage_data.get("range", SWORD_MELEE_RANGE))) + 6.0
+			stage_data["arc"] = float(stage_data.get("arc", SWORD_MELEE_ARC)) + PI * 18.0 / 180.0
+			stage_data["swing_arc"] = float(stage_data.get("swing_arc", MELEE_SWORD_SWING_ARC)) + PI * 18.0 / 180.0
+		stage_data["shadow_direction_offset"] = 0.14 * float(stage_data.get("swing_side", MELEE_SWORD_SWING_SIDE))
+		stage_data["origin_side_offset"] = 16.0 * float(stage_data.get("swing_side", MELEE_SWORD_SWING_SIDE))
+		stage_data["origin_forward_offset"] = -5.0
+		stage_data["hitstop"] = 0.0
+		stage_data["shake"] = float(stage_data.get("shake", 0.0)) * 0.34
+		stage_data["poise_scalar"] = float(stage_data.get("poise_scalar", 1.0)) * 0.35
+		stage_data["bullet_range_bonus"] = 0.0
+		stage_data["deflect_bullets"] = false
+		stage_data["grant_energy"] = false
+		stage_data["color"] = Color("c084fc")
+		stage_data["inner_color"] = Color("e9d5ff")
+		stage_data["flash_duration"] = MELEE_SHADOW_FLASH_DURATION
+		stage_data["spark_count"] = 1
+	return stage_data
 
+
+func _get_focused_melee_stage_data(profile_data: Dictionary, is_shadow := false) -> Dictionary:
+	var profile_color: Color = profile_data.get("color", COLORS["melee_sword"])
+	var tempo_shape: String = str(profile_data.get("tempo_shape", "light"))
+	var blade_shape: String = str(profile_data.get("blade_shape", "long"))
+	var is_heavy: bool = tempo_shape == "heavy"
+	var is_long: bool = blade_shape == "long"
+	var focused_time_scalar: float = lerpf(1.0, maxf(float(profile_data.get("time_scalar", 1.0)), 0.05), 0.45)
+	var stage_data := {
+		"stage": 1,
+		"name": "凝锋一刀",
+		"damage_scalar": MELEE_FOCUSED_SLASH_DAMAGE_SCALAR,
+		"range": SWORD_MELEE_RANGE,
+		"visual_range": SWORD_MELEE_RANGE,
+		"arc": SWORD_MELEE_ARC,
+		"startup": 0.128 if is_heavy else 0.052,
+		"active": 0.058 if is_heavy else 0.034,
+		"recovery": 0.22 if is_heavy else 0.108,
+		"swing_arc": PI * 34.0 / 180.0,
+		"swing_side": MELEE_SWORD_SWING_SIDE,
+		"angle_offset": 0.0,
+		"shake": 7.8 if is_heavy else 5.2,
+		"hitstop": MELEE_HITSTOP_BASE_DURATION * (2.25 if is_heavy else 1.45),
+		"poise_scalar": 1.38 if is_heavy else 1.16,
+		"bullet_range_bonus": 0.0,
+		"color": Color("dbeafe").lerp(profile_color, 0.34),
+		"inner_color": Color("ffffff"),
+		"spark_count": 7 if is_heavy else 5,
+		"tempo_shape": tempo_shape,
+		"blade_shape": blade_shape,
+		"spirit_shape": "focus",
+		"deflect_shape": "guard_arc",
+		"damage_shape": "long_line" if is_long else "broad_arc",
+		"vfx_shape": "long_focus" if is_long else "broad_focus",
+		"focus_style": "iaido_line" if is_long else "heavy_cleave",
+		"focused_action": true,
+		"focused_slash": is_long,
+		"focused_phase": "focus",
+	}
+	if is_long:
+		stage_data["name"] = "合刃拔刀线"
+		stage_data["damage_scalar"] = 1.02 if is_heavy else 0.9
+		stage_data["range"] = 178.0 if is_heavy else 166.0
+		stage_data["visual_range"] = 178.0 if is_heavy else 164.0
+		stage_data["arc"] = PI * 22.0 / 180.0
+		stage_data["hit_width"] = 15.0 if is_heavy else 12.5
+		stage_data["line_start_offset"] = 8.0
+		stage_data["close_damage_range"] = 86.0 if is_heavy else 78.0
+		stage_data["close_damage_arc"] = PI * (0.94 if is_heavy else 0.86)
+		stage_data["swing_arc"] = PI * (26.0 if is_heavy else 18.0) / 180.0
+		stage_data["deflect_range"] = maxf(float(stage_data["range"]) - 22.0, SWORD_MELEE_RANGE + 24.0)
+		stage_data["deflect_arc"] = PI * (1.14 if is_heavy else 1.1)
+		stage_data["deflect_bullet_range_bonus"] = 18.0
+		stage_data["draw_deflect_shape"] = true
+		stage_data["startup"] = 0.086 if is_heavy else 0.042
+		stage_data["active"] = 0.038 if is_heavy else 0.024
+		stage_data["recovery"] = 0.176 if is_heavy else 0.092
+		stage_data["flash_duration"] = 0.12 if is_heavy else 0.086
+		stage_data["cut_mark_size"] = 18.0 if is_heavy else 13.0
+	else:
+		stage_data["name"] = "合刃横断"
+		stage_data["damage_scalar"] = 1.16 if is_heavy else 0.98
+		stage_data["range"] = 128.0 if is_heavy else 116.0
+		stage_data["visual_range"] = 144.0 if is_heavy else 128.0
+		stage_data["arc"] = PI * (176.0 if is_heavy else 158.0) / 180.0
+		stage_data["swing_arc"] = float(stage_data["arc"]) + PI * (34.0 if is_heavy else 24.0) / 180.0
+		stage_data["deflect_range"] = float(stage_data["range"]) + 22.0
+		stage_data["deflect_arc"] = maxf(float(stage_data["arc"]), PI * 1.18)
+		stage_data["deflect_bullet_range_bonus"] = 12.0
+		stage_data["draw_deflect_shape"] = false
+		stage_data["startup"] = 0.176 if is_heavy else 0.078
+		stage_data["active"] = 0.066 if is_heavy else 0.04
+		stage_data["recovery"] = 0.245 if is_heavy else 0.13
+		stage_data["flash_duration"] = 0.24 if is_heavy else 0.15
+		stage_data["cleave_band_width"] = 28.0 if is_heavy else 20.0
+	stage_data["startup"] = maxf(float(stage_data.get("startup", 0.0)) * focused_time_scalar, 0.035)
+	stage_data["active"] = maxf(float(stage_data.get("active", 0.0)) * focused_time_scalar, 0.026)
+	stage_data["recovery"] = maxf(float(stage_data.get("recovery", 0.0)) * focused_time_scalar, 0.07)
+	stage_data["hitstop"] = maxf(float(stage_data.get("hitstop", 0.0)) * float(profile_data.get("hitstop_scalar", 1.0)), 0.0)
+	stage_data["shake"] = maxf(float(stage_data.get("shake", 0.0)) * float(profile_data.get("shake_scalar", 1.0)), 0.0)
+	stage_data["poise_scalar"] = maxf(float(stage_data.get("poise_scalar", 1.0)) * float(profile_data.get("poise_scalar", 1.0)), 0.0)
+	var total_duration: float = (
+		float(stage_data.get("startup", 0.0))
+		+ float(stage_data.get("active", 0.0))
+		+ float(stage_data.get("recovery", 0.0))
+	)
+	stage_data["total_duration"] = maxf(total_duration, 0.05)
+	stage_data["swing_duration"] = stage_data["total_duration"]
+	stage_data["cooldown"] = stage_data["total_duration"]
+	stage_data["split_shadow"] = false
+	stage_data["deflect_bullets"] = not is_shadow
+	stage_data["grant_energy"] = not is_shadow
+	stage_data["flash_duration"] = float(stage_data.get("flash_duration", 0.19 if is_heavy else 0.13))
+	stage_data["profile_name"] = str(profile_data.get("name", "测试剑"))
+	if is_shadow:
+		stage_data["damage_scalar"] = float(stage_data.get("damage_scalar", 1.0)) * MELEE_SHADOW_DAMAGE_SCALAR
+		stage_data["hitstop"] = 0.0
+		stage_data["shake"] = float(stage_data.get("shake", 0.0)) * 0.34
+		stage_data["poise_scalar"] = float(stage_data.get("poise_scalar", 1.0)) * 0.35
+		stage_data["deflect_bullets"] = false
+		stage_data["grant_energy"] = false
+		stage_data["color"] = Color("c084fc")
+		stage_data["inner_color"] = Color("e9d5ff")
+		stage_data["flash_duration"] = MELEE_SHADOW_FLASH_DURATION
+	return stage_data
+
+
+func _apply_melee_arc_attack(stage_data: Dictionary, attack_direction: Vector2, is_shadow := false) -> void:
+	var swing_direction: Vector2 = attack_direction.normalized()
+	if swing_direction.is_zero_approx():
+		swing_direction = _get_melee_attack_direction()
+	var attack_origin: Vector2 = player["pos"]
+	var lateral_direction: Vector2 = swing_direction.orthogonal().normalized()
+	if lateral_direction.is_zero_approx():
+		lateral_direction = Vector2.UP
+	attack_origin += lateral_direction * float(stage_data.get("origin_side_offset", 0.0))
+	attack_origin += swing_direction * float(stage_data.get("origin_forward_offset", 0.0))
+	var melee_attack_instance: Dictionary = _build_attack_instance(
+		AttackProfiles.PROFILE_MELEE_SLASH,
+		"player",
+		"melee_shadow" if is_shadow else "melee"
+	)
+	var melee_attack_instance_id: String = str(melee_attack_instance.get("id", ""))
+	var melee_attack_profile_id: String = str(melee_attack_instance.get("profile_id", AttackProfiles.PROFILE_MELEE_SLASH))
+	var detection_result: Dictionary
+	var damage_shape: String = str(stage_data.get("damage_shape", "long_line" if bool(stage_data.get("focused_slash", false)) else "broad_arc"))
+	if damage_shape == "long_line":
+		var line_start: Vector2 = attack_origin + swing_direction * float(stage_data.get("line_start_offset", 8.0))
+		var line_end: Vector2 = attack_origin + swing_direction * float(stage_data.get("range", SWORD_MELEE_RANGE))
+		detection_result = hit_detection.collect_segment_sweep_targets(
+			self ,
+			line_start,
+			line_end,
+			float(stage_data.get("hit_width", MELEE_FOCUSED_SLASH_HIT_WIDTH)),
+			melee_attack_profile_id,
+			DAMAGE_SOURCE_MELEE,
+			0.0,
+			{
+				"exclude_enemy_types": [PUPPET],
+			}
+		)
+		if float(stage_data.get("close_damage_range", 0.0)) > 0.0:
+			var close_damage_result: Dictionary = hit_detection.collect_melee_arc_targets(
+				self ,
+				attack_origin,
+				swing_direction,
+				float(stage_data.get("close_damage_range", 0.0)),
+				float(stage_data.get("close_damage_arc", stage_data.get("arc", SWORD_MELEE_ARC))),
+				melee_attack_profile_id,
+				DAMAGE_SOURCE_MELEE,
+				{
+					"exclude_enemy_types": [PUPPET],
+					"bullet_range_bonus": 0.0,
+				}
+			)
+			var merged_contacts: Array = detection_result.get("contacts", [])
+			var existing_target_ids := {}
+			for contact_variant in merged_contacts:
+				var contact: Dictionary = contact_variant
+				existing_target_ids[str(contact.get("target_id", ""))] = true
+			for close_contact_variant in close_damage_result.get("contacts", []):
+				var close_contact: Dictionary = close_contact_variant
+				var close_target_id: String = str(close_contact.get("target_id", ""))
+				if existing_target_ids.has(close_target_id):
+					continue
+				merged_contacts.append(close_contact)
+				existing_target_ids[close_target_id] = true
+			detection_result["contacts"] = merged_contacts
+			var existing_boss_contact: Dictionary = detection_result.get("boss_contact", {})
+			if existing_boss_contact.is_empty():
+				detection_result["boss_contact"] = close_damage_result.get("boss_contact", {})
+	else:
+		detection_result = hit_detection.collect_melee_arc_targets(
+			self ,
+			attack_origin,
+			swing_direction,
+			float(stage_data.get("range", SWORD_MELEE_RANGE)),
+			float(stage_data.get("arc", SWORD_MELEE_ARC)),
+			melee_attack_profile_id,
+			DAMAGE_SOURCE_MELEE,
+			{
+				"exclude_enemy_types": [PUPPET],
+				"bullet_range_bonus": float(stage_data.get("bullet_range_bonus", 20.0)),
+			}
+		)
+	if bool(stage_data.get("deflect_bullets", true)):
+		var deflect_detection_result: Dictionary = hit_detection.collect_melee_arc_targets(
+			self ,
+			attack_origin,
+			swing_direction,
+			float(stage_data.get("deflect_range", stage_data.get("range", SWORD_MELEE_RANGE))),
+			float(stage_data.get("deflect_arc", stage_data.get("arc", SWORD_MELEE_ARC))),
+			melee_attack_profile_id,
+			DAMAGE_SOURCE_MELEE,
+			{
+				"exclude_enemy_types": [PUPPET],
+				"bullet_range_bonus": float(stage_data.get("deflect_bullet_range_bonus", stage_data.get("bullet_range_bonus", 12.0))),
+			}
+		)
+		detection_result["bullet_contacts"] = deflect_detection_result.get("bullet_contacts", [])
+	else:
+		detection_result["bullet_contacts"] = []
+	var slash_color: Color = stage_data.get("color", COLORS["melee_sword"])
+	var hit_any_target := false
+	if bool(stage_data.get("deflect_bullets", true)):
+		for bullet_contact_variant in detection_result.get("bullet_contacts", []):
+			var bullet_contact: Dictionary = bullet_contact_variant
+			var bullet: Variant = bullet_contact.get("bullet", null)
+			if bullet == null:
+				continue
+			var bullet_color: Color = bullet.get("color", COLORS["bullet"])
+			_deflect_enemy_bullet(bullet, swing_direction)
+			_emit_sword_hit_effect(
+				bullet_contact.get("contact_point", bullet["pos"]),
+				swing_direction,
+				slash_color.lerp(bullet_color, 0.18),
+				1.0,
+				"deflect",
+				{
+					"spark_count": 4,
+				}
+			)
+			_add_player_energy(ENERGY_GAIN_MELEE_DEFLECT * (1.5 if bullet["type"] == "large" else 1.0))
+			screen_shake = max(screen_shake, maxf(float(stage_data.get("shake", 3.0)) * 0.66, 2.0))
+	var hit_overrides := {
+		"channel_scalar": maxf(float(stage_data.get("damage_scalar", 1.0)), 0.0),
+		"channel_scalar_overrides": {
+			AttackProfiles.CHANNEL_POISE: maxf(float(stage_data.get("poise_scalar", 1.0)), 0.0),
+		},
+	}
 	for contact_variant in detection_result.get("contacts", []):
 		var contact: Dictionary = contact_variant
 		var enemy: Variant = contact.get("entity", null)
@@ -5101,24 +7147,26 @@ func _perform_melee_attack() -> void:
 			DAMAGE_SOURCE_MELEE,
 			float(contact.get("contact_time", 0.0)),
 			str(contact.get("target_state", "")),
-			bool(contact.get("is_currently_overlapping", true))
+			bool(contact.get("is_currently_overlapping", true)),
+			hit_overrides
 		)
 		if not bool(attack_result.get("allowed", false)):
 			continue
-		_add_player_energy(ENERGY_GAIN_MELEE_HIT)
+		hit_any_target = true
+		if bool(stage_data.get("grant_energy", true)):
+			_add_player_energy(ENERGY_GAIN_MELEE_HIT)
 		_emit_sword_hit_effect(
 			contact.get("contact_point", enemy["pos"]),
-			attack_direction,
-			COLORS["melee_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24),
-			1.06,
+			swing_direction,
+			slash_color.lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24),
+			0.76 if is_shadow else 1.06,
 			"melee",
 			{
-				"spark_count": 3,
+				"spark_count": int(stage_data.get("spark_count", 3)),
 			}
 		)
-		_create_particles(enemy["pos"], COLORS[enemy["type"]], 5)
-		screen_shake = max(screen_shake, 4.0)
-
+		_create_particles(enemy["pos"], slash_color, 2 if is_shadow else 5)
+		screen_shake = max(screen_shake, float(stage_data.get("shake", 4.0)))
 	if _has_boss():
 		var boss_contact: Dictionary = detection_result.get("boss_contact", {})
 		if not boss_contact.is_empty():
@@ -5128,34 +7176,61 @@ func _perform_melee_attack() -> void:
 				boss_contact.get("contact_point", boss["pos"]),
 				DAMAGE_SOURCE_MELEE,
 				float(boss_contact.get("contact_time", 0.0)),
-				bool(boss_contact.get("is_currently_overlapping", true))
+				bool(boss_contact.get("is_currently_overlapping", true)),
+				hit_overrides
 			)
 			if bool(boss_hit_result.get("allowed", false)):
-				_add_player_energy(ENERGY_GAIN_MELEE_HIT)
+				hit_any_target = true
+				if bool(stage_data.get("grant_energy", true)):
+					_add_player_energy(ENERGY_GAIN_MELEE_HIT)
 				_emit_sword_hit_effect(
 					boss_contact.get("contact_point", boss["pos"]),
-					attack_direction,
-					COLORS["melee_sword"].lerp(COLORS["boss_body"], 0.28),
-					1.12,
+					swing_direction,
+					slash_color.lerp(COLORS["boss_body"], 0.28),
+					0.82 if is_shadow else 1.12,
 					"melee",
 					{
-						"spark_count": 4,
+						"spark_count": int(stage_data.get("spark_count", 4)),
 					}
 				)
-				_create_particles(boss["pos"], COLORS["boss_body"], 8)
-				screen_shake = max(screen_shake, 5.0)
+				_create_particles(boss["pos"], slash_color, 4 if is_shadow else 8)
+				screen_shake = max(screen_shake, float(stage_data.get("shake", 5.0)) + 0.8)
+	if hit_any_target and float(stage_data.get("hitstop", 0.0)) > 0.0:
+		_request_hitstop(float(stage_data.get("hitstop", 0.0)))
 	_clear_attack_instance(melee_attack_instance_id)
 
 
-func _start_melee_swing_visual(attack_direction: Vector2) -> void:
+func _queue_melee_shadow_strike(stage_data: Dictionary, attack_direction: Vector2) -> void:
+	var shadow_strikes: Array = player.get("melee_shadow_strikes", [])
+	var shadow_stage_data: Dictionary = _get_melee_combo_stage_data(int(stage_data.get("stage", 1)), true)
+	var shadow_direction: Vector2 = attack_direction.normalized().rotated(float(shadow_stage_data.get("shadow_direction_offset", 0.0)))
+	shadow_strikes.append({
+		"timer": float(stage_data.get("shadow_delay", MELEE_SHADOW_STRIKE_DELAY)),
+		"direction": shadow_direction.normalized(),
+		"stage_data": shadow_stage_data,
+	})
+	while shadow_strikes.size() > 6:
+		shadow_strikes.remove_at(0)
+	player["melee_shadow_strikes"] = shadow_strikes
+
+
+func _start_melee_swing_visual(attack_direction: Vector2, stage_data: Dictionary) -> void:
 	var swing_direction: Vector2 = attack_direction.normalized()
 	if swing_direction.is_zero_approx():
 		swing_direction = _get_held_sword_aim_direction()
-	player["attack_flash_timer"] = MELEE_ATTACK_FLASH_DURATION
-	player["melee_swing_timer"] = MELEE_SWORD_SWING_DURATION
-	player["melee_swing_duration"] = MELEE_SWORD_SWING_DURATION
-	player["melee_swing_angle"] = swing_direction.angle()
-	player["melee_swing_side"] = MELEE_SWORD_SWING_SIDE
+	var swing_duration: float = maxf(float(stage_data.get("swing_duration", MELEE_SWORD_SWING_DURATION)), 0.04)
+	player["attack_flash_duration"] = maxf(float(stage_data.get("flash_duration", MELEE_ATTACK_FLASH_DURATION)), 0.04)
+	player["attack_flash_timer"] = 0.0
+	player["melee_swing_timer"] = swing_duration
+	player["melee_swing_duration"] = swing_duration
+	player["melee_swing_angle"] = swing_direction.angle() + float(stage_data.get("angle_offset", 0.0))
+	player["melee_swing_side"] = float(stage_data.get("swing_side", MELEE_SWORD_SWING_SIDE))
+	player["melee_swing_range"] = float(stage_data.get("visual_range", stage_data.get("range", SWORD_MELEE_RANGE)))
+	player["melee_swing_arc"] = float(stage_data.get("swing_arc", MELEE_SWORD_SWING_ARC))
+	player["melee_attack_range"] = float(stage_data.get("range", SWORD_MELEE_RANGE))
+	player["melee_attack_arc"] = float(stage_data.get("arc", SWORD_MELEE_ARC))
+	player["melee_flash_color"] = stage_data.get("color", COLORS["melee_sword"])
+	player["melee_flash_inner_color"] = stage_data.get("inner_color", COLORS["melee_sword"].lerp(Color.WHITE, 0.42))
 	sword["afterimage_burst_timer"] = maxf(float(sword.get("afterimage_burst_timer", 0.0)), SWORD_AFTERIMAGE_BURST_DURATION)
 	sword["afterimage_emit_timer"] = 0.0
 
@@ -5754,7 +7829,7 @@ func _fire_array_swords() -> bool:
 	if ready_count <= 0:
 		_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
 		return false
-	var morph_state: Dictionary = _get_sword_array_fire_state()
+	var morph_state: Dictionary = _get_effective_array_fire_state()
 	var mode: String = String(morph_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
 	if not _can_fire_array_batch(mode, ready_count):
 		_show_action_failure("飞剑未回收", "array_ready", _get_array_failure_color(), "array")
@@ -5775,6 +7850,8 @@ func _fire_array_swords() -> bool:
 	var combo_id: String = SwordResonanceController.consume_array_combo(player, mode) if pending_combo_id != SwordResonanceController.COMBO_NONE else SwordResonanceController.COMBO_NONE
 	var fire_state_source: Dictionary = _build_resonance_array_combo_state(combo_id, mode) if combo_id != SwordResonanceController.COMBO_NONE else morph_state
 	var batch_id: String = _next_id("array_batch") if mode == SwordArrayConfig.MODE_FAN else ""
+	var fire_override_target_pos: Variant = _get_array_fire_override_target_pos_for_mode(mode)
+	var fire_override_target_kind: String = _get_array_fire_override_target_kind_for_mode(mode)
 	var burst_step: int = 0
 	var fired_count: int = 0
 	while fired_count < fire_count:
@@ -5793,10 +7870,12 @@ func _fire_array_swords() -> bool:
 		if source_snapshot_index < 0 or source_snapshot_index >= source_snapshot.size():
 			source_snapshot_index = 0
 		var sword_id: String = str(source_snapshot[source_snapshot_index]["id"])
-		_fire_single_array_sword(sword_id, fired_count, fire_count, burst_step, ready_count, batch_id, "", null, null, fire_state_source, combo_id)
+		_fire_single_array_sword(sword_id, fired_count, fire_count, burst_step, ready_count, batch_id, mode, null, null, fire_state_source, combo_id, fire_override_target_pos, fire_override_target_kind)
 		source_snapshot.remove_at(source_snapshot_index)
 		fired_count += 1
 	_emit_sword_array_fire_effect(fire_state_source, fire_count)
+	player["array_effective_fire_mode"] = mode
+	_advance_sword_spirit_takeover_plan(mode)
 	if combo_id == SwordResonanceController.COMBO_RING_TO_PIERCE:
 		_show_focus_status_message("圆势归一", SwordResonanceController.get_color(SwordArrayConfig.MODE_RING), 0.58)
 		screen_shake = maxf(screen_shake, 5.2)
@@ -5831,7 +7910,9 @@ func _fire_single_array_sword(
 	override_launch_origin = null,
 	override_target_anchor = null,
 	override_state_source = null,
-	combo_id := ""
+	combo_id := "",
+	override_fire_target_pos = null,
+	override_fire_target_kind := ""
 ) -> void:
 	if sword_id == "":
 		return
@@ -5862,15 +7943,27 @@ func _fire_single_array_sword(
 	var target_anchor: Vector2 = launch_origin
 	if typeof(override_target_anchor) == TYPE_VECTOR2:
 		target_anchor = override_target_anchor
-	var target_point: Vector2 = SwordArrayController.get_fire_target(
-		self ,
-		fire_state_source,
-		volley_fire_index,
-		target_anchor,
-		volley_fire_count,
-		burst_step,
-		total_count_before_fire
-	)
+	var override_target_point: Variant = null
+	if typeof(override_fire_target_pos) == TYPE_VECTOR2:
+		override_target_point = _resolve_array_sword_override_fire_target(
+			launch_origin,
+			Vector2(override_fire_target_pos),
+			str(override_fire_target_kind),
+			travel_mode
+		)
+	var target_point: Vector2
+	if typeof(override_target_point) == TYPE_VECTOR2:
+		target_point = override_target_point
+	else:
+		target_point = SwordArrayController.get_fire_target(
+			self ,
+			fire_state_source,
+			volley_fire_index,
+			target_anchor,
+			volley_fire_count,
+			burst_step,
+			total_count_before_fire
+		)
 	var direction: Vector2 = target_point - launch_origin
 	if direction.is_zero_approx():
 		direction = mouse_world - player["pos"]
@@ -5890,13 +7983,26 @@ func _fire_single_array_sword(
 	array_sword["guidance_volley_count"] = volley_fire_count
 	array_sword["guidance_burst_step"] = burst_step
 	array_sword["guidance_total_count"] = total_count_before_fire
+	if typeof(override_state_source) == TYPE_DICTIONARY:
+		array_sword["guidance_state_source"] = fire_state_source.duplicate(true)
+	else:
+		array_sword["guidance_state_source"] = {}
+	if typeof(override_target_point) == TYPE_VECTOR2 and typeof(override_fire_target_pos) == TYPE_VECTOR2 and str(override_fire_target_kind) != "":
+		array_sword["guidance_override_target_pos"] = Vector2(override_fire_target_pos)
+		array_sword["guidance_override_target_kind"] = str(override_fire_target_kind)
+	else:
+		array_sword["guidance_override_target_pos"] = Vector2.ZERO
+		array_sword["guidance_override_target_kind"] = ""
 	var base_direction: Vector2 = direction.normalized()
 	var flow_side: float = _resolve_array_sword_flow_side(array_sword, launch_origin, base_direction)
 	array_sword["flow_side"] = flow_side
+	var launch_tangent_bias: float = _get_array_sword_launch_tangent_bias(travel_mode) * _get_array_sword_flow_slot_weight(array_sword, travel_mode)
+	if typeof(override_target_point) == TYPE_VECTOR2 and travel_mode == SwordArrayConfig.MODE_PIERCE:
+		launch_tangent_bias = 0.0
 	var launch_velocity_direction: Vector2 = _blend_array_sword_direction_with_tangent(
 		base_direction,
 		_get_array_sword_launch_tangent_direction(travel_mode, launch_origin, base_direction, flow_side),
-		_get_array_sword_launch_tangent_bias(travel_mode) * _get_array_sword_flow_slot_weight(array_sword, travel_mode)
+		launch_tangent_bias
 	)
 	array_sword["vel"] = launch_velocity_direction * _get_current_array_sword_speed(travel_mode)
 	player["array_fire_index"] += 1
@@ -6000,13 +8106,27 @@ func _spawn_enemy(enemy_type: String, spawn_position_override = null) -> Diction
 			enemy["strafe_dir"] = 1.0 if randf() < 0.5 else -1.0
 			enemy["charge_timer"] = 0.0
 			enemy["mirror_vulnerable_timer"] = 0.0
+		FORMATION_EYE:
+			enemy["radius"] = LARGE_ARENA_EYE_RADIUS
+			enemy["health"] = LARGE_ARENA_EYE_HEALTH
+			enemy["max_health"] = LARGE_ARENA_EYE_HEALTH
+			enemy["score"] = 150
+			enemy["shoot_cooldown"] = 9999.0
+			enemy["large_arena_role"] = "objective"
+		FORMATION_CORE:
+			enemy["radius"] = LARGE_ARENA_CORE_RADIUS
+			enemy["health"] = LARGE_ARENA_CORE_HEALTH
+			enemy["max_health"] = LARGE_ARENA_CORE_HEALTH
+			enemy["score"] = 500
+			enemy["shoot_cooldown"] = 9999.0
+			enemy["large_arena_role"] = "objective"
 		_:
 			enemy["shoot_cooldown"] = randf_range(0.4, SHOOTER_COOLDOWN)
 	if has_spawn_override:
 		var enemy_radius: float = float(enemy.get("radius", SHOOTER_RADIUS))
 		enemy["pos"] = Vector2(spawn_position_override).clamp(
 			Vector2(enemy_radius, enemy_radius),
-			ARENA_SIZE - Vector2(enemy_radius, enemy_radius)
+			_get_arena_size() - Vector2(enemy_radius, enemy_radius)
 		)
 		enemy["package_desired_pos"] = enemy["pos"]
 		enemy["package_center"] = enemy["pos"]
@@ -6072,7 +8192,47 @@ func _set_game_over() -> void:
 	left_mouse_held = false
 	right_mouse_held = false
 	_set_desktop_mouse_visible(true)
+	game_over_label.text = "力竭身亡"
 	game_over_label.visible = true
+
+
+func _get_large_arena_progress_text() -> String:
+	if large_arena_completed:
+		return "阵心已破"
+	var core_state: String = str(large_arena_objective_states.get(LARGE_ARENA_CORE_KEY, LARGE_ARENA_STATE_SEALED))
+	if core_state == LARGE_ARENA_STATE_VULNERABLE:
+		return "任务：斩阵心"
+	return "任务：破阵眼 %d/2" % _get_large_arena_destroyed_eye_count()
+
+
+func _get_large_arena_goal_text() -> String:
+	if large_arena_completed:
+		return "目标完成：阵心已破"
+	var core_state: String = str(large_arena_objective_states.get(LARGE_ARENA_CORE_KEY, LARGE_ARENA_STATE_SEALED))
+	if core_state == LARGE_ARENA_STATE_VULNERABLE:
+		return "目标：斩阵心，阵主已现身"
+	return "目标：先破上下两个阵眼，再斩阵心"
+
+
+func _get_large_arena_objective_status_text() -> String:
+	var upper_text := _get_large_arena_state_label(LARGE_ARENA_UPPER_EYE_KEY)
+	var lower_text := _get_large_arena_state_label(LARGE_ARENA_LOWER_EYE_KEY)
+	var core_text := _get_large_arena_state_label(LARGE_ARENA_CORE_KEY)
+	var pressure_text := ""
+	if large_arena_pressure_label != "":
+		pressure_text = " | 压力：%s" % large_arena_pressure_label
+	return "%s\n上阵眼 %s | 下阵眼 %s | 阵心 %s%s" % [_get_large_arena_goal_text(), upper_text, lower_text, core_text, pressure_text]
+
+
+func _get_large_arena_state_label(objective_key: String) -> String:
+	var state: String = str(large_arena_objective_states.get(objective_key, LARGE_ARENA_STATE_SEALED))
+	match state:
+		LARGE_ARENA_STATE_DESTROYED:
+			return "已破"
+		LARGE_ARENA_STATE_VULNERABLE:
+			return "可击破"
+		_:
+			return "封印"
 
 
 func _update_ui() -> void:
@@ -6137,13 +8297,26 @@ func _update_ui() -> void:
 			_format_distance_delta(distances["fan_to_pierce_end"] - default_distances["fan_to_pierce_end"])
 		]
 	else:
-		wave_label.text = "波次 %d%s" % [wave, " | 战斗调试" if debug_battle_mode else ""]
-		score_label.text = "得分 %d | 飞剑 %d / %d%s" % [
-			score,
-			_get_ready_array_sword_count(),
-			_get_current_array_sword_capacity(),
-			_get_debug_status_suffix()
-		]
+		if _is_large_arena_test_enabled():
+			wave_label.text = _get_large_arena_progress_text()
+			score_label.text = "%s\n飞剑 %d / %d%s" % [
+				_get_large_arena_objective_status_text(),
+				_get_ready_array_sword_count(),
+				_get_current_array_sword_capacity(),
+				_get_debug_status_suffix()
+			]
+		else:
+			wave_label.text = "波次 %d%s" % [wave, " | 战斗调试" if debug_battle_mode else ""]
+			score_label.text = "得分 %d | 飞剑 %d / %d%s\n普攻 F：%s\n动作：%s" % [
+				score,
+				_get_ready_array_sword_count(),
+				_get_current_array_sword_capacity(),
+				_get_debug_status_suffix(),
+				_get_current_melee_test_profile_hud_text(),
+				_get_current_melee_action_hud_text()
+			]
+			if debug_battle_mode:
+				score_label.text = "%s\n%s" % [score_label.text, _format_sword_spirit_intent_debug()]
 	var sword_mode_text: String = "近战" if sword["state"] == SwordState.ORBITING else "御剑"
 	var bullet_time_text: String = " | 子弹时间" if sword["state"] != SwordState.ORBITING else ""
 	var debug_mode_text: String = " | DEBUG" if debug_battle_mode else ""
@@ -6449,6 +8622,30 @@ func _choose_next_boss_state() -> void:
 	GameBossController._choose_next_boss_state(self )
 
 
+func _get_boss_spawn_position() -> Vector2:
+	if _is_large_arena_test_enabled():
+		return LARGE_ARENA_BOSS_SPAWN_POS
+	return Vector2(ARENA_SIZE.x * 0.5, -150.0)
+
+
+func _get_boss_anchor_position() -> Vector2:
+	if _is_large_arena_test_enabled():
+		return LARGE_ARENA_BOSS_ANCHOR_POS
+	return Vector2(ARENA_SIZE.x * 0.5, 150.0)
+
+
+func _get_boss_top_position() -> Vector2:
+	if _is_large_arena_test_enabled():
+		return LARGE_ARENA_BOSS_ANCHOR_POS
+	return Vector2(ARENA_SIZE.x * 0.5, 100.0)
+
+
+func _get_boss_center_position() -> Vector2:
+	if _is_large_arena_test_enabled():
+		return LARGE_ARENA_BOSS_CENTER_POS
+	return ARENA_SIZE * 0.5
+
+
 func _spawn_boss() -> void:
 	GameBossController.spawn_boss(self )
 
@@ -6524,16 +8721,24 @@ func _has_boss() -> bool:
 
 
 func _to_screen(world_pos: Vector2) -> Vector2:
+	if _is_large_arena_test_enabled():
+		var screen_rect := _get_large_arena_screen_rect()
+		return screen_rect.position + screen_rect.size * 0.5 + (world_pos - large_arena_camera_center) * large_arena_camera_zoom
 	return ARENA_ORIGIN + world_pos
 
 
 func _screen_to_world(screen_pos: Vector2) -> Vector2:
+	if _is_large_arena_test_enabled():
+		var screen_rect := _get_large_arena_screen_rect()
+		var world_pos: Vector2 = large_arena_camera_center + (screen_pos - screen_rect.position - screen_rect.size * 0.5) / maxf(large_arena_camera_zoom, 0.001)
+		return world_pos.clamp(Vector2.ZERO, _get_arena_size())
 	return (screen_pos - ARENA_ORIGIN).clamp(Vector2.ZERO, ARENA_SIZE)
 
 
 func _update_mouse_world_from_motion(event: InputEventMouseMotion) -> void:
 	if _should_use_virtual_mouse_motion():
-		mouse_world = (mouse_world + event.relative).clamp(Vector2.ZERO, ARENA_SIZE)
+		var relative_world: Vector2 = event.relative / (maxf(large_arena_camera_zoom, 0.001) if _is_large_arena_test_enabled() else 1.0)
+		mouse_world = (mouse_world + relative_world).clamp(Vector2.ZERO, _get_arena_size())
 		return
 	mouse_world = _screen_to_world(event.position)
 
@@ -6549,12 +8754,13 @@ func _should_use_virtual_mouse_motion() -> bool:
 
 
 func _roll_spawn_position() -> Vector2:
+	var arena_size := _get_arena_size()
 	var roll: float = randf()
 	if roll < 0.5:
-		return Vector2(randf_range(0.0, ARENA_SIZE.x), -SPAWN_MARGIN)
+		return Vector2(randf_range(0.0, arena_size.x), -SPAWN_MARGIN)
 	if roll < 0.75:
-		return Vector2(ARENA_SIZE.x + SPAWN_MARGIN, randf_range(0.0, ARENA_SIZE.y))
-	return Vector2(-SPAWN_MARGIN, randf_range(0.0, ARENA_SIZE.y))
+		return Vector2(arena_size.x + SPAWN_MARGIN, randf_range(0.0, arena_size.y))
+	return Vector2(-SPAWN_MARGIN, randf_range(0.0, arena_size.y))
 
 
 func _should_spawn_boss_wave(wave_index: int) -> bool:
@@ -6994,7 +9200,8 @@ func _roll_weighted_enemy_type(weighted_entries: Array) -> String:
 
 
 func _is_inside_extended_bounds(position: Vector2) -> bool:
-	return position.x >= -SPAWN_MARGIN and position.x <= ARENA_SIZE.x + SPAWN_MARGIN and position.y >= -SPAWN_MARGIN and position.y <= ARENA_SIZE.y + SPAWN_MARGIN
+	var arena_size := _get_arena_size()
+	return position.x >= -SPAWN_MARGIN and position.x <= arena_size.x + SPAWN_MARGIN and position.y >= -SPAWN_MARGIN and position.y <= arena_size.y + SPAWN_MARGIN
 
 
 func _next_id(prefix: String) -> String:
@@ -7747,6 +9954,9 @@ func _handle_debug_key_input(event: InputEventKey) -> bool:
 		if debug_calibration_mode:
 			return true
 		_toggle_debug_battle_mode()
+		return true
+	if event.keycode == KEY_F:
+		_cycle_melee_test_profile(1)
 		return true
 	if _matches_configured_key(event, sword_hover_preset_next_key):
 		_cycle_sword_hover_preset(1)

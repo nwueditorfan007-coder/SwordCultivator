@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="1080" viewBox="0 0 1760 1080" role="img" aria-labelledby="title desc">
+  <title id="title">三段普攻连贯动作图</title>
+  <desc id="desc">用连续残像和时间轴展示三段普通攻击：准备、起手外斩、中段反扫、收鞘回斩，以及出势、归锋、凝锋、分光的动作读法。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06101a"/>
+      <stop offset="0.55" stop-color="#101724"/>
+      <stop offset="1" stop-color="#07130f"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101b29"/>
+      <stop offset="1" stop-color="#090f17"/>
+    </linearGradient>
+    <filter id="blueGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="purpleGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="2.8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#66d9ff"/>
+    </marker>
+    <marker id="arrowGold" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#ffd866"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#b18cff"/>
+    </marker>
+
+    <symbol id="player" viewBox="-18 -18 36 36">
+      <circle cx="0" cy="0" r="11" fill="#eff8ff" stroke="#64869c" stroke-width="2"/>
+      <path d="M-5 -3 L7 0 L-5 3 Z" fill="#0c1721" opacity="0.78"/>
+    </symbol>
+    <symbol id="blade" viewBox="-9 -42 18 84">
+      <path d="M0 -42 L8 -12 L4 25 L0 42 L-4 25 L-8 -12 Z" fill="currentColor"/>
+      <path d="M0 -31 L2 -9 L0 27 L-2 -9 Z" fill="#ffffff" opacity="0.55"/>
+    </symbol>
+
+    <style>
+      .title { font: 700 34px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f5fbff; }
+      .subtitle { font: 16px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #a8bdcc; }
+      .section { font: 700 23px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #eef8ff; }
+      .label { font: 700 17px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #eaf6ff; }
+      .small { font: 13px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #9fb5c5; }
+      .tiny { font: 12px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #8fa6b8; }
+      .time { font: 700 12px "Consolas", "Microsoft YaHei", sans-serif; fill: #eff8ff; }
+      .panel { fill: url(#panel); stroke: #28475b; stroke-width: 1.4; }
+      .cell { fill: #0c1520; stroke: #20394b; stroke-width: 1.2; }
+      .axis { stroke: #2c4d60; stroke-width: 1.2; stroke-dasharray: 6 7; opacity: 0.7; }
+      .rangeBlue { fill: #66d9ff; opacity: 0.09; }
+      .rangeGold { fill: #ffd866; opacity: 0.12; }
+      .rangePurple { fill: #b18cff; opacity: 0.09; }
+      .trailBlue { fill: none; stroke: #66d9ff; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowBlue); filter: url(#blueGlow); }
+      .trailBlueThin { fill: none; stroke: #66d9ff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowBlue); }
+      .trailBlueGhost { fill: none; stroke: #66d9ff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 7; marker-end: url(#arrowBlue); opacity: 0.48; }
+      .trailGold { fill: none; stroke: #ffd866; stroke-width: 4.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); filter: url(#goldGlow); }
+      .trailGoldThin { fill: none; stroke: #ffd866; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); }
+      .trailPurple { fill: none; stroke: #b18cff; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowPurple); filter: url(#purpleGlow); opacity: 0.9; }
+      .trailPurpleDash { fill: none; stroke: #b18cff; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 5 6; marker-end: url(#arrowPurple); opacity: 0.7; }
+      .pose { opacity: 0.45; }
+      .poseNow { opacity: 1.0; filter: url(#blueGlow); }
+      .poseGold { opacity: 1.0; filter: url(#goldGlow); }
+      .hit { fill: none; stroke: #ff7a55; stroke-width: 2.3; opacity: 0.9; }
+      .tick { stroke: #547487; stroke-width: 2; }
+      .timeline { stroke: #2b4b5d; stroke-width: 4; stroke-linecap: round; }
+      .chip { fill: #132334; stroke: #2d5066; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1760" height="1080" fill="url(#bg)"/>
+  <text class="title" x="48" y="56">三段普攻连贯动作图</text>
+  <text class="subtitle" x="48" y="88">读法：一套普攻不是三张孤立判定，而是一条从拔剑外斩到反扫，再收鞘回锋的连续剑路。</text>
+
+  <g transform="translate(48 122)">
+    <rect class="panel" width="1664" height="430" rx="12"/>
+    <text class="section" x="24" y="38">基础动作带：拔剑外斩 -> 中段反扫 -> 收鞘回斩</text>
+    <text class="small" x="24" y="65">下图把同一次左键连段画在同一个玩家身上，浅色剑是过去残像，亮线是当前强读点。</text>
+
+    <g transform="translate(95 120)">
+      <use href="#player" x="0" y="132" width="36" height="36"/>
+      <line class="axis" x1="18" y1="150" x2="1080" y2="150"/>
+
+      <path class="rangeBlue" d="M18 150 L330 62 A318 318 0 0 1 330 238 Z"/>
+      <path class="rangeGold" d="M18 150 L355 238 A348 348 0 0 0 355 70 Z"/>
+
+      <path class="trailBlue" d="M32 150 C118 80 226 66 338 116"/>
+      <path class="trailBlueThin" d="M64 222 C160 128 276 126 378 185"/>
+      <path class="trailGold" d="M382 188 C280 255 138 242 34 151"/>
+
+      <use href="#blade" x="76" y="84" width="24" height="96" color="#66d9ff" class="pose" transform="rotate(44 88 132)"/>
+      <use href="#blade" x="178" y="48" width="24" height="96" color="#66d9ff" class="pose" transform="rotate(76 190 96)"/>
+      <use href="#blade" x="310" y="76" width="25" height="100" color="#66d9ff" class="poseNow" transform="rotate(104 322 126)"/>
+      <use href="#blade" x="306" y="154" width="24" height="96" color="#66d9ff" class="pose" transform="rotate(122 318 202)"/>
+      <use href="#blade" x="176" y="182" width="25" height="100" color="#ffd866" class="poseGold" transform="rotate(-104 188 232)"/>
+      <use href="#blade" x="44" y="136" width="25" height="100" color="#ffd866" class="poseGold" transform="rotate(-66 56 186)"/>
+
+      <path class="hit" d="M336 91 l22 -18 M351 122 h30 M335 153 l23 18"/>
+      <path class="hit" d="M70 112 l-21 -17 M58 150 h-30 M72 188 l-22 17"/>
+
+      <g transform="translate(0 300)">
+        <line class="timeline" x1="18" y1="0" x2="438" y2="0"/>
+        <line class="tick" x1="18" y1="-9" x2="18" y2="9"/>
+        <line class="tick" x1="110" y1="-9" x2="110" y2="9"/>
+        <line class="tick" x1="226" y1="-9" x2="226" y2="9"/>
+        <line class="tick" x1="352" y1="-9" x2="352" y2="9"/>
+        <line class="tick" x1="438" y1="-9" x2="438" y2="9"/>
+        <text class="time" x="-6" y="30">0.00</text>
+        <text class="time" x="82" y="30">0.10</text>
+        <text class="time" x="198" y="30">0.28</text>
+        <text class="time" x="324" y="30">0.52</text>
+        <text class="time" x="410" y="30">0.72</text>
+        <text class="small" x="76" y="-20">起手命中</text>
+        <text class="small" x="188" y="-20">中段命中</text>
+        <text class="small" x="314" y="-20">收鞘命中</text>
+      </g>
+    </g>
+
+    <g transform="translate(650 107)">
+      <rect class="cell" width="450" height="250" rx="10"/>
+      <text class="label" x="18" y="32">动作描述</text>
+      <text class="small" x="18" y="64">1. 起手：剑从身侧抽出，向前上方斜切。</text>
+      <text class="small" x="18" y="93">2. 中段：不回待机，顺势反向横扫。</text>
+      <text class="small" x="18" y="122">3. 收鞘：剑从外侧拖回身前，形成回锋线。</text>
+      <text class="small" x="18" y="151">4. 第三段后才有完整收招，给终结感。</text>
+      <rect class="chip" x="18" y="178" width="126" height="32" rx="5"/>
+      <text class="time" x="35" y="199">范围 88/82/92</text>
+      <rect class="chip" x="158" y="178" width="126" height="32" rx="5"/>
+      <text class="time" x="173" y="199">扇角 78/112/86</text>
+      <rect class="chip" x="298" y="178" width="126" height="32" rx="5"/>
+      <text class="time" x="315" y="199">伤害 32/30/38</text>
+    </g>
+
+    <g transform="translate(1140 107)">
+      <rect class="cell" width="450" height="250" rx="10"/>
+      <text class="label" x="18" y="32">实现读法</text>
+      <text class="small" x="18" y="64">每段都是扇形扫掠判定，但视觉上共用一条剑路。</text>
+      <text class="small" x="18" y="93">玩家连按时推进段号；不连按时第 1 段收回待机。</text>
+      <text class="small" x="18" y="122">第 2 段允许小角度修正，第 3 段锁定更强。</text>
+      <text class="small" x="18" y="151">出势和归锋只改变强读点，不拆掉动作骨架。</text>
+      <text class="tiny" x="18" y="205">目标：玩家看见一套剑法，而不是三次独立挥刀。</text>
+    </g>
+  </g>
+
+  <g transform="translate(48 585)">
+    <rect class="panel" width="1664" height="405" rx="12"/>
+    <text class="section" x="24" y="38">词条在同一动作带上的变化</text>
+    <text class="small" x="24" y="65">每个词条只改变这条动作带的某个维度：强段位置、输入压缩、残影覆盖。</text>
+
+    <g transform="translate(34 98)">
+      <rect class="cell" width="390" height="248" rx="10"/>
+      <text class="label" x="18" y="31">出势：第一刀最重</text>
+      <text class="small" x="18" y="55">起手蓝线加粗、范围外扩，后两段收干净。</text>
+      <g transform="translate(42 78)">
+        <use href="#player" x="0" y="70" width="30" height="30"/>
+        <path class="rangeBlue" d="M15 85 L242 20 A230 230 0 0 1 242 150 Z"/>
+        <path class="trailBlue" d="M28 86 C92 25 176 22 250 72"/>
+        <path class="trailBlueGhost" d="M50 145 C117 92 190 95 257 124"/>
+        <path class="trailGoldThin" opacity="0.45" d="M258 126 C190 166 100 162 30 87"/>
+        <text class="tiny" x="0" y="178">读法：按下就压出去，适合抢先手。</text>
+      </g>
+    </g>
+
+    <g transform="translate(454 98)">
+      <rect class="cell" width="390" height="248" rx="10"/>
+      <text class="label" x="18" y="31">归锋：第三刀最重</text>
+      <text class="small" x="18" y="55">前两段像挂线，收鞘金线成为强段。</text>
+      <g transform="translate(42 78)">
+        <use href="#player" x="0" y="70" width="30" height="30"/>
+        <path class="rangeGold" d="M15 85 L257 151 A248 248 0 0 0 257 19 Z"/>
+        <path class="trailBlueGhost" d="M28 86 C92 33 176 32 250 78"/>
+        <path class="trailBlueGhost" d="M50 145 C117 102 190 102 257 124"/>
+        <path class="trailGold" d="M260 125 C190 170 100 164 30 87"/>
+        <text class="tiny" x="0" y="178">读法：前面铺势，最后收回来爆。</text>
+      </g>
+    </g>
+
+    <g transform="translate(874 98)">
+      <rect class="cell" width="390" height="248" rx="10"/>
+      <text class="label" x="18" y="31">凝锋：一键压缩三段</text>
+      <text class="small" x="18" y="55">三次命中挤在窄轴内，方向锁定更明显。</text>
+      <g transform="translate(42 78)">
+        <use href="#player" x="0" y="70" width="30" height="30"/>
+        <path class="rangeBlue" d="M15 85 L260 45 A250 250 0 0 1 260 125 Z"/>
+        <path class="trailBlue" d="M28 86 C100 51 172 51 260 82"/>
+        <path class="trailBlueThin" d="M46 105 C120 82 184 84 265 101"/>
+        <path class="trailGold" d="M268 104 C190 132 102 127 31 87"/>
+        <circle cx="110" cy="67" r="7" fill="#66d9ff" opacity="0.78"/>
+        <circle cx="180" cy="86" r="7" fill="#66d9ff" opacity="0.78"/>
+        <circle cx="76" cy="96" r="7" fill="#ffd866" opacity="0.86"/>
+        <text class="tiny" x="0" y="178">读法：像完整剑诀，强在集中命中。</text>
+      </g>
+    </g>
+
+    <g transform="translate(1294 98)">
+      <rect class="cell" width="390" height="248" rx="10"/>
+      <text class="label" x="18" y="31">分光：每刀带迟到残影</text>
+      <text class="small" x="18" y="55">本体走原轨迹，紫色影线延迟外扩。</text>
+      <g transform="translate(42 78)">
+        <use href="#player" x="0" y="70" width="30" height="30"/>
+        <path class="rangePurple" d="M15 85 L260 5 A250 250 0 0 1 260 165 Z"/>
+        <path class="trailBlueThin" d="M28 86 C92 33 176 32 250 78"/>
+        <path class="trailPurple" d="M38 64 C107 26 183 25 266 52"/>
+        <path class="trailPurpleDash" d="M48 151 C126 126 198 130 271 143"/>
+        <path class="trailGoldThin" d="M260 125 C190 170 100 164 30 87"/>
+        <path class="trailPurpleDash" d="M254 100 C184 139 103 140 38 101"/>
+        <text class="tiny" x="0" y="178">读法：主剑切中线，影剑补边缘。</text>
+      </g>
+    </g>
+  </g>
+
+  <text class="subtitle" x="72" y="1037">建议先实现这张图里的基础动作带，再加四个词条修饰。这样后续所有剑都能共享同一套普攻逻辑。</text>
+</svg>

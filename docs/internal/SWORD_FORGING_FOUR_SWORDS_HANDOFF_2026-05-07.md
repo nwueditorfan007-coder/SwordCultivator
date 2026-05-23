@@ -4,6 +4,12 @@
 
 本文用于新会话直接接手实现四把锻造验证剑。重点不是完成完整锻造系统，而是在当前可运行战斗中验证“剑的物理结构推导战斗形态”是否成立。
 
+> 2026-05-09 修订提示：
+>
+> 本交接文档中的 `出势 / 归锋` 主轴已被后续讨论判定为不适合继续承担普通攻击的大形态差异。原因是本项目战斗动机高度动态，普通攻击还承担稳定弹反、近身处理和剑意建立职责，不能把一把剑设计成只服务某个固定动机的工具。
+>
+> 新的设计原则见 `docs/decisions/PROJECT_DECISIONS.md` 第 16 节，以及 `docs/discussions/SWORD_FORGING_DYNAMIC_COMBAT_TRAIT_FRAMEWORK_2026-05-09.md`。后续实现应优先采用“基础职责固定，物理偏向改变解法”的框架，并考虑用 `长锋 / 阔刃` 替换 `出势 / 归锋` 作为主形态轴。
+
 ## 1. 必读上下文
 
 先读：
@@ -11,6 +17,7 @@
 - `docs/project/CURRENT_PROJECT_DESIGN.md`
 - `docs/decisions/PROJECT_DECISIONS.md`
 - `docs/discussions/SWORD_FORGING_PHYSICAL_ARCHETYPE_DISCUSSION_2026-05-07.md`
+- `docs/discussions/SWORD_FORGING_DYNAMIC_COMBAT_TRAIT_FRAMEWORK_2026-05-09.md`
 
 如果当前实装与定案文档冲突，实现时以 `docs/project/CURRENT_PROJECT_DESIGN.md` 为准。
 

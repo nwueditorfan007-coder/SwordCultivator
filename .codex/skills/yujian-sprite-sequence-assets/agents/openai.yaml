@@ -1,0 +1,3 @@
+display_name: Yujian Sprite Sequences
+short_description: Replace and validate Yujian flight sprite sheets.
+default_prompt: Use $yujian-sprite-sequence-assets to replace a Yujian flight animation sheet and verify it in Godot.

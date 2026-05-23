@@ -13,6 +13,7 @@ const TargetWritebackAdapters = preload("res://scripts/combat/target_writeback_a
 
 
 static func reset_runtime(main: Node) -> void:
+	var initial_player_pos: Vector2 = main._get_initial_player_position() if main.has_method("_get_initial_player_position") else main.ARENA_SIZE * 0.5
 	main.left_mouse_held = false
 	main.right_mouse_held = false
 	main.elapsed_time = 0.0
@@ -56,7 +57,7 @@ static func reset_runtime(main: Node) -> void:
 	main.cursor_intent_fire_kick = 0.0
 	main.cursor_intent_fire_phase = 0.0
 	main.player = {
-		"pos": main.ARENA_SIZE * 0.5,
+		"pos": initial_player_pos,
 		"vel": Vector2.ZERO,
 		"health": main.PLAYER_MAX_HEALTH,
 		"energy": 0.0,
@@ -67,6 +68,31 @@ static func reset_runtime(main: Node) -> void:
 		"melee_swing_duration": main.MELEE_SWORD_SWING_DURATION,
 		"melee_swing_angle": 0.0,
 		"melee_swing_side": main.MELEE_SWORD_READY_SIDE,
+		"melee_swing_range": main.SWORD_MELEE_RANGE,
+		"melee_swing_arc": main.SWORD_MELEE_ARC,
+		"melee_attack_range": main.SWORD_MELEE_RANGE,
+		"melee_attack_arc": main.SWORD_MELEE_ARC,
+		"attack_flash_duration": main.MELEE_ATTACK_FLASH_DURATION,
+		"melee_flash_color": main.COLORS["melee_sword"],
+		"melee_flash_inner_color": main.COLORS["melee_sword"].lerp(Color.WHITE, 0.42),
+		"melee_flash_stage_data": {},
+		"melee_combo_stage": 0,
+		"melee_combo_timer": 0.0,
+		"melee_action_active": false,
+		"melee_action_phase": main.MELEE_ACTION_PHASE_IDLE,
+		"melee_action_elapsed": 0.0,
+		"melee_action_duration": 0.0,
+		"melee_action_hit_done": false,
+		"melee_action_stage_data": {},
+		"melee_action_direction": Vector2.RIGHT,
+		"melee_input_buffered": false,
+		"melee_input_buffer_timer": 0.0,
+		"melee_auto_combo_active": false,
+		"melee_auto_combo_queue": [],
+		"melee_auto_combo_timer": 0.0,
+		"melee_auto_combo_direction": Vector2.RIGHT,
+		"melee_shadow_strikes": [],
+		"melee_shadow_flashes": [],
 		"array_hold_timer": 0.0,
 		"array_hold_ratio": 0.0,
 		"array_is_firing": false,
@@ -93,18 +119,18 @@ static func reset_runtime(main: Node) -> void:
 	main.debug_calibration_mode = false
 	main.debug_dragging_player = false
 	main.unsheath_flash_timer = 0.0
-	main.unsheath_flash_origin = main.ARENA_SIZE * 0.5
+	main.unsheath_flash_origin = initial_player_pos
 	main.unsheath_flash_direction = Vector2.RIGHT
 	main.unsheath_flash_strength = 0.0
 	main.unsheath_flash_repeat_timer = 0.0
 	main.unsheath_press_flash_timer = 0.0
-	main.unsheath_press_flash_origin = main.ARENA_SIZE * 0.5
+	main.unsheath_press_flash_origin = initial_player_pos
 	main.unsheath_press_flash_direction = Vector2.RIGHT
 	main.unsheath_press_flash_strength = 0.0
 	main.unsheath_press_flash_repeat_timer = 0.0
 	main.sword = {
-		"pos": main.ARENA_SIZE * 0.5,
-		"prev_pos": main.ARENA_SIZE * 0.5,
+		"pos": initial_player_pos,
+		"prev_pos": initial_player_pos,
 		"vel": Vector2.ZERO,
 		"angle": 0.0,
 		"radius": main.SWORD_RADIUS,
@@ -117,9 +143,9 @@ static func reset_runtime(main: Node) -> void:
 		"combo_duration": 0.0,
 		"combo_points": [],
 		"combo_locked_points": [],
-		"combo_release_anchor": main.ARENA_SIZE * 0.5,
+		"combo_release_anchor": initial_player_pos,
 		"combo_route_index": 0,
-		"combo_last_hit_pos": main.ARENA_SIZE * 0.5,
+		"combo_last_hit_pos": initial_player_pos,
 		"combo_finish_profile_pending": false,
 		"combo_attack_instance_id": "",
 		"combo_attack_profile_id": "",
@@ -127,7 +153,7 @@ static func reset_runtime(main: Node) -> void:
 		"fan_time_stop_clone_attack_profile_id": "",
 		"press_timer": 0.0,
 		"time_slow_timer": 0.0,
-		"target_pos": main.ARENA_SIZE * 0.5,
+		"target_pos": initial_player_pos,
 		"afterimage_burst_timer": 0.0,
 		"afterimage_emit_timer": 0.0,
 		"trail_emit_timer": 0.0,

@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1320" viewBox="0 0 1920 1320" role="img" aria-labelledby="title desc">
+  <title id="title">三段普攻剑相设计示意</title>
+  <desc id="desc">普通攻击三段动作、攻击范围、基础技能参数，以及轻灵重势、出势归锋、凝锋分光对三段普攻的形态影响。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071018"/>
+      <stop offset="0.55" stop-color="#101723"/>
+      <stop offset="1" stop-color="#09140f"/>
+    </linearGradient>
+    <linearGradient id="panelBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#111b28"/>
+      <stop offset="1" stop-color="#0a1018"/>
+    </linearGradient>
+    <linearGradient id="cellBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f1a26"/>
+      <stop offset="1" stop-color="#090f16"/>
+    </linearGradient>
+    <filter id="glowBlue" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowGold" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="heavyGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="5.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <marker id="arrowBlue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#66d9ff"/>
+    </marker>
+    <marker id="arrowGold" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#ffd866"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#b18cff"/>
+    </marker>
+    <marker id="arrowHeavy" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L12 5 L0 10 Z" fill="#e7edf5"/>
+    </marker>
+
+    <symbol id="player" viewBox="-14 -14 28 28">
+      <circle cx="0" cy="0" r="9" fill="#eef7ff" stroke="#6f91a8" stroke-width="2"/>
+      <path d="M-4 -2 L4 0 L-4 2 Z" fill="#0d1722" opacity="0.72"/>
+    </symbol>
+    <symbol id="blade" viewBox="-8 -34 16 68">
+      <path d="M0 -34 L7 -9 L3 20 L0 34 L-3 20 L-7 -9 Z" fill="currentColor"/>
+      <path d="M0 -26 L2 -7 L0 22 L-2 -7 Z" fill="#ffffff" opacity="0.55"/>
+    </symbol>
+    <symbol id="giantBlade" viewBox="-17 -62 34 124">
+      <path d="M0 -62 L15 -18 L8 42 L0 62 L-8 42 L-15 -18 Z" fill="currentColor"/>
+      <path d="M0 -49 L5 -16 L0 45 L-5 -16 Z" fill="#ffffff" opacity="0.46"/>
+    </symbol>
+
+    <style>
+      .title { font: 700 36px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f4fbff; }
+      .subtitle { font: 17px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #a9bdcc; }
+      .section { font: 700 23px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #eef8ff; }
+      .label { font: 700 17px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #eaf6ff; }
+      .small { font: 13px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #a8bbca; }
+      .tiny { font: 12px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #8fa5b7; }
+      .num { font: 700 13px "Consolas", "Microsoft YaHei", sans-serif; fill: #f5fbff; }
+      .panel { fill: url(#panelBg); stroke: #28465a; stroke-width: 1.4; }
+      .cell { fill: url(#cellBg); stroke: #22394a; stroke-width: 1.2; }
+      .rule { stroke: #22394a; stroke-width: 1; opacity: 0.72; }
+      .playerForward { stroke: #8da8b8; stroke-width: 1.2; stroke-dasharray: 5 6; opacity: 0.6; }
+      .rangeFillBlue { fill: #66d9ff; opacity: 0.11; }
+      .rangeFillGold { fill: #ffd866; opacity: 0.13; }
+      .rangeFillPurple { fill: #b18cff; opacity: 0.11; }
+      .rangeFillHeavy { fill: #e7edf5; opacity: 0.12; }
+      .out { fill: none; stroke: #66d9ff; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowBlue); filter: url(#glowBlue); }
+      .outThin { fill: none; stroke: #66d9ff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowBlue); }
+      .outGhost { fill: none; stroke: #66d9ff; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 6 7; opacity: 0.55; marker-end: url(#arrowBlue); }
+      .ret { fill: none; stroke: #ffd866; stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); filter: url(#glowGold); }
+      .retThin { fill: none; stroke: #ffd866; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); }
+      .split { fill: none; stroke: #b18cff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowPurple); opacity: 0.9; }
+      .splitDash { fill: none; stroke: #b18cff; stroke-width: 2.1; stroke-linecap: round; stroke-dasharray: 5 6; marker-end: url(#arrowPurple); opacity: 0.72; }
+      .heavy { fill: none; stroke: #e7edf5; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowHeavy); filter: url(#heavyGlow); }
+      .heavyBlue { fill: none; stroke: #aeeeff; stroke-width: 7.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowHeavy); filter: url(#heavyGlow); }
+      .heavyGold { fill: none; stroke: #ffe08a; stroke-width: 7.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); filter: url(#heavyGlow); }
+      .impact { fill: none; stroke: #ff7a55; stroke-width: 2.3; opacity: 0.9; }
+      .chip { fill: #132234; stroke: #2d5066; stroke-width: 1; }
+      .good { fill: #9be7ff; }
+      .warn { fill: #ffd866; }
+      .purple { fill: #d7c4ff; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1320" fill="url(#bg)"/>
+  <path d="M0 1135 C260 1086 475 1176 735 1124 C1020 1068 1300 1164 1580 1107 C1725 1077 1815 1084 1920 1047 L1920 1320 L0 1320 Z" fill="#05090d" opacity="0.54"/>
+
+  <text class="title" x="46" y="56">三段普攻剑相设计：起手 / 中段 / 收鞘</text>
+  <text class="subtitle" x="46" y="91">原则：普通攻击先保持可靠的三段节奏，再让出势、归锋、凝锋、分光改变伤害重心、空间形态和输入成本。</text>
+
+  <g transform="translate(48 122)">
+    <line class="out" x1="0" y1="0" x2="86" y2="0"/>
+    <text class="small" x="104" y="5">蓝：外放 / 起手强段</text>
+    <line class="ret" x1="280" y1="0" x2="366" y2="0"/>
+    <text class="small" x="384" y="5">金：收鞘 / 回锋强段</text>
+    <line class="split" x1="585" y1="0" x2="671" y2="0"/>
+    <text class="small" x="689" y="5">紫：分光残影</text>
+    <line class="heavy" x1="880" y1="0" x2="966" y2="0"/>
+    <text class="small" x="990" y="5">厚白：重势质量感</text>
+  </g>
+
+  <g transform="translate(46 165)">
+    <rect class="panel" width="1828" height="422" rx="12"/>
+    <text class="section" x="24" y="37">一、基础三段骨架</text>
+    <text class="small" x="24" y="64">默认总伤害归一为 100%。段间允许取消部分收招，完整三段约 0.82s；轻灵压缩节奏，重势增加承诺。</text>
+
+    <g transform="translate(34 92)">
+      <rect class="cell" width="520" height="292" rx="10"/>
+      <text class="label" x="18" y="30">第 1 段：起手斩</text>
+      <text class="small" x="18" y="54">用途：抢先手、破近身、建立朝向</text>
+      <g transform="translate(55 68)">
+        <use href="#player" x="0" y="0" width="28" height="28"/>
+        <line class="playerForward" x1="14" y1="14" x2="210" y2="14"/>
+        <path class="rangeFillBlue" d="M14 14 L206 -34 A196 196 0 0 1 206 62 Z"/>
+        <path class="out" d="M22 18 C74 -38 151 -30 215 14"/>
+        <use href="#blade" x="199" y="-24" width="24" height="74" color="#66d9ff" transform="rotate(76 211 13)"/>
+        <text class="tiny" x="238" y="-20">范围 88</text>
+        <text class="tiny" x="238" y="2">扇角 78°</text>
+        <text class="tiny" x="238" y="24">朝向锁定 0.10s</text>
+      </g>
+      <g transform="translate(18 218)">
+        <rect class="chip" x="0" y="0" width="112" height="28" rx="5"/><text class="num" x="12" y="19">伤害 32%</text>
+        <rect class="chip" x="124" y="0" width="112" height="28" rx="5"/><text class="num" x="136" y="19">前摇 0.10</text>
+        <rect class="chip" x="248" y="0" width="112" height="28" rx="5"/><text class="num" x="260" y="19">有效 0.08</text>
+        <rect class="chip" x="372" y="0" width="112" height="28" rx="5"/><text class="num" x="384" y="19">收招 0.13</text>
+      </g>
+      <text class="tiny" x="18" y="270">手感：第一段必须可信，出势可强化，但不能让非出势第一段像空挥。</text>
+    </g>
+
+    <g transform="translate(654 92)">
+      <rect class="cell" width="520" height="292" rx="10"/>
+      <text class="label" x="18" y="30">第 2 段：中段横扫</text>
+      <text class="small" x="18" y="54">用途：维持连段、清侧边、给玩家重新修正方向</text>
+      <g transform="translate(55 70)">
+        <use href="#player" x="0" y="0" width="28" height="28"/>
+        <line class="playerForward" x1="14" y1="14" x2="210" y2="14"/>
+        <path class="rangeFillBlue" d="M14 14 L188 -73 A188 188 0 0 1 188 101 Z"/>
+        <path class="outThin" d="M30 62 C92 -30 164 -35 221 -12"/>
+        <path class="out" d="M25 -20 C88 72 163 76 226 42"/>
+        <use href="#blade" x="205" y="6" width="23" height="70" color="#66d9ff" transform="rotate(103 216 41)"/>
+        <text class="tiny" x="238" y="-20">范围 82</text>
+        <text class="tiny" x="238" y="2">扇角 112°</text>
+        <text class="tiny" x="238" y="24">轻微转向修正</text>
+      </g>
+      <g transform="translate(18 218)">
+        <rect class="chip" x="0" y="0" width="112" height="28" rx="5"/><text class="num" x="12" y="19">伤害 30%</text>
+        <rect class="chip" x="124" y="0" width="112" height="28" rx="5"/><text class="num" x="136" y="19">前摇 0.08</text>
+        <rect class="chip" x="248" y="0" width="112" height="28" rx="5"/><text class="num" x="260" y="19">有效 0.09</text>
+        <rect class="chip" x="372" y="0" width="112" height="28" rx="5"/><text class="num" x="384" y="19">收招 0.13</text>
+      </g>
+      <text class="tiny" x="18" y="270">手感：第二段负责连段稳定，不作为任一剑相的最强卖点。</text>
+    </g>
+
+    <g transform="translate(1274 92)">
+      <rect class="cell" width="520" height="292" rx="10"/>
+      <text class="label" x="18" y="30">第 3 段：收鞘回斩</text>
+      <text class="small" x="18" y="54">用途：完成连段、打出终结、给归锋明确爆点</text>
+      <g transform="translate(55 70)">
+        <use href="#player" x="0" y="0" width="28" height="28"/>
+        <line class="playerForward" x1="14" y1="14" x2="210" y2="14"/>
+        <path class="rangeFillGold" d="M14 14 L216 75 A216 216 0 0 0 216 -47 Z"/>
+        <path class="outGhost" d="M24 4 C82 -24 154 -20 224 16"/>
+        <path class="ret" d="M226 18 C172 58 92 64 26 15"/>
+        <use href="#blade" x="23" y="-25" width="24" height="74" color="#ffd866" transform="rotate(-102 35 12)"/>
+        <text class="tiny" x="238" y="-20">范围 92</text>
+        <text class="tiny" x="238" y="2">扇角 86°</text>
+        <text class="tiny" x="238" y="24">终结击退 / 收鞘光</text>
+      </g>
+      <g transform="translate(18 218)">
+        <rect class="chip" x="0" y="0" width="112" height="28" rx="5"/><text class="num" x="12" y="19">伤害 38%</text>
+        <rect class="chip" x="124" y="0" width="112" height="28" rx="5"/><text class="num" x="136" y="19">前摇 0.12</text>
+        <rect class="chip" x="248" y="0" width="112" height="28" rx="5"/><text class="num" x="260" y="19">有效 0.08</text>
+        <rect class="chip" x="372" y="0" width="112" height="28" rx="5"/><text class="num" x="384" y="19">收招 0.20</text>
+      </g>
+      <text class="tiny" x="18" y="270">手感：第三段可以重，但命中前不能让前两段变得不可信。</text>
+    </g>
+  </g>
+
+  <g transform="translate(46 620)">
+    <rect class="panel" width="1828" height="262" rx="12"/>
+    <text class="section" x="24" y="36">二、剑相参数如何改三段普攻</text>
+    <text class="small" x="24" y="63">建议先用这些倍率做第一版；后续只调数字，不再改动作语法。</text>
+
+    <g transform="translate(34 88)">
+      <rect class="cell" width="420" height="138" rx="10"/>
+      <text class="label good" x="18" y="29">轻灵 / 重势：节奏与质量</text>
+      <text class="small" x="18" y="58">轻灵：时间 ×0.78，hitstop ×0.75，位移锁定 -35%</text>
+      <text class="small" x="18" y="83">重势：时间 ×1.16，hitstop ×1.35，击退 ×1.35</text>
+      <text class="tiny" x="18" y="112">重势不是纯减速，而是用厚判定和反馈换承诺。</text>
+    </g>
+
+    <g transform="translate(482 88)">
+      <rect class="cell" width="420" height="138" rx="10"/>
+      <text class="label warn" x="18" y="29">出势 / 归锋：强段位置</text>
+      <text class="small" x="18" y="58">出势：第 1 段伤害 ×1.35，范围 +10，扇角 +10°</text>
+      <text class="small" x="18" y="83">归锋：第 3 段伤害 ×1.35，范围 +8，回拉 +24</text>
+      <text class="tiny" x="18" y="112">总伤害尽量守恒，区别来自先手强还是收尾强。</text>
+    </g>
+
+    <g transform="translate(930 88)">
+      <rect class="cell" width="420" height="138" rx="10"/>
+      <text class="label good" x="18" y="29">凝锋：三段压缩成一段</text>
+      <text class="small" x="18" y="58">单次点击自动释放 1-2-3，段间间隔 0.04s</text>
+      <text class="small" x="18" y="83">范围 ×0.9，扇角 ×0.72，期间转向锁定</text>
+      <text class="tiny" x="18" y="112">优势是集中和稳定；代价是空了就空一整套。</text>
+    </g>
+
+    <g transform="translate(1378 88)">
+      <rect class="cell" width="420" height="138" rx="10"/>
+      <text class="label purple" x="18" y="29">分光：残影复制低伤害</text>
+      <text class="small" x="18" y="58">每段延迟 0.07s 生成残影，伤害为本体 30%</text>
+      <text class="small" x="18" y="83">残影范围 +8，扇角 +18°，不触发强硬直</text>
+      <text class="tiny" x="18" y="112">优势是覆盖和容错；避免变成纯单体增伤。</text>
+    </g>
+  </g>
+
+  <g transform="translate(46 915)">
+    <rect class="panel" width="1828" height="342" rx="12"/>
+    <text class="section" x="24" y="36">三、四把测试剑的普通攻击读法</text>
+    <text class="small" x="24" y="63">每把剑都沿用同一个三段骨架，只改变时间、强段、压缩方式和残影形态。</text>
+
+    <g transform="translate(34 88)">
+      <rect class="cell" width="420" height="210" rx="10"/>
+      <text class="label" x="18" y="29">风砂银分光剑</text>
+      <text class="small" x="18" y="52">轻灵 / 出势 / 分光：快、多影、第一段抢先手</text>
+      <g transform="translate(42 72)">
+        <use href="#player" x="0" y="33" width="26" height="26"/>
+        <path class="rangeFillPurple" d="M13 46 L186 1 A176 176 0 0 1 186 91 Z"/>
+        <path class="out" d="M22 47 C72 0 136 1 194 38"/>
+        <path class="split" d="M29 35 C82 15 138 15 207 23"/>
+        <path class="splitDash" d="M29 62 C86 43 142 48 213 60"/>
+        <path class="outThin" d="M28 80 C88 104 154 101 213 74"/>
+        <text class="tiny" x="238" y="16">第一段更宽</text>
+        <text class="tiny" x="238" y="38">残影扫侧边</text>
+        <text class="tiny" x="238" y="60">三段间隔短</text>
+      </g>
+      <text class="tiny" x="18" y="190">定位：清杂、抢节奏。单体爆发不应超过凝锋归锋。</text>
+    </g>
+
+    <g transform="translate(482 88)">
+      <rect class="cell" width="420" height="210" rx="10"/>
+      <text class="label" x="18" y="29">寒玉归锋剑</text>
+      <text class="small" x="18" y="52">轻灵 / 归锋 / 凝锋：一键三连，最后收鞘爆点</text>
+      <g transform="translate(42 72)">
+        <use href="#player" x="0" y="33" width="26" height="26"/>
+        <path class="rangeFillGold" d="M13 46 L195 86 A186 186 0 0 0 195 6 Z"/>
+        <path class="outGhost" d="M23 48 C79 18 137 18 201 43"/>
+        <path class="outGhost" d="M29 70 C89 91 151 89 206 67"/>
+        <path class="ret" d="M207 46 C156 84 86 89 25 49"/>
+        <text class="tiny" x="238" y="16">一次点击打完</text>
+        <text class="tiny" x="238" y="38">第三段最亮</text>
+        <text class="tiny" x="238" y="60">窄、准、收束</text>
+      </g>
+      <text class="tiny" x="18" y="190">定位：单体稳定终结。缺点是方向锁定，空挥损失完整三段。</text>
+    </g>
+
+    <g transform="translate(930 88)">
+      <rect class="cell" width="420" height="210" rx="10"/>
+      <text class="label" x="18" y="29">玄铁巨阙剑</text>
+      <text class="small" x="18" y="52">重势 / 出势 / 凝锋：一键重三连，第一段厚压出去</text>
+      <g transform="translate(42 72)">
+        <use href="#player" x="0" y="33" width="28" height="28"/>
+        <path class="rangeFillHeavy" d="M14 47 L211 0 A198 198 0 0 1 211 94 Z"/>
+        <path class="heavyBlue" d="M25 48 C81 -5 147 0 215 39"/>
+        <path class="heavy" d="M37 75 C97 104 164 102 219 72"/>
+        <use href="#giantBlade" x="195" y="-11" width="38" height="120" color="#e7edf5" transform="rotate(78 214 49)"/>
+        <path class="impact" d="M214 14 l20 -16 M224 45 h28 M213 80 l20 15"/>
+        <text class="tiny" x="248" y="16">第一段高伤</text>
+        <text class="tiny" x="248" y="38">三段压缩</text>
+        <text class="tiny" x="248" y="60">硬直强</text>
+      </g>
+      <text class="tiny" x="18" y="190">定位：破防、打断、压住正面。代价是慢和高承诺。</text>
+    </g>
+
+    <g transform="translate(1378 88)">
+      <rect class="cell" width="420" height="210" rx="10"/>
+      <text class="label" x="18" y="29">星陨回渊剑</text>
+      <text class="small" x="18" y="52">重势 / 归锋 / 分光：厚线外放，残影随收鞘坍回</text>
+      <g transform="translate(42 72)">
+        <use href="#player" x="0" y="33" width="28" height="28"/>
+        <path class="rangeFillPurple" d="M14 47 L211 -7 A201 201 0 0 1 211 101 Z"/>
+        <path class="heavyBlue" opacity="0.48" d="M25 48 C81 -5 147 0 215 39"/>
+        <path class="split" d="M36 28 C95 11 156 12 219 22"/>
+        <path class="split" d="M37 76 C100 99 161 96 224 79"/>
+        <path class="heavyGold" d="M223 46 C169 88 88 92 25 49"/>
+        <path class="retThin" d="M217 22 C159 47 95 54 29 42"/>
+        <path class="retThin" d="M224 79 C160 72 96 66 29 54"/>
+        <text class="tiny" x="248" y="16">外放铺线</text>
+        <text class="tiny" x="248" y="38">第三段坍回</text>
+        <text class="tiny" x="248" y="60">范围大但慢</text>
+      </g>
+      <text class="tiny" x="18" y="190">定位：重型清场和收尾。注意残影不应给完整硬直。</text>
+    </g>
+  </g>
+
+  <g transform="translate(70 1280)">
+    <text class="subtitle" x="0" y="0">实现提示：先只做四把测试剑。普攻命中盒用“扇形扫掠 + 段号参数”实现，残影是延迟生成的低权重命中盒，凝锋是一次输入排队三段。</text>
+  </g>
+</svg>

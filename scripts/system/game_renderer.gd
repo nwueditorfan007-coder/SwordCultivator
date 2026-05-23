@@ -51,10 +51,14 @@ static func draw_game(main: Node2D) -> void:
 	if main.screen_shake > 0.1:
 		shake_offset = Vector2(randf_range(-main.screen_shake, main.screen_shake), randf_range(-main.screen_shake, main.screen_shake))
 	main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
-	_draw_art_tactical_grid(main)
+	if main._is_large_arena_test_enabled():
+		_draw_large_arena_tactical_grid(main)
+	else:
+		_draw_art_tactical_grid(main)
 	if main.time_rift_fx != null and main.time_rift_fx.has_method("draw_background_effect"):
 		main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		main.time_rift_fx.draw_background_effect(main)
+		if not main._is_large_arena_test_enabled():
+			main.time_rift_fx.draw_background_effect(main)
 		main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
 
 	for particle in main.particles:
@@ -483,48 +487,623 @@ static func draw_game(main: Node2D) -> void:
 	elif sword_combo_id == SwordResonanceController.COMBO_PIERCE_TIME_STOP and sword_combo_strength > 0.01:
 		_draw_pierce_time_stop_combo(main, sword_pos, sword_forward, sword_combo_strength)
 
+	if bool(main.player.get("melee_action_active", false)):
+		var preview_stage_data: Dictionary = main.player.get("melee_action_stage_data", {})
+		var preview_angle: float = float(main.player.get("melee_swing_angle", (main.mouse_world - main.player["pos"]).angle()))
+		var preview_range: float = float(main.player.get("melee_attack_range", main.SWORD_MELEE_RANGE))
+		var preview_arc: float = float(main.player.get("melee_attack_arc", main.SWORD_MELEE_ARC))
+		var preview_color: Color = main.player.get("melee_flash_color", main.COLORS["melee_sword"])
+		var preview_inner_color: Color = main.player.get("melee_flash_inner_color", UNSHEATH_FLASH_CORE_COLOR)
+		var preview_phase: String = str(main.player.get("melee_action_phase", main.MELEE_ACTION_PHASE_IDLE))
+		_draw_melee_trait_slash(
+			main,
+			player_pos,
+			preview_angle,
+			preview_range,
+			preview_arc,
+			preview_color,
+			preview_inner_color,
+			preview_phase,
+			preview_stage_data,
+			0.62,
+			false
+		)
+
 	if main.player["attack_flash_timer"] > 0.0:
 		var attack_angle: float = float(main.player.get("melee_swing_angle", (main.mouse_world - main.player["pos"]).angle()))
+		var attack_range: float = float(main.player.get("melee_attack_range", main.SWORD_MELEE_RANGE))
+		var attack_arc: float = float(main.player.get("melee_attack_arc", main.SWORD_MELEE_ARC))
+		var attack_flash_duration: float = maxf(float(main.player.get("attack_flash_duration", main.MELEE_ATTACK_FLASH_DURATION)), 0.001)
 		var attack_flash_ratio: float = clampf(
-			float(main.player.get("attack_flash_timer", 0.0)) / maxf(main.MELEE_ATTACK_FLASH_DURATION, 0.001),
+			float(main.player.get("attack_flash_timer", 0.0)) / attack_flash_duration,
 			0.0,
 			1.0
 		)
 		var flash_strength: float = pow(attack_flash_ratio, 0.72)
-		var outer_color: Color = _with_alpha(main.COLORS["melee_sword"].lerp(UNSHEATH_FLASH_WARM_COLOR, 0.28), 0.16 + 0.18 * flash_strength)
-		var inner_color: Color = _with_alpha(UNSHEATH_FLASH_CORE_COLOR, 0.24 + 0.24 * flash_strength)
-		main.draw_arc(
-			player_pos,
-			main.SWORD_MELEE_RANGE,
-			attack_angle - main.SWORD_MELEE_ARC * 0.5,
-			attack_angle + main.SWORD_MELEE_ARC * 0.5,
-			36,
-			outer_color,
-			4.0 + 0.8 * flash_strength
-		)
-		main.draw_arc(
-			player_pos,
-			main.SWORD_MELEE_RANGE - (8.0 + 4.0 * (1.0 - flash_strength)),
-			attack_angle - main.SWORD_MELEE_ARC * 0.42,
-			attack_angle + main.SWORD_MELEE_ARC * 0.42,
-			24,
-			inner_color,
-			1.6 + 1.0 * flash_strength
+		var flash_color: Color = main.player.get("melee_flash_color", main.COLORS["melee_sword"])
+		var flash_inner_color: Color = main.player.get("melee_flash_inner_color", UNSHEATH_FLASH_CORE_COLOR)
+		var outer_color: Color = _with_alpha(flash_color.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.2), 0.16 + 0.18 * flash_strength)
+		var inner_color: Color = _with_alpha(flash_inner_color, 0.24 + 0.24 * flash_strength)
+		var flash_stage_data: Dictionary = main.player.get("melee_flash_stage_data", {})
+		if flash_stage_data.is_empty():
+			flash_stage_data = main.player.get("melee_action_stage_data", {})
+		if flash_stage_data.is_empty():
+			main.draw_arc(
+				player_pos,
+				attack_range,
+				attack_angle - attack_arc * 0.5,
+				attack_angle + attack_arc * 0.5,
+				36,
+				outer_color,
+				4.0 + 0.8 * flash_strength
+			)
+			main.draw_arc(
+				player_pos,
+				attack_range - (8.0 + 4.0 * (1.0 - flash_strength)),
+				attack_angle - attack_arc * 0.42,
+				attack_angle + attack_arc * 0.42,
+				24,
+				inner_color,
+				1.6 + 1.0 * flash_strength
+			)
+		else:
+			_draw_melee_trait_slash(
+				main,
+				player_pos,
+				attack_angle,
+				attack_range,
+				attack_arc,
+				flash_color,
+				flash_inner_color,
+				"active",
+				flash_stage_data,
+				flash_strength,
+				true
+			)
+	for shadow_flash_variant in main.player.get("melee_shadow_flashes", []):
+		var shadow_flash: Dictionary = shadow_flash_variant
+		var shadow_duration: float = maxf(float(shadow_flash.get("duration", main.MELEE_SHADOW_FLASH_DURATION)), 0.001)
+		var shadow_ratio: float = clampf(float(shadow_flash.get("timer", 0.0)) / shadow_duration, 0.0, 1.0)
+		var shadow_strength: float = pow(shadow_ratio, 0.62)
+		var shadow_angle: float = float(shadow_flash.get("angle", (main.mouse_world - main.player["pos"]).angle()))
+		var shadow_arc: float = float(shadow_flash.get("arc", main.SWORD_MELEE_ARC))
+		var shadow_range: float = float(shadow_flash.get("range", main.SWORD_MELEE_RANGE))
+		var shadow_origin: Vector2 = player_pos + Vector2(shadow_flash.get("origin_offset", Vector2.ZERO))
+		var shadow_color: Color = shadow_flash.get("color", Color("c084fc"))
+		var shadow_inner_color: Color = shadow_flash.get("inner_color", Color("e9d5ff"))
+		_draw_melee_trait_slash(
+			main,
+			shadow_origin,
+			shadow_angle,
+			shadow_range,
+			shadow_arc,
+			shadow_color,
+			shadow_inner_color,
+			"active",
+			shadow_flash,
+			shadow_strength,
+			true
 		)
 
 	_draw_unsheath_press_flash(main)
 	_draw_unsheath_flash(main)
 	main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	_draw_arena_margin_mask(main)
-	_draw_art_arena_frame(main)
+	if not main._is_large_arena_test_enabled():
+		_draw_arena_margin_mask(main)
+		_draw_art_arena_frame(main)
 	if main._has_boss():
 		main._draw_boss_hud()
 	draw_hud_bars(main)
+	if main._is_large_arena_test_enabled():
+		_draw_large_arena_offscreen_markers(main)
 	_draw_cursor_intent_indicator(main)
+
+
+static func _draw_melee_trait_slash(
+	main: Node2D,
+	player_pos: Vector2,
+	angle: float,
+	slash_range: float,
+	slash_arc: float,
+	slash_color: Color,
+	inner_color: Color,
+	phase: String,
+	stage_data: Dictionary,
+	strength: float,
+	is_flash: bool
+) -> void:
+	if bool(stage_data.get("draw_deflect_shape", false)):
+		var deflect_range: float = float(stage_data.get("deflect_range", slash_range))
+		var deflect_arc: float = float(stage_data.get("deflect_arc", slash_arc))
+		var guard_alpha: float = 0.035 + 0.055 * clampf(strength, 0.0, 1.0)
+		if phase == "active" or is_flash:
+			guard_alpha += 0.045 * clampf(strength, 0.0, 1.0)
+		main.draw_arc(
+			player_pos,
+			deflect_range,
+			angle - deflect_arc * 0.5,
+			angle + deflect_arc * 0.5,
+			40,
+			_with_alpha(slash_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.24), guard_alpha),
+			1.3 + 0.7 * clampf(strength, 0.0, 1.0)
+		)
+	var vfx_shape: String = str(stage_data.get("vfx_shape", "broad_split"))
+	var focus_style: String = str(stage_data.get("focus_style", ""))
+	if focus_style == "iaido_line":
+		_draw_melee_iaido_line(
+			main,
+			player_pos,
+			angle,
+			slash_range,
+			slash_color,
+			inner_color,
+			phase,
+			stage_data,
+			strength,
+			is_flash
+		)
+		return
+	if focus_style == "heavy_cleave":
+		_draw_melee_heavy_cleave(
+			main,
+			player_pos,
+			angle,
+			slash_range,
+			slash_arc,
+			slash_color,
+			inner_color,
+			phase,
+			stage_data,
+			strength,
+			is_flash
+		)
+		return
+	if vfx_shape.begins_with("long") or bool(stage_data.get("focused_slash", false)):
+		_draw_melee_focused_slash(
+			main,
+			player_pos,
+			angle,
+			slash_range,
+			slash_color,
+			inner_color,
+			phase,
+			stage_data,
+			strength,
+			is_flash
+		)
+		return
+	_draw_melee_broad_slash(
+		main,
+		player_pos,
+		angle,
+		slash_range,
+		slash_arc,
+		slash_color,
+		inner_color,
+		phase,
+		stage_data,
+		strength,
+		is_flash
+	)
+
+
+static func _draw_melee_iaido_line(
+	main: Node2D,
+	player_pos: Vector2,
+	angle: float,
+	slash_range: float,
+	slash_color: Color,
+	inner_color: Color,
+	phase: String,
+	stage_data: Dictionary,
+	strength: float,
+	is_flash: bool
+) -> void:
+	var forward := Vector2.RIGHT.rotated(angle).normalized()
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	var side := forward.orthogonal().normalized()
+	if side.is_zero_approx():
+		side = Vector2.UP
+	var slash_strength: float = clampf(strength, 0.0, 1.0)
+	var start_offset: float = float(stage_data.get("line_start_offset", 8.0))
+	var visible_range: float = float(stage_data.get("visual_range", slash_range))
+	var hit_width: float = maxf(float(stage_data.get("hit_width", 12.0)), 2.0)
+	var start_pos: Vector2 = player_pos + forward * start_offset
+	var end_pos: Vector2 = player_pos + forward * visible_range
+	if phase == "startup" and not is_flash:
+		var gather_end: Vector2 = player_pos + forward * (42.0 + 18.0 * slash_strength)
+		var gather_alpha: float = 0.06 + 0.1 * slash_strength
+		main.draw_line(
+			player_pos - side * hit_width * 0.9,
+			gather_end - side * hit_width * 0.18,
+			_with_alpha(slash_color, gather_alpha),
+			1.1 + slash_strength
+		)
+		main.draw_line(
+			player_pos + side * hit_width * 0.9,
+			gather_end + side * hit_width * 0.18,
+			_with_alpha(slash_color, gather_alpha),
+			1.1 + slash_strength
+		)
+		main.draw_line(
+			player_pos + forward * 8.0,
+			gather_end,
+			_with_alpha(inner_color, 0.08 + 0.12 * slash_strength),
+			1.0 + 0.8 * slash_strength
+		)
+		return
+	var body_width: float = hit_width * (0.36 + 0.24 * slash_strength)
+	var body_alpha: float = 0.11 + 0.12 * slash_strength
+	var core_alpha: float = 0.34 + 0.32 * slash_strength
+	var core_width: float = 1.4 + 2.2 * slash_strength
+	if phase == "recovery" and not is_flash:
+		body_width *= 0.42
+		body_alpha *= 0.48
+		core_alpha *= 0.42
+		core_width *= 0.62
+	if is_flash:
+		body_width *= 1.18
+		body_alpha += 0.08 * slash_strength
+		core_alpha += 0.22 * slash_strength
+		core_width += 1.5 * slash_strength
+	var outer_poly := PackedVector2Array([
+		start_pos - side * body_width * 0.18,
+		start_pos + side * body_width * 0.18,
+		end_pos + side * body_width * 0.7,
+		end_pos - side * body_width * 0.7,
+	])
+	_try_draw_colored_polygon(main, outer_poly, _with_alpha(slash_color, body_alpha))
+	main.draw_line(start_pos, end_pos, _with_alpha(inner_color, core_alpha), core_width)
+	main.draw_line(
+		start_pos - side * hit_width * 0.62,
+		end_pos,
+		_with_alpha(slash_color.lerp(inner_color, 0.36), 0.06 + 0.11 * slash_strength),
+		maxf(core_width * 0.28, 0.7)
+	)
+	main.draw_line(
+		start_pos + side * hit_width * 0.62,
+		end_pos,
+		_with_alpha(slash_color.lerp(inner_color, 0.36), 0.06 + 0.11 * slash_strength),
+		maxf(core_width * 0.28, 0.7)
+	)
+	var mark_size: float = float(stage_data.get("cut_mark_size", 14.0))
+	var mark_alpha: float = 0.12 + 0.22 * slash_strength
+	main.draw_line(
+		end_pos - side * mark_size * 0.62 - forward * mark_size * 0.18,
+		end_pos + side * mark_size * 0.62 + forward * mark_size * 0.18,
+		_with_alpha(inner_color, mark_alpha),
+		1.2 + 1.3 * slash_strength
+	)
+	main.draw_circle(end_pos, 2.2 + 2.0 * slash_strength, _with_alpha(inner_color, 0.12 + 0.18 * slash_strength))
+
+
+static func _draw_melee_heavy_cleave(
+	main: Node2D,
+	player_pos: Vector2,
+	angle: float,
+	slash_range: float,
+	slash_arc: float,
+	slash_color: Color,
+	inner_color: Color,
+	phase: String,
+	stage_data: Dictionary,
+	strength: float,
+	is_flash: bool
+) -> void:
+	var slash_strength: float = clampf(strength, 0.0, 1.0)
+	var visible_range: float = float(stage_data.get("visual_range", slash_range))
+	var visible_arc: float = slash_arc
+	var band_width: float = float(stage_data.get("cleave_band_width", 26.0))
+	var inner_radius: float = maxf(visible_range - band_width, 8.0)
+	var outer_radius: float = visible_range + band_width * 0.28
+	var body_alpha: float = 0.12 + 0.2 * slash_strength
+	var edge_alpha: float = 0.2 + 0.24 * slash_strength
+	var core_alpha: float = 0.16 + 0.22 * slash_strength
+	if phase == "startup" and not is_flash:
+		body_alpha *= 0.35
+		edge_alpha *= 0.42
+		core_alpha *= 0.42
+		inner_radius = maxf(visible_range - band_width * 1.65, 6.0)
+		outer_radius = visible_range - band_width * 0.45
+	elif phase == "recovery" and not is_flash:
+		body_alpha *= 0.56
+		edge_alpha *= 0.62
+		core_alpha *= 0.56
+		inner_radius += band_width * 0.22
+	if is_flash:
+		body_alpha += 0.08 * slash_strength
+		edge_alpha += 0.12 * slash_strength
+		core_alpha += 0.1 * slash_strength
+	var band_points: PackedVector2Array = _build_arc_band_points(
+		player_pos,
+		angle,
+		visible_arc,
+		inner_radius,
+		outer_radius,
+		44
+	)
+	_try_draw_colored_polygon(main, band_points, _with_alpha(slash_color.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.16), body_alpha))
+	main.draw_arc(
+		player_pos,
+		outer_radius,
+		angle - visible_arc * 0.5,
+		angle + visible_arc * 0.5,
+		42,
+		_with_alpha(inner_color, edge_alpha),
+		2.4 + 2.2 * slash_strength
+	)
+	main.draw_arc(
+		player_pos,
+		inner_radius + band_width * 0.35,
+		angle - visible_arc * 0.38,
+		angle + visible_arc * 0.38,
+		30,
+		_with_alpha(slash_color.lerp(inner_color, 0.42), core_alpha),
+		1.2 + 1.4 * slash_strength
+	)
+	var forward := Vector2.RIGHT.rotated(angle).normalized()
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	var side := forward.orthogonal().normalized()
+	if side.is_zero_approx():
+		side = Vector2.UP
+	var impact_center: Vector2 = player_pos + forward * (outer_radius - band_width * 0.35)
+	main.draw_line(
+		impact_center - side * band_width * 0.52,
+		impact_center + side * band_width * 0.52,
+		_with_alpha(inner_color, 0.1 + 0.16 * slash_strength),
+		1.2 + 1.3 * slash_strength
+	)
+	if phase == "active" or is_flash:
+		main.draw_arc(
+			player_pos,
+			outer_radius + 9.0,
+			angle - visible_arc * 0.43,
+			angle + visible_arc * 0.43,
+			34,
+			_with_alpha(inner_color, 0.045 + 0.075 * slash_strength),
+			1.0 + slash_strength
+		)
+
+
+static func _build_arc_band_points(
+	center: Vector2,
+	angle: float,
+	arc: float,
+	inner_radius: float,
+	outer_radius: float,
+	steps: int
+) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var step_count: int = maxi(steps, 4)
+	for index in range(step_count + 1):
+		var t: float = float(index) / float(step_count)
+		var point_angle: float = lerpf(angle - arc * 0.5, angle + arc * 0.5, t)
+		points.append(center + Vector2.RIGHT.rotated(point_angle) * outer_radius)
+	for index in range(step_count, -1, -1):
+		var t: float = float(index) / float(step_count)
+		var point_angle: float = lerpf(angle - arc * 0.5, angle + arc * 0.5, t)
+		points.append(center + Vector2.RIGHT.rotated(point_angle) * inner_radius)
+	return points
+
+
+static func _draw_melee_broad_slash(
+	main: Node2D,
+	player_pos: Vector2,
+	angle: float,
+	slash_range: float,
+	slash_arc: float,
+	slash_color: Color,
+	inner_color: Color,
+	phase: String,
+	stage_data: Dictionary,
+	strength: float,
+	is_flash: bool
+) -> void:
+	var slash_strength: float = clampf(strength, 0.0, 1.0)
+	var visible_range: float = float(stage_data.get("visual_range", slash_range))
+	var visible_arc: float = slash_arc
+	var spirit_shape: String = str(stage_data.get("spirit_shape", "split"))
+	var outer_alpha: float = 0.13 + 0.18 * slash_strength
+	var inner_alpha: float = 0.11 + 0.18 * slash_strength
+	var outer_width: float = 2.2 + 2.2 * slash_strength
+	var inner_width: float = 1.0 + 1.3 * slash_strength
+	match phase:
+		"startup":
+			visible_range *= 0.9
+			outer_alpha *= 0.55
+			inner_alpha *= 0.5
+			outer_width *= 0.65
+		"recovery":
+			visible_range *= 0.96
+			outer_alpha *= 0.66
+			inner_alpha *= 0.62
+			outer_width *= 0.72
+	if is_flash:
+		outer_alpha += 0.08 * slash_strength
+		inner_alpha += 0.12 * slash_strength
+		outer_width += 1.2 * slash_strength
+	if spirit_shape == "focus":
+		main.draw_arc(
+			player_pos,
+			visible_range,
+			angle - visible_arc * 0.5,
+			angle + visible_arc * 0.5,
+			42,
+			_with_alpha(slash_color.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.18), outer_alpha),
+			outer_width + 1.2
+		)
+		main.draw_arc(
+			player_pos,
+			maxf(visible_range - 10.0, 1.0),
+			angle - visible_arc * 0.42,
+			angle + visible_arc * 0.42,
+			30,
+			_with_alpha(inner_color.lerp(Color.WHITE, 0.18), inner_alpha + 0.08 * slash_strength),
+			inner_width + 0.9
+		)
+		var forward := Vector2.RIGHT.rotated(angle).normalized()
+		var left_edge: Vector2 = player_pos + Vector2.RIGHT.rotated(angle - visible_arc * 0.5) * (visible_range - 4.0)
+		var right_edge: Vector2 = player_pos + Vector2.RIGHT.rotated(angle + visible_arc * 0.5) * (visible_range - 4.0)
+		var cut_center: Vector2 = player_pos + forward * (visible_range - 16.0)
+		main.draw_line(left_edge, cut_center, _with_alpha(inner_color, 0.08 + 0.14 * slash_strength), 1.0 + slash_strength)
+		main.draw_line(right_edge, cut_center, _with_alpha(inner_color, 0.08 + 0.14 * slash_strength), 1.0 + slash_strength)
+		return
+	main.draw_arc(
+		player_pos,
+		visible_range,
+		angle - visible_arc * 0.5,
+		angle + visible_arc * 0.5,
+		40,
+		_with_alpha(slash_color, outer_alpha),
+		outer_width
+	)
+	main.draw_arc(
+		player_pos,
+		maxf(visible_range - 13.0, 1.0),
+		angle - visible_arc * 0.43,
+		angle + visible_arc * 0.43,
+		28,
+		_with_alpha(inner_color, inner_alpha),
+		inner_width
+	)
+	main.draw_arc(
+		player_pos,
+		maxf(visible_range + 7.0, 1.0),
+		angle - visible_arc * 0.35,
+		angle + visible_arc * 0.35,
+		24,
+		_with_alpha(slash_color.lerp(inner_color, 0.34), 0.045 + 0.08 * slash_strength),
+		0.8 + 0.8 * slash_strength
+	)
+
+
+static func _draw_melee_focused_slash(
+	main: Node2D,
+	player_pos: Vector2,
+	angle: float,
+	slash_range: float,
+	slash_color: Color,
+	inner_color: Color,
+	phase: String,
+	stage_data: Dictionary,
+	strength: float,
+	is_flash: bool
+) -> void:
+	var forward := Vector2.RIGHT.rotated(angle)
+	if forward.is_zero_approx():
+		forward = Vector2.RIGHT
+	forward = forward.normalized()
+	var side := forward.orthogonal().normalized()
+	if side.is_zero_approx():
+		side = Vector2.UP
+	var focused_phase: String = str(stage_data.get("focused_phase", "neutral"))
+	var spirit_shape: String = str(stage_data.get("spirit_shape", "focus"))
+	var is_condensed: bool = spirit_shape == "focus" or focused_phase == "opening" or focused_phase == "complete"
+	var start_offset: float = float(stage_data.get("line_start_offset", 8.0))
+	var hit_width: float = maxf(float(stage_data.get("hit_width", 13.0)), 2.0)
+	var slash_strength: float = clampf(strength, 0.0, 1.0)
+	var visible_range: float = float(stage_data.get("visual_range", slash_range))
+	var body_width: float = hit_width * (0.72 + 0.34 * slash_strength)
+	var body_alpha: float = 0.12 + 0.14 * slash_strength
+	var core_alpha: float = 0.22 + 0.22 * slash_strength
+	var core_width: float = 1.8 + 2.0 * slash_strength
+	match phase:
+		"startup":
+			visible_range *= 0.78 if focused_phase == "opening" else 0.92
+			body_width *= 0.48
+			body_alpha = 0.055 + 0.055 * slash_strength
+			core_alpha = 0.11 + 0.08 * slash_strength
+			core_width = 1.0 + 0.8 * slash_strength
+		"recovery":
+			body_width *= 0.58
+			body_alpha = 0.07 + 0.08 * slash_strength
+			core_alpha = 0.14 + 0.1 * slash_strength
+			core_width = 1.1 + 0.8 * slash_strength
+	if is_flash:
+		body_width *= 1.22
+		body_alpha += 0.08 * slash_strength
+		core_alpha += 0.18 * slash_strength
+		core_width += 1.6 * slash_strength
+	var start_pos: Vector2 = player_pos + forward * start_offset
+	var end_pos: Vector2 = player_pos + forward * visible_range
+	var outer_poly := PackedVector2Array([
+		start_pos - side * body_width * 0.24,
+		start_pos + side * body_width * 0.24,
+		end_pos + side * body_width,
+		end_pos - side * body_width,
+	])
+	var core_poly := PackedVector2Array([
+		start_pos - side * body_width * 0.08,
+		start_pos + side * body_width * 0.08,
+		end_pos + side * body_width * 0.32,
+		end_pos - side * body_width * 0.32,
+	])
+	_try_draw_colored_polygon(main, outer_poly, _with_alpha(slash_color, body_alpha))
+	_try_draw_colored_polygon(main, core_poly, _with_alpha(inner_color, body_alpha * 0.8))
+	main.draw_line(
+		start_pos,
+		end_pos,
+		_with_alpha(inner_color.lerp(Color.WHITE, 0.22), core_alpha),
+		core_width
+	)
+	main.draw_line(
+		start_pos - side * hit_width * 0.42,
+		end_pos - side * hit_width * 0.12,
+		_with_alpha(slash_color, body_alpha * 0.82),
+		maxf(core_width * 0.38, 0.8)
+	)
+	main.draw_line(
+		start_pos + side * hit_width * 0.42,
+		end_pos + side * hit_width * 0.12,
+		_with_alpha(slash_color, body_alpha * 0.72),
+		maxf(core_width * 0.32, 0.7)
+	)
+	if is_condensed:
+		var tip_size: float = hit_width * (1.2 + 0.35 * slash_strength)
+		var tip_poly := PackedVector2Array([
+			end_pos + forward * tip_size * 0.92,
+			end_pos - forward * tip_size * 0.34 + side * tip_size * 0.52,
+			end_pos - forward * tip_size * 0.34 - side * tip_size * 0.52,
+		])
+		_try_draw_colored_polygon(main, tip_poly, _with_alpha(inner_color, 0.12 + 0.18 * slash_strength))
+		main.draw_line(
+			start_pos - side * hit_width * 0.68,
+			end_pos,
+			_with_alpha(slash_color.lerp(inner_color, 0.36), 0.045 + 0.08 * slash_strength),
+			maxf(core_width * 0.26, 0.7)
+		)
+		main.draw_line(
+			start_pos + side * hit_width * 0.68,
+			end_pos,
+			_with_alpha(slash_color.lerp(inner_color, 0.36), 0.045 + 0.08 * slash_strength),
+			maxf(core_width * 0.26, 0.7)
+		)
+	if focused_phase == "returning" or focused_phase == "complete":
+		var return_alpha: float = (0.08 + 0.16 * slash_strength) if phase == "recovery" or is_flash else 0.055
+		var return_start: Vector2 = end_pos
+		var return_end: Vector2 = player_pos + forward * (start_offset + slash_range * 0.32)
+		main.draw_line(
+			return_start,
+			return_end,
+			_with_alpha(UNSHEATH_FLASH_WARM_COLOR.lerp(slash_color, 0.28), return_alpha),
+			1.6 + 1.6 * slash_strength
+		)
+		main.draw_line(
+			return_start - side * hit_width * 0.18,
+			return_end - side * hit_width * 0.08,
+			_with_alpha(inner_color, return_alpha * 0.62),
+			0.9 + 0.7 * slash_strength
+		)
 
 
 static func _draw_art_background(main: Node2D) -> void:
 	var viewport_rect: Rect2 = main.get_viewport_rect()
+	if main._is_large_arena_test_enabled():
+		main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
+		main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.58), true)
+		return
 	var arena_rect: Rect2 = main.ARENA_RECT
 	var arena_center: Vector2 = arena_rect.get_center()
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
@@ -679,7 +1258,107 @@ static func _draw_art_mist_lines(main: Node2D, arena_rect: Rect2) -> void:
 		line_index += 1
 
 
+static func _draw_large_arena_debug(main: Node2D) -> void:
+	_draw_large_arena_offscreen_markers(main)
+
+
+static func _draw_large_arena_bounds(main: Node2D) -> void:
+	var arena_size: Vector2 = main._get_arena_size()
+	var corners := [
+		Vector2.ZERO,
+		Vector2(arena_size.x, 0.0),
+		arena_size,
+		Vector2(0.0, arena_size.y),
+	]
+	for index in range(corners.size()):
+		var from_pos: Vector2 = main._to_screen(corners[index])
+		var to_pos: Vector2 = main._to_screen(corners[(index + 1) % corners.size()])
+		main.draw_line(from_pos, to_pos, _with_alpha(ART_GOLD, 0.28), 2.0)
+
+
+static func _draw_large_arena_world_rect(main: Node2D, rect: Rect2, color: Color, alpha: float, width: float) -> void:
+	var points := PackedVector2Array([
+		main._to_screen(rect.position),
+		main._to_screen(Vector2(rect.end.x, rect.position.y)),
+		main._to_screen(rect.end),
+		main._to_screen(Vector2(rect.position.x, rect.end.y)),
+	])
+	_try_draw_colored_polygon(main, points, _with_alpha(color, alpha))
+	for index in range(points.size()):
+		main.draw_line(points[index], points[(index + 1) % points.size()], _with_alpha(color, alpha * 2.8), width)
+
+
+static func _draw_large_arena_objective_links(main: Node2D) -> void:
+	var core: Variant = main._get_large_arena_objective(main.LARGE_ARENA_CORE_KEY)
+	if core == null:
+		return
+	var core_pos: Vector2 = Vector2(core.get("pos", main.LARGE_ARENA_CORE_POS))
+	for objective_key in [main.LARGE_ARENA_UPPER_EYE_KEY, main.LARGE_ARENA_LOWER_EYE_KEY]:
+		var eye: Variant = main._get_large_arena_objective(objective_key)
+		if eye == null:
+			continue
+		var state: String = str(main.large_arena_objective_states.get(objective_key, ""))
+		var link_alpha := 0.2 if state != main.LARGE_ARENA_STATE_DESTROYED else 0.045
+		main.draw_line(
+			main._to_screen(Vector2(eye.get("pos", Vector2.ZERO))),
+			main._to_screen(core_pos),
+			_with_alpha(main.COLORS["formation_eye"], link_alpha),
+			1.4
+		)
+
+
+static func _draw_large_arena_offscreen_markers(main: Node2D) -> void:
+	var screen_rect: Rect2 = main._get_screen_play_rect().grow(-22.0)
+	var player_pos: Vector2 = Vector2(main.player.get("pos", Vector2.ZERO))
+	for objective_key in [main.LARGE_ARENA_UPPER_EYE_KEY, main.LARGE_ARENA_LOWER_EYE_KEY, main.LARGE_ARENA_CORE_KEY]:
+		var objective: Variant = main._get_large_arena_objective(objective_key)
+		if objective == null:
+			continue
+		if str(main.large_arena_objective_states.get(objective_key, "")) == main.LARGE_ARENA_STATE_DESTROYED:
+			continue
+		var objective_pos: Vector2 = Vector2(objective.get("pos", Vector2.ZERO))
+		var screen_pos: Vector2 = main._to_screen(objective_pos)
+		if screen_rect.has_point(screen_pos):
+			continue
+		var color: Color = main.COLORS["formation_core"] if objective_key == main.LARGE_ARENA_CORE_KEY else main.COLORS["formation_eye"]
+		_draw_large_arena_marker(main, screen_rect, screen_pos, player_pos.distance_to(objective_pos), color)
+
+
+static func _draw_large_arena_marker(main: Node2D, screen_rect: Rect2, target_screen_pos: Vector2, distance: float, color: Color) -> void:
+	var center: Vector2 = screen_rect.get_center()
+	var direction: Vector2 = target_screen_pos - center
+	if direction.is_zero_approx():
+		direction = Vector2.RIGHT
+	direction = direction.normalized()
+	var half_size := screen_rect.size * 0.5
+	var scale_x := half_size.x / maxf(absf(direction.x), 0.001)
+	var scale_y := half_size.y / maxf(absf(direction.y), 0.001)
+	var marker_pos: Vector2 = center + direction * minf(scale_x, scale_y)
+	var side := direction.orthogonal().normalized()
+	var marker_points := PackedVector2Array([
+		marker_pos + direction * 13.0,
+		marker_pos - direction * 9.0 + side * 7.0,
+		marker_pos - direction * 9.0 - side * 7.0,
+	])
+	_try_draw_colored_polygon(main, marker_points, _with_alpha(color, 0.72))
+	main.draw_arc(marker_pos, 17.0, 0.0, TAU, 28, _with_alpha(color, 0.38), 1.2)
+	var font := ThemeDB.fallback_font
+	if font != null:
+		main.draw_string(
+			font,
+			marker_pos - side * 4.0 - direction * 18.0 + Vector2(-20.0, 5.0),
+			"%dm" % int(round(distance / 100.0)),
+			HORIZONTAL_ALIGNMENT_CENTER,
+			40.0,
+			13,
+			_with_alpha(color.lerp(ART_BLUE_CORE, 0.22), 0.86)
+		)
+
+
 static func _draw_art_tactical_grid(main: Node2D) -> void:
+	if main._is_large_arena_test_enabled():
+		_draw_large_arena_tactical_grid(main)
+		return
 	var x: int = 0
 	while x <= int(main.ARENA_SIZE.x):
 		var alpha_scale: float = 1.0 if x % 200 == 0 else 0.38
@@ -695,6 +1374,39 @@ static func _draw_art_tactical_grid(main: Node2D) -> void:
 		var to_y: Vector2 = main.ARENA_ORIGIN + Vector2(main.ARENA_SIZE.x, float(y))
 		main.draw_line(from_y, to_y, _with_alpha(ART_GRID, ART_GRID.a * alpha_scale), 1.0)
 		y += 100
+
+
+static func _draw_large_arena_tactical_grid(main: Node2D) -> void:
+	var arena_rect := Rect2(Vector2.ZERO, main._get_arena_size())
+	var visible_rect: Rect2 = main._get_large_arena_visible_world_rect().intersection(arena_rect)
+	if visible_rect.size.x <= 0.0 or visible_rect.size.y <= 0.0:
+		_draw_large_arena_bounds(main)
+		return
+	var start_x := int(floor(visible_rect.position.x / 200.0)) * 200
+	var end_x := int(ceil(visible_rect.end.x / 200.0)) * 200
+	var x := start_x
+	while x <= end_x:
+		var alpha_scale: float = 1.0 if x % 400 == 0 else 0.38
+		main.draw_line(
+			main._to_screen(Vector2(float(x), maxf(visible_rect.position.y, 0.0))),
+			main._to_screen(Vector2(float(x), minf(visible_rect.end.y, main._get_arena_size().y))),
+			_with_alpha(ART_GRID, ART_GRID.a * alpha_scale),
+			1.0
+		)
+		x += 100
+	var start_y := int(floor(visible_rect.position.y / 200.0)) * 200
+	var end_y := int(ceil(visible_rect.end.y / 200.0)) * 200
+	var y := start_y
+	while y <= end_y:
+		var alpha_scale: float = 1.0 if y % 400 == 0 else 0.38
+		main.draw_line(
+			main._to_screen(Vector2(maxf(visible_rect.position.x, 0.0), float(y))),
+			main._to_screen(Vector2(minf(visible_rect.end.x, main._get_arena_size().x), float(y))),
+			_with_alpha(ART_GRID, ART_GRID.a * alpha_scale),
+			1.0
+		)
+		y += 100
+	_draw_large_arena_bounds(main)
 
 
 static func _draw_art_arena_frame(main: Node2D) -> void:
@@ -840,6 +1552,14 @@ static func _draw_enemy_sigil(
 		main.PUPPET:
 			_draw_enemy_diamond(main, center, radius * 0.86, _with_alpha(enemy_color.lerp(ART_GOLD, 0.18), 0.58 * enemy_alpha), 1.8)
 			main.draw_arc(center, radius * 0.58, PI * 0.12, PI * 1.88, 24, _with_alpha(ART_GOLD, 0.24 * enemy_alpha), 1.2)
+		main.FORMATION_EYE:
+			_draw_enemy_diamond(main, center, radius * 0.86, _with_alpha(enemy_color.lerp(ART_BLUE_CORE, 0.26), 0.68 * enemy_alpha), 2.4)
+			main.draw_arc(center, radius * 0.64, -main.elapsed_time * 0.8, -main.elapsed_time * 0.8 + TAU * 0.7, 34, _with_alpha(ART_BLUE_CORE, 0.42 * enemy_alpha), 1.8)
+			main.draw_circle(center, radius * 0.18, _with_alpha(ART_BLUE_CORE, 0.7 * enemy_alpha))
+		main.FORMATION_CORE:
+			_draw_enemy_diamond(main, center, radius * 0.9, _with_alpha(enemy_color.lerp(ART_GOLD, 0.28), 0.72 * enemy_alpha), 2.8)
+			main.draw_arc(center, radius * 0.72, main.elapsed_time * 0.55, main.elapsed_time * 0.55 + TAU * 0.78, 42, _with_alpha(ART_GOLD, 0.48 * enemy_alpha), 2.0)
+			main.draw_arc(center, radius * 0.48, -main.elapsed_time * 0.72, -main.elapsed_time * 0.72 + TAU * 0.64, 34, _with_alpha(ART_BLUE_CORE, 0.3 * enemy_alpha), 1.3)
 		_:
 			_draw_enemy_diamond(main, center, radius * 0.7, _with_alpha(core_color, 0.56 * enemy_alpha), 1.6)
 			main.draw_circle(center, radius * 0.14, _with_alpha(ART_BLUE_CORE, 0.58 * enemy_alpha))
