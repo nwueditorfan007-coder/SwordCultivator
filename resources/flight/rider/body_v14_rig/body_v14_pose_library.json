@@ -1,0 +1,1277 @@
+{
+  "assembly_scale": 0.18,
+  "coordinate_system": "pivot offsets in pre-scale pixel units, y-down (Godot)",
+  "format_version": 1.0,
+  "poses": {
+    "array_fan_idle": {
+      "arm_back_forearm_sleeve": {
+        "position": [
+          -180.0,
+          -720.0
+        ],
+        "rotation_degrees": -60.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -6.0
+      },
+      "arm_back_upper": {
+        "position": [
+          -80.0,
+          -990.0
+        ],
+        "rotation_degrees": -35.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -7.0
+      },
+      "arm_front_forearm_sleeve": {
+        "position": [
+          180.0,
+          -720.0
+        ],
+        "rotation_degrees": 60.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 7.0
+      },
+      "arm_front_upper": {
+        "position": [
+          70.0,
+          -990.0
+        ],
+        "rotation_degrees": 35.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 6.0
+      },
+      "hair_back": {
+        "position": [
+          -25.0,
+          -1280.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -8.0
+      },
+      "hair_tail": {
+        "position": [
+          15.0,
+          -1280.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 5.0
+      },
+      "hand_back": {
+        "position": [
+          -240.0,
+          -460.0
+        ],
+        "rotation_degrees": -55.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -5.0
+      },
+      "hand_front": {
+        "position": [
+          240.0,
+          -460.0
+        ],
+        "rotation_degrees": 55.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 8.0
+      },
+      "head": {
+        "position": [
+          0.0,
+          -1180.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 4.0
+      },
+      "leg_back": {
+        "position": [
+          -55.0,
+          -540.0
+        ],
+        "rotation_degrees": 2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -4.0
+      },
+      "leg_front": {
+        "position": [
+          40.0,
+          -540.0
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 2.0
+      },
+      "pelvis_belt": {
+        "position": [
+          -5.0,
+          -640.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 1.0
+      },
+      "robe_back": {
+        "position": [
+          0.0,
+          -580.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -3.0
+      },
+      "robe_front": {
+        "position": [
+          0.0,
+          -580.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 3.0
+      },
+      "sash_back_mid": {
+        "position": [
+          -90.0,
+          -380.0
+        ],
+        "rotation_degrees": 16.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -10.0
+      },
+      "sash_back_root": {
+        "position": [
+          -65.0,
+          -610.0
+        ],
+        "rotation_degrees": 12.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -9.0
+      },
+      "sash_back_tip": {
+        "position": [
+          -110.0,
+          -180.0
+        ],
+        "rotation_degrees": 20.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -11.0
+      },
+      "sash_front_mid": {
+        "position": [
+          80.0,
+          -380.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 10.0
+      },
+      "sash_front_root": {
+        "position": [
+          65.0,
+          -610.0
+        ],
+        "rotation_degrees": -10.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 9.0
+      },
+      "sash_front_tip": {
+        "position": [
+          95.0,
+          -180.0
+        ],
+        "rotation_degrees": -6.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 11.0
+      },
+      "torso": {
+        "position": [
+          0.0,
+          -1080.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0.0
+      }
+    },
+    "array_pierce_idle": {
+      "arm_back_forearm_sleeve": {
+        "position": [
+          -90.0,
+          -680.0
+        ],
+        "rotation_degrees": -4.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -6.0
+      },
+      "arm_back_upper": {
+        "position": [
+          -65.0,
+          -990.0
+        ],
+        "rotation_degrees": -6.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -7.0
+      },
+      "arm_front_forearm_sleeve": {
+        "position": [
+          240.0,
+          -930.0
+        ],
+        "rotation_degrees": 85.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 7.0
+      },
+      "arm_front_upper": {
+        "position": [
+          60.0,
+          -1000.0
+        ],
+        "rotation_degrees": 75.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 6.0
+      },
+      "hair_back": {
+        "position": [
+          -25.0,
+          -1280.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -8.0
+      },
+      "hair_tail": {
+        "position": [
+          15.0,
+          -1280.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 5.0
+      },
+      "hand_back": {
+        "position": [
+          -95.0,
+          -360.0
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -5.0
+      },
+      "hand_front": {
+        "position": [
+          390.0,
+          -930.0
+        ],
+        "rotation_degrees": 90.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 8.0
+      },
+      "head": {
+        "position": [
+          4.0,
+          -1180.0
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 4.0
+      },
+      "leg_back": {
+        "position": [
+          -55.0,
+          -540.0
+        ],
+        "rotation_degrees": 2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -4.0
+      },
+      "leg_front": {
+        "position": [
+          40.0,
+          -540.0
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 2.0
+      },
+      "pelvis_belt": {
+        "position": [
+          -5.0,
+          -640.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 1.0
+      },
+      "robe_back": {
+        "position": [
+          0.0,
+          -580.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -3.0
+      },
+      "robe_front": {
+        "position": [
+          0.0,
+          -580.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 3.0
+      },
+      "sash_back_mid": {
+        "position": [
+          -90.0,
+          -380.0
+        ],
+        "rotation_degrees": 16.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -10.0
+      },
+      "sash_back_root": {
+        "position": [
+          -65.0,
+          -610.0
+        ],
+        "rotation_degrees": 12.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -9.0
+      },
+      "sash_back_tip": {
+        "position": [
+          -110.0,
+          -180.0
+        ],
+        "rotation_degrees": 20.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -11.0
+      },
+      "sash_front_mid": {
+        "position": [
+          80.0,
+          -380.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 10.0
+      },
+      "sash_front_root": {
+        "position": [
+          65.0,
+          -610.0
+        ],
+        "rotation_degrees": -10.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 9.0
+      },
+      "sash_front_tip": {
+        "position": [
+          95.0,
+          -180.0
+        ],
+        "rotation_degrees": -6.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 11.0
+      },
+      "torso": {
+        "position": [
+          0.0,
+          -1080.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0.0
+      }
+    },
+    "array_ring_idle": {
+      "arm_back_forearm_sleeve": {
+        "position": [
+          -120.0,
+          -820.0
+        ],
+        "rotation_degrees": 68.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -6.0
+      },
+      "arm_back_upper": {
+        "position": [
+          -55.0,
+          -990.0
+        ],
+        "rotation_degrees": 28.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -7.0
+      },
+      "arm_front_forearm_sleeve": {
+        "position": [
+          120.0,
+          -820.0
+        ],
+        "rotation_degrees": -68.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 7.0
+      },
+      "arm_front_upper": {
+        "position": [
+          50.0,
+          -990.0
+        ],
+        "rotation_degrees": -28.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 6.0
+      },
+      "hair_back": {
+        "position": [
+          -25.0,
+          -1280.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -8.0
+      },
+      "hair_tail": {
+        "position": [
+          15.0,
+          -1280.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 5.0
+      },
+      "hand_back": {
+        "position": [
+          -80.0,
+          -880.0
+        ],
+        "rotation_degrees": 100.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -5.0
+      },
+      "hand_front": {
+        "position": [
+          80.0,
+          -880.0
+        ],
+        "rotation_degrees": -100.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 8.0
+      },
+      "head": {
+        "position": [
+          -2.0,
+          -1175.0
+        ],
+        "rotation_degrees": 3.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 4.0
+      },
+      "leg_back": {
+        "position": [
+          -55.0,
+          -540.0
+        ],
+        "rotation_degrees": 2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -4.0
+      },
+      "leg_front": {
+        "position": [
+          40.0,
+          -540.0
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 2.0
+      },
+      "pelvis_belt": {
+        "position": [
+          -5.0,
+          -640.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 1.0
+      },
+      "robe_back": {
+        "position": [
+          0.0,
+          -580.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -3.0
+      },
+      "robe_front": {
+        "position": [
+          0.0,
+          -580.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 3.0
+      },
+      "sash_back_mid": {
+        "position": [
+          -90.0,
+          -380.0
+        ],
+        "rotation_degrees": 16.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -10.0
+      },
+      "sash_back_root": {
+        "position": [
+          -65.0,
+          -610.0
+        ],
+        "rotation_degrees": 12.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -9.0
+      },
+      "sash_back_tip": {
+        "position": [
+          -110.0,
+          -180.0
+        ],
+        "rotation_degrees": 20.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -11.0
+      },
+      "sash_front_mid": {
+        "position": [
+          80.0,
+          -380.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 10.0
+      },
+      "sash_front_root": {
+        "position": [
+          65.0,
+          -610.0
+        ],
+        "rotation_degrees": -10.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 9.0
+      },
+      "sash_front_tip": {
+        "position": [
+          95.0,
+          -180.0
+        ],
+        "rotation_degrees": -6.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 11.0
+      },
+      "torso": {
+        "position": [
+          0.0,
+          -1080.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0.0
+      }
+    },
+    "idle": {
+      "arm_back_forearm_sleeve": {
+        "position": [
+          -105.0,
+          -700.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -6
+      },
+      "arm_back_upper": {
+        "position": [
+          -70.0,
+          -990.0
+        ],
+        "rotation_degrees": 4.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -7
+      },
+      "arm_front_forearm_sleeve": {
+        "position": [
+          1931.27563476563,
+          -1106.37939453125
+        ],
+        "rotation_degrees": -26.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 7
+      },
+      "arm_front_upper": {
+        "position": [
+          -6.8720703125,
+          -696.7900390625
+        ],
+        "rotation_degrees": 2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -5
+      },
+      "hair_back": {
+        "position": [
+          -25.0,
+          -1280.0
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -8
+      },
+      "hair_tail": {
+        "position": [
+          -267.922119140625,
+          -1079.3828125
+        ],
+        "rotation_degrees": 72.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 5
+      },
+      "hand_back": {
+        "position": [
+          147.77734375,
+          -796.8115234375
+        ],
+        "rotation_degrees": -14.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0
+      },
+      "hand_front": {
+        "position": [
+          -90.760009765625,
+          -771.5224609375
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 8
+      },
+      "head": {
+        "position": [
+          25.720703125,
+          -999.958251953125
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -1
+      },
+      "leg_back": {
+        "position": [
+          83.889404296875,
+          -709.75244140625
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -4
+      },
+      "leg_front": {
+        "position": [
+          1665.513671875,
+          -750.90478515625
+        ],
+        "rotation_degrees": -36.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 2
+      },
+      "pelvis_belt": {
+        "position": [
+          1610.22631835938,
+          -737.73583984375
+        ],
+        "rotation_degrees": 32.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 1
+      },
+      "robe_back": {
+        "position": [
+          1136.83081054688,
+          -976.09033203125
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -3
+      },
+      "robe_front": {
+        "position": [
+          1603.93798828125,
+          -796.05029296875
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -4
+      },
+      "sash_back_mid": {
+        "position": [
+          -90.0,
+          -380.0
+        ],
+        "rotation_degrees": 16.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -10
+      },
+      "sash_back_root": {
+        "position": [
+          -65.0,
+          -610.0
+        ],
+        "rotation_degrees": 12.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -9
+      },
+      "sash_back_tip": {
+        "position": [
+          -110.0,
+          -180.0
+        ],
+        "rotation_degrees": 20.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -11
+      },
+      "sash_front_mid": {
+        "position": [
+          -22.88037109375,
+          -1146.4609375
+        ],
+        "rotation_degrees": 66.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0
+      },
+      "sash_front_root": {
+        "position": [
+          -253.93017578125,
+          -1011.23364257813
+        ],
+        "rotation_degrees": 148.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 9
+      },
+      "sash_front_tip": {
+        "position": [
+          -414.260009765625,
+          -1023.62158203125
+        ],
+        "rotation_degrees": -106.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 11
+      },
+      "torso": {
+        "position": [
+          15.432373046875,
+          -966.8310546875
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0
+      }
+    },
+    "sword_control_idle": {
+      "arm_back_forearm_sleeve": {
+        "position": [
+          -95.0,
+          -680.0
+        ],
+        "rotation_degrees": 6.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -6
+      },
+      "arm_back_upper": {
+        "position": [
+          -65.0,
+          -990.0
+        ],
+        "rotation_degrees": 10.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -7
+      },
+      "arm_front_forearm_sleeve": {
+        "position": [
+          1661.91357421875,
+          -782.263671875
+        ],
+        "rotation_degrees": -75.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 7
+      },
+      "arm_front_upper": {
+        "position": [
+          18.9912109375,
+          -737.9423828125
+        ],
+        "rotation_degrees": 5.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -1
+      },
+      "hair_back": {
+        "position": [
+          2058.3330078125,
+          -709.012451171875
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -8
+      },
+      "hair_tail": {
+        "position": [
+          15.0,
+          -1280.0
+        ],
+        "rotation_degrees": -8.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 5
+      },
+      "hand_back": {
+        "position": [
+          -105.0,
+          -350.0
+        ],
+        "rotation_degrees": 4.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -5
+      },
+      "hand_front": {
+        "position": [
+          205.0,
+          -1000.0
+        ],
+        "rotation_degrees": -90.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 8
+      },
+      "head": {
+        "position": [
+          66.8720703125,
+          -1051.39916992188
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 4
+      },
+      "leg_back": {
+        "position": [
+          78.744873046875,
+          -750.9052734375
+        ],
+        "rotation_degrees": 2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -4
+      },
+      "leg_front": {
+        "position": [
+          1711.81030273438,
+          -730.32861328125
+        ],
+        "rotation_degrees": -2.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 2
+      },
+      "pelvis_belt": {
+        "position": [
+          -1357.88061523438,
+          -917.77734375
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 1
+      },
+      "robe_back": {
+        "position": [
+          3431.06958007813,
+          -801.193359375
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -3
+      },
+      "robe_front": {
+        "position": [
+          -1322.01635742188,
+          -713.7451171875
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 3
+      },
+      "sash_back_mid": {
+        "position": [
+          -90.0,
+          -380.0
+        ],
+        "rotation_degrees": 16.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -10
+      },
+      "sash_back_root": {
+        "position": [
+          -65.0,
+          -610.0
+        ],
+        "rotation_degrees": 12.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -9
+      },
+      "sash_back_tip": {
+        "position": [
+          -110.0,
+          -180.0
+        ],
+        "rotation_degrees": 20.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": -11
+      },
+      "sash_front_mid": {
+        "position": [
+          90.0,
+          -380.0
+        ],
+        "rotation_degrees": -14.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 10
+      },
+      "sash_front_root": {
+        "position": [
+          70.0,
+          -610.0
+        ],
+        "rotation_degrees": -16.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 9
+      },
+      "sash_front_tip": {
+        "position": [
+          110.0,
+          -180.0
+        ],
+        "rotation_degrees": -12.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 11
+      },
+      "torso": {
+        "position": [
+          56.58447265625,
+          -1013.12744140625
+        ],
+        "rotation_degrees": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ],
+        "z_index": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "source": "body_v14_rig_exploded_parts_clean.png",
+  "source_size": [
+    2048,
+    2048
+  ],
+  "padding": 4,
+  "parts": {
+    "torso": {
+      "file": "parts/torso.png",
+      "size": [
+        322,
+        448
+      ],
+      "pivot": [
+        161.0,
+        80.6
+      ],
+      "source_bbox": [
+        66,
+        265,
+        388,
+        713
+      ]
+    },
+    "hair_back": {
+      "file": "parts/hair_back.png",
+      "size": [
+        202,
+        459
+      ],
+      "pivot": [
+        101.0,
+        23.0
+      ],
+      "source_bbox": [
+        968,
+        254,
+        1170,
+        713
+      ]
+    },
+    "sash_back_root": {
+      "file": "parts/sash_back_root.png",
+      "size": [
+        227,
+        460
+      ],
+      "pivot": [
+        124.9,
+        23.0
+      ],
+      "source_bbox": [
+        1258,
+        269,
+        1485,
+        729
+      ]
+    },
+    "arm_back_upper": {
+      "file": "parts/arm_back_upper.png",
+      "size": [
+        125,
+        336
+      ],
+      "pivot": [
+        68.8,
+        33.6
+      ],
+      "source_bbox": [
+        1564,
+        308,
+        1689,
+        644
+      ]
+    },
+    "arm_back_forearm_sleeve": {
+      "file": "parts/arm_back_forearm_sleeve.png",
+      "size": [
+        214,
+        374
+      ],
+      "pivot": [
+        117.7,
+        37.4
+      ],
+      "source_bbox": [
+        437,
+        373,
+        651,
+        747
+      ]
+    },
+    "head": {
+      "file": "parts/head.png",
+      "size": [
+        207,
+        243
+      ],
+      "pivot": [
+        103.5,
+        206.5
+      ],
+      "source_bbox": [
+        713,
+        360,
+        920,
+        603
+      ]
+    },
+    "pelvis_belt": {
+      "file": "parts/pelvis_belt.png",
+      "size": [
+        181,
+        349
+      ],
+      "pivot": [
+        90.5,
+        34.9
+      ],
+      "source_bbox": [
+        1778,
+        334,
+        1959,
+        683
+      ]
+    },
+    "arm_front_upper": {
+      "file": "parts/arm_front_upper.png",
+      "size": [
+        132,
+        410
+      ],
+      "pivot": [
+        66.0,
+        41.0
+      ],
+      "source_bbox": [
+        1216,
+        853,
+        1348,
+        1263
+      ]
+    },
+    "leg_back": {
+      "file": "parts/leg_back.png",
+      "size": [
+        119,
+        394
+      ],
+      "pivot": [
+        59.5,
+        19.7
+      ],
+      "source_bbox": [
+        1474,
+        868,
+        1593,
+        1262
+      ]
+    },
+    "robe_front": {
+      "file": "parts/robe_front.png",
+      "size": [
+        271,
+        422
+      ],
+      "pivot": [
+        122.0,
+        42.2
+      ],
+      "source_bbox": [
+        1675,
+        849,
+        1946,
+        1271
+      ]
+    },
+    "arm_front_forearm_sleeve": {
+      "file": "parts/arm_front_forearm_sleeve.png",
+      "size": [
+        124,
+        326
+      ],
+      "pivot": [
+        62.0,
+        32.6
+      ],
+      "source_bbox": [
+        393,
+        901,
+        517,
+        1227
+      ]
+    },
+    "leg_front": {
+      "file": "parts/leg_front.png",
+      "size": [
+        181,
+        348
+      ],
+      "pivot": [
+        90.5,
+        17.4
+      ],
+      "source_bbox": [
+        623,
+        889,
+        804,
+        1237
+      ]
+    },
+    "hand_front": {
+      "file": "parts/hand_front.png",
+      "size": [
+        93,
+        197
+      ],
+      "pivot": [
+        46.5,
+        29.5
+      ],
+      "source_bbox": [
+        148,
+        968,
+        241,
+        1165
+      ]
+    },
+    "hand_back": {
+      "file": "parts/hand_back.png",
+      "size": [
+        88,
+        202
+      ],
+      "pivot": [
+        44.0,
+        30.3
+      ],
+      "source_bbox": [
+        976,
+        963,
+        1064,
+        1165
+      ]
+    },
+    "robe_back": {
+      "file": "parts/robe_back.png",
+      "size": [
+        327,
+        435
+      ],
+      "pivot": [
+        163.5,
+        21.8
+      ],
+      "source_bbox": [
+        87,
+        1405,
+        414,
+        1840
+      ]
+    },
+    "sash_back_mid": {
+      "file": "parts/sash_back_mid.png",
+      "size": [
+        91,
+        302
+      ],
+      "pivot": [
+        50.1,
+        15.1
+      ],
+      "source_bbox": [
+        535,
+        1466,
+        626,
+        1768
+      ]
+    },
+    "sash_front_root": {
+      "file": "parts/sash_front_root.png",
+      "size": [
+        146,
+        300
+      ],
+      "pivot": [
+        80.3,
+        15.0
+      ],
+      "source_bbox": [
+        777,
+        1489,
+        923,
+        1789
+      ]
+    },
+    "sash_front_mid": {
+      "file": "parts/sash_front_mid.png",
+      "size": [
+        124,
+        306
+      ],
+      "pivot": [
+        68.2,
+        15.3
+      ],
+      "source_bbox": [
+        1316,
+        1472,
+        1440,
+        1778
+      ]
+    },
+    "hair_tail": {
+      "file": "parts/hair_tail.png",
+      "size": [
+        88,
+        307
+      ],
+      "pivot": [
+        48.4,
+        15.4
+      ],
+      "source_bbox": [
+        1606,
+        1500,
+        1694,
+        1807
+      ]
+    },
+    "sash_front_tip": {
+      "file": "parts/sash_front_tip.png",
+      "size": [
+        109,
+        194
+      ],
+      "pivot": [
+        60.0,
+        9.7
+      ],
+      "source_bbox": [
+        1056,
+        1561,
+        1165,
+        1755
+      ]
+    },
+    "sash_back_tip": {
+      "file": "parts/sash_back_tip.png",
+      "size": [
+        81,
+        173
+      ],
+      "pivot": [
+        44.6,
+        8.7
+      ],
+      "source_bbox": [
+        1873,
+        1562,
+        1954,
+        1735
+      ]
+    }
+  }
+}

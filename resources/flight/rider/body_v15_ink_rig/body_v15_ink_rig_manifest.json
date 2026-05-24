@@ -1,0 +1,393 @@
+{
+  "source": "source/body_v15_ink_exploded_parts_clean.png",
+  "source_size": [
+    2048,
+    2048
+  ],
+  "padding": 4,
+  "notes": [
+    "Visible-shape extraction from body_v15_ink_master_full.png.",
+    "Some parts are partial where the locked master pose occludes hidden geometry.",
+    "Use this as the style-locked calibration pass before hidden-side repainting."
+  ],
+  "parts": {
+    "torso": {
+      "file": "parts/torso.png",
+      "size": [
+        330,
+        271
+      ],
+      "pivot": [
+        171.6,
+        59.6
+      ],
+      "source_bbox": [
+        90,
+        80,
+        420,
+        351
+      ],
+      "status": "hidden_repaint_pass1"
+    },
+    "hair_back": {
+      "file": "parts/hair_back.png",
+      "size": [
+        460,
+        130
+      ],
+      "pivot": [
+        395.6,
+        49.4
+      ],
+      "source_bbox": [
+        815,
+        70,
+        1275,
+        200
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "hair_tail": {
+      "file": "parts/hair_tail.png",
+      "size": [
+        560,
+        99
+      ],
+      "pivot": [
+        515.2,
+        41.6
+      ],
+      "source_bbox": [
+        1395,
+        90,
+        1955,
+        189
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "sash_back_root": {
+      "file": "parts/sash_back_root.png",
+      "size": [
+        170,
+        100
+      ],
+      "pivot": [
+        122.4,
+        32.0
+      ],
+      "source_bbox": [
+        445,
+        438,
+        615,
+        538
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "sash_back_mid": {
+      "file": "parts/sash_back_mid.png",
+      "size": [
+        580,
+        83
+      ],
+      "pivot": [
+        493.0,
+        29.9
+      ],
+      "source_bbox": [
+        760,
+        430,
+        1340,
+        513
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "sash_back_tip": {
+      "file": "parts/sash_back_tip.png",
+      "size": [
+        390,
+        106
+      ],
+      "pivot": [
+        319.8,
+        42.4
+      ],
+      "source_bbox": [
+        1485,
+        430,
+        1875,
+        536
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "arm_back_upper": {
+      "file": "parts/arm_back_upper.png",
+      "size": [
+        315,
+        150
+      ],
+      "pivot": [
+        245.7,
+        39.0
+      ],
+      "source_bbox": [
+        80,
+        710,
+        395,
+        860
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "arm_back_forearm_sleeve": {
+      "file": "parts/arm_back_forearm_sleeve.png",
+      "size": [
+        220,
+        112
+      ],
+      "pivot": [
+        66.0,
+        47.0
+      ],
+      "source_bbox": [
+        450,
+        710,
+        670,
+        822
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "hand_back": {
+      "file": "parts/hand_back.png",
+      "size": [
+        160,
+        140
+      ],
+      "pivot": [
+        41.6,
+        95.2
+      ],
+      "source_bbox": [
+        785,
+        710,
+        945,
+        850
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "head": {
+      "file": "parts/head.png",
+      "size": [
+        243,
+        250
+      ],
+      "pivot": [
+        126.4,
+        215.0
+      ],
+      "source_bbox": [
+        470,
+        70,
+        713,
+        320
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "pelvis_belt": {
+      "file": "parts/pelvis_belt.png",
+      "size": [
+        257,
+        110
+      ],
+      "pivot": [
+        128.5,
+        46.2
+      ],
+      "source_bbox": [
+        100,
+        440,
+        357,
+        550
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "leg_back": {
+      "file": "parts/leg_back.png",
+      "size": [
+        238,
+        235
+      ],
+      "pivot": [
+        143.0,
+        47.3
+      ],
+      "source_bbox": [
+        102,
+        1045,
+        340,
+        1280
+      ],
+      "status": "hidden_repaint_pass1"
+    },
+    "robe_back": {
+      "file": "parts/robe_back.png",
+      "size": [
+        500,
+        159
+      ],
+      "pivot": [
+        420.0,
+        38.2
+      ],
+      "source_bbox": [
+        455,
+        1045,
+        955,
+        1204
+      ],
+      "status": "hidden_repaint_pass1"
+    },
+    "arm_front_upper": {
+      "file": "parts/arm_front_upper.png",
+      "size": [
+        320,
+        131
+      ],
+      "pivot": [
+        57.6,
+        47.2
+      ],
+      "source_bbox": [
+        1120,
+        710,
+        1440,
+        841
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "arm_front_forearm_sleeve": {
+      "file": "parts/arm_front_forearm_sleeve.png",
+      "size": [
+        190,
+        75
+      ],
+      "pivot": [
+        34.2,
+        40.5
+      ],
+      "source_bbox": [
+        1510,
+        720,
+        1700,
+        795
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "hand_front": {
+      "file": "parts/hand_front.png",
+      "size": [
+        170,
+        52
+      ],
+      "pivot": [
+        30.6,
+        27.0
+      ],
+      "source_bbox": [
+        1765,
+        725,
+        1935,
+        777
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "leg_front": {
+      "file": "parts/leg_front.png",
+      "size": [
+        196,
+        300
+      ],
+      "pivot": [
+        82.3,
+        48.0
+      ],
+      "source_bbox": [
+        1040,
+        1025,
+        1236,
+        1325
+      ],
+      "status": "hidden_repaint_pass1"
+    },
+    "robe_front": {
+      "file": "parts/robe_front.png",
+      "size": [
+        270,
+        320
+      ],
+      "pivot": [
+        145.8,
+        57.6
+      ],
+      "source_bbox": [
+        1405,
+        1015,
+        1675,
+        1335
+      ],
+      "status": "hidden_repaint_pass1"
+    },
+    "sash_front_root": {
+      "file": "parts/sash_front_root.png",
+      "size": [
+        150,
+        100
+      ],
+      "pivot": [
+        93.0,
+        30.0
+      ],
+      "source_bbox": [
+        85,
+        1510,
+        235,
+        1610
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "sash_front_mid": {
+      "file": "parts/sash_front_mid.png",
+      "size": [
+        540,
+        140
+      ],
+      "pivot": [
+        464.4,
+        47.6
+      ],
+      "source_bbox": [
+        480,
+        1510,
+        1020,
+        1650
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    },
+    "sash_front_tip": {
+      "file": "parts/sash_front_tip.png",
+      "size": [
+        370,
+        105
+      ],
+      "pivot": [
+        310.8,
+        44.1
+      ],
+      "source_bbox": [
+        1230,
+        1515,
+        1600,
+        1620
+      ],
+      "status": "visible_extract_needs_hidden_repaint"
+    }
+  }
+}

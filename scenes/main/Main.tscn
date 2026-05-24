@@ -3,10 +3,32 @@
 [ext_resource type="Script" uid="uid://csb61sc78v6gj" path="res://scripts/system/main.gd" id="1_82ptl"]
 [ext_resource type="Script" uid="uid://d23o6qr4240c3" path="res://scripts/vfx/sword_flight_fx.gd" id="2_swordflightfx"]
 [ext_resource type="PackedScene" uid="uid://b6xwhb5a71ywh" path="res://scenes/vfx/TimeRiftFx.tscn" id="3_timeriftfx"]
+[ext_resource type="Script" path="res://scripts/vfx/flight_atmosphere_fx.gd" id="4_flightatmosphere"]
+[ext_resource type="Script" uid="uid://uojm3ca1cwl8" path="res://scripts/vfx/flight_rider_sprite_fx.gd" id="5_flightrider"]
+[ext_resource type="Script" uid="uid://c1jm11h5tfl56" path="res://scripts/vfx/flight_rider_body_rig_fx.gd" id="6_riderrig"]
+
+[sub_resource type="Resource" id="Resource_dc040"]
+metadata/__load_path__ = "res://resources/flight/rider/flight_rider_body_v13_1_sheet.png"
+
+[sub_resource type="Resource" id="Resource_1rhdn"]
+metadata/__load_path__ = "res://resources/flight/rider/flight_rider_body_v13_1_transitions.png"
 
 [node name="Main" type="Node2D" unique_id=2035086712]
 script = ExtResource("1_82ptl")
+use_flight_rider_body_rig_fx = true
 sword_hover_preset = 3
+
+[node name="FlightAtmosphereFx" type="Node2D" parent="." unique_id=1128701203]
+script = ExtResource("4_flightatmosphere")
+
+[node name="FlightRiderSpriteFx" type="Node2D" parent="." unique_id=836240245]
+script = ExtResource("5_flightrider")
+body_sheet = SubResource("Resource_dc040")
+body_transition_sheet = SubResource("Resource_1rhdn")
+
+[node name="FlightRiderBodyRigFx" type="Node2D" parent="." unique_id=976450455]
+script = ExtResource("6_riderrig")
+rig_asset_preset = "v15_ink"
 
 [node name="SwordFlightFx" type="Node2D" parent="." unique_id=1718008480]
 visible = false

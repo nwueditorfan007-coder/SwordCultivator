@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flight Rider Body V10 Atlas"
+  short_description: "Recombine SwordCultivator V10 rider atlases"
+  default_prompt: "Use $flight-rider-body-v10-atlas to recombine the SwordCultivator flight rider V10 body and transition atlases."

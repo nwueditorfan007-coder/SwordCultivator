@@ -28,6 +28,7 @@ static func reset_runtime(main: Node) -> void:
 	main.bullets.clear()
 	main.array_swords.clear()
 	main.particles.clear()
+	main.score_loot_pickups.clear()
 	main.sword_afterimages.clear()
 	main.sword_trail_points.clear()
 	main.sword_air_wakes.clear()
@@ -51,6 +52,11 @@ static func reset_runtime(main: Node) -> void:
 	main.energy_gain_feedback_timer = 0.0
 	main.energy_gain_feedback_strength = 0.0
 	main.energy_gain_feedback_color = Color.WHITE
+	main.score_feedback_timer = 0.0
+	main.score_feedback_color = Color.WHITE
+	main.sword_momentum_heat_display = 0.0
+	main.sword_momentum_full_flash_timer = 0.0
+	main.sword_momentum_was_full = false
 	main.hitstop_timer = 0.0
 	main.hitstop_queue = []
 	main.hitstop_gap_timer = 0.0

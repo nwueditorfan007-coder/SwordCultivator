@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1780" height="1040" viewBox="0 0 1780 1040" role="img" aria-labelledby="title desc">
+  <title id="title">横版御剑人物三套美术方案 V1</title>
+  <desc id="desc">为横版御剑关卡提供三套人物视觉方案：水墨剪影、动画飘逸、小体型高读感。每套包含角色轮廓、动作语言、剑位处理和适用判断。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b12"/>
+      <stop offset="0.55" stop-color="#0b1723"/>
+      <stop offset="1" stop-color="#06120f"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#102131"/>
+      <stop offset="1" stop-color="#07111b"/>
+    </linearGradient>
+    <linearGradient id="inkRobe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26394b"/>
+      <stop offset="1" stop-color="#03070c"/>
+    </linearGradient>
+    <linearGradient id="animeRobe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#304c62"/>
+      <stop offset="0.5" stop-color="#16283a"/>
+      <stop offset="1" stop-color="#081019"/>
+    </linearGradient>
+    <linearGradient id="compactRobe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a4051"/>
+      <stop offset="1" stop-color="#0a141e"/>
+    </linearGradient>
+    <linearGradient id="sword" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5ee7ff"/>
+      <stop offset="0.5" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#80f2ff"/>
+    </linearGradient>
+    <filter id="blueGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="goldGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <symbol id="blade" viewBox="-24 -12 178 24">
+      <path d="M0 -4 L112 -4 L154 0 L112 4 L0 4 Z" fill="url(#sword)" filter="url(#blueGlow)"/>
+      <rect x="-18" y="-9" width="20" height="18" rx="4" fill="#d0a14a" filter="url(#goldGlow)"/>
+      <path d="M12 0 L112 0" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+    </symbol>
+
+    <style>
+      .title { font: 700 38px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f6fbff; }
+      .subtitle { font: 17px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #9fb6c7; }
+      .panelTitle { font: 700 27px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f3fbff; }
+      .panelSub { font: 15px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #a7bdcc; }
+      .label { font: 700 14px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f5fbff; }
+      .note { font: 14px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #b5c7d4; }
+      .small { font: 12px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #93aabc; }
+      .panel { fill: url(#panel); stroke: #2e5368; stroke-width: 1.5; }
+      .rule { stroke: #2b4658; stroke-width: 1; opacity: 0.72; }
+      .gold { stroke: #d7bb79; fill: none; filter: url(#goldGlow); }
+      .cyan { stroke: #91efff; fill: none; filter: url(#blueGlow); }
+      .qi { fill: #91efff; opacity: 0.13; filter: url(#blueGlow); }
+      .ink { fill: url(#inkRobe); stroke: #567487; stroke-width: 2; }
+      .anime { fill: url(#animeRobe); stroke: #7fa4b8; stroke-width: 2; }
+      .compact { fill: url(#compactRobe); stroke: #83a7b8; stroke-width: 2; }
+      .skin { fill: #e4c28f; stroke: #ffe7b8; stroke-width: 1.2; }
+      .hair { fill: #02060a; stroke: #344c5c; stroke-width: 1; }
+      .soft { opacity: 0.42; }
+    </style>
+  </defs>
+
+  <rect width="1780" height="1040" fill="url(#bg)"/>
+  <text class="title" x="58" y="62">横版御剑人物三套美术方案 V1</text>
+  <text class="subtitle" x="58" y="94">这轮只定人物方向，不实现。核心修正：别用程序细线拼人，先确定“剪影、袖袍、剑位、动作气质”。</text>
+
+  <!-- Option A -->
+  <g transform="translate(58 136)">
+    <rect class="panel" x="0" y="0" width="530" height="820" rx="10"/>
+    <text class="panelTitle" x="28" y="42">A. 水墨剪影剑修</text>
+    <text class="panelSub" x="28" y="70">克制、暗、块面化，最贴当前玄夜法阵气质</text>
+    <line class="rule" x1="28" y1="94" x2="502" y2="94"/>
+
+    <g transform="translate(265 330)">
+      <ellipse class="qi" cx="0" cy="160" rx="168" ry="28"/>
+      <path class="cyan" d="M-142 162 C-70 132 70 132 142 160" stroke-width="2" opacity="0.55"/>
+      <path class="ink" d="M-38 -105 C-24 -145 28 -150 48 -106 C68 -58 82 35 52 122 C18 154 -36 154 -72 120 C-58 38 -62 -52 -38 -105 Z"/>
+      <path class="ink" d="M-42 -82 C-104 -62 -143 -18 -164 30 C-106 16 -72 -8 -42 -42 Z"/>
+      <path class="ink" d="M42 -84 C92 -68 132 -36 166 16 C104 6 70 -16 42 -44 Z"/>
+      <circle class="skin" cx="5" cy="-146" r="18"/>
+      <path class="hair" d="M-14 -157 C-4 -194 32 -188 27 -146 C12 -158 -2 -164 -20 -150 Z"/>
+      <path class="gold" d="M-66 4 C-20 16 24 16 66 0" stroke-width="4"/>
+      <path class="cyan soft" d="M-24 -122 C-100 -160 -142 -142 -184 -98" stroke-width="7" stroke-linecap="round"/>
+      <use href="#blade" transform="translate(68 -70) rotate(-8) scale(1.2)"/>
+      <path class="cyan" d="M52 -76 C114 -118 188 -104 220 -48" stroke-width="3" opacity="0.55"/>
+    </g>
+
+    <text class="label" x="28" y="612">动作语言</text>
+    <text class="note" x="28" y="640">靠大袖、披帛、袍角和剑光读动作，身体本体少动。</text>
+    <text class="label" x="28" y="680">优点</text>
+    <text class="note" x="28" y="708">最不容易丑，和现有深色战场、金蓝法阵最统一。</text>
+    <text class="label" x="28" y="748">风险</text>
+    <text class="note" x="28" y="776">角色个性弱一点，动作爽感主要靠 VFX 和剪影节奏。</text>
+  </g>
+
+  <!-- Option B -->
+  <g transform="translate(625 136)">
+    <rect class="panel" x="0" y="0" width="530" height="820" rx="10"/>
+    <text class="panelTitle" x="28" y="42">B. 动画飘逸剑修</text>
+    <text class="panelSub" x="28" y="70">更帅、更像角色，但需要真动作资产支撑</text>
+    <line class="rule" x1="28" y1="94" x2="502" y2="94"/>
+
+    <g transform="translate(265 330)">
+      <ellipse class="qi" cx="0" cy="164" rx="178" ry="24"/>
+      <path class="cyan" d="M-154 164 C-66 122 82 128 156 162" stroke-width="2" opacity="0.6"/>
+      <path class="anime" d="M-34 -112 C-12 -154 35 -150 55 -108 L78 118 C32 158 -46 154 -78 110 Z"/>
+      <path class="anime" d="M-38 -88 C-114 -124 -164 -132 -214 -112 C-158 -68 -96 -50 -42 -52 Z"/>
+      <path class="anime" d="M46 -90 C112 -82 164 -50 212 6 C144 10 86 -14 44 -52 Z"/>
+      <circle class="skin" cx="8" cy="-152" r="19"/>
+      <path class="hair" d="M-12 -166 C4 -202 42 -184 30 -148 C14 -160 -2 -169 -22 -152 Z"/>
+      <path class="hair" d="M8 -134 C-24 -92 -22 -42 -8 8" opacity="0.5"/>
+      <path class="gold" d="M-72 0 C-22 18 30 16 72 -4" stroke-width="4"/>
+      <path class="cyan" d="M-24 -132 C-120 -178 -182 -154 -232 -96" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+      <path class="cyan" d="M-200 -60 C-80 -128 88 -114 222 -20" stroke-width="3" opacity="0.48"/>
+      <use href="#blade" transform="translate(122 -70) rotate(-28) scale(1.18)"/>
+    </g>
+
+    <text class="label" x="28" y="612">动作语言</text>
+    <text class="note" x="28" y="640">肩线、腰身、手臂都有明显姿态，挥剑更像演出动画。</text>
+    <text class="label" x="28" y="680">优点</text>
+    <text class="note" x="28" y="708">最帅，人物存在感强，适合做宣传图和主角记忆点。</text>
+    <text class="label" x="28" y="748">风险</text>
+    <text class="note" x="28" y="776">如果继续程序画会很丑，必须用序列帧/骨骼资产。</text>
+  </g>
+
+  <!-- Option C -->
+  <g transform="translate(1192 136)">
+    <rect class="panel" x="0" y="0" width="530" height="820" rx="10"/>
+    <text class="panelTitle" x="28" y="42">C. 小体型高读感剑修</text>
+    <text class="panelSub" x="28" y="70">牺牲写实比例，换稳定读感和低成本动画</text>
+    <line class="rule" x1="28" y1="94" x2="502" y2="94"/>
+
+    <g transform="translate(265 330)">
+      <ellipse class="qi" cx="0" cy="164" rx="146" ry="24"/>
+      <path class="cyan" d="M-126 164 C-56 132 66 132 128 162" stroke-width="2" opacity="0.6"/>
+      <path class="compact" d="M-42 -78 C-26 -114 28 -116 46 -78 L66 96 C38 132 -42 132 -68 94 Z"/>
+      <path class="compact" d="M-42 -58 C-98 -58 -140 -34 -166 4 C-110 6 -72 -8 -42 -30 Z"/>
+      <path class="compact" d="M42 -60 C94 -58 134 -30 162 12 C108 8 72 -8 42 -30 Z"/>
+      <circle class="skin" cx="3" cy="-126" r="25"/>
+      <path class="hair" d="M-22 -140 C-5 -176 36 -170 32 -122 C12 -138 -6 -146 -28 -126 Z"/>
+      <path class="gold" d="M-60 -2 C-18 10 22 10 60 -4" stroke-width="4"/>
+      <path class="cyan soft" d="M-32 -102 C-86 -134 -136 -126 -176 -86" stroke-width="6" stroke-linecap="round"/>
+      <use href="#blade" transform="translate(74 -46) rotate(-4) scale(0.98)"/>
+      <circle cx="92" cy="-42" r="9" fill="#ffffff" opacity="0.18" filter="url(#blueGlow)"/>
+    </g>
+
+    <text class="label" x="28" y="612">动作语言</text>
+    <text class="note" x="28" y="640">头身比更游戏化，动作靠整块身体倾斜和超清楚剑位。</text>
+    <text class="label" x="28" y="680">优点</text>
+    <text class="note" x="28" y="708">最容易读，动画成本最低，横版弹幕里不容易糊。</text>
+    <text class="label" x="28" y="748">风险</text>
+    <text class="note" x="28" y="776">修仙感会偏可爱/轻量，可能不够“牛逼”和仙气。</text>
+  </g>
+
+  <g transform="translate(58 978)">
+    <text class="subtitle" x="0" y="0">我的建议：先选 A 或 A+B 折中。A 负责不丑和统一，B 只借它的袖袍动势与剑光演出。不要直接选纯 B，除非我们愿意做真正序列帧/骨骼资产。</text>
+  </g>
+</svg>

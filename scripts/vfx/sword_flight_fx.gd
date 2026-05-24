@@ -1002,10 +1002,20 @@ func _clear_particle_array(particles_list: Array) -> void:
 
 
 func _should_show_body_support(sword_state: int) -> bool:
+	if _is_flight_rider_clean_vfx_active() and not _uses_clone_source() and sword_state == main.SwordState.ORBITING:
+		return main.has_method("_is_melee_swing_visual_active") and main._is_melee_swing_visual_active()
 	return (
 		_get_source_player_mode() == main.CombatMode.RANGED
 		or _get_source_player_mode() == main.CombatMode.MELEE
 		or sword_state != main.SwordState.ORBITING
+	)
+
+
+func _is_flight_rider_clean_vfx_active() -> bool:
+	return (
+		main != null
+		and main.has_method("_use_flight_rider_clean_vfx")
+		and bool(main.call("_use_flight_rider_clean_vfx"))
 	)
 
 

@@ -1,0 +1,776 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="2120" viewBox="0 0 1920 2120" role="img" aria-labelledby="title desc">
+  <title id="title">横版御剑人物动作逐帧设计 V2 动作幅度强化版</title>
+  <desc id="desc">针对 V1 人物动作变化过小的问题，重新设计更大幅度的五组横版御剑动作关键帧，加入肩线、重心、剑位和动作弧线标记。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050d14"/>
+      <stop offset="0.52" stop-color="#0b1622"/>
+      <stop offset="1" stop-color="#061310"/>
+    </linearGradient>
+    <linearGradient id="panelBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#102333"/>
+      <stop offset="1" stop-color="#07121b"/>
+    </linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2d4a60"/>
+      <stop offset="0.55" stop-color="#132535"/>
+      <stop offset="1" stop-color="#050a10"/>
+    </linearGradient>
+    <linearGradient id="sword" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#dffcff"/>
+      <stop offset="0.55" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#5edfff"/>
+    </linearGradient>
+    <linearGradient id="platform" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5edfff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#bffaff" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#5edfff" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="blueGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="goldGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <marker id="arrowCyan" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#9af4ff"/>
+    </marker>
+    <marker id="arrowGold" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L10 4 L0 8 Z" fill="#ffd978"/>
+    </marker>
+
+    <symbol id="swordRight" viewBox="-26 -18 198 36">
+      <path d="M0 -6 L128 -6 L170 0 L128 6 L0 6 Z" fill="url(#sword)" filter="url(#blueGlow)"/>
+      <path d="M12 -1.4 L130 -1.4" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.88"/>
+      <rect x="-20" y="-12" width="24" height="24" rx="5" fill="#d2a247" filter="url(#goldGlow)"/>
+      <rect x="-26" y="-3" width="22" height="6" rx="3" fill="#8b6827"/>
+    </symbol>
+
+    <symbol id="qiPlatform" viewBox="-150 -38 300 76">
+      <ellipse cx="0" cy="0" rx="138" ry="22" fill="url(#platform)" filter="url(#blueGlow)"/>
+      <path d="M-132 8 C-72 -18 70 -20 134 7 C64 28 -67 29 -132 8 Z" fill="#78eaff" opacity="0.16"/>
+      <path d="M-142 10 C-82 32 70 33 142 8" fill="none" stroke="#a9f7ff" stroke-width="3" stroke-linecap="round" opacity="0.54"/>
+      <path d="M-92 -5 C-36 -20 48 -20 94 -4" fill="none" stroke="#e8feff" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+    </symbol>
+
+    <symbol id="arraySword" viewBox="-8 -42 16 84">
+      <path d="M0 -42 L7 -16 L4 24 L0 42 L-4 24 L-7 -16 Z" fill="url(#sword)" filter="url(#blueGlow)"/>
+      <path d="M0 -30 L1.7 -8 L0 24 L-1.7 -8 Z" fill="#ffffff" opacity="0.72"/>
+    </symbol>
+
+    <style>
+      .title { font: 700 40px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f6fbff; }
+      .subtitle { font: 17px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #9fb6c7; }
+      .rowTitle { font: 700 24px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #f2fbff; }
+      .frameTitle { font: 700 16px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #effaff; }
+      .frameNote { font: 13px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #a8bdcc; }
+      .tiny { font: 12px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; fill: #d9f8ff; }
+      .panel { fill: url(#panelBg); stroke: #2d5368; stroke-width: 1.5; }
+      .floor { stroke: #263e50; stroke-width: 1; opacity: 0.75; }
+      .robe { fill: url(#robe); stroke: #6d91a4; stroke-width: 2; stroke-linejoin: round; }
+      .hair { fill: #02060a; stroke: #34566b; stroke-width: 1.2; }
+      .skin { fill: #f0ca91; stroke: #ffe6b7; stroke-width: 1.3; }
+      .arm { fill: none; stroke: #172739; stroke-width: 19; stroke-linecap: round; stroke-linejoin: round; }
+      .armHi { fill: none; stroke: #94bfd3; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0.72; }
+      .sleeve { fill: none; stroke: #1e3548; stroke-width: 31; stroke-linecap: round; stroke-linejoin: round; opacity: 0.86; }
+      .belt { fill: none; stroke: #d7aa4c; stroke-width: 4; stroke-linecap: round; filter: url(#goldGlow); }
+      .scarf { fill: none; stroke: #a7f4ff; stroke-width: 6; stroke-linecap: round; opacity: 0.52; filter: url(#blueGlow); }
+      .trail { fill: none; stroke: #8ff2ff; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.72; filter: url(#blueGlow); }
+      .trailThin { fill: none; stroke: #8ff2ff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.56; }
+      .goldArc { fill: none; stroke: #ffd978; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.82; filter: url(#goldGlow); }
+      .goldThin { fill: none; stroke: #ffd978; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.64; }
+      .shoulder { stroke: #ffd978; stroke-width: 5; stroke-linecap: round; filter: url(#goldGlow); }
+      .spine { stroke: #9af4ff; stroke-width: 3; stroke-linecap: round; opacity: 0.86; }
+      .com { fill: #ffffff; stroke: #8ff2ff; stroke-width: 3; filter: url(#blueGlow); }
+      .comLine { stroke: #dffcff; stroke-width: 1.6; stroke-dasharray: 7 7; opacity: 0.52; }
+      .motionArrow { fill: none; stroke: #9af4ff; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowCyan); filter: url(#blueGlow); }
+      .goldArrow { fill: none; stroke: #ffd978; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowGold); filter: url(#goldGlow); }
+      .seal { fill: none; stroke: #ffd978; stroke-width: 2.2; opacity: 0.72; filter: url(#goldGlow); }
+      .sealWeak { fill: none; stroke: #9af4ff; stroke-width: 1.7; opacity: 0.46; }
+      .burst { fill: none; stroke: #fff2a8; stroke-width: 3; stroke-linecap: round; filter: url(#goldGlow); }
+    </style>
+  </defs>
+
+  <rect width="1920" height="2120" fill="url(#bg)"/>
+  <text class="title" x="60" y="58">横版御剑人物动作逐帧设计 V2：动作幅度强化版</text>
+  <text class="subtitle" x="60" y="92">这版故意把姿态做得更夸张：人物放大、肩线用金色标出、重心用白蓝点标出、剑位和动作弧线保持最高亮。目标是缩小看也能读出动作差异。</text>
+  <text class="subtitle" x="60" y="119">评审标准：先看剪影变化，再看剑是否真的被手控制，最后看脚下剑气平台是否响应移动和发力。</text>
+
+  <!-- Row 1 -->
+  <text class="rowTitle" x="60" y="128">1. 挥剑：从蓄肩到斜斩弹开，身体要有大幅扭转和跟随</text>
+
+  <g transform="translate(60 148)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">1A 蓄肩后拉</text>
+    <text class="frameNote" x="18" y="52">剑在右后上方，重心压后</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(-18 14) rotate(-4) scale(0.72 0.75)"/>
+      <path class="trailThin" d="M78 -196 C28 -226 -48 -214 -92 -164"/>
+      <g transform="rotate(-22)">
+        <path class="scarf" d="M-6 -142 C-78 -164 -123 -148 -160 -112"/>
+        <path class="sleeve" d="M-28 -101 C-88 -91 -123 -54 -145 -18"/>
+        <path class="sleeve" d="M34 -104 C82 -145 125 -166 160 -178"/>
+        <path class="arm" d="M-28 -101 C-78 -88 -113 -52 -139 -18"/>
+        <path class="armHi" d="M-30 -104 C-76 -88 -107 -54 -132 -21"/>
+        <path class="arm" d="M34 -104 C82 -146 124 -166 156 -177"/>
+        <path class="armHi" d="M36 -107 C82 -143 120 -162 150 -172"/>
+        <path class="robe" d="M-43 -112 C-24 -145 28 -148 49 -113 L72 -12 C42 20 -38 24 -74 -12 Z"/>
+        <line class="shoulder" x1="-48" y1="-112" x2="52" y2="-112"/>
+        <line class="spine" x1="0" y1="-116" x2="-10" y2="-12"/>
+        <path class="belt" d="M-48 -35 C-12 -24 24 -25 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -167 C-4 -199 29 -188 24 -158 C11 -169 -5 -173 -22 -160 Z"/>
+        <circle class="skin" cx="-139" cy="-18" r="7"/>
+        <circle class="skin" cx="156" cy="-177" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(92 -204) rotate(-148) scale(0.95)"/>
+      <circle class="com" cx="-30" cy="-50" r="7"/>
+      <line class="comLine" x1="-30" y1="-50" x2="-30" y2="26"/>
+    </g>
+  </g>
+
+  <g transform="translate(500 148)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">1B 扭腰出剑</text>
+    <text class="frameNote" x="18" y="52">肩线转正，剑弧横扫过顶</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 14) rotate(2) scale(0.78 0.74)"/>
+      <path class="trail" d="M-130 -178 C-34 -236 108 -197 158 -72"/>
+      <path class="trailThin" d="M-114 -139 C-25 -184 80 -152 136 -62"/>
+      <g transform="rotate(7)">
+        <path class="scarf" d="M-12 -142 C-90 -138 -132 -104 -160 -62"/>
+        <path class="sleeve" d="M-34 -103 C-86 -139 -124 -158 -159 -169"/>
+        <path class="sleeve" d="M36 -104 C88 -90 128 -56 158 -16"/>
+        <path class="arm" d="M-34 -103 C-82 -138 -122 -157 -153 -168"/>
+        <path class="armHi" d="M-36 -106 C-82 -134 -116 -153 -147 -163"/>
+        <path class="arm" d="M36 -104 C88 -90 127 -55 153 -17"/>
+        <path class="armHi" d="M38 -107 C88 -88 121 -57 148 -22"/>
+        <path class="robe" d="M-44 -113 C-22 -146 30 -146 50 -112 L70 -12 C38 22 -42 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="4" y1="-116" x2="8" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-18 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -23 -160 Z"/>
+        <circle class="skin" cx="-153" cy="-168" r="7"/>
+        <circle class="skin" cx="153" cy="-17" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(154 -18) rotate(-38) scale(1)"/>
+      <circle class="com" cx="8" cy="-48" r="7"/>
+      <line class="comLine" x1="8" y1="-48" x2="8" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(940 148)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">1C 弹开爆点</text>
+    <text class="frameNote" x="18" y="52">身体前冲，手臂完全打直</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(28 15) rotate(7) scale(0.88 0.72)"/>
+      <path class="trail" d="M-126 -164 C-22 -104 84 -92 170 -132"/>
+      <path class="burst" d="M168 -145 L205 -178 M178 -122 L224 -124 M168 -98 L205 -66"/>
+      <g transform="translate(24 0) rotate(24)">
+        <path class="scarf" d="M-18 -142 C-105 -118 -136 -74 -160 -24"/>
+        <path class="sleeve" d="M-36 -104 C-82 -78 -112 -48 -140 -8"/>
+        <path class="sleeve" d="M37 -104 C94 -114 139 -132 178 -158"/>
+        <path class="arm" d="M-36 -104 C-79 -78 -109 -48 -135 -9"/>
+        <path class="armHi" d="M-38 -107 C-78 -80 -104 -51 -129 -14"/>
+        <path class="arm" d="M37 -104 C93 -114 138 -132 173 -156"/>
+        <path class="armHi" d="M39 -107 C92 -116 132 -132 167 -152"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -113 L68 -11 C34 24 -44 22 -74 -14 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="6" y1="-116" x2="20" y2="-14"/>
+        <path class="belt" d="M-49 -35 C-10 -22 26 -26 58 -41"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-16 -168 C1 -198 31 -186 23 -156 C11 -168 -6 -174 -23 -159 Z"/>
+        <circle class="skin" cx="-135" cy="-9" r="7"/>
+        <circle class="skin" cx="173" cy="-156" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(174 -158) rotate(28) scale(1)"/>
+      <circle class="com" cx="34" cy="-48" r="7"/>
+      <line class="comLine" x1="34" y1="-48" x2="34" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(1380 148)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">1D 大幅收势</text>
+    <text class="frameNote" x="18" y="52">剑落左下，衣摆继续甩</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 15) rotate(-5) scale(0.74 0.72)"/>
+      <path class="trailThin" d="M160 -144 C84 -74 -12 -42 -142 -48"/>
+      <g transform="translate(-18 0) rotate(-18)">
+        <path class="scarf" d="M-20 -142 C-102 -174 -146 -164 -176 -138"/>
+        <path class="sleeve" d="M-37 -104 C-86 -82 -118 -40 -142 12"/>
+        <path class="sleeve" d="M35 -104 C82 -61 104 -22 121 26"/>
+        <path class="arm" d="M-37 -104 C-84 -82 -114 -40 -138 10"/>
+        <path class="armHi" d="M-39 -107 C-82 -84 -110 -44 -132 5"/>
+        <path class="arm" d="M35 -104 C82 -62 104 -22 117 25"/>
+        <path class="armHi" d="M37 -107 C80 -64 100 -26 113 19"/>
+        <path class="robe" d="M-44 -112 C-22 -146 29 -146 50 -112 L72 -12 C42 22 -40 24 -74 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="0" y1="-116" x2="-12" y2="-12"/>
+        <path class="belt" d="M-48 -35 C-12 -24 24 -25 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-18 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -23 -160 Z"/>
+        <circle class="skin" cx="-138" cy="10" r="7"/>
+        <circle class="skin" cx="117" cy="25" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(-130 -36) rotate(152) scale(0.92)"/>
+      <circle class="com" cx="-20" cy="-48" r="7"/>
+      <line class="comLine" x1="-20" y1="-48" x2="-20" y2="28"/>
+    </g>
+  </g>
+
+  <!-- Row 2 -->
+  <text class="rowTitle" x="60" y="528">2. 御剑出鞘：真剑从手里离开，人物从持剑切到剑诀牵引</text>
+
+  <g transform="translate(60 548)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">2A 腰侧持剑</text>
+    <text class="frameNote" x="18" y="52">剑还在右手，左手起诀</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 15) scale(0.72 0.72)"/>
+      <path class="goldArc" d="M-86 -118 C-46 -154 26 -162 74 -128"/>
+      <g transform="rotate(-4)">
+        <path class="scarf" d="M-14 -142 C-82 -154 -124 -132 -154 -96"/>
+        <path class="sleeve" d="M-34 -104 C-88 -90 -124 -54 -148 -18"/>
+        <path class="sleeve" d="M35 -104 C78 -95 110 -84 138 -68"/>
+        <path class="arm" d="M-34 -104 C-84 -90 -118 -54 -143 -18"/>
+        <path class="armHi" d="M-36 -107 C-82 -91 -112 -57 -137 -22"/>
+        <path class="arm" d="M35 -104 C78 -95 110 -84 134 -68"/>
+        <path class="armHi" d="M37 -107 C76 -97 105 -86 128 -70"/>
+        <path class="robe" d="M-44 -113 C-24 -146 28 -146 50 -113 L70 -12 C40 22 -40 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="0" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-143" cy="-18" r="7"/>
+        <circle class="skin" cx="134" cy="-68" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(130 -68) rotate(4) scale(0.92)"/>
+      <circle class="com" cx="0" cy="-49" r="7"/>
+      <line class="comLine" x1="0" y1="-49" x2="0" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(500 548)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">2B 松手出鞘</text>
+    <text class="frameNote" x="18" y="52">手与剑拉开明显空隙</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(18 15) rotate(4) scale(0.78 0.72)"/>
+      <path class="motionArrow" d="M70 -86 C110 -110 150 -122 198 -126"/>
+      <path class="trailThin" d="M56 -72 C98 -88 140 -94 184 -96"/>
+      <g transform="translate(8 0) rotate(13)">
+        <path class="scarf" d="M-16 -142 C-100 -130 -138 -86 -164 -38"/>
+        <path class="sleeve" d="M-34 -104 C-82 -72 -112 -36 -136 8"/>
+        <path class="sleeve" d="M36 -104 C80 -107 110 -111 136 -116"/>
+        <path class="arm" d="M-34 -104 C-80 -72 -108 -36 -131 7"/>
+        <path class="armHi" d="M-36 -107 C-78 -75 -104 -40 -126 2"/>
+        <path class="arm" d="M36 -104 C80 -107 110 -111 132 -116"/>
+        <path class="armHi" d="M38 -107 C78 -108 105 -111 126 -115"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L70 -12 C36 23 -42 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="5" y1="-116" x2="16" y2="-14"/>
+        <path class="belt" d="M-49 -35 C-12 -23 26 -26 58 -40"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-16 -168 C0 -198 30 -186 23 -156 C11 -168 -6 -174 -23 -159 Z"/>
+        <circle class="skin" cx="-131" cy="7" r="7"/>
+        <circle class="skin" cx="132" cy="-116" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(196 -126) rotate(-7) scale(0.92)"/>
+      <circle class="com" cx="24" cy="-48" r="7"/>
+      <line class="comLine" x1="24" y1="-48" x2="24" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(940 548)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">2C 剑诀牵引</text>
+    <text class="frameNote" x="18" y="52">手中无剑，双指控飞剑</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(4 15) scale(0.74 0.72)"/>
+      <path class="goldArrow" d="M78 -130 C128 -176 176 -194 230 -186"/>
+      <path class="goldThin" d="M48 -96 C104 -128 158 -148 210 -148"/>
+      <g transform="rotate(6)">
+        <path class="scarf" d="M-16 -142 C-96 -142 -134 -108 -160 -64"/>
+        <path class="sleeve" d="M-36 -104 C-91 -88 -126 -46 -150 2"/>
+        <path class="sleeve" d="M36 -104 C83 -139 126 -169 166 -196"/>
+        <path class="arm" d="M-36 -104 C-88 -88 -122 -47 -145 0"/>
+        <path class="armHi" d="M-38 -107 C-86 -90 -116 -50 -139 -5"/>
+        <path class="arm" d="M36 -104 C84 -140 126 -169 162 -193"/>
+        <path class="armHi" d="M38 -107 C83 -138 121 -165 156 -188"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L70 -12 C38 22 -40 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="4" y1="-116" x2="4" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-145" cy="0" r="7"/>
+        <circle class="skin" cx="162" cy="-193" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(230 -186) rotate(28) scale(0.88)"/>
+      <circle class="com" cx="4" cy="-49" r="7"/>
+      <line class="comLine" x1="4" y1="-49" x2="4" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(1380 548)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">2D 定轨远控</text>
+    <text class="frameNote" x="18" y="52">身体收稳，飞剑绕轨运行</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(-4 15) scale(0.68 0.72)"/>
+      <path class="goldThin" d="M50 -152 C112 -206 196 -190 234 -116"/>
+      <path class="goldThin" d="M42 -112 C116 -132 178 -121 224 -72"/>
+      <path class="motionArrow" d="M180 -170 C224 -154 245 -118 238 -72"/>
+      <g transform="rotate(-10)">
+        <path class="scarf" d="M-10 -142 C-84 -166 -124 -152 -158 -124"/>
+        <path class="sleeve" d="M-34 -104 C-79 -78 -109 -44 -136 -6"/>
+        <path class="sleeve" d="M36 -104 C64 -153 86 -184 112 -212"/>
+        <path class="arm" d="M-34 -104 C-77 -78 -106 -45 -131 -7"/>
+        <path class="armHi" d="M-36 -107 C-76 -81 -102 -49 -126 -12"/>
+        <path class="arm" d="M36 -104 C64 -153 86 -184 109 -208"/>
+        <path class="armHi" d="M38 -107 C64 -150 84 -180 105 -202"/>
+        <path class="robe" d="M-44 -112 C-23 -146 29 -146 50 -113 L70 -12 C40 22 -40 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="0" y1="-116" x2="-6" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-131" cy="-7" r="7"/>
+        <circle class="skin" cx="109" cy="-208" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(234 -78) rotate(74) scale(0.86)"/>
+      <circle class="com" cx="-10" cy="-50" r="7"/>
+      <line class="comLine" x1="-10" y1="-50" x2="-10" y2="28"/>
+    </g>
+  </g>
+
+  <!-- Row 3 -->
+  <text class="rowTitle" x="60" y="928">3. 左右平移飞行：不跑步，用大倾角、平台压力、披帛拖尾表达加速</text>
+
+  <g transform="translate(60 948)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">3A 左移起压</text>
+    <text class="frameNote" x="18" y="52">重心明显偏左，平台左端下压</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(-42 16) rotate(-12) scale(0.92 0.74)"/>
+      <path class="motionArrow" d="M72 8 C16 -2 -38 -20 -104 -50"/>
+      <g transform="translate(-42 0) rotate(-28)">
+        <path class="scarf" d="M-10 -142 C70 -178 130 -166 176 -124"/>
+        <path class="sleeve" d="M-36 -104 C-96 -111 -142 -100 -176 -72"/>
+        <path class="sleeve" d="M36 -104 C95 -94 142 -60 176 -16"/>
+        <path class="arm" d="M-36 -104 C-94 -110 -138 -100 -170 -72"/>
+        <path class="armHi" d="M-38 -107 C-92 -111 -132 -101 -164 -75"/>
+        <path class="arm" d="M36 -104 C94 -94 138 -61 170 -18"/>
+        <path class="armHi" d="M38 -107 C92 -96 132 -64 164 -22"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L72 -12 C38 24 -42 23 -74 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="-20" y2="-12"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-170" cy="-72" r="7"/>
+        <circle class="skin" cx="170" cy="-18" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(88 -20) rotate(-68) scale(0.76)"/>
+      <circle class="com" cx="-64" cy="-48" r="7"/>
+      <line class="comLine" x1="-64" y1="-48" x2="-64" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(500 948)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">3B 左移高速</text>
+    <text class="frameNote" x="18" y="52">身体几乎斜切，披帛向右拉长</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(-66 18) rotate(-17) scale(1.06 0.7)"/>
+      <path class="trailThin" d="M102 8 C34 -2 -46 -24 -142 -64"/>
+      <path class="motionArrow" d="M72 24 C12 9 -58 -20 -140 -66"/>
+      <g transform="translate(-68 -6) rotate(-38)">
+        <path class="scarf" d="M-10 -142 C96 -190 166 -174 218 -126"/>
+        <path class="sleeve" d="M-36 -104 C-102 -137 -156 -145 -206 -130"/>
+        <path class="sleeve" d="M36 -104 C99 -81 144 -36 176 20"/>
+        <path class="arm" d="M-36 -104 C-101 -137 -151 -145 -200 -130"/>
+        <path class="armHi" d="M-38 -107 C-96 -136 -146 -143 -194 -130"/>
+        <path class="arm" d="M36 -104 C97 -82 140 -37 170 18"/>
+        <path class="armHi" d="M38 -107 C94 -84 134 -40 164 14"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L73 -12 C36 25 -44 24 -75 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="-28" y2="-12"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-200" cy="-130" r="7"/>
+        <circle class="skin" cx="170" cy="18" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(78 8) rotate(-82) scale(0.72)"/>
+      <circle class="com" cx="-92" cy="-46" r="7"/>
+      <line class="comLine" x1="-92" y1="-46" x2="-92" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(940 948)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">3C 右移起压</text>
+    <text class="frameNote" x="18" y="52">镜像重心，平台右端下压</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(42 16) rotate(12) scale(0.92 0.74)"/>
+      <path class="motionArrow" d="M-72 8 C-16 -2 38 -20 104 -50"/>
+      <g transform="translate(42 0) rotate(28) scale(-1 1)">
+        <path class="scarf" d="M-10 -142 C70 -178 130 -166 176 -124"/>
+        <path class="sleeve" d="M-36 -104 C-96 -111 -142 -100 -176 -72"/>
+        <path class="sleeve" d="M36 -104 C95 -94 142 -60 176 -16"/>
+        <path class="arm" d="M-36 -104 C-94 -110 -138 -100 -170 -72"/>
+        <path class="armHi" d="M-38 -107 C-92 -111 -132 -101 -164 -75"/>
+        <path class="arm" d="M36 -104 C94 -94 138 -61 170 -18"/>
+        <path class="armHi" d="M38 -107 C92 -96 132 -64 164 -22"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L72 -12 C38 24 -42 23 -74 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="-20" y2="-12"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-170" cy="-72" r="7"/>
+        <circle class="skin" cx="170" cy="-18" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(-88 -20) rotate(248) scale(0.76)"/>
+      <circle class="com" cx="64" cy="-48" r="7"/>
+      <line class="comLine" x1="64" y1="-48" x2="64" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(1380 948)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">3D 右移高速</text>
+    <text class="frameNote" x="18" y="52">身体大角度右切，剑气拖后</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(66 18) rotate(17) scale(1.06 0.7)"/>
+      <path class="trailThin" d="M-102 8 C-34 -2 46 -24 142 -64"/>
+      <path class="motionArrow" d="M-72 24 C-12 9 58 -20 140 -66"/>
+      <g transform="translate(68 -6) rotate(38) scale(-1 1)">
+        <path class="scarf" d="M-10 -142 C96 -190 166 -174 218 -126"/>
+        <path class="sleeve" d="M-36 -104 C-102 -137 -156 -145 -206 -130"/>
+        <path class="sleeve" d="M36 -104 C99 -81 144 -36 176 20"/>
+        <path class="arm" d="M-36 -104 C-101 -137 -151 -145 -200 -130"/>
+        <path class="armHi" d="M-38 -107 C-96 -136 -146 -143 -194 -130"/>
+        <path class="arm" d="M36 -104 C97 -82 140 -37 170 18"/>
+        <path class="armHi" d="M38 -107 C94 -84 134 -40 164 14"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L73 -12 C36 25 -44 24 -75 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="-28" y2="-12"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-200" cy="-130" r="7"/>
+        <circle class="skin" cx="170" cy="18" r="7"/>
+      </g>
+      <use href="#swordRight" transform="translate(-78 8) rotate(262) scale(0.72)"/>
+      <circle class="com" cx="92" cy="-46" r="7"/>
+      <line class="comLine" x1="92" y1="-46" x2="92" y2="28"/>
+    </g>
+  </g>
+
+  <!-- Row 4 -->
+  <text class="rowTitle" x="60" y="1328">4. 释放剑阵：从收束、开袖、推出到维持，动作幅度要像施法而不是站桩</text>
+
+  <g transform="translate(60 1348)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">4A 合诀压缩</text>
+    <text class="frameNote" x="18" y="52">身体收小，阵力聚在胸前</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 15) scale(0.66 0.7)"/>
+      <circle class="seal" cx="0" cy="-102" r="42"/>
+      <path class="sealWeak" d="M-30 -102 L30 -102 M0 -132 L0 -72"/>
+      <g transform="translate(0 4) rotate(0)">
+        <path class="scarf" d="M-12 -142 C-64 -150 -92 -134 -118 -106"/>
+        <path class="sleeve" d="M-38 -104 C-58 -102 -72 -95 -84 -84"/>
+        <path class="sleeve" d="M38 -104 C58 -102 72 -95 84 -84"/>
+        <path class="arm" d="M-38 -104 C-58 -101 -70 -94 -80 -84"/>
+        <path class="armHi" d="M-40 -107 C-57 -103 -67 -96 -76 -87"/>
+        <path class="arm" d="M38 -104 C58 -101 70 -94 80 -84"/>
+        <path class="armHi" d="M40 -107 C57 -103 67 -96 76 -87"/>
+        <path class="robe" d="M-42 -112 C-22 -145 28 -145 48 -112 L62 -12 C34 18 -34 18 -62 -12 Z"/>
+        <line class="shoulder" x1="-48" y1="-112" x2="50" y2="-112"/>
+        <line class="spine" x1="0" y1="-116" x2="0" y2="-12"/>
+        <path class="belt" d="M-44 -35 C-10 -25 22 -25 52 -36"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-80" cy="-84" r="7"/>
+        <circle class="skin" cx="80" cy="-84" r="7"/>
+      </g>
+      <circle class="com" cx="0" cy="-48" r="7"/>
+      <line class="comLine" x1="0" y1="-48" x2="0" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(500 1348)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">4B 开袖成环</text>
+    <text class="frameNote" x="18" y="52">双臂完全打开，阵环变大</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 15) scale(0.76 0.7)"/>
+      <circle class="seal" cx="0" cy="-110" r="86"/>
+      <circle class="sealWeak" cx="0" cy="-110" r="54"/>
+      <path class="goldArc" d="M-96 -110 A96 96 0 0 1 96 -110"/>
+      <g transform="rotate(0)">
+        <path class="scarf" d="M-15 -142 C-100 -138 -142 -98 -168 -44"/>
+        <path class="sleeve" d="M-40 -104 C-98 -130 -152 -136 -204 -122"/>
+        <path class="sleeve" d="M40 -104 C98 -130 152 -136 204 -122"/>
+        <path class="arm" d="M-40 -104 C-98 -130 -150 -136 -198 -122"/>
+        <path class="armHi" d="M-42 -107 C-94 -129 -144 -134 -192 -122"/>
+        <path class="arm" d="M40 -104 C98 -130 150 -136 198 -122"/>
+        <path class="armHi" d="M42 -107 C94 -129 144 -134 192 -122"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L72 -12 C40 22 -40 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-55" y1="-112" x2="58" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="2" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-198" cy="-122" r="7"/>
+        <circle class="skin" cx="198" cy="-122" r="7"/>
+      </g>
+      <circle class="com" cx="0" cy="-48" r="7"/>
+      <line class="comLine" x1="0" y1="-48" x2="0" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(940 1348)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">4C 推阵出手</text>
+    <text class="frameNote" x="18" y="52">阵面被手势推出到身前</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(24 15) rotate(4) scale(0.82 0.7)"/>
+      <ellipse class="seal" cx="132" cy="-116" rx="102" ry="66"/>
+      <ellipse class="sealWeak" cx="132" cy="-116" rx="64" ry="40"/>
+      <path class="goldArrow" d="M22 -112 C76 -144 136 -154 204 -134"/>
+      <g transform="translate(20 0) rotate(18)">
+        <path class="scarf" d="M-16 -142 C-100 -122 -134 -76 -158 -24"/>
+        <path class="sleeve" d="M-38 -104 C-88 -75 -118 -40 -144 4"/>
+        <path class="sleeve" d="M38 -104 C100 -112 154 -126 204 -148"/>
+        <path class="arm" d="M-38 -104 C-85 -75 -115 -41 -139 2"/>
+        <path class="armHi" d="M-40 -107 C-83 -78 -111 -45 -134 -3"/>
+        <path class="arm" d="M38 -104 C100 -112 152 -126 198 -147"/>
+        <path class="armHi" d="M40 -107 C97 -114 145 -127 192 -144"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L70 -12 C36 23 -42 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="4" y1="-116" x2="18" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -39"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-139" cy="2" r="7"/>
+        <circle class="skin" cx="198" cy="-147" r="7"/>
+      </g>
+      <circle class="com" cx="36" cy="-48" r="7"/>
+      <line class="comLine" x1="36" y1="-48" x2="36" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(1380 1348)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">4D 定式维持</text>
+    <text class="frameNote" x="18" y="52">一手上引一手下镇，阵势稳定</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 15) scale(0.7 0.7)"/>
+      <circle class="seal" cx="0" cy="-110" r="94"/>
+      <path class="sealWeak" d="M-82 -110 C-42 -178 42 -178 82 -110 C42 -42 -42 -42 -82 -110 Z"/>
+      <use href="#arraySword" transform="translate(-82 -110) rotate(-90) scale(0.78)"/>
+      <use href="#arraySword" transform="translate(0 -196) rotate(0) scale(0.78)"/>
+      <use href="#arraySword" transform="translate(82 -110) rotate(90) scale(0.78)"/>
+      <use href="#arraySword" transform="translate(0 -24) rotate(180) scale(0.78)"/>
+      <g transform="rotate(-8)">
+        <path class="scarf" d="M-12 -142 C-92 -164 -130 -146 -160 -112"/>
+        <path class="sleeve" d="M-36 -104 C-78 -72 -110 -36 -136 6"/>
+        <path class="sleeve" d="M36 -104 C72 -150 96 -188 118 -226"/>
+        <path class="arm" d="M-36 -104 C-76 -73 -106 -37 -131 5"/>
+        <path class="armHi" d="M-38 -107 C-75 -76 -102 -41 -126 0"/>
+        <path class="arm" d="M36 -104 C72 -150 96 -188 115 -221"/>
+        <path class="armHi" d="M38 -107 C71 -148 93 -183 111 -215"/>
+        <path class="robe" d="M-44 -112 C-22 -146 29 -146 50 -113 L70 -12 C40 22 -40 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="0" y1="-116" x2="-6" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-131" cy="5" r="7"/>
+        <circle class="skin" cx="115" cy="-221" r="7"/>
+      </g>
+      <circle class="com" cx="-6" cy="-50" r="7"/>
+      <line class="comLine" x1="-6" y1="-50" x2="-6" y2="28"/>
+    </g>
+  </g>
+
+  <!-- Row 5 -->
+  <text class="rowTitle" x="60" y="1728">5. 剑阵变阵：不是图形瞬切，而是手诀带动环、扇、贯连续换势</text>
+
+  <g transform="translate(60 1748)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">5A 环阵守势</text>
+    <text class="frameNote" x="18" y="52">双手低镇，剑围身周</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(0 15) scale(0.68 0.68)"/>
+      <circle class="seal" cx="0" cy="-112" r="92"/>
+      <use href="#arraySword" transform="translate(0 -204) rotate(0) scale(0.8)"/>
+      <use href="#arraySword" transform="translate(92 -112) rotate(90) scale(0.8)"/>
+      <use href="#arraySword" transform="translate(0 -20) rotate(180) scale(0.8)"/>
+      <use href="#arraySword" transform="translate(-92 -112) rotate(-90) scale(0.8)"/>
+      <g transform="rotate(0)">
+        <path class="scarf" d="M-12 -142 C-70 -154 -104 -134 -132 -100"/>
+        <path class="sleeve" d="M-36 -104 C-74 -70 -100 -34 -124 12"/>
+        <path class="sleeve" d="M36 -104 C74 -70 100 -34 124 12"/>
+        <path class="arm" d="M-36 -104 C-72 -70 -96 -35 -119 10"/>
+        <path class="armHi" d="M-38 -107 C-70 -72 -92 -39 -114 5"/>
+        <path class="arm" d="M36 -104 C72 -70 96 -35 119 10"/>
+        <path class="armHi" d="M38 -107 C70 -72 92 -39 114 5"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L70 -12 C38 22 -40 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="2" y1="-116" x2="2" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -38"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-119" cy="10" r="7"/>
+        <circle class="skin" cx="119" cy="10" r="7"/>
+      </g>
+      <circle class="com" cx="0" cy="-50" r="7"/>
+      <line class="comLine" x1="0" y1="-50" x2="0" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(500 1748)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">5B 换诀扭环</text>
+    <text class="frameNote" x="18" y="52">一手上挑，环阵被拧成椭圆</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(4 15) rotate(2) scale(0.72 0.68)"/>
+      <ellipse class="seal" cx="24" cy="-112" rx="118" ry="58"/>
+      <path class="goldArrow" d="M-74 -150 C-6 -208 96 -176 150 -92"/>
+      <use href="#arraySword" transform="translate(-82 -128) rotate(66) scale(0.76)"/>
+      <use href="#arraySword" transform="translate(0 -166) rotate(74) scale(0.76)"/>
+      <use href="#arraySword" transform="translate(86 -130) rotate(94) scale(0.76)"/>
+      <use href="#arraySword" transform="translate(128 -76) rotate(112) scale(0.76)"/>
+      <g transform="rotate(18)">
+        <path class="scarf" d="M-16 -142 C-96 -124 -128 -82 -154 -36"/>
+        <path class="sleeve" d="M-36 -104 C-86 -101 -124 -82 -154 -48"/>
+        <path class="sleeve" d="M36 -104 C84 -144 124 -182 160 -222"/>
+        <path class="arm" d="M-36 -104 C-84 -100 -120 -82 -149 -49"/>
+        <path class="armHi" d="M-38 -107 C-82 -102 -115 -84 -143 -53"/>
+        <path class="arm" d="M36 -104 C84 -144 123 -180 156 -218"/>
+        <path class="armHi" d="M38 -107 C82 -143 118 -176 150 -212"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L70 -12 C36 23 -42 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="4" y1="-116" x2="18" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -39"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-149" cy="-49" r="7"/>
+        <circle class="skin" cx="156" cy="-218" r="7"/>
+      </g>
+      <circle class="com" cx="24" cy="-48" r="7"/>
+      <line class="comLine" x1="24" y1="-48" x2="24" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(940 1748)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">5C 扇阵横扫</text>
+    <text class="frameNote" x="18" y="52">手臂横引，剑群展开成面</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(18 15) rotate(4) scale(0.78 0.68)"/>
+      <path class="seal" d="M-22 -116 C52 -198 158 -186 232 -110 C132 -48 48 -56 -22 -116 Z"/>
+      <path class="goldThin" d="M6 -178 L228 -110 M-10 -142 L210 -72 M-18 -108 L154 -34"/>
+      <use href="#arraySword" transform="translate(42 -178) rotate(58) scale(0.8)"/>
+      <use href="#arraySword" transform="translate(98 -152) rotate(76) scale(0.8)"/>
+      <use href="#arraySword" transform="translate(150 -116) rotate(93) scale(0.8)"/>
+      <use href="#arraySword" transform="translate(190 -70) rotate(112) scale(0.8)"/>
+      <g transform="translate(8 0) rotate(22)">
+        <path class="scarf" d="M-16 -142 C-100 -118 -132 -70 -154 -20"/>
+        <path class="sleeve" d="M-38 -104 C-86 -72 -116 -34 -142 8"/>
+        <path class="sleeve" d="M38 -104 C102 -94 158 -78 212 -50"/>
+        <path class="arm" d="M-38 -104 C-84 -73 -113 -36 -137 6"/>
+        <path class="armHi" d="M-40 -107 C-82 -76 -108 -40 -132 1"/>
+        <path class="arm" d="M38 -104 C102 -94 156 -78 206 -51"/>
+        <path class="armHi" d="M40 -107 C98 -96 150 -81 200 -54"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L72 -12 C36 24 -42 22 -74 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="5" y1="-116" x2="22" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -40"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-137" cy="6" r="7"/>
+        <circle class="skin" cx="206" cy="-51" r="7"/>
+      </g>
+      <circle class="com" cx="32" cy="-48" r="7"/>
+      <line class="comLine" x1="32" y1="-48" x2="32" y2="28"/>
+    </g>
+  </g>
+
+  <g transform="translate(1380 1748)">
+    <rect class="panel" x="0" y="0" width="410" height="315" rx="8"/>
+    <text class="frameTitle" x="18" y="30">5D 贯阵定线</text>
+    <text class="frameNote" x="18" y="52">双手前指，剑群压成一线</text>
+    <line class="floor" x1="36" y1="262" x2="374" y2="262"/>
+    <g transform="translate(205 238)">
+      <use href="#qiPlatform" transform="translate(18 15) scale(0.74 0.68)"/>
+      <path class="goldArrow" d="M-28 -116 C58 -140 150 -140 248 -116"/>
+      <path class="sealWeak" d="M-14 -116 L250 -116"/>
+      <use href="#arraySword" transform="translate(36 -116) rotate(90) scale(0.82)"/>
+      <use href="#arraySword" transform="translate(96 -116) rotate(90) scale(0.82)"/>
+      <use href="#arraySword" transform="translate(156 -116) rotate(90) scale(0.82)"/>
+      <use href="#arraySword" transform="translate(216 -116) rotate(90) scale(0.82)"/>
+      <g transform="translate(20 0) rotate(10)">
+        <path class="scarf" d="M-12 -142 C-86 -150 -126 -128 -156 -94"/>
+        <path class="sleeve" d="M-38 -104 C-78 -78 -108 -42 -134 4"/>
+        <path class="sleeve" d="M38 -104 C96 -107 158 -112 218 -120"/>
+        <path class="arm" d="M-38 -104 C-76 -78 -105 -43 -129 3"/>
+        <path class="armHi" d="M-40 -107 C-74 -81 -101 -47 -124 -2"/>
+        <path class="arm" d="M38 -104 C96 -107 156 -112 212 -120"/>
+        <path class="armHi" d="M40 -107 C93 -108 150 -113 206 -119"/>
+        <path class="robe" d="M-44 -112 C-22 -146 30 -146 50 -112 L70 -12 C38 22 -42 22 -72 -13 Z"/>
+        <line class="shoulder" x1="-52" y1="-112" x2="55" y2="-112"/>
+        <line class="spine" x1="4" y1="-116" x2="12" y2="-14"/>
+        <path class="belt" d="M-48 -35 C-12 -24 25 -26 58 -39"/>
+        <circle class="skin" cx="2" cy="-158" r="18"/>
+        <path class="hair" d="M-17 -168 C-3 -199 30 -187 24 -157 C11 -169 -4 -174 -22 -160 Z"/>
+        <circle class="skin" cx="-129" cy="3" r="7"/>
+        <circle class="skin" cx="212" cy="-120" r="7"/>
+      </g>
+      <circle class="com" cx="32" cy="-48" r="7"/>
+      <line class="comLine" x1="32" y1="-48" x2="32" y2="28"/>
+    </g>
+  </g>
+
+  <text class="subtitle" x="60" y="2092">V2 调整方向：动作幅度从“微调手臂”改为“整个人的肩线、脊柱、重心、平台和剑位同时变化”。如果这版剪影方向认可，下一步可以把它拆成 Godot 程序绘制参数或真正序列帧。</text>
+</svg>

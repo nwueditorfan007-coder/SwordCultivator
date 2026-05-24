@@ -33,6 +33,10 @@ const ART_GOLD := Color("d7bb79")
 const ART_BLUE := Color("88d8ff")
 const ART_BLUE_CORE := Color("f6fbff")
 const ART_RED := Color("df5b66")
+const FLIGHT_MOUNTAIN_FAR_TEXTURE := preload("res://resources/flight/background/flight_mountain_far.png")
+const FLIGHT_MOUNTAIN_MID_TEXTURE := preload("res://resources/flight/background/flight_mountain_mid.png")
+const FLIGHT_CLOUD_BANK_TEXTURE := preload("res://resources/flight/background/flight_cloud_bank.png")
+const FLIGHT_WIND_VEIL_TEXTURE := preload("res://resources/flight/background/flight_wind_veil.png")
 const CURSOR_INTENT_CORE := Color("f8fff2")
 const CURSOR_INTENT_OUTLINE := Color("010409")
 const CURSOR_INTENT_WARNING := Color("f1b46b")
@@ -42,6 +46,26 @@ const CURSOR_INTENT_FORMATION_ALPHA := 0.94
 const CURSOR_INTENT_FORMATION_OUTLINE_ALPHA := 0.98
 const CURSOR_INTENT_FIRE_SPREAD_PIXELS := 6.0
 const CURSOR_INTENT_FIRE_JITTER_PIXELS := 1.15
+
+
+static func _is_demo_level_mode(main: Node2D) -> bool:
+	return main.has_method("_is_demo_level_mode") and main._is_demo_level_mode()
+
+
+static func _is_flight_prototype_mode(main: Node2D) -> bool:
+	return main.has_method("_is_flight_prototype_mode") and main._is_flight_prototype_mode()
+
+
+static func _should_hide_sword_array_ui(main: Node2D) -> bool:
+	return main.has_method("_should_hide_sword_array_ui") and main._should_hide_sword_array_ui()
+
+
+static func _use_flight_rider_sprite_fx(main: Node2D) -> bool:
+	return main.has_method("_use_flight_rider_sprite_fx") and bool(main.call("_use_flight_rider_sprite_fx"))
+
+
+static func _use_flight_rider_clean_vfx(main: Node2D) -> bool:
+	return main.has_method("_use_flight_rider_clean_vfx") and bool(main.call("_use_flight_rider_clean_vfx"))
 
 
 static func draw_game(main: Node2D) -> void:
@@ -66,6 +90,9 @@ static func draw_game(main: Node2D) -> void:
 		particle_color.a = particle["life"] / particle["max_life"]
 		main.draw_circle(main._to_screen(particle["pos"]), particle["size"], particle_color)
 
+	if _is_demo_level_mode(main):
+		_draw_demo_recovery_pickups(main)
+
 	if main._has_boss():
 		main._draw_boss_world()
 
@@ -86,6 +113,8 @@ static func draw_game(main: Node2D) -> void:
 			bullet_family,
 			bullet["state"] == "deflected"
 		)
+
+	_draw_score_loot_pickups(main)
 
 	for enemy in main.enemies:
 		if str(enemy.get("type", "")) != main.DRAPE_PRIEST:
@@ -238,21 +267,36 @@ static func draw_game(main: Node2D) -> void:
 			_draw_puppet_attack_telegraph(main, enemy, enemy_screen_pos)
 
 	var player_pos: Vector2 = main._to_screen(main.player["pos"])
-	var distance_guide_strength: float = main._get_array_distance_guide_strength()
+	var hide_array_ui := _should_hide_sword_array_ui(main)
+	var is_flight_mode := _is_flight_prototype_mode(main)
+	var clean_flight_vfx := _use_flight_rider_clean_vfx(main)
+	var distance_guide_strength: float = 0.0 if hide_array_ui or clean_flight_vfx else main._get_array_distance_guide_strength()
 	if distance_guide_strength > 0.01:
 		_draw_array_distance_guides(main, player_pos, distance_guide_strength)
-	main.draw_circle(player_pos, main.PLAYER_RADIUS, main.COLORS["player"])
+	if is_flight_mode:
+		if not clean_flight_vfx:
+			_draw_flight_full_energy_mandala(main, player_pos)
+		if not _use_flight_rider_sprite_fx(main):
+			_draw_flight_riding_sword(main, player_pos)
+			_draw_flight_rider(main, player_pos)
+	else:
+		main.draw_circle(player_pos, main.PLAYER_RADIUS, main.COLORS["player"])
 	var aura_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
-	var array_channeling: bool = bool(main.player.get("array_is_firing", false))
-	var array_hold_ratio: float = clampf(float(main.player.get("array_hold_ratio", 0.0)), 0.0, 1.0)
+	var array_channeling: bool = bool(main.player.get("array_is_firing", false)) and not hide_array_ui
+	var array_hold_ratio: float = 0.0 if hide_array_ui else clampf(float(main.player.get("array_hold_ratio", 0.0)), 0.0, 1.0)
 	var array_priming: bool = not array_channeling and array_hold_ratio > 0.02
-	var array_warning_strength: float = main._get_array_energy_warning_strength()
-	var array_break_strength: float = main._get_array_energy_break_strength()
+	var array_warning_strength: float = 0.0 if hide_array_ui else main._get_array_energy_warning_strength()
+	var array_break_strength: float = 0.0 if hide_array_ui else main._get_array_energy_break_strength()
 	var array_warning_level: int = int(main.array_energy_forecast_level)
+	var momentum_heat_strength: float = main._get_sword_momentum_heat_strength()
+	var momentum_full_flash: float = main._get_sword_momentum_full_flash_strength()
 	if array_channeling:
 		aura_color = aura_color.lerp(ARRAY_CHANNEL_EDGE_COLOR, 0.45)
-	main.draw_arc(player_pos, main.PLAYER_RADIUS + 5.0, 0.0, TAU, 28, aura_color, 2.0)
-	if array_channeling:
+	if not clean_flight_vfx:
+		main.draw_arc(player_pos, main.PLAYER_RADIUS + 5.0, 0.0, TAU, 28, aura_color, 2.0)
+	if momentum_heat_strength > 0.01 and not is_flight_mode:
+		_draw_sword_momentum_heat(main, player_pos, momentum_heat_strength, momentum_full_flash)
+	if array_channeling and not clean_flight_vfx:
 		var pulse_radius: float = main.PLAYER_RADIUS + 11.0 + sin(main.elapsed_time * 8.0) * 2.0
 		main.draw_arc(
 			player_pos,
@@ -263,8 +307,9 @@ static func draw_game(main: Node2D) -> void:
 			_with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.55),
 			2.2
 		)
-	_draw_resonance_player_mark(main, player_pos)
-	if array_warning_strength > 0.01:
+	if not hide_array_ui and not clean_flight_vfx:
+		_draw_resonance_player_mark(main, player_pos)
+	if array_warning_strength > 0.01 and not clean_flight_vfx:
 		var warning_pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 11.0)
 		var warning_color: Color = main.COLORS["energy"]
 		if array_warning_level >= 2 or array_break_strength > 0.0:
@@ -279,7 +324,7 @@ static func draw_game(main: Node2D) -> void:
 			_with_alpha(warning_color, (0.18 + 0.34 * warning_pulse) * array_warning_strength),
 			2.0 + 1.3 * array_warning_strength
 		)
-	if array_break_strength > 0.0:
+	if array_break_strength > 0.0 and not clean_flight_vfx:
 		var break_radius: float = main.PLAYER_RADIUS + 12.0 + (1.0 - array_break_strength) * 18.0
 		var break_color: Color = main.COLORS["health"].lerp(ARRAY_CHANNEL_CORE_COLOR, 0.2)
 		main.draw_arc(
@@ -296,51 +341,60 @@ static func draw_game(main: Node2D) -> void:
 			main.PLAYER_RADIUS + 3.0 + array_break_strength * 5.0,
 			_with_alpha(break_color, 0.05 + 0.08 * array_break_strength)
 		)
-	_draw_energy_gain_pulse(main, player_pos)
+	if not hide_array_ui and not clean_flight_vfx:
+		_draw_energy_gain_pulse(main, player_pos)
 	_draw_sword_recall_gate(main, player_pos)
 	_draw_sword_return_catches(main)
 
-	_draw_array_mode_confirm(main, player_pos)
+	if not hide_array_ui and not clean_flight_vfx:
+		_draw_array_mode_confirm(main, player_pos)
 	var mode_hint_strength: float = array_hold_ratio * 0.58
 	if array_channeling:
 		mode_hint_strength = maxf(mode_hint_strength, 0.48)
-	if mode_hint_strength > 0.01:
+	if not hide_array_ui and not clean_flight_vfx and mode_hint_strength > 0.01:
 		_draw_current_array_mode_hint(main, player_pos, mode_hint_strength)
 
-	if not array_channeling:
+	if not hide_array_ui and not clean_flight_vfx and not array_channeling:
 		_draw_ambient_array_presence(main, player_pos, array_hold_ratio)
 
-	if main._should_draw_sword_array_preview():
+	if not hide_array_ui and not clean_flight_vfx and main._should_draw_sword_array_preview():
 		_draw_sword_array_preview(main, player_pos)
 
 	var ready_slot_lookup: Dictionary = {}
-	for array_sword in main.array_swords:
-		if array_sword["state"] == "ready":
-			ready_slot_lookup[int(array_sword.get("slot_index", -1))] = true
-	var slot_index: int = 0
-	while slot_index < main._get_current_array_sword_capacity():
-		if not ready_slot_lookup.has(slot_index):
-			var empty_slot_pos: Vector2 = main._to_screen(main._get_array_sword_slot_position(slot_index))
-			var ghost_color: Color = SwordArrayController.get_soft_accent_color(SwordArrayConfig.MODE_RING)
-			if array_channeling:
-				ghost_color.a = 0.18
-				main.draw_circle(empty_slot_pos, 3.0, ghost_color)
-				main.draw_arc(empty_slot_pos, 7.0, 0.0, TAU, 18, ghost_color, 1.2)
-			elif array_priming:
-				var priming_ghost_alpha: float = 0.06 + 0.12 * array_hold_ratio
-				main.draw_circle(empty_slot_pos, 2.2, _with_alpha(ghost_color, priming_ghost_alpha))
-				main.draw_arc(empty_slot_pos, 5.0 + 1.5 * array_hold_ratio, 0.0, TAU, 16, _with_alpha(ghost_color, priming_ghost_alpha * 1.25), 1.0)
-			else:
-				main.draw_circle(empty_slot_pos, 1.6, _with_alpha(ghost_color, 0.08))
-		slot_index += 1
+	if not hide_array_ui and not clean_flight_vfx:
+		for array_sword in main.array_swords:
+			if array_sword["state"] == "ready":
+				ready_slot_lookup[int(array_sword.get("slot_index", -1))] = true
+		var slot_index: int = 0
+		while slot_index < main._get_current_array_sword_capacity():
+			if not ready_slot_lookup.has(slot_index):
+				var empty_slot_pos: Vector2 = main._to_screen(main._get_array_sword_slot_position(slot_index))
+				var ghost_color: Color = SwordArrayController.get_soft_accent_color(SwordArrayConfig.MODE_RING)
+				if array_channeling:
+					ghost_color.a = 0.18
+					main.draw_circle(empty_slot_pos, 3.0, ghost_color)
+					main.draw_arc(empty_slot_pos, 7.0, 0.0, TAU, 18, ghost_color, 1.2)
+				elif array_priming:
+					var priming_ghost_alpha: float = 0.06 + 0.12 * array_hold_ratio
+					main.draw_circle(empty_slot_pos, 2.2, _with_alpha(ghost_color, priming_ghost_alpha))
+					main.draw_arc(empty_slot_pos, 5.0 + 1.5 * array_hold_ratio, 0.0, TAU, 16, _with_alpha(ghost_color, priming_ghost_alpha * 1.25), 1.0)
+				else:
+					main.draw_circle(empty_slot_pos, 1.6, _with_alpha(ghost_color, 0.08))
+			slot_index += 1
 
-	var resonance_mode: String = main._get_resonance_mode()
-	var resonance_strength: float = main._get_resonance_strength()
-	var resonance_preview_strength: float = main._get_resonance_preview_strength()
-	var resonance_color: Color = main._get_resonance_color(resonance_mode)
-	var resonance_sword_mark_strength: float = clampf(resonance_strength * 0.42 + resonance_preview_strength * 0.76, 0.0, 1.0)
-	_draw_resonance_array_field(main, player_pos, resonance_mode, resonance_color, resonance_strength, resonance_preview_strength)
-	for array_sword in main.array_swords:
+	var resonance_mode: String = ""
+	var resonance_strength: float = 0.0
+	var resonance_preview_strength: float = 0.0
+	var resonance_color: Color = Color.WHITE
+	var resonance_sword_mark_strength: float = 0.0
+	if not hide_array_ui and not clean_flight_vfx:
+		resonance_mode = main._get_resonance_mode()
+		resonance_strength = main._get_resonance_strength()
+		resonance_preview_strength = main._get_resonance_preview_strength()
+		resonance_color = main._get_resonance_color(resonance_mode)
+		resonance_sword_mark_strength = clampf(resonance_strength * 0.42 + resonance_preview_strength * 0.76, 0.0, 1.0)
+		_draw_resonance_array_field(main, player_pos, resonance_mode, resonance_color, resonance_strength, resonance_preview_strength)
+	for array_sword in ([] if hide_array_ui else main.array_swords):
 		var array_sword_pos: Vector2 = main._to_screen(array_sword["pos"])
 		var array_sword_color: Color = SwordArrayController.get_accent_color(main._get_sword_array_morph_state())
 		if array_sword["state"] == "returning":
@@ -424,6 +478,8 @@ static func draw_game(main: Node2D) -> void:
 	var sword_focus_strength: float = 0.18 if main.player["mode"] == main.CombatMode.MELEE else 0.26
 	sword_focus_strength += sword_impact_ratio * (0.42 if main.player["mode"] == main.CombatMode.MELEE else 0.56)
 	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var melee_swinging: bool = main.has_method("_is_melee_swing_visual_active") and main._is_melee_swing_visual_active()
+	var hide_held_main_sword: bool = clean_flight_vfx and sword_state == main.SwordState.ORBITING and not melee_swinging
 	var sword_vfx = _get_sword_vfx(main)
 	var sword_hover_blend: float = main._get_sword_hover_blend()
 	var sword_local_glow_strength: float = float(sword_vfx.local_glow_ranged_idle)
@@ -469,9 +525,9 @@ static func draw_game(main: Node2D) -> void:
 			3.6 + 3.2 * sword_impact_ratio,
 			_with_alpha(sword_color.lerp(UNSHEATH_FLASH_CORE_COLOR, 0.22), 0.12 + 0.16 * sword_impact_ratio)
 		)
-	if not use_node_main_sword_vfx:
+	if not use_node_main_sword_vfx and not hide_held_main_sword:
 		_draw_sword_body(main, sword_pos, sword_forward, sword_color, 1.6, sword_focus_strength, sword_local_glow_strength, sword_glow_style)
-	if resonance_sword_mark_strength > 0.01 and sword_state != main.SwordState.ORBITING:
+	if resonance_sword_mark_strength > 0.01 and sword_state != main.SwordState.ORBITING and not hide_held_main_sword:
 		_draw_resonance_main_sword_mark(
 			main,
 			sword_pos,
@@ -597,6 +653,8 @@ static func draw_game(main: Node2D) -> void:
 	if main._is_large_arena_test_enabled():
 		_draw_large_arena_offscreen_markers(main)
 	_draw_cursor_intent_indicator(main)
+	if bool(main.get("demo_victory_visible")):
+		_draw_demo_victory_panel(main)
 
 
 static func _draw_melee_trait_slash(
@@ -1106,6 +1164,9 @@ static func _draw_art_background(main: Node2D) -> void:
 		return
 	var arena_rect: Rect2 = main.ARENA_RECT
 	var arena_center: Vector2 = arena_rect.get_center()
+	if _is_flight_prototype_mode(main):
+		_draw_flight_background(main, viewport_rect, arena_rect)
+		return
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.82), true)
 	_draw_art_depth_wash(main, viewport_rect, arena_rect)
@@ -1120,6 +1181,327 @@ static func _draw_art_background(main: Node2D) -> void:
 	_draw_art_star_field(main, arena_rect)
 	_draw_art_orbit_field(main, arena_center)
 	_draw_art_mist_lines(main, arena_rect)
+	if _is_demo_level_mode(main):
+		_draw_demo_ruined_temple(main, arena_rect)
+
+
+static func _draw_flight_background(main: Node2D, viewport_rect: Rect2, arena_rect: Rect2) -> void:
+	var distance: float = float(main.flight_scroll_distance)
+	var speed_ratio: float = clampf(float(main.flight_scroll_speed) / maxf(float(main.FLIGHT_BASE_SCROLL_SPEED), 1.0), 0.65, 1.45)
+	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), Color("02050a"), true)
+	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(Color("07131a"), 0.86), true)
+	main.draw_rect(arena_rect.grow(38.0), _with_alpha(ART_BLUE, 0.014), true)
+	main.draw_rect(arena_rect.grow(16.0), _with_alpha(Color("03080d"), 0.62), true)
+	main.draw_rect(arena_rect, Color("07131b"), true)
+	main.draw_rect(Rect2(arena_rect.position, Vector2(arena_rect.size.x, arena_rect.size.y * 0.36)), _with_alpha(Color("0d2530"), 0.42), true)
+	main.draw_rect(Rect2(arena_rect.position + Vector2(0.0, arena_rect.size.y * 0.54), Vector2(arena_rect.size.x, arena_rect.size.y * 0.46)), _with_alpha(Color("0d1118"), 0.55), true)
+
+	_draw_flight_sky_wash(main, arena_rect, distance)
+	_draw_flight_texture_layer(main, FLIGHT_MOUNTAIN_FAR_TEXTURE, arena_rect, distance, 0.040, arena_rect.position.y + 248.0, 0.82, _with_alpha(Color.WHITE, 0.24))
+	_draw_flight_texture_layer(main, FLIGHT_CLOUD_BANK_TEXTURE, arena_rect, distance, 0.095, arena_rect.position.y + 366.0, 0.96, _with_alpha(Color.WHITE, 0.16))
+	_draw_flight_texture_layer(main, FLIGHT_MOUNTAIN_MID_TEXTURE, arena_rect, distance, 0.105, arena_rect.position.y + 306.0, 0.84, _with_alpha(Color.WHITE, 0.30))
+	_draw_flight_cloud_floor_wash(main, arena_rect, distance)
+	_draw_flight_texture_layer(main, FLIGHT_WIND_VEIL_TEXTURE, arena_rect, distance, 0.70 * speed_ratio, arena_rect.position.y + 166.0, 1.10, _with_alpha(ART_BLUE_CORE, 0.026))
+	_draw_flight_texture_layer(main, FLIGHT_WIND_VEIL_TEXTURE, arena_rect, distance + 240.0, 0.52 * speed_ratio, arena_rect.position.y + 438.0, 1.28, _with_alpha(ART_BLUE, 0.018))
+	if not _use_flight_rider_sprite_fx(main):
+		_draw_flight_wind_glints(main, arena_rect, distance, speed_ratio)
+
+
+static func _draw_flight_texture_layer(
+	main: Node2D,
+	texture: Texture2D,
+	arena_rect: Rect2,
+	distance: float,
+	parallax: float,
+	y: float,
+	scale_value: float,
+	modulate: Color
+) -> void:
+	if texture == null or modulate.a <= 0.001:
+		return
+	var texture_size: Vector2 = texture.get_size() * scale_value
+	if texture_size.x <= 1.0 or texture_size.y <= 1.0:
+		return
+	var wrap_width: float = texture_size.x
+	var offset: float = fmod(distance * parallax, wrap_width)
+	var draw_x: float = arena_rect.position.x - offset - wrap_width
+	while draw_x < arena_rect.end.x + wrap_width:
+		main.draw_texture_rect(
+			texture,
+			Rect2(Vector2(draw_x, y), texture_size),
+			false,
+			modulate
+		)
+		draw_x += wrap_width
+
+
+static func _draw_flight_sky_wash(main: Node2D, arena_rect: Rect2, distance: float) -> void:
+	var band_count: int = 7
+	var band_index: int = 0
+	while band_index < band_count:
+		var ratio: float = float(band_index) / float(maxi(band_count - 1, 1))
+		var y: float = arena_rect.position.y + arena_rect.size.y * ratio
+		var band_h: float = arena_rect.size.y / float(band_count) + 2.0
+		var color: Color = Color("0b2532").lerp(Color("071018"), ratio)
+		var breathe: float = 0.5 + 0.5 * sin(distance * 0.002 + float(band_index) * 0.9)
+		main.draw_rect(
+			Rect2(Vector2(arena_rect.position.x, y), Vector2(arena_rect.size.x, band_h)),
+			_with_alpha(color, 0.10 + 0.025 * breathe),
+			true
+		)
+		band_index += 1
+	_draw_soft_diagonal_band(main, arena_rect.get_center() + Vector2(68.0, -158.0), Vector2(0.94, -0.16).normalized(), arena_rect.size.x * 0.58, 74.0, ART_BLUE_CORE, 0.018)
+	_draw_soft_diagonal_band(main, arena_rect.get_center() + Vector2(-140.0, -72.0), Vector2(0.98, -0.10).normalized(), arena_rect.size.x * 0.46, 58.0, ART_GOLD, 0.012)
+
+
+static func _draw_flight_mountain_layer(
+	main: Node2D,
+	arena_rect: Rect2,
+	distance: float,
+	parallax: float,
+	period: float,
+	base_y: float,
+	height: float,
+	fill_color: Color,
+	ridge_color: Color,
+	alpha: float,
+	seed_offset: int
+) -> void:
+	var offset: float = fmod(distance * parallax, period)
+	var visible_chunks: int = int(ceil(arena_rect.size.x / period)) + 4
+	for mountain_index in range(-2, visible_chunks):
+		var base_x: float = arena_rect.position.x + float(mountain_index) * period - offset
+		var top_points := PackedVector2Array()
+		var point_count: int = 8
+		for point_index in range(point_count):
+			var t: float = float(point_index) / float(maxi(point_count - 1, 1))
+			var arch: float = sin(t * PI)
+			var peak_noise: float = _stable_noise(seed_offset + mountain_index * 29 + point_index * 7, parallax * 11.0)
+			var shelf_noise: float = _stable_noise(seed_offset + mountain_index * 31 + point_index * 5, height * 0.017)
+			var x: float = base_x + lerpf(-period * 0.16, period * 1.12, t)
+			var y: float = arena_rect.position.y + base_y - arch * height * (0.48 + 0.58 * peak_noise)
+			y += (shelf_noise - 0.5) * 42.0
+			if point_index == 0 or point_index == point_count - 1:
+				y = arena_rect.position.y + base_y + 26.0 + (shelf_noise - 0.5) * 16.0
+			top_points.append(Vector2(x, y))
+
+		var polygon := PackedVector2Array()
+		polygon.append(Vector2(base_x - period * 0.22, arena_rect.end.y + 22.0))
+		for point in top_points:
+			polygon.append(point)
+		polygon.append(Vector2(base_x + period * 1.18, arena_rect.end.y + 22.0))
+		_try_draw_colored_polygon(main, polygon, _with_alpha(fill_color, alpha))
+
+		var ridge_index: int = 0
+		while ridge_index < top_points.size() - 1:
+			var a: Vector2 = top_points[ridge_index]
+			var b: Vector2 = top_points[ridge_index + 1]
+			main.draw_line(a, b, _with_alpha(ridge_color, alpha * 0.18), 1.0)
+			ridge_index += 1
+
+		var facet_index: int = 1
+		while facet_index < top_points.size() - 1:
+			var peak: Vector2 = top_points[facet_index]
+			var fall_side: float = -1.0 if facet_index % 2 == 0 else 1.0
+			var facet_len: float = 48.0 + 36.0 * _stable_noise(seed_offset + mountain_index * 23 + facet_index, 0.37)
+			var facet_end: Vector2 = peak + Vector2(fall_side * facet_len, facet_len * 1.42)
+			var snow_alpha: float = alpha * (0.035 + 0.035 * _stable_noise(seed_offset + facet_index * 13, 0.91))
+			main.draw_line(peak + Vector2(0.0, 2.0), facet_end, _with_alpha(Color("d8e2ea"), snow_alpha), 1.0)
+			main.draw_line(peak + Vector2(-fall_side * 7.0, 10.0), facet_end + Vector2(-fall_side * 18.0, 8.0), _with_alpha(Color("02060a"), alpha * 0.055), 1.0)
+			facet_index += 2
+
+	var haze_y: float = arena_rect.position.y + base_y - height * 0.34
+	_draw_soft_diagonal_band(main, Vector2(arena_rect.get_center().x, haze_y), Vector2(1.0, -0.02).normalized(), arena_rect.size.x * 0.62, 38.0, ART_BLUE, 0.018 + alpha * 0.012)
+
+
+static func _draw_flight_cloud_layer(
+	main: Node2D,
+	arena_rect: Rect2,
+	distance: float,
+	parallax: float,
+	period: float,
+	alpha_base: float,
+	seed_offset: int,
+	near_layer: bool
+) -> void:
+	var offset: float = fmod(distance * parallax, period)
+	var visible_clouds: int = int(ceil(arena_rect.size.x / period)) + 5
+	for cloud_index in range(-2, visible_clouds):
+		var noise_a: float = _stable_noise(seed_offset + cloud_index * 11, 0.61)
+		var noise_b: float = _stable_noise(seed_offset + cloud_index * 17, 0.29)
+		var cloud_x: float = arena_rect.position.x + float(cloud_index) * period - offset + noise_a * 72.0
+		var y_min: float = arena_rect.position.y + (62.0 if near_layer else 88.0)
+		var y_span: float = arena_rect.size.y * (0.66 if near_layer else 0.48)
+		var cloud_y: float = y_min + fmod(float(cloud_index * 79 + seed_offset * 3), maxf(y_span, 1.0)) + noise_b * 24.0
+		var cloud_len: float = (156.0 if near_layer else 210.0) + 94.0 * noise_a
+		var cloud_thickness: float = (22.0 if near_layer else 30.0) + 18.0 * noise_b
+		var cloud_color: Color = ART_BLUE_CORE.lerp(ART_GOLD, 0.08 + 0.16 * _stable_noise(seed_offset + cloud_index * 5, 0.77))
+		_draw_flight_cloud_cluster(
+			main,
+			Vector2(cloud_x, cloud_y),
+			cloud_len,
+			cloud_thickness,
+			cloud_color,
+			alpha_base * (0.72 + 0.46 * noise_b),
+			seed_offset + cloud_index * 19,
+			near_layer
+		)
+
+
+static func _draw_flight_cloud_cluster(
+	main: Node2D,
+	center: Vector2,
+	length: float,
+	thickness: float,
+	color: Color,
+	alpha: float,
+	seed: int,
+	near_layer: bool
+) -> void:
+	var axis := Vector2(1.0, -0.055).normalized()
+	var normal := Vector2(-axis.y, axis.x)
+	_draw_soft_diagonal_band(main, center + normal * thickness * 0.18, axis, length * 0.55, thickness * 0.78, color, alpha * 0.58)
+	_draw_soft_diagonal_band(main, center - normal * thickness * 0.42 + Vector2(0.0, thickness * 0.38), axis, length * 0.52, thickness * 0.32, Color("040a0f"), alpha * 0.32)
+
+	var lobe_count: int = 6 if near_layer else 5
+	for lobe_index in range(lobe_count):
+		var t: float = float(lobe_index) / float(maxi(lobe_count - 1, 1))
+		var wobble: float = _stable_noise(seed + lobe_index * 7, 0.43)
+		var lobe_pos: Vector2 = center - axis * length * 0.42 + axis * length * 0.84 * t
+		lobe_pos += normal * ((wobble - 0.5) * thickness * 0.92)
+		var radius: float = thickness * (0.46 + 0.34 * _stable_noise(seed + lobe_index * 13, 0.88))
+		var lobe_alpha: float = alpha * (0.46 + 0.22 * sin(float(lobe_index) * 1.3))
+		main.draw_circle(lobe_pos, radius, _with_alpha(color.lerp(Color.WHITE, 0.14), lobe_alpha))
+		main.draw_circle(lobe_pos + normal * radius * 0.18, radius * 0.52, _with_alpha(ART_BLUE_CORE, lobe_alpha * 0.34))
+
+	if near_layer:
+		var shred_index: int = 0
+		while shred_index < 3:
+			var shred_t: float = (float(shred_index) + 0.32) / 3.0
+			var shred_center: Vector2 = center - axis * length * 0.38 + axis * length * 0.76 * shred_t - normal * thickness * (0.62 + 0.18 * float(shred_index))
+			_draw_soft_diagonal_band(main, shred_center, axis, length * (0.18 + 0.07 * float(shred_index)), thickness * 0.18, color, alpha * 0.34)
+			shred_index += 1
+
+
+static func _draw_flight_cloud_floor_wash(main: Node2D, arena_rect: Rect2, distance: float) -> void:
+	var floor_y: float = arena_rect.position.y + arena_rect.size.y * 0.72
+	_draw_soft_diagonal_band(main, Vector2(arena_rect.get_center().x, floor_y), Vector2(1.0, -0.025).normalized(), arena_rect.size.x * 0.72, 70.0, ART_BLUE, 0.020)
+	_draw_soft_diagonal_band(main, Vector2(arena_rect.get_center().x - 80.0, floor_y + 92.0), Vector2(1.0, 0.01).normalized(), arena_rect.size.x * 0.66, 88.0, ART_BLUE_CORE, 0.012)
+
+
+static func _draw_flight_wind_glints(main: Node2D, arena_rect: Rect2, distance: float, speed_ratio: float) -> void:
+	var glint_count: int = 5
+	var period: float = 310.0
+	var offset: float = fmod(distance * 0.96, period)
+	for glint_index in range(glint_count):
+		var x: float = arena_rect.end.x - fmod(offset + float(glint_index) * 173.0, arena_rect.size.x + period)
+		var y: float = arena_rect.position.y + 90.0 + fmod(float(glint_index * 113), arena_rect.size.y - 180.0)
+		var len: float = 62.0 + 36.0 * _stable_noise(880 + glint_index, speed_ratio)
+		var alpha: float = (0.018 + 0.018 * speed_ratio) * (0.7 + 0.3 * sin(main.elapsed_time * 1.7 + float(glint_index)))
+		main.draw_line(Vector2(x, y), Vector2(x - len, y + 3.0), _with_alpha(ART_BLUE_CORE, alpha), 0.8)
+
+
+static func _draw_flight_wind_field(
+	main: Node2D,
+	arena_rect: Rect2,
+	distance: float,
+	speed_ratio: float,
+	foreground: bool
+) -> void:
+	var wind_count: int = 22 if foreground else 14
+	var travel_speed: float = 1.24 if foreground else 0.72
+	var spacing: float = 58.0 if foreground else 82.0
+	var wrap_width: float = arena_rect.size.x + 330.0
+	for wind_index in range(wind_count):
+		var seed: int = wind_index + (300 if foreground else 120)
+		var offset: float = fmod(distance * travel_speed + float(wind_index) * spacing + _stable_noise(seed, 0.41) * 130.0, wrap_width)
+		var x: float = arena_rect.end.x + 170.0 - offset
+		var y: float = arena_rect.position.y + 42.0 + fmod(float(wind_index * 47 + seed * 5), arena_rect.size.y - 82.0)
+		y += (_stable_noise(seed, 0.93) - 0.5) * 34.0
+		var length: float = (72.0 if foreground else 118.0) + 84.0 * _stable_noise(seed, 0.27)
+		length *= lerpf(0.86, 1.24, clampf(speed_ratio - 0.65, 0.0, 0.8) / 0.8)
+		var amplitude: float = (4.0 if foreground else 7.0) + 7.0 * _stable_noise(seed, 0.58)
+		var alpha: float = (0.070 if foreground else 0.040) * (0.82 + 0.48 * speed_ratio)
+		var width: float = (1.25 if foreground else 0.9) + float(wind_index % 3) * 0.32
+		var color: Color = ART_BLUE_CORE.lerp(ART_GOLD, 0.22 if wind_index % 5 == 0 else 0.07)
+		var phase: float = main.elapsed_time * (1.15 + speed_ratio * 0.55) + float(seed) * 0.37
+		_draw_flight_wind_ribbon(
+			main,
+			Vector2(x, y),
+			Vector2(-1.0, 0.045).normalized(),
+			length,
+			amplitude,
+			phase,
+			color,
+			alpha,
+			width,
+			9 if foreground else 11
+		)
+
+
+static func _draw_flight_wind_ribbon(
+	main: Node2D,
+	center: Vector2,
+	axis: Vector2,
+	length: float,
+	amplitude: float,
+	phase: float,
+	color: Color,
+	alpha: float,
+	width: float,
+	segment_count: int
+) -> void:
+	var normal := Vector2(-axis.y, axis.x)
+	var points := PackedVector2Array()
+	for step in range(segment_count + 1):
+		var t: float = float(step) / float(maxi(segment_count, 1))
+		var envelope: float = pow(maxf(sin(t * PI), 0.0), 0.74)
+		var flow_a: float = sin((t * 1.85 + phase * 0.34) * TAU)
+		var flow_b: float = sin((t * 3.2 - phase * 0.21) * TAU)
+		var along: Vector2 = axis * length * (t - 0.5)
+		var lateral: Vector2 = normal * amplitude * envelope * (flow_a * 0.72 + flow_b * 0.28)
+		points.append(center + along + lateral)
+	_draw_tapered_wind_curve(main, points, color, alpha * 0.42, width * 3.4)
+	_draw_tapered_wind_curve(main, points, color.lerp(Color.WHITE, 0.26), alpha, width)
+	if points.size() >= 3:
+		var glint_start: Vector2 = points[points.size() - 3]
+		var glint_end: Vector2 = points[points.size() - 1]
+		main.draw_line(glint_start, glint_end, _with_alpha(ART_BLUE_CORE, alpha * 0.72), maxf(width * 0.52, 0.8))
+
+
+static func _draw_tapered_wind_curve(main: Node2D, points: PackedVector2Array, color: Color, alpha: float, width: float) -> void:
+	if points.size() < 2:
+		return
+	var segment_count: int = points.size() - 1
+	var segment_index: int = 0
+	while segment_index < segment_count:
+		var t: float = (float(segment_index) + 0.5) / float(maxi(segment_count, 1))
+		var taper: float = _wind_ribbon_width_profile(t)
+		var fade: float = _wind_ribbon_alpha_profile(t)
+		main.draw_line(
+			points[segment_index],
+			points[segment_index + 1],
+			_with_alpha(color, alpha * fade),
+			maxf(width * taper, 0.7)
+		)
+		segment_index += 1
+
+
+static func _wind_ribbon_width_profile(t: float) -> float:
+	var clamped_t: float = clampf(t, 0.0, 1.0)
+	if clamped_t <= 0.08:
+		return lerpf(0.0, 0.52, smoothstep(0.0, 0.08, clamped_t))
+	if clamped_t <= 0.45:
+		return lerpf(0.52, 1.0, smoothstep(0.08, 0.45, clamped_t))
+	return lerpf(1.0, 0.0, smoothstep(0.45, 1.0, clamped_t))
+
+
+static func _wind_ribbon_alpha_profile(t: float) -> float:
+	var clamped_t: float = clampf(t, 0.0, 1.0)
+	var enter: float = smoothstep(0.0, 0.10, clamped_t)
+	var body: float = 1.0 - smoothstep(0.46, 0.94, clamped_t)
+	var middle_dip: float = lerpf(1.0, 0.58, smoothstep(0.22, 0.34, clamped_t))
+	return enter * body * middle_dip
 
 
 static func _draw_art_depth_wash(main: Node2D, viewport_rect: Rect2, arena_rect: Rect2) -> void:
@@ -1354,10 +1736,147 @@ static func _draw_large_arena_marker(main: Node2D, screen_rect: Rect2, target_sc
 			_with_alpha(color.lerp(ART_BLUE_CORE, 0.22), 0.86)
 		)
 
+static func _draw_demo_ruined_temple(main: Node2D, arena_rect: Rect2) -> void:
+	var floor_rect: Rect2 = arena_rect.grow(-26.0)
+	var floor_color := Color("151316")
+	var mortar_color := Color("2b2730")
+	var brick_color := Color("201b1d")
+	var ash_color := Color("373039")
+	var moss_color := Color("35513e")
+	main.draw_rect(floor_rect, _with_alpha(floor_color, 0.82), true)
+
+	var brick_h := 34.0
+	var brick_w := 96.0
+	var row := 0
+	while row < int(ceil(floor_rect.size.y / brick_h)):
+		var y := floor_rect.position.y + float(row) * brick_h
+		var x := floor_rect.position.x - (brick_w * 0.5 if row % 2 == 1 else 0.0)
+		while x < floor_rect.end.x:
+			var rect := Rect2(Vector2(x + 2.0, y + 2.0), Vector2(brick_w - 4.0, brick_h - 4.0))
+			var shade := 0.08 + 0.04 * sin(float(row) * 1.7 + x * 0.017)
+			main.draw_rect(rect, _with_alpha(brick_color.lerp(ash_color, shade), 0.28), true)
+			main.draw_rect(rect, _with_alpha(mortar_color, 0.32), false, 0.8)
+			x += brick_w
+		row += 1
+
+	var gate_center := Vector2(arena_rect.get_center().x, arena_rect.position.y + 92.0)
+	var roof := PackedVector2Array([
+		gate_center + Vector2(-250.0, -36.0),
+		gate_center + Vector2(-128.0, -96.0),
+		gate_center + Vector2(132.0, -96.0),
+		gate_center + Vector2(252.0, -36.0),
+		gate_center + Vector2(214.0, -24.0),
+		gate_center + Vector2(0.0, -68.0),
+		gate_center + Vector2(-214.0, -24.0),
+	])
+	_try_draw_colored_polygon(main, roof, _with_alpha(Color("09080b"), 0.74))
+	main.draw_line(gate_center + Vector2(-244.0, -28.0), gate_center + Vector2(244.0, -28.0), _with_alpha(ART_GOLD, 0.16), 2.0)
+	main.draw_rect(Rect2(gate_center + Vector2(-210.0, -26.0), Vector2(420.0, 68.0)), _with_alpha(Color("0b090d"), 0.56), true)
+	main.draw_arc(gate_center + Vector2(0.0, 42.0), 76.0, PI, TAU, 42, _with_alpha(ART_BLUE, 0.12), 2.2)
+	main.draw_line(gate_center + Vector2(-76.0, 42.0), gate_center + Vector2(-76.0, 114.0), _with_alpha(ART_BLUE, 0.1), 1.6)
+	main.draw_line(gate_center + Vector2(76.0, 42.0), gate_center + Vector2(76.0, 114.0), _with_alpha(ART_BLUE, 0.1), 1.6)
+
+	var pillar_positions := [
+		Vector2(arena_rect.position.x + 118.0, arena_rect.position.y + 166.0),
+		Vector2(arena_rect.end.x - 118.0, arena_rect.position.y + 166.0),
+		Vector2(arena_rect.position.x + 92.0, arena_rect.end.y - 128.0),
+		Vector2(arena_rect.end.x - 92.0, arena_rect.end.y - 128.0),
+	]
+	for pillar_pos in pillar_positions:
+		var shadow := PackedVector2Array([
+			pillar_pos + Vector2(-18.0, 14.0),
+			pillar_pos + Vector2(96.0, 58.0),
+			pillar_pos + Vector2(118.0, 78.0),
+			pillar_pos + Vector2(-4.0, 34.0),
+		])
+		_try_draw_colored_polygon(main, shadow, _with_alpha(Color("050407"), 0.28))
+		main.draw_rect(Rect2(pillar_pos - Vector2(18.0, 34.0), Vector2(36.0, 68.0)), _with_alpha(Color("28242b"), 0.78), true)
+		main.draw_rect(Rect2(pillar_pos - Vector2(20.0, 36.0), Vector2(40.0, 72.0)), _with_alpha(ART_GOLD, 0.1), false, 1.0)
+		main.draw_circle(pillar_pos + Vector2(0.0, -34.0), 20.0, _with_alpha(Color("38323a"), 0.42))
+
+	var altar_rect := Rect2(Vector2(arena_rect.get_center().x - 74.0, arena_rect.position.y + 188.0), Vector2(148.0, 34.0))
+	main.draw_rect(altar_rect.grow_individual(12.0, 10.0, 12.0, 10.0), _with_alpha(Color("08070a"), 0.34), true)
+	main.draw_rect(altar_rect, _with_alpha(Color("2a2022"), 0.72), true)
+	main.draw_rect(altar_rect, _with_alpha(ART_GOLD, 0.2), false, 1.2)
+	for candle_offset in [-48.0, 48.0]:
+		var base := Vector2(altar_rect.get_center().x + candle_offset, altar_rect.position.y - 2.0)
+		var flame_pulse := 0.5 + 0.5 * sin(main.elapsed_time * 7.5 + candle_offset)
+		main.draw_rect(Rect2(base + Vector2(-3.0, -16.0), Vector2(6.0, 16.0)), _with_alpha(Color("d6c7a1"), 0.58), true)
+		main.draw_circle(base + Vector2(0.0, -20.0), 9.0 + flame_pulse * 2.0, _with_alpha(Color("ff9f43"), 0.1 + 0.08 * flame_pulse))
+		main.draw_circle(base + Vector2(0.0, -21.0), 3.2 + flame_pulse, _with_alpha(Color("ffd48a"), 0.62))
+
+	for crack_index in range(9):
+		var start := arena_rect.position + Vector2(
+			72.0 + fmod(float(crack_index) * 173.0, arena_rect.size.x - 144.0),
+			146.0 + fmod(float(crack_index * crack_index) * 59.0, arena_rect.size.y - 220.0)
+		)
+		var dir := Vector2.RIGHT.rotated(-0.78 + float(crack_index % 5) * 0.36)
+		var length := 32.0 + float(crack_index % 4) * 14.0
+		main.draw_line(start, start + dir * length, _with_alpha(Color("070609"), 0.42), 1.5)
+		if crack_index % 2 == 0:
+			main.draw_line(start + dir * length * 0.52, start + dir * length * 0.52 + dir.rotated(0.85) * (length * 0.34), _with_alpha(Color("070609"), 0.32), 1.1)
+
+	for moss_index in range(7):
+		var moss_pos := arena_rect.position + Vector2(
+			48.0 + fmod(float(moss_index) * 211.0, arena_rect.size.x - 96.0),
+			112.0 + fmod(float(moss_index * moss_index) * 83.0, arena_rect.size.y - 172.0)
+		)
+		main.draw_circle(moss_pos, 18.0 + float(moss_index % 3) * 7.0, _with_alpha(moss_color, 0.05))
+
+
+static func _draw_demo_recovery_pickups(main: Node2D) -> void:
+	for pickup in main.demo_recovery_pickups:
+		var pos: Vector2 = main._to_screen(Vector2(pickup.get("pos", Vector2.ZERO)))
+		var pulse := 0.5 + 0.5 * sin(float(pickup.get("pulse", 0.0)) * 4.4 + main.elapsed_time * 3.0)
+		var radius := float(pickup.get("radius", 18.0))
+		var is_major := bool(pickup.get("is_major", false))
+		var outer_color: Color = ART_GOLD if is_major else main.COLORS["health"].lerp(ART_GOLD, 0.18)
+		var core_color: Color = Color("fff2cf") if is_major else Color("fecaca")
+		main.draw_circle(pos, radius + 8.0 + pulse * 5.0, _with_alpha(outer_color, 0.045 + 0.04 * pulse))
+		main.draw_arc(pos, radius, -main.elapsed_time * 1.6, -main.elapsed_time * 1.6 + TAU * 0.72, 34, _with_alpha(outer_color, 0.46), 2.0)
+		main.draw_circle(pos, 6.5 + pulse * 1.4, _with_alpha(core_color, 0.72))
+		main.draw_line(pos + Vector2(-6.5, 0.0), pos + Vector2(6.5, 0.0), _with_alpha(core_color, 0.92), 1.8)
+		main.draw_line(pos + Vector2(0.0, -6.5), pos + Vector2(0.0, 6.5), _with_alpha(core_color, 0.92), 1.8)
+
+
+static func _draw_score_loot_pickups(main: Node2D) -> void:
+	for pickup in main.score_loot_pickups:
+		var pos: Vector2 = main._to_screen(Vector2(pickup.get("pos", Vector2.ZERO)))
+		var life: float = float(pickup.get("life", 0.0))
+		var max_life: float = maxf(float(pickup.get("max_life", main.SCORE_LOOT_LIFE_DURATION)), 0.001)
+		var life_ratio: float = clampf(life / max_life, 0.0, 1.0)
+		var warning_ratio: float = clampf((main.SCORE_LOOT_WARNING_DURATION - life) / maxf(main.SCORE_LOOT_WARNING_DURATION, 0.001), 0.0, 1.0)
+		var pulse_seed: float = float(pickup.get("pulse", 0.0))
+		var pulse: float = 0.5 + 0.5 * sin(pulse_seed * 5.2 + main.elapsed_time * 4.0)
+		var blink: float = 0.5 + 0.5 * sin(main.elapsed_time * 22.0 + pulse_seed * 2.1)
+		var visible_alpha: float = lerpf(1.0, 0.35 + 0.65 * blink, warning_ratio) * clampf(0.35 + life_ratio * 0.9, 0.0, 1.0)
+		var radius: float = float(pickup.get("radius", main.SCORE_LOOT_RADIUS))
+		var outer_radius: float = radius + 6.0 + pulse * 4.0 + warning_ratio * blink * 5.0
+		var outer_color: Color = ART_GOLD.lerp(main.COLORS["energy"], 0.22)
+		var core_color: Color = Color("fff7d6")
+		main.draw_circle(pos, outer_radius, _with_alpha(outer_color, (0.04 + 0.045 * pulse) * visible_alpha))
+		main.draw_arc(pos, radius + 2.0 + warning_ratio * 2.0, -main.elapsed_time * 1.9, -main.elapsed_time * 1.9 + TAU * 0.66, 36, _with_alpha(outer_color, 0.5 * visible_alpha), 1.8)
+		main.draw_arc(pos, radius * 0.62, main.elapsed_time * 1.4, main.elapsed_time * 1.4 + TAU * 0.42, 24, _with_alpha(core_color, 0.36 * visible_alpha), 1.2)
+		var core_radius: float = 4.6 + pulse * 1.1 + warning_ratio * blink * 1.2
+		var diamond := PackedVector2Array([
+			pos + Vector2(0.0, -core_radius),
+			pos + Vector2(core_radius, 0.0),
+			pos + Vector2(0.0, core_radius),
+			pos + Vector2(-core_radius, 0.0),
+		])
+		_try_draw_colored_polygon(main, diamond, _with_alpha(core_color, 0.78 * visible_alpha))
+		for shard_index in range(3):
+			var angle: float = main.elapsed_time * 2.2 + pulse_seed + float(shard_index) * TAU / 3.0
+			var shard_pos: Vector2 = pos + Vector2.RIGHT.rotated(angle) * (radius * 0.72 + pulse * 2.0)
+			main.draw_circle(shard_pos, 1.5 + 0.6 * pulse, _with_alpha(core_color, 0.62 * visible_alpha))
+
 
 static func _draw_art_tactical_grid(main: Node2D) -> void:
 	if main._is_large_arena_test_enabled():
 		_draw_large_arena_tactical_grid(main)
+		return
+	if _is_flight_prototype_mode(main):
+		_draw_flight_lane_guides(main)
 		return
 	var x: int = 0
 	while x <= int(main.ARENA_SIZE.x):
@@ -1407,6 +1926,214 @@ static func _draw_large_arena_tactical_grid(main: Node2D) -> void:
 		)
 		y += 100
 	_draw_large_arena_bounds(main)
+static func _draw_flight_lane_guides(main: Node2D) -> void:
+	var lane_rect_world: Rect2 = main._get_flight_lane_rect()
+	var lane_rect := Rect2(main._to_screen(lane_rect_world.position), lane_rect_world.size)
+	var center_y: float = lane_rect.get_center().y
+	main.draw_line(Vector2(lane_rect.position.x, center_y), Vector2(lane_rect.end.x, center_y), _with_alpha(ART_BLUE, 0.052), 1.0)
+	for lane_index in range(1, 4):
+		var y := lerpf(lane_rect.position.y, lane_rect.end.y, float(lane_index) / 4.0)
+		main.draw_line(Vector2(lane_rect.position.x, y), Vector2(lane_rect.end.x, y), _with_alpha(ART_BLUE, 0.028), 1.0)
+	if not bool(main.debug_battle_mode):
+		return
+	main.draw_rect(lane_rect, _with_alpha(ART_GOLD, 0.28), false, 1.2)
+	main.draw_rect(lane_rect.grow(7.0), _with_alpha(ART_BLUE, 0.08), false, 1.0)
+	if main.has_method("_is_flight_anchored_prototype_mode") and main._is_flight_anchored_prototype_mode():
+		var anchor: Vector2 = main._to_screen(main._get_flight_anchor_world())
+		main.draw_line(Vector2(anchor.x, lane_rect.position.y), Vector2(anchor.x, lane_rect.end.y), _with_alpha(ART_GOLD, 0.34), 1.4)
+		main.draw_line(anchor + Vector2(-18.0, 0.0), anchor + Vector2(18.0, 0.0), _with_alpha(ART_GOLD, 0.42), 1.6)
+		main.draw_line(anchor + Vector2(0.0, -18.0), anchor + Vector2(0.0, 18.0), _with_alpha(ART_GOLD, 0.42), 1.6)
+
+
+static func _draw_flight_full_energy_mandala(main: Node2D, player_pos: Vector2) -> void:
+	var energy_ratio: float = clampf(float(main.player.get("energy", 0.0)) / maxf(main.PLAYER_MAX_ENERGY, 1.0), 0.0, 1.0)
+	var full_strength: float = smoothstep(0.985, 1.0, energy_ratio)
+	var full_flash: float = 0.0
+	if main.has_method("_get_sword_momentum_full_flash_strength"):
+		full_flash = clampf(main._get_sword_momentum_full_flash_strength(), 0.0, 1.0)
+	var heat_strength: float = 0.0
+	if main.has_method("_get_sword_momentum_heat_strength"):
+		heat_strength = clampf(main._get_sword_momentum_heat_strength(), 0.0, 1.0)
+	var strength: float = clampf(full_strength + full_flash * 0.9 + maxf(heat_strength - 0.88, 0.0) * 1.8, 0.0, 1.6)
+	if strength <= 0.01:
+		return
+	var radius: float = float(main.flight_full_energy_mandala_radius) * (0.92 + 0.12 * sin(main.elapsed_time * 1.6)) + full_flash * 18.0
+	var alpha_scale: float = clampf(float(main.flight_full_energy_mandala_alpha), 0.0, 2.0)
+	var spin: float = float(main.flight_full_energy_mandala_spin)
+	var gold: Color = ART_GOLD.lerp(UNSHEATH_FLASH_WARM_COLOR, 0.18)
+	var blue: Color = ART_BLUE_CORE.lerp(ART_BLUE, 0.22)
+	var base_alpha: float = (0.18 + 0.16 * full_strength + 0.18 * full_flash) * alpha_scale
+	main.draw_circle(player_pos, radius + 22.0, _with_alpha(ART_BLUE, 0.018 * strength * alpha_scale))
+	main.draw_arc(player_pos, radius, main.elapsed_time * 0.7 * spin, main.elapsed_time * 0.7 * spin + TAU * 0.78, 72, _with_alpha(gold, base_alpha), 1.7 + 1.8 * full_flash)
+	main.draw_arc(player_pos, radius + 9.0, -main.elapsed_time * 0.9 * spin, -main.elapsed_time * 0.9 * spin + TAU * 0.58, 72, _with_alpha(blue, base_alpha * 0.86), 1.1 + 1.3 * full_flash)
+	main.draw_arc(player_pos, radius - 12.0, -main.elapsed_time * 1.25 * spin, -main.elapsed_time * 1.25 * spin + TAU * 0.34, 54, _with_alpha(ART_GOLD.lerp(ART_BLUE_CORE, 0.44), base_alpha * 0.72), 1.0)
+	var mark_count: int = 10
+	for mark_index in range(mark_count):
+		var angle: float = TAU * float(mark_index) / float(mark_count) + main.elapsed_time * 0.28 * spin
+		var dir: Vector2 = Vector2.RIGHT.rotated(angle)
+		var tangent: Vector2 = dir.rotated(PI * 0.5)
+		var mark_center: Vector2 = player_pos + dir * (radius + 2.0 + 4.0 * sin(main.elapsed_time * 1.4 + float(mark_index)))
+		var mark_len: float = 8.0 + 4.0 * float(mark_index % 3) + 8.0 * full_flash
+		var mark_color: Color = gold.lerp(blue, 0.28 + 0.46 * float(mark_index % 2))
+		main.draw_line(mark_center - tangent * mark_len * 0.5, mark_center + tangent * mark_len * 0.5, _with_alpha(mark_color, base_alpha * 0.78), 1.1 + 0.4 * full_flash)
+	var sword_pos: Vector2 = main._to_screen(main._get_sword_visual_position())
+	var to_sword: Vector2 = sword_pos - player_pos
+	if to_sword.length() > 12.0 and to_sword.length() < 260.0:
+		main.draw_line(player_pos + to_sword.normalized() * 18.0, sword_pos - to_sword.normalized() * 18.0, _with_alpha(blue.lerp(gold, 0.28), 0.045 + 0.055 * strength), 1.2 + 0.8 * full_flash)
+
+
+static func _draw_flight_riding_sword(main: Node2D, player_pos: Vector2) -> void:
+	var speed_ratio: float = clampf(float(main.flight_scroll_speed) / maxf(float(main.FLIGHT_BASE_SCROLL_SPEED), 1.0), 0.65, 1.35)
+	var flight_push: float = clampf(Vector2(main.player.get("vel", Vector2.ZERO)).x / maxf(float(main.FLIGHT_HORIZONTAL_SPEED), 1.0), -1.0, 1.0)
+	var blade_forward := Vector2.RIGHT
+	var bob: float = sin(main.elapsed_time * 3.2) * 1.4
+	var sword_center: Vector2 = player_pos + Vector2(2.0 + flight_push * 6.0, 24.0 + bob)
+	var blade_back := sword_center - blade_forward * (50.0 + 12.0 * speed_ratio)
+	var blade_tip := sword_center + blade_forward * (68.0 + 10.0 * speed_ratio)
+	var side := Vector2(0.0, 1.0)
+	var platform := PackedVector2Array([
+		blade_back - side * 5.8,
+		blade_tip - side * 2.2,
+		blade_tip + blade_forward * 12.0,
+		blade_tip + side * 2.2,
+		blade_back + side * 5.8,
+	])
+	var sword_color: Color = main.COLORS["ranged_sword"].lerp(Color.WHITE, 0.16)
+	var pressure_alpha: float = 0.18 + 0.08 * absf(flight_push)
+	main.draw_line(blade_back - blade_forward * 22.0, blade_back + blade_forward * 12.0, _with_alpha(ART_BLUE, 0.11 + pressure_alpha * 0.18), 10.0)
+	_try_draw_colored_polygon(main, platform, _with_alpha(sword_color, 0.22 + pressure_alpha * 0.22))
+	main.draw_line(blade_back, blade_tip + blade_forward * 10.0, _with_alpha(Color.WHITE, 0.32 + pressure_alpha), 1.5)
+	main.draw_line(blade_back + side * 4.2, blade_tip - side * 1.4, _with_alpha(ART_GOLD, 0.12), 0.9)
+	main.draw_line(blade_back - side * 4.2, blade_tip + side * 1.4, _with_alpha(ART_BLUE_CORE, 0.12), 0.9)
+	if absf(flight_push) > 0.08:
+		var pressure_dir: Vector2 = Vector2(-signf(flight_push), 0.0)
+		main.draw_line(sword_center, sword_center + pressure_dir * (40.0 + 22.0 * absf(flight_push)), _with_alpha(ART_BLUE_CORE, 0.08 + 0.08 * absf(flight_push)), 1.2)
+
+
+static func _draw_flight_rider(main: Node2D, player_pos: Vector2) -> void:
+	var speed_ratio: float = clampf(float(main.flight_scroll_speed) / maxf(float(main.FLIGHT_BASE_SCROLL_SPEED), 1.0), 0.65, 1.35)
+	var visual_scale: float = clampf(float(main.flight_rider_visual_scale), 0.35, 2.4)
+	var action_scale: float = clampf(float(main.flight_rider_action_scale), 0.2, 2.0)
+	var action_state: Dictionary = main._get_rider_action_state() if main.has_method("_get_rider_action_state") else {}
+	var action_kind: String = str(action_state.get("kind", ""))
+	var action_progress: float = clampf(float(action_state.get("progress", 0.0)), 0.0, 1.0)
+	var action_strength: float = clampf(maxf(float(action_state.get("strength", 0.0)), float(action_state.get("peak_strength", 0.0))) * action_scale, 0.0, 2.0)
+	var action_peak: float = sin(action_progress * PI) * action_strength
+	var action_dir: Vector2 = Vector2(action_state.get("direction", Vector2.RIGHT))
+	if action_dir.is_zero_approx():
+		action_dir = Vector2.RIGHT
+	action_dir = action_dir.normalized()
+	var flight_push: float = clampf(Vector2(main.player.get("vel", Vector2.ZERO)).x / maxf(float(main.FLIGHT_HORIZONTAL_SPEED), 1.0), -1.0, 1.0)
+	var sword_state: int = int(main.sword.get("state", main.SwordState.ORBITING))
+	var is_holding_real_sword: bool = sword_state == main.SwordState.ORBITING
+	var bob: float = sin(main.elapsed_time * 3.2) * 1.4
+	var lean: float = flight_push * 9.0 * visual_scale
+	if action_kind == "parry":
+		lean += action_dir.x * 5.5 * action_peak
+	elif action_kind == "unsheath":
+		lean += action_dir.x * 4.0 * action_peak
+	elif action_kind == "array_release":
+		lean -= 3.0 * action_peak
+	elif action_kind == "array_morph":
+		lean += action_dir.x * 3.5 * action_peak
+	var stance_center: Vector2 = player_pos + Vector2(lean * 0.16, bob - absf(flight_push) * 2.0)
+	var body_color: Color = Color("101822").lerp(main.COLORS["player"], 0.12)
+	var robe_shadow: Color = Color("05070a")
+	var trim_color: Color = ART_GOLD.lerp(ART_BLUE_CORE, 0.16)
+
+	main.draw_circle(stance_center + Vector2(-3.0, 2.0) * visual_scale, main.PLAYER_RADIUS * 0.96 * visual_scale, _with_alpha(main.COLORS["player"], 0.10))
+
+	var rear_foot: Vector2 = stance_center + Vector2(-25.0 - flight_push * 8.0, 22.0 + absf(flight_push) * 2.5) * visual_scale
+	var front_foot: Vector2 = stance_center + Vector2(24.0 + flight_push * 10.0, 19.0 - absf(flight_push) * 2.0) * visual_scale
+	var rear_knee: Vector2 = stance_center + Vector2(-11.0 - flight_push * 5.0, 8.0) * visual_scale
+	var front_knee: Vector2 = stance_center + Vector2(10.0 + flight_push * 5.0, 6.0) * visual_scale
+	main.draw_line(rear_foot, rear_knee, _with_alpha(robe_shadow, 0.92), 4.2 * visual_scale)
+	main.draw_line(front_foot, front_knee, _with_alpha(robe_shadow, 0.92), 4.2 * visual_scale)
+	main.draw_line(rear_foot - Vector2(5.0, 0.0) * visual_scale, rear_foot + Vector2(8.0, -1.0) * visual_scale, _with_alpha(trim_color, 0.58), 1.7 * visual_scale)
+	main.draw_line(front_foot - Vector2(5.0, 0.0) * visual_scale, front_foot + Vector2(9.0, -1.0) * visual_scale, _with_alpha(trim_color, 0.64), 1.7 * visual_scale)
+
+	var hip: Vector2 = stance_center + Vector2(-3.0 + lean * 0.08, 3.0) * visual_scale
+	var shoulder: Vector2 = stance_center + Vector2(-4.0 + lean * 0.16, -23.0) * visual_scale
+	var robe := PackedVector2Array([
+		hip + Vector2(-17.0, 17.0) * visual_scale,
+		hip + Vector2(-13.0, -3.0) * visual_scale,
+		shoulder + Vector2(-10.0, -1.0) * visual_scale,
+		shoulder + Vector2(8.0, -3.0) * visual_scale,
+		hip + Vector2(16.0, 2.0) * visual_scale,
+		hip + Vector2(10.0, 18.0) * visual_scale,
+	])
+	_try_draw_colored_polygon(main, robe, _with_alpha(body_color, 0.96))
+	main.draw_line(shoulder + Vector2(-8.0, 2.0) * visual_scale, hip + Vector2(-10.0, 15.0) * visual_scale, _with_alpha(ART_BLUE, 0.24), 1.1 * visual_scale)
+	main.draw_line(shoulder + Vector2(6.0, -1.0) * visual_scale, hip + Vector2(12.0, 13.0) * visual_scale, _with_alpha(trim_color, 0.46), 1.0 * visual_scale)
+
+	var cape_start: Vector2 = shoulder + Vector2(-9.0, 4.0) * visual_scale
+	var cape_mid: Vector2 = stance_center + Vector2(-34.0 - maxf(flight_push, 0.0) * 18.0, sin(main.elapsed_time * 4.0) * 2.0) * visual_scale
+	var cape_end: Vector2 = stance_center + Vector2(-58.0 - 14.0 * speed_ratio - maxf(flight_push, 0.0) * 28.0, 11.0 + sin(main.elapsed_time * 3.1) * 3.0) * visual_scale
+	main.draw_line(cape_start, cape_mid, _with_alpha(ART_BLUE, 0.20), 4.5 * visual_scale)
+	main.draw_line(cape_mid, cape_end, _with_alpha(ART_BLUE, 0.11), 2.8 * visual_scale)
+	main.draw_line(cape_start + Vector2(0.0, 2.0) * visual_scale, cape_end + Vector2(-8.0, 8.0) * visual_scale, _with_alpha(robe_shadow, 0.28), 1.1 * visual_scale)
+
+	var head: Vector2 = stance_center + Vector2(-5.0 + lean * 0.18, -38.0) * visual_scale
+	main.draw_circle(head + Vector2(-2.0, -1.0) * visual_scale, 6.8 * visual_scale, _with_alpha(robe_shadow, 0.62))
+	main.draw_circle(head + Vector2(1.0, 0.0) * visual_scale, 5.1 * visual_scale, _with_alpha(Color("d9c8a0"), 0.92))
+	main.draw_line(head + Vector2(-4.0, 5.0) * visual_scale, head + Vector2(-18.0 - maxf(flight_push, 0.0) * 12.0, 16.0 + sin(main.elapsed_time * 4.6) * 2.0) * visual_scale, _with_alpha(robe_shadow, 0.72), 2.0 * visual_scale)
+
+	var chest: Vector2 = shoulder + Vector2(2.0, 8.0) * visual_scale
+	var sword_pos: Vector2 = main._to_screen(main._get_sword_visual_position())
+	var sword_forward: Vector2 = Vector2.RIGHT.rotated(main._get_sword_visual_angle())
+	if sword_forward.is_zero_approx():
+		sword_forward = action_dir
+	var hilt_pos: Vector2 = sword_pos - sword_forward.normalized() * (18.0 * visual_scale)
+	if is_holding_real_sword and main.has_method("_get_flight_held_sword_pose"):
+		var held_pose: Dictionary = main._get_flight_held_sword_pose()
+		hilt_pos = main._to_screen(Vector2(held_pose.get("hilt", main.player["pos"])))
+	var sword_shoulder: Vector2 = shoulder + Vector2(8.0, 5.0) * visual_scale
+	var off_shoulder: Vector2 = shoulder + Vector2(-2.0, 7.0) * visual_scale
+	if is_holding_real_sword:
+		var parry_arc: float = action_peak if action_kind == "parry" else 0.0
+		var elbow: Vector2 = sword_shoulder.lerp(hilt_pos, 0.48) + sword_forward.rotated(-PI * 0.5) * (8.0 + 8.0 * parry_arc)
+		var off_hand: Vector2 = chest + Vector2(4.0, -1.0) * visual_scale + sword_forward * (7.0 + 6.0 * parry_arc)
+		if action_kind == "array_release":
+			off_hand = chest + Vector2(-17.0, -8.0) * visual_scale + action_dir.normalized() * (8.0 * action_peak * visual_scale)
+			elbow += Vector2(0.0, -7.0 * action_peak) * visual_scale
+		elif action_kind == "array_morph":
+			off_hand = chest + Vector2(-15.0, -10.0) * visual_scale + action_dir.rotated(-PI * 0.5) * (9.0 * action_peak * visual_scale)
+			elbow += sword_forward.rotated(-PI * 0.5) * (7.0 * action_peak * visual_scale)
+		main.draw_line(sword_shoulder, elbow, _with_alpha(Color("d9c8a0"), 0.82), 2.9 * visual_scale)
+		main.draw_line(elbow, hilt_pos, _with_alpha(Color("d9c8a0"), 0.86), 2.6 * visual_scale)
+		main.draw_line(off_shoulder, off_hand, _with_alpha(Color("d9c8a0"), 0.58), 2.1 * visual_scale)
+		main.draw_circle(hilt_pos, 2.2 * visual_scale, _with_alpha(trim_color, 0.82))
+		if parry_arc > 0.02:
+			main.draw_arc(player_pos, main.SWORD_MELEE_RANGE * 0.72, sword_forward.angle() - 0.72, sword_forward.angle() + 0.42, 28, _with_alpha(ART_BLUE_CORE, 0.11 * parry_arc), 2.0 * visual_scale)
+		if action_kind == "array_release" and action_peak > 0.02:
+			main.draw_arc(hilt_pos, 14.0 * visual_scale, main.elapsed_time * 1.1, main.elapsed_time * 1.1 + TAU * 0.66, 24, _with_alpha(ART_GOLD, 0.14 * action_peak), 1.0 * visual_scale)
+			main.draw_arc(player_pos, 34.0 * visual_scale, -main.elapsed_time * 0.75, -main.elapsed_time * 0.75 + TAU * 0.38, 28, _with_alpha(ART_BLUE_CORE, 0.07 * action_peak), 0.9 * visual_scale)
+		elif action_kind == "array_morph" and action_peak > 0.02:
+			main.draw_arc(hilt_pos + action_dir * (16.0 * visual_scale), 16.0 * visual_scale, main.elapsed_time * 1.6, main.elapsed_time * 1.6 + TAU * 0.58, 24, _with_alpha(ART_GOLD, 0.12 * action_peak), 1.0 * visual_scale)
+	else:
+		var gesture_dir: Vector2 = action_dir.lerp(Vector2(1.0, -0.16).normalized(), 0.24).normalized()
+		if action_kind == "array_release":
+			gesture_dir = Vector2(0.72, -0.54).normalized()
+		elif action_kind == "array_morph":
+			gesture_dir = action_dir.lerp(action_dir.rotated(-PI * 0.5), 0.18 + 0.18 * action_peak).normalized()
+		var extension: float = (24.0 + 18.0 * action_peak) * visual_scale
+		var hand: Vector2 = sword_shoulder + gesture_dir * extension
+		var elbow: Vector2 = sword_shoulder + gesture_dir * (extension * 0.48) + gesture_dir.rotated(PI * 0.5) * (7.0 * visual_scale)
+		var off_hand: Vector2 = chest + Vector2(-4.0, -2.0) * visual_scale
+		if action_kind == "array_release":
+			off_hand = chest + Vector2(-14.0, -4.0) * visual_scale
+		elif action_kind == "array_morph":
+			off_hand = chest + Vector2(-13.0, -8.0) * visual_scale
+		main.draw_line(sword_shoulder, elbow, _with_alpha(Color("d9c8a0"), 0.80), 2.8 * visual_scale)
+		main.draw_line(elbow, hand, _with_alpha(Color("d9c8a0"), 0.86), 2.3 * visual_scale)
+		main.draw_line(off_shoulder, off_hand, _with_alpha(Color("d9c8a0"), 0.58), 2.0 * visual_scale)
+		main.draw_circle(hand, 1.9 * visual_scale, _with_alpha(ART_BLUE_CORE, 0.72))
+		main.draw_line(hand, hand + gesture_dir * (12.0 + 9.0 * action_strength) * visual_scale, _with_alpha(ART_BLUE_CORE, 0.22 + 0.12 * action_strength), 1.0 * visual_scale)
+		if action_kind == "array_release":
+			main.draw_arc(hand, 13.0 * visual_scale, main.elapsed_time * 1.1, main.elapsed_time * 1.1 + TAU * 0.72, 30, _with_alpha(ART_GOLD, 0.20 + 0.14 * action_strength), 1.1 * visual_scale)
+			main.draw_arc(player_pos, 38.0 * visual_scale, -main.elapsed_time * 0.8, -main.elapsed_time * 0.8 + TAU * 0.44, 36, _with_alpha(ART_BLUE_CORE, 0.10 + 0.08 * action_strength), 1.0 * visual_scale)
+		elif action_kind == "array_morph":
+			main.draw_arc(hand, 13.0 * visual_scale, main.elapsed_time * 1.6, main.elapsed_time * 1.6 + TAU * 0.58, 24, _with_alpha(ART_GOLD, 0.14 + 0.10 * action_peak), 1.0 * visual_scale)
 
 
 static func _draw_art_arena_frame(main: Node2D) -> void:
@@ -1459,6 +2186,42 @@ static func _get_channeled_array_sword_color(main: Node2D, base_color: Color) ->
 	elif energy_ratio <= 0.18:
 		color = color.lerp(main.COLORS["health"], 0.22 + 0.18 * pulse)
 	return color
+
+
+static func _draw_sword_momentum_heat(main: Node2D, player_pos: Vector2, heat_strength: float, full_flash: float) -> void:
+	var clamped_heat: float = clampf(heat_strength, 0.0, 1.0)
+	var clamped_flash: float = clampf(full_flash, 0.0, 1.0)
+	var pulse: float = 0.5 + 0.5 * sin(main.elapsed_time * 12.0)
+	var heat_color: Color = ART_GOLD.lerp(Color("ff6a2a"), 0.55 + 0.25 * pulse)
+	var core_color: Color = UNSHEATH_FLASH_WARM_COLOR.lerp(Color.WHITE, 0.22 * clamped_flash)
+	var base_radius: float = main.PLAYER_RADIUS + 18.0 + 5.0 * clamped_heat + 10.0 * clamped_flash
+	main.draw_circle(player_pos, base_radius + 10.0, _with_alpha(heat_color, 0.018 + 0.04 * clamped_heat + 0.05 * clamped_flash))
+	main.draw_arc(
+		player_pos,
+		base_radius,
+		-main.elapsed_time * 1.8,
+		-main.elapsed_time * 1.8 + TAU * (0.62 + 0.28 * clamped_heat),
+		64,
+		_with_alpha(heat_color, 0.22 + 0.34 * clamped_heat + 0.18 * clamped_flash),
+		1.4 + 2.0 * clamped_heat + 1.2 * clamped_flash
+	)
+	main.draw_arc(
+		player_pos,
+		base_radius + 8.0,
+		main.elapsed_time * 2.2,
+		main.elapsed_time * 2.2 + TAU * 0.38,
+		46,
+		_with_alpha(core_color, 0.12 + 0.22 * clamped_heat + 0.2 * clamped_flash),
+		1.0 + 1.4 * clamped_heat
+	)
+	var flame_count: int = 6
+	for flame_index in range(flame_count):
+		var angle: float = main.elapsed_time * 0.7 + TAU * float(flame_index) / float(flame_count)
+		var root: Vector2 = player_pos + Vector2.RIGHT.rotated(angle) * (base_radius - 3.0)
+		var tip: Vector2 = player_pos + Vector2.RIGHT.rotated(angle + 0.08 * sin(main.elapsed_time * 5.0 + flame_index)) * (base_radius + 10.0 + 12.0 * clamped_heat + 10.0 * clamped_flash)
+		var side: Vector2 = Vector2.RIGHT.rotated(angle + PI * 0.5) * (2.6 + 2.2 * clamped_heat)
+		var flame := PackedVector2Array([root - side, tip, root + side])
+		_try_draw_colored_polygon(main, flame, _with_alpha(heat_color.lerp(core_color, 0.28), 0.08 + 0.16 * clamped_heat + 0.18 * clamped_flash))
 
 
 static func _draw_resonance_array_field(
@@ -1775,6 +2538,9 @@ static func _draw_deflected_bullet(
 static func _draw_cursor_intent_indicator(main: Node2D) -> void:
 	if main.is_start_menu_active or main.player.is_empty():
 		return
+	if _should_hide_sword_array_ui(main):
+		_draw_demo_cursor_indicator(main)
+		return
 	if int(main.player.get("mode", main.CombatMode.MELEE)) == main.CombatMode.RANGED:
 		return
 	var cursor_base_pos: Vector2 = main._to_screen(main.mouse_world)
@@ -1811,6 +2577,27 @@ static func _draw_cursor_intent_indicator(main: Node2D) -> void:
 	_draw_cursor_intent_base(main, cursor_pos, active_color, fast_strength, mode_switch_strength, fire_strength, fire_spread)
 	_draw_cursor_intent_mode_shape(main, cursor_pos, forward, mode, mode_color, mode_soft_color, fast_strength, mode_switch_strength, resource_strength, fire_strength, fire_spread)
 	_draw_cursor_intent_state_overlays(main, cursor_pos, forward, pressure_strength, out_of_range_strength, resource_strength)
+
+
+static func _draw_demo_cursor_indicator(main: Node2D) -> void:
+	if bool(main.get("demo_victory_visible")):
+		return
+	var cursor_pos: Vector2 = main._to_screen(main.mouse_world)
+	var player_pos: Vector2 = main._to_screen(Vector2(main.player.get("pos", Vector2.ZERO)))
+	var to_cursor: Vector2 = cursor_pos - player_pos
+	var forward: Vector2 = to_cursor.normalized() if not to_cursor.is_zero_approx() else Vector2.RIGHT
+	var side: Vector2 = forward.rotated(PI * 0.5)
+	var ranged: bool = int(main.sword.get("state", main.SwordState.ORBITING)) != main.SwordState.ORBITING
+	var color: Color = main.COLORS["ranged_sword"] if ranged else main.COLORS["melee_sword"]
+	var pulse := 0.5 + 0.5 * sin(main.elapsed_time * (5.2 if ranged else 3.4))
+	main.draw_arc(cursor_pos, 9.0 + pulse * 1.2, 0.0, TAU, 38, _with_alpha(CURSOR_INTENT_OUTLINE, 0.96), 2.8)
+	main.draw_arc(cursor_pos, 8.0 + pulse * 1.0, -main.elapsed_time * 0.8, -main.elapsed_time * 0.8 + TAU * 0.7, 34, _with_alpha(color, 0.9), 1.35)
+	main.draw_line(cursor_pos - forward * 15.0, cursor_pos - forward * 7.0, _with_alpha(color, 0.82), 1.5)
+	main.draw_line(cursor_pos + forward * 7.0, cursor_pos + forward * 15.0, _with_alpha(color, 0.82), 1.5)
+	main.draw_line(cursor_pos - side * 15.0, cursor_pos - side * 7.0, _with_alpha(color, 0.82), 1.5)
+	main.draw_line(cursor_pos + side * 7.0, cursor_pos + side * 15.0, _with_alpha(color, 0.82), 1.5)
+	if ranged:
+		main.draw_line(player_pos + forward * (main.PLAYER_RADIUS + 8.0), cursor_pos - forward * 20.0, _with_alpha(color, 0.12), 1.0)
 
 
 static func _draw_cursor_intent_base(
@@ -3992,6 +4779,9 @@ static func _draw_arena_margin_mask(main: Node2D) -> void:
 
 static func draw_hud_bars(main: Node2D) -> void:
 	var viewport_size: Vector2 = main.get_viewport_rect().size
+	if _should_hide_sword_array_ui(main):
+		_draw_demo_hud_bars(main, viewport_size)
+		return
 	var health_bar_rect: Rect2 = Rect2(Vector2(96.0, 44.0), Vector2(218.0, 8.0))
 	var energy_bar_rect: Rect2 = Rect2(Vector2(96.0, 76.0), Vector2(204.0, 7.0))
 	_draw_hud_top_banner(main, viewport_size)
@@ -4006,10 +4796,21 @@ static func draw_hud_bars(main: Node2D) -> void:
 		0.95
 	)
 	var energy_fill_color: Color = main.COLORS["energy"]
+	var momentum_heat_strength: float = main._get_sword_momentum_heat_strength()
+	var momentum_full_flash: float = main._get_sword_momentum_full_flash_strength()
+	var is_flight_mode := _is_flight_prototype_mode(main)
+	if momentum_heat_strength > 0.01:
+		energy_fill_color = energy_fill_color.lerp(Color("ff6a2a"), 0.28 + 0.42 * momentum_heat_strength)
+	if is_flight_mode and float(main.player.get("energy", 0.0)) >= main.PLAYER_MAX_ENERGY - 0.01:
+		energy_fill_color = ART_GOLD.lerp(ART_BLUE_CORE, 0.34 + 0.18 * sin(main.elapsed_time * 2.0))
 	if bool(main.player.get("array_is_firing", false)):
 		energy_fill_color = energy_fill_color.lerp(ARRAY_CHANNEL_EDGE_COLOR, 0.35)
-		main.draw_rect(Rect2(energy_bar_rect.position - Vector2(2.0, 2.0), energy_bar_rect.size + Vector2(4.0, 4.0)), _with_alpha(ARRAY_CHANNEL_EDGE_COLOR, 0.18), false, 2.0)
-		_draw_array_channel_flames(main, energy_bar_rect)
+	if bool(main.player.get("array_is_firing", false)) or momentum_heat_strength > 0.01:
+		var hot_border_color: Color = ARRAY_CHANNEL_EDGE_COLOR.lerp(Color("ff6a2a"), 0.64 * momentum_heat_strength)
+		var hot_alpha: float = 0.12 + 0.18 * momentum_heat_strength + 0.2 * momentum_full_flash
+		main.draw_rect(Rect2(energy_bar_rect.position - Vector2(2.0, 2.0), energy_bar_rect.size + Vector2(4.0, 4.0)), _with_alpha(hot_border_color, hot_alpha), false, 2.0 + 1.0 * momentum_heat_strength)
+		if not is_flight_mode:
+			_draw_array_channel_flames(main, energy_bar_rect)
 	_draw_hud_metric_bar(
 		main,
 		energy_bar_rect,
@@ -4041,6 +4842,27 @@ static func draw_hud_bars(main: Node2D) -> void:
 			true
 		)
 	_draw_hud_resonance_mark(main, Vector2(336.0, 62.0))
+	_draw_hud_bottom_frame(main, viewport_size)
+
+
+static func _draw_demo_hud_bars(main: Node2D, viewport_size: Vector2) -> void:
+	var health_bar_rect: Rect2 = Rect2(Vector2(96.0, 44.0), Vector2(244.0, 9.0))
+	_draw_hud_top_banner(main, viewport_size)
+	_draw_hud_lotus(main, Vector2(54.0, 53.0), 25.0)
+	_draw_hud_metric_bar(
+		main,
+		health_bar_rect,
+		float(main.player["health"]) / maxf(main.PLAYER_MAX_HEALTH, 1.0),
+		main.COLORS["health"].lerp(ART_BLUE_CORE, 0.12),
+		main.COLORS["health"],
+		0.95
+	)
+	var badge_center := Vector2(viewport_size.x - 62.0, 52.0)
+	var pulse := 0.5 + 0.5 * sin(main.elapsed_time * 1.7)
+	main.draw_circle(badge_center, 42.0, _with_alpha(main.COLORS["ranged_sword"], 0.035 + 0.018 * pulse))
+	main.draw_arc(badge_center, 34.0, -main.elapsed_time * 0.7, -main.elapsed_time * 0.7 + TAU * 0.72, 42, _with_alpha(main.COLORS["ranged_sword"], 0.42), 1.6)
+	main.draw_line(badge_center + Vector2(-13.0, 9.0), badge_center + Vector2(14.0, -10.0), _with_alpha(ART_BLUE_CORE, 0.86), 3.0)
+	main.draw_line(badge_center + Vector2(-2.0, 13.0), badge_center + Vector2(17.0, -4.0), _with_alpha(ART_GOLD, 0.54), 1.4)
 	_draw_hud_bottom_frame(main, viewport_size)
 
 
@@ -4105,6 +4927,45 @@ static func _draw_hud_bottom_frame(main: Node2D, viewport_size: Vector2) -> void
 	main.draw_rect(Rect2(Vector2(0.0, y - 20.0), Vector2(viewport_size.x, 44.0)), _with_alpha(ART_BG_DEEP, 0.34), true)
 	main.draw_line(Vector2(48.0, y - 14.0), Vector2(viewport_size.x - 48.0, y - 14.0), _with_alpha(ART_GOLD, 0.2), 1.0)
 	main.draw_line(Vector2(260.0, y + 16.0), Vector2(viewport_size.x - 260.0, y + 16.0), _with_alpha(ART_BLUE, 0.08), 1.0)
+
+
+static func _draw_demo_victory_panel(main: Node2D) -> void:
+	var viewport_size: Vector2 = main.get_viewport_rect().size
+	var panel_size := Vector2(520.0, 320.0)
+	var panel_rect := Rect2((viewport_size - panel_size) * 0.5, panel_size)
+	var font: Font = ThemeDB.fallback_font
+	var result: Dictionary = main.demo_victory_result
+	var clear_time: float = float(result.get("clear_time", 0.0))
+	var lines := [
+		"破庙夜袭 已通关",
+		"用时  %s" % _format_demo_clear_time(clear_time),
+		"受伤  %.0f    弹反  %d" % [float(result.get("damage_taken", 0.0)), int(result.get("deflects", 0))],
+		"御剑命中  %d    御剑击杀  %d" % [int(result.get("flying_sword_hits", 0)), int(result.get("flying_sword_kills", 0))],
+		"切丝  %d    恢复拾取  %d" % [int(result.get("silks_cut", 0)), int(result.get("pickups", 0))],
+		"Boss 重试  %d" % int(result.get("boss_retries", 0)),
+	]
+	main.draw_rect(Rect2(Vector2.ZERO, viewport_size), _with_alpha(Color("020306"), 0.42), true)
+	main.draw_rect(panel_rect.grow(18.0), _with_alpha(ART_BG_DEEP, 0.72), true)
+	main.draw_rect(panel_rect, _with_alpha(Color("0e1014"), 0.92), true)
+	main.draw_rect(panel_rect, _with_alpha(ART_GOLD, 0.42), false, 1.3)
+	main.draw_line(panel_rect.position + Vector2(42.0, 66.0), panel_rect.position + Vector2(panel_rect.size.x - 42.0, 66.0), _with_alpha(ART_GOLD, 0.24), 1.0)
+	main.draw_string(font, panel_rect.position + Vector2(36.0, 42.0), "破晓", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 34, _with_alpha(Color("f1e3bc"), 0.96))
+	var y := panel_rect.position.y + 96.0
+	for line_index in range(lines.size()):
+		var color := Color("f6fbff") if line_index == 0 else Color("d8e2ea")
+		var font_size := 21 if line_index == 0 else 18
+		main.draw_string(font, Vector2(panel_rect.position.x + 46.0, y), str(lines[line_index]), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, _with_alpha(color, 0.92))
+		y += 32.0
+	main.draw_line(panel_rect.position + Vector2(38.0, panel_rect.size.y - 54.0), panel_rect.position + Vector2(panel_rect.size.x - 38.0, panel_rect.size.y - 54.0), _with_alpha(ART_BLUE, 0.16), 1.0)
+	main.draw_string(font, panel_rect.position + Vector2(46.0, panel_rect.size.y - 26.0), "天快亮了。下一关，学剑阵。", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, _with_alpha(ART_GOLD, 0.92))
+	main.draw_string(font, panel_rect.position + Vector2(panel_rect.size.x - 152.0, panel_rect.size.y - 26.0), "点击返回菜单", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, _with_alpha(Color("9cb0c2"), 0.72))
+
+
+static func _format_demo_clear_time(seconds: float) -> String:
+	var total_seconds := maxi(int(round(seconds)), 0)
+	var minutes := total_seconds / 60
+	var secs := total_seconds % 60
+	return "%02d:%02d" % [minutes, secs]
 
 
 static func _draw_energy_gain_pulse(main: Node2D, player_pos: Vector2) -> void:
@@ -4220,14 +5081,15 @@ static func _draw_sword_return_catches(main: Node2D) -> void:
 
 static func _draw_array_channel_flames(main: Node2D, energy_bar_rect: Rect2) -> void:
 	var flame_count: int = 8
+	var heat_strength: float = main._get_sword_momentum_heat_strength()
 	var flame_index: int = 0
 	while flame_index < flame_count:
 		var x_ratio: float = float(flame_index) / float(maxi(flame_count - 1, 1))
 		var base_x: float = energy_bar_rect.position.x + x_ratio * energy_bar_rect.size.x
 		var sway: float = sin(main.elapsed_time * 8.0 + float(flame_index) * 0.9) * 3.0
 		var flame_height: float = 7.0 + absf(sin(main.elapsed_time * 10.5 + float(flame_index) * 1.2)) * 7.0
-		var flame_color: Color = ARRAY_CHANNEL_EDGE_COLOR.lerp(main.COLORS["energy"], 0.35)
-		flame_color.a = 0.42
+		var flame_color: Color = ARRAY_CHANNEL_EDGE_COLOR.lerp(main.COLORS["energy"], 0.35).lerp(Color("ff6a2a"), 0.55 * heat_strength)
+		flame_color.a = 0.3 + 0.24 * heat_strength
 		var flame := PackedVector2Array([
 			Vector2(base_x - 5.0, energy_bar_rect.position.y + 1.0),
 			Vector2(base_x + sway, energy_bar_rect.position.y - flame_height),

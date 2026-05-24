@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Sequence Sprites"
+  short_description: "AI sprite strip generation workflow"
+  default_prompt: "Use $generate-sequence-sprites to create a master-matched 8-frame sprite action strip."

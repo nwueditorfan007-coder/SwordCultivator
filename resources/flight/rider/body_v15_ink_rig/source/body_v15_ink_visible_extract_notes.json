@@ -1,0 +1,23 @@
+{
+  "torso": "Visible torso includes the back-control forearm crossing the chest; final repaint should remove arm overlap.",
+  "hair_back": "Visible flowing rear hair strip from locked master.",
+  "hair_tail": "Long trailing hair/sash-like visible strip; final art may split from hair_back root more cleanly.",
+  "sash_back_root": "Root knot/short visible sash fragment near pelvis.",
+  "sash_back_mid": "Long visible back sash middle strip.",
+  "sash_back_tip": "Visible far trailing sash tip.",
+  "arm_back_upper": "Back arm sleeve/upper visible sweep; final repaint should separate upper arm from sleeve volume.",
+  "arm_back_forearm_sleeve": "Back control forearm/sleeve visible crossing torso.",
+  "hand_back": "Back two-finger control hand; strongest operational anchor.",
+  "head": "Head profile from locked master.",
+  "pelvis_belt": "Visible belt and knot from master.",
+  "leg_back": "Back leg is partially occluded and includes sword/foot contact; needs final cleanup before production rig.",
+  "robe_back": "Visible back robe flap.",
+  "arm_front_upper": "Front pointing upper arm/sleeve from master.",
+  "arm_front_forearm_sleeve": "Front forearm sleeve from pointing arm.",
+  "hand_front": "Front pointing hand; strongest aim_forward anchor.",
+  "leg_front": "Front crouched leg from master.",
+  "robe_front": "Front robe flap, visible lower body mass.",
+  "sash_front_root": "Front sash root visible near belt.",
+  "sash_front_mid": "Front sash middle strip.",
+  "sash_front_tip": "Front sash tip from far trailing strip."
+}

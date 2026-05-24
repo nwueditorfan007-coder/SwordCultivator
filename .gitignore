@@ -12,3 +12,14 @@
 .codex/video_frames_new/
 /tools/hastur-operation-plugin/broker-server/node_modules/
 /tools/hastur-operation-plugin/.hastur-auth-token
+
+# Local assistant/editor state and scratch outputs
+.claude/settings.local.json
+.codex/tmp/
+/tmp/
+
+# Local reference downloads and generated caches
+/_reference_spine_learning/
+**/_codex_backup*/
+__pycache__/
+*.pyc

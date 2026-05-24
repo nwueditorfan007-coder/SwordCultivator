@@ -1,4 +1,4 @@
 interface:
   display_name: "Sword Cultivator Core"
-  short_description: "Turn playtest feel into sharper combat design."
-  default_prompt: "Use $sword-cultivator-core to turn my playtest impressions into concrete combat design iterations."
+  short_description: "Critique combat feel, fantasy fit, and design direction."
+  default_prompt: "Use $sword-cultivator-core to critique my Sword Cultivator design idea as a professional game designer and experienced player, then turn it into concrete iteration options."

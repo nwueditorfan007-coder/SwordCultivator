@@ -2,6 +2,7 @@ extends Node2D
 
 const AttackProfiles = preload("res://scripts/combat/attack_profiles.gd")
 const DamageResolver = preload("res://scripts/combat/damage_resolver.gd")
+const DemoLevelController = preload("res://scripts/system/demo_level_controller.gd")
 const HitDetection = preload("res://scripts/combat/hit_detection.gd")
 const HurtboxRegistry = preload("res://scripts/combat/hurtbox_registry.gd")
 const GameBossController = preload("res://scripts/system/game_boss_controller.gd")
@@ -50,6 +51,10 @@ const ARRAY_TOGGLE_MODES := [
 	SwordArrayConfig.MODE_FAN,
 	SwordArrayConfig.MODE_PIERCE,
 ]
+const RUN_MODE_DEMO_LEVEL := "demo_level"
+const RUN_MODE_LEGACY_WAVES := "legacy_waves"
+const RUN_MODE_FLIGHT_PROTOTYPE := "flight_prototype"
+const RUN_MODE_FLIGHT_ANCHORED_PROTOTYPE := "flight_anchored_prototype"
 const ARRAY_CONTROL_SCHEME_DISTANCE := "distance_aim"
 const ARRAY_CONTROL_SCHEME_MANUAL := "space_toggle"
 const ARRAY_RING_SWITCH_STRIKE_VISUAL_BLEND := 0.62
@@ -430,6 +435,12 @@ const HIT_REACTION_DECAY_EXPONENT := 0.72
 const ENEMY_HIT_REACTION_RETURN_SPEED := 132.0
 const ENEMY_HIT_REACTION_MAX_OFFSET := 18.0
 const ENEMY_DEATH_FEEDBACK_DURATION := 0.18
+const SCORE_LOOT_PICKUP_DISTANCE := 34.0
+const SCORE_LOOT_LIFE_DURATION := 8.0
+const SCORE_LOOT_WARNING_DURATION := 2.0
+const SCORE_LOOT_RADIUS := 13.0
+const SCORE_LOOT_PICKUP_ARM_DELAY := 0.16
+const SCORE_LOOT_FEEDBACK_DURATION := 0.34
 const BOSS_HIT_FLASH_DURATION := 0.17
 const BOSS_HIT_REACTION_DURATION := 0.22
 const BOSS_HIT_REACTION_SHAKE_CYCLES := 2.8
@@ -481,6 +492,10 @@ const PIERCE_TIME_STOP_RELEASE_PARTICLE_COUNT := 24
 const ENERGY_RECOVERY_MELEE_NATURAL := 3.0
 const ENERGY_GAIN_MELEE_HIT := 3.0
 const ENERGY_GAIN_MELEE_DEFLECT := 10.0
+const SWORD_MOMENTUM_HEAT_START_RATIO := 0.82
+const SWORD_MOMENTUM_HEAT_FADE_SPEED := 5.5
+const SWORD_MOMENTUM_FULL_FLASH_DURATION := 0.78
+const SWORD_MOMENTUM_FULL_EPSILON := 0.01
 const ARRAY_SWORD_COUNT := 12
 const ARRAY_SWORD_RADIUS := 6.0
 const ARRAY_SWORD_RETURN_SPEED := 32.0 * 60.0
@@ -504,6 +519,17 @@ const ARRAY_ENERGY_WARNING_FADE_SPEED := 7.5
 const ARRAY_ENERGY_BREAK_DURATION := 0.24
 const ARRAY_MODE_CONFIRM_DURATION := 0.24
 const ARRAY_MODE_CONFIRM_COOLDOWN := 0.10
+const RIDER_ARRAY_TRANSITION_DURATION := 0.58
+const RIDER_ARRAY_TRANSITION_CONFIRM_DURATION := 0.14
+const RIDER_ARRAY_TRANSITION_PROTECTED_PROGRESS := 0.72
+const RIDER_ARRAY_RELEASE_DURATION := 0.54
+const RIDER_ARRAY_RELEASE_VISUAL_COOLDOWN := 0.68
+const RIDER_ARRAY_ENTER_DURATION := 0.42
+const RIDER_ARRAY_EXIT_DURATION := 0.36
+const RIDER_SWORD_CONTROL_ENTER_DURATION := 0.38
+const RIDER_SWORD_CONTROL_EXIT_DURATION := 0.34
+const RIDER_MELEE_BODY_DURATION := 0.34
+const RIDER_REPEATED_ACTION_RESTART_PROGRESS := 0.18
 const ARRAY_DISTANCE_GUIDE_ENABLED := false
 const ARRAY_DISTANCE_GUIDE_INTRO_DURATION := 0.0
 const ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION := 0.0
@@ -546,6 +572,45 @@ const UNLOCK_WAVE_ARRAY_FAN := 4
 const UNLOCK_WAVE_ARRAY_PIERCE := 5
 const SPAWN_MARGIN := 50.0
 const SPAWN_INTERVAL := 0.35
+
+const FLIGHT_STAGE_DURATION := 88.0
+const FLIGHT_BASE_SCROLL_SPEED := 210.0
+const FLIGHT_MIN_SCROLL_SPEED := 145.0
+const FLIGHT_MAX_SCROLL_SPEED := 315.0
+const FLIGHT_SCROLL_ACCEL := 4.8
+const FLIGHT_FORWARD_SPEED_BONUS := 82.0
+const FLIGHT_BACK_SPEED_BRAKE := 68.0
+const FLIGHT_START_POS := Vector2(224.0, 318.0)
+const FLIGHT_CANVAS_MIN := Vector2(PLAYER_RADIUS, PLAYER_RADIUS)
+const FLIGHT_CANVAS_MAX := ARENA_SIZE - Vector2(PLAYER_RADIUS, PLAYER_RADIUS)
+const FLIGHT_FREE_MOVE_SPEED := 340.0
+const FLIGHT_HORIZONTAL_SPEED := 330.0
+const FLIGHT_VERTICAL_SPEED := 330.0
+const FLIGHT_JET_THRUST_ACCEL := 720.0
+const FLIGHT_JET_AFTERBURNER_ACCEL := 1180.0
+const FLIGHT_JET_GLIDE_DAMPING := 0.72
+const FLIGHT_JET_BRAKE_DAMPING := 5.8
+const FLIGHT_JET_TURN_RATE := 3.65
+const FLIGHT_JET_HIGH_SPEED_TURN_RATE := 2.25
+const FLIGHT_JET_BRAKE_TURN_BONUS := 1.45
+const FLIGHT_JET_MAX_SPEED := 430.0
+const FLIGHT_JET_AFTERBURNER_MAX_SPEED := 640.0
+const FLIGHT_JET_ROLL_SPEED := 620.0
+const FLIGHT_JET_ROLL_DURATION := 0.22
+const FLIGHT_JET_ROLL_COOLDOWN := 0.48
+const FLIGHT_JET_ROLL_EXIT_SPEED_KEEP := 0.86
+const FLIGHT_JET_BOUND_BOUNCE := 0.18
+const FLIGHT_JET_ANCHOR_RETURN_STRENGTH := 0.82
+const FLIGHT_ANCHOR_POS := Vector2(224.0, 318.0)
+const FLIGHT_ANCHOR_LANE_MIN := Vector2(24.0, 46.0)
+const FLIGHT_ANCHOR_LANE_MAX := Vector2(632.0, 554.0)
+const FLIGHT_ANCHOR_FORWARD_CONTROL_SPEED := 265.0
+const FLIGHT_ANCHOR_BACK_CONTROL_SPEED := 220.0
+const FLIGHT_ANCHOR_RETURN_STRENGTH := 3.8
+const FLIGHT_ANCHOR_SOFT_RETURN_STRENGTH := 1.2
+const FLIGHT_PASSIVE_ENERGY_REGEN := 22.0
+const FLIGHT_OFFSCREEN_LEFT := -130.0
+const FLIGHT_OFFSCREEN_RIGHT := 910.0
 
 const SHOOTER := "shooter"
 const TANK := "tank"
@@ -761,9 +826,65 @@ const START_MENU_OPERATION_TEXT_DISTANCE := """[b]WASD 移动[/b]
 [b]死亡后左键 重新开始[/b]
 力竭身亡后，在结算提示出现时点击左键即可重新开始本局。"""
 
+const START_MENU_DEMO_TEXT := """[b]破庙夜袭[/b]
+这是 Demo 第一关：只用左键挥剑 / 弹反，以及右键御剑。整关不会开放剑阵。
+
+[b]左键点击 近战挥剑[/b]
+贴身先活下来。敌弹飞到身前时挥剑，可以把针斩回去。
+
+[b]右键短按 御剑点刺[/b]
+快速出剑处理远处重敌，飞剑离手时会拖慢敌弹，让你夺回节奏。
+
+[b]右键长按 御剑连斩[/b]
+按住后拖动鼠标切割路径；看到丝线时，优先切线，不要追着傀身砍。
+
+[b]恢复道具[/b]
+精英敌人和段落末会留下回血光点，需要靠近拾取。
+
+[b]失败与通关[/b]
+Boss 前有检查点。击败织傀道人后会显示本次表现，并预告下一关的剑阵。"""
+
+const START_MENU_FLIGHT_TEXT := """[b]御剑航行原型[/b]
+这是横版相对前进测试：角色按机头、推力和惯性飞行，云海、敌阵和弹幕向后流动。
+
+[b]A/D 转向，W 推进，S 空刹[/b]
+松开推进后会保持滑翔；空刹可以压速度并提高回头能力。
+
+[b]Shift 后燃器，Space 翻滚[/b]
+后燃器用于抢航速和穿线，翻滚是短促避险，不改变鼠标瞄准。
+
+[b]鼠标控距与瞄准[/b]
+鼠标离角色越近越偏环阵，中距离是扇阵，远距离是贯穿阵。
+
+[b]左键点击 / 长按[/b]
+点击仍是近战挥剑；长按进入剑阵，专门验证环阵护身、扇阵清面、贯穿阵破线。
+
+[b]右键御剑[/b]
+短按点刺、长按连斩，保留当前御剑和子弹时间手感。"""
+
+const START_MENU_FLIGHT_ANCHORED_TEXT := """[b]御剑航行：风压回中[/b]
+这是同一条云海航道的对照版本：使用同一套推力飞行，但气流会轻微拉回左中航线。
+
+[b]A/D 转向，W 推进，S 空刹[/b]
+这版多一层风压回中，适合比较自由空战和横版航道哪种更稳。
+
+[b]Shift 后燃器，Space 翻滚[/b]
+后燃器用于突破弹线；翻滚提供短暂保命窗口。
+
+[b]鼠标控距与瞄准[/b]
+鼠标离角色越近越偏环阵，中距离是扇阵，远距离是贯穿阵。
+
+[b]左键点击 / 长按[/b]
+点击仍是近战挥剑；长按进入剑阵，专门验证环阵护身、扇阵清面、贯穿阵破线。
+
+[b]右键御剑[/b]
+短按点刺、长按连斩，保留当前御剑和子弹时间手感。"""
+
 @export var sword_vfx_profile: SwordVfxProfile = DEFAULT_SWORD_VFX_PROFILE
 @export var use_node_sword_flight_vfx := true
 @export var large_arena_test_enabled := true
+@export var use_flight_rider_sprite_fx := true
+@export var use_flight_rider_body_rig_fx := false
 @export_group("Hover Preset")
 @export_enum("稳悬", "均衡", "灵动", "仙逸") var sword_hover_preset := 1
 @export var sword_hover_preset_next_key: Key = KEY_NONE
@@ -773,6 +894,13 @@ const START_MENU_OPERATION_TEXT_DISTANCE := """[b]WASD 移动[/b]
 @export var lookdev_auto_cycle := true
 @export var lookdev_preview_mode: LookdevPreviewMode = LookdevPreviewMode.POINT
 @export_range(0.25, 3.0, 0.05) var lookdev_playback_speed := 1.0
+@export_group("Flight Rider Art")
+@export_range(0.35, 2.4, 0.01) var flight_rider_visual_scale := 0.72
+@export_range(0.2, 2.0, 0.01) var flight_rider_action_scale := 1.0
+@export_range(18.0, 92.0, 1.0) var flight_full_energy_mandala_radius := 56.0
+@export_range(0.0, 2.0, 0.01) var flight_full_energy_mandala_alpha := 1.0
+@export_range(0.0, 4.0, 0.01) var flight_full_energy_mandala_spin := 1.0
+@export_group("")
 
 var player: Dictionary = {}
 var sword: Dictionary = {}
@@ -780,6 +908,7 @@ var enemies: Array = []
 var bullets: Array = []
 var array_swords: Array = []
 var particles: Array = []
+var score_loot_pickups: Array = []
 var sword_afterimages: Array = []
 var sword_trail_points: Array = []
 var sword_air_wakes: Array = []
@@ -824,6 +953,8 @@ var energy_feedback_timer: float = 0.0
 var energy_feedback_color: Color = Color.WHITE
 var array_feedback_timer: float = 0.0
 var array_feedback_color: Color = Color.WHITE
+var score_feedback_timer: float = 0.0
+var score_feedback_color: Color = Color.WHITE
 var focus_status_message: String = ""
 var focus_status_message_timer: float = 0.0
 var focus_status_message_color: Color = Color.WHITE
@@ -838,6 +969,9 @@ var array_distance_guide_timer: float = 0.0
 var energy_gain_feedback_timer: float = 0.0
 var energy_gain_feedback_strength: float = 0.0
 var energy_gain_feedback_color: Color = Color.WHITE
+var sword_momentum_heat_display: float = 0.0
+var sword_momentum_full_flash_timer: float = 0.0
+var sword_momentum_was_full: bool = false
 var hitstop_timer: float = 0.0
 var hitstop_queue: Array = []
 var hitstop_gap_timer: float = 0.0
@@ -865,12 +999,44 @@ var sword_spirit_takeover_last_reason: String = ""
 var left_mouse_held: bool = false
 var right_mouse_held: bool = false
 var array_control_scheme: String = ARRAY_CONTROL_SCHEME_DISTANCE
+var run_mode: String = RUN_MODE_LEGACY_WAVES
+var demo_level_controller: DemoLevelController = DemoLevelController.new()
+var demo_recovery_pickups: Array = []
+var demo_victory_visible := false
+var demo_victory_result: Dictionary = {}
 var is_start_menu_active: bool = true
 var start_menu: Control = null
 var start_button: Button = null
+var flight_start_button: Button = null
+var flight_anchor_start_button: Button = null
+var legacy_start_button: Button = null
 var start_menu_scheme_button: Button = null
 var start_menu_guide_label: RichTextLabel = null
 var operation_scheme_button: Button = null
+var flight_stage_timer: float = 0.0
+var flight_scroll_speed: float = FLIGHT_BASE_SCROLL_SPEED
+var flight_scroll_distance: float = 0.0
+var flight_script_index: int = 0
+var flight_stage_complete: bool = false
+var flight_segment_index: int = 0
+var flight_segment_label: String = "起飞校准"
+var flight_heading: Vector2 = Vector2.RIGHT
+var flight_roll_timer: float = 0.0
+var flight_roll_cooldown: float = 0.0
+var flight_roll_direction: Vector2 = Vector2.RIGHT
+var rider_action_kind: String = ""
+var rider_action_timer: float = 0.0
+var rider_action_duration: float = 0.0
+var rider_action_direction: Vector2 = Vector2.RIGHT
+var rider_action_strength: float = 0.0
+var rider_array_pose_active: bool = false
+var rider_array_pose_mode: String = SwordArrayConfig.MODE_RING
+var rider_array_visual_mode: String = SwordArrayConfig.MODE_RING
+var rider_array_transition_pending_from_mode: String = SwordArrayConfig.MODE_RING
+var rider_array_transition_pending_mode: String = ""
+var rider_array_transition_pending_direction: Vector2 = Vector2.RIGHT
+var rider_array_transition_confirm_timer: float = 0.0
+var rider_array_release_visual_cooldown: float = 0.0
 var lookdev_preview_time := 0.0
 var lookdev_preview_loop_index := -1
 var lookdev_preview_events: Dictionary = {}
@@ -883,7 +1049,7 @@ var lookdev_source_sword_vfx_profile: SwordVfxProfile = null
 
 
 func _is_large_arena_test_enabled() -> bool:
-	return large_arena_test_enabled and not lookdev_mode
+	return large_arena_test_enabled and _is_legacy_wave_mode() and not lookdev_mode
 
 
 func _get_arena_size() -> Vector2:
@@ -952,6 +1118,29 @@ func _use_node_sword_flight_vfx() -> bool:
 	return use_node_sword_flight_vfx and get_node_or_null("SwordFlightFx") != null
 
 
+func _use_flight_rider_sprite_fx() -> bool:
+	if _use_flight_rider_body_rig_fx():
+		return false
+	var rider_fx := get_node_or_null("FlightRiderSpriteFx")
+	return use_flight_rider_sprite_fx and rider_fx != null and bool(rider_fx.get("enabled"))
+
+
+func _use_flight_rider_body_rig_fx() -> bool:
+	var rig_fx := get_node_or_null("FlightRiderBodyRigFx")
+	return use_flight_rider_body_rig_fx and rig_fx != null and bool(rig_fx.get("enabled"))
+
+
+func _use_flight_rider_clean_vfx() -> bool:
+	var rider_fx := get_node_or_null("FlightRiderSpriteFx")
+	return (
+		_is_flight_prototype_mode()
+		and _use_flight_rider_sprite_fx()
+		and rider_fx != null
+		and rider_fx.has_method("uses_layered_sheets")
+		and bool(rider_fx.call("uses_layered_sheets"))
+	)
+
+
 func _get_sword_visual_position() -> Vector2:
 	return (
 		Vector2(sword.get("pos", Vector2.ZERO))
@@ -998,6 +1187,8 @@ func _get_held_sword_aim_direction() -> Vector2:
 
 
 func _get_melee_sword_visual_angle() -> float:
+	if _is_flight_prototype_mode() and _is_held_melee_sword_active():
+		return float(_get_flight_held_sword_pose().get("angle", 0.0))
 	var base_angle: float = _get_held_sword_aim_direction().angle()
 	if not _is_melee_swing_visual_active():
 		return base_angle - MELEE_SWORD_SWING_ARC * 0.5 * MELEE_SWORD_READY_SIDE
@@ -1012,6 +1203,8 @@ func _get_melee_sword_visual_angle() -> float:
 
 
 func _get_held_melee_sword_position() -> Vector2:
+	if _is_flight_prototype_mode():
+		return Vector2(_get_flight_held_sword_pose().get("center", player["pos"]))
 	var sword_angle: float = _get_melee_sword_visual_angle()
 	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
 	if sword_forward.is_zero_approx():
@@ -1019,6 +1212,302 @@ func _get_held_melee_sword_position() -> Vector2:
 	var swing_range: float = float(player.get("melee_swing_range", SWORD_MELEE_RANGE))
 	var center_distance: float = maxf(swing_range - MELEE_SWORD_TIP_FORWARD_OFFSET, SWORD_RADIUS)
 	return player["pos"] + sword_forward.normalized() * center_distance
+
+
+func _flight_pose_ease(t: float) -> float:
+	var clamped_t: float = clampf(t, 0.0, 1.0)
+	return clamped_t * clamped_t * (3.0 - 2.0 * clamped_t)
+
+
+func _get_flight_held_sword_pose() -> Dictionary:
+	var visual_scale: float = clampf(flight_rider_visual_scale, 0.35, 2.4)
+	var action_state: Dictionary = _get_rider_action_state()
+	var action_kind: String = str(action_state.get("kind", ""))
+	var action_progress: float = clampf(float(action_state.get("progress", 0.0)), 0.0, 1.0)
+	var action_direction: Vector2 = Vector2(action_state.get("direction", _get_held_sword_aim_direction()))
+	if action_direction.is_zero_approx():
+		action_direction = _get_held_sword_aim_direction()
+	if action_direction.is_zero_approx():
+		action_direction = Vector2.RIGHT
+	if _is_melee_swing_visual_active() and action_kind != "parry":
+		action_kind = "parry"
+		action_progress = _get_melee_swing_progress()
+	var facing_sign: float = 1.0
+	if absf(action_direction.x) > 0.28:
+		facing_sign = -1.0 if action_direction.x < 0.0 else 1.0
+	var flight_push: float = clampf(Vector2(player.get("vel", Vector2.ZERO)).x / maxf(FLIGHT_JET_MAX_SPEED, 1.0), -1.0, 1.0)
+	if absf(action_direction.x) <= 0.28 and absf(flight_push) > 0.54:
+		facing_sign = -1.0 if flight_push < 0.0 else 1.0
+	var rider_fx := get_node_or_null("FlightRiderSpriteFx")
+	if rider_fx != null and rider_fx.has_method("get_hand_hilt_pose"):
+		var socket_pose: Dictionary = rider_fx.call("get_hand_hilt_pose", action_state)
+		var local_hilt: Vector2 = Vector2(socket_pose.get("local_hilt", Vector2(36.0 * facing_sign, -24.0)))
+		var sword_angle: float = float(socket_pose.get("angle", 0.0))
+		var sword_forward: Vector2 = Vector2(socket_pose.get("forward", Vector2.RIGHT.rotated(sword_angle)))
+		if sword_forward.is_zero_approx():
+			sword_forward = Vector2.RIGHT.rotated(sword_angle)
+		if sword_forward.is_zero_approx():
+			sword_forward = Vector2.RIGHT
+		var hilt_world: Vector2 = player["pos"] + local_hilt * visual_scale
+		hilt_world += Vector2(flight_push * 2.0, sin(elapsed_time * 3.2) * 0.8)
+		return {
+			"center": hilt_world + sword_forward.normalized() * (18.0 * visual_scale),
+			"hilt": hilt_world,
+			"angle": sword_angle,
+			"forward": sword_forward.normalized(),
+			"facing_sign": float(socket_pose.get("facing_sign", facing_sign)),
+			"frame": int(socket_pose.get("frame", 0)),
+			"action": str(socket_pose.get("action", action_kind)),
+		}
+	var action_peak: float = sin(action_progress * PI)
+	var hilt_local := Vector2(36.0 + 6.0 * absf(flight_push), -24.0 - 2.0 * absf(flight_push))
+	var local_angle: float = deg_to_rad(-8.0)
+	match action_kind:
+		"parry":
+			if action_progress < 0.48:
+				var windup_t: float = _flight_pose_ease(action_progress / 0.48)
+				hilt_local = Vector2(34.0, -42.0).lerp(Vector2(58.0, -16.0), windup_t)
+				local_angle = lerpf(deg_to_rad(-64.0), deg_to_rad(-20.0), windup_t)
+			else:
+				var follow_t: float = _flight_pose_ease((action_progress - 0.48) / 0.52)
+				hilt_local = Vector2(58.0, -16.0).lerp(Vector2(40.0, -7.0), follow_t)
+				local_angle = lerpf(deg_to_rad(-20.0), deg_to_rad(16.0), follow_t)
+		"idle_to_sword_control", "sword_control_to_idle":
+			hilt_local = Vector2(36.0 + 18.0 * action_peak, -24.0 - 10.0 * action_peak)
+			local_angle = lerpf(deg_to_rad(-8.0), deg_to_rad(4.0), action_peak)
+		"array_release":
+			hilt_local = Vector2(30.0 + 12.0 * action_peak, -25.0 - 13.0 * action_peak)
+			local_angle = lerpf(deg_to_rad(-10.0), deg_to_rad(8.0), action_peak)
+		"array_morph":
+			hilt_local = Vector2(34.0 + 12.0 * action_peak, -25.0 - 16.0 * action_peak)
+			local_angle = lerpf(deg_to_rad(-12.0), deg_to_rad(12.0), action_peak)
+		_:
+			if action_kind.begins_with("array_") and action_kind.ends_with("_release"):
+				hilt_local = Vector2(30.0 + 12.0 * action_peak, -25.0 - 13.0 * action_peak)
+				local_angle = lerpf(deg_to_rad(-10.0), deg_to_rad(8.0), action_peak)
+			elif action_kind.begins_with("array_") and action_kind.find("_to_") >= 0:
+				hilt_local = Vector2(34.0 + 12.0 * action_peak, -25.0 - 16.0 * action_peak)
+				local_angle = lerpf(deg_to_rad(-12.0), deg_to_rad(12.0), action_peak)
+	var sword_angle: float = local_angle if facing_sign > 0.0 else PI - local_angle
+	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
+	var hilt_world: Vector2 = player["pos"] + Vector2(hilt_local.x * facing_sign, hilt_local.y) * visual_scale
+	hilt_world += Vector2(flight_push * 3.0, sin(elapsed_time * 3.2) * 1.0)
+	return {
+		"center": hilt_world + sword_forward * (18.0 * visual_scale),
+		"hilt": hilt_world,
+		"angle": sword_angle,
+		"forward": sword_forward,
+		"facing_sign": facing_sign,
+	}
+
+
+func _trigger_rider_action(kind: String, direction: Vector2, duration: float, strength: float) -> bool:
+	if not _is_flight_prototype_mode():
+		return false
+	var normalized_direction: Vector2 = direction.normalized()
+	if normalized_direction.is_zero_approx():
+		normalized_direction = _get_held_sword_aim_direction()
+	if normalized_direction.is_zero_approx():
+		normalized_direction = Vector2.RIGHT
+	if rider_action_timer > 0.0:
+		var current_priority: int = _get_rider_action_priority(rider_action_kind)
+		var next_priority: int = _get_rider_action_priority(kind)
+		if rider_action_kind == kind:
+			rider_action_direction = normalized_direction
+			rider_action_strength = maxf(rider_action_strength, clampf(strength, 0.0, 2.0))
+			if (
+				_should_restart_repeated_rider_action(kind)
+				and _get_rider_action_progress() >= RIDER_REPEATED_ACTION_RESTART_PROGRESS
+			):
+				rider_action_duration = maxf(duration, 0.001)
+				rider_action_timer = rider_action_duration
+			return true
+		if (
+			_is_rider_array_transition_action(rider_action_kind)
+			and next_priority <= current_priority
+			and _get_rider_action_progress() < RIDER_ARRAY_TRANSITION_PROTECTED_PROGRESS
+		):
+			return false
+		if current_priority > next_priority and rider_action_timer > 0.05:
+			return false
+	rider_action_kind = kind
+	rider_action_duration = maxf(duration, 0.001)
+	rider_action_timer = rider_action_duration
+	rider_action_direction = normalized_direction
+	rider_action_strength = clampf(strength, 0.0, 2.0)
+	return true
+
+
+func _get_rider_action_priority(kind: String) -> int:
+	match kind:
+		"parry":
+			return 50
+		"idle_to_sword_control", "sword_control_to_idle":
+			return 20
+		_:
+			if kind.begins_with("array_") and kind.find("_to_") >= 0:
+				return 40
+			if kind.begins_with("array_") and kind.ends_with("_release"):
+				return 30
+			return 0
+
+
+func _should_restart_repeated_rider_action(kind: String) -> bool:
+	return kind == "parry"
+
+
+func _is_rider_array_transition_action(kind: String) -> bool:
+	return kind.begins_with("array_") and kind.find("_to_") >= 0
+
+
+func _get_rider_action_progress() -> float:
+	var duration: float = maxf(rider_action_duration, 0.001)
+	return 1.0 - clampf(rider_action_timer / duration, 0.0, 1.0)
+
+
+func _normalize_rider_array_mode(mode: String) -> String:
+	match mode:
+		SwordArrayConfig.MODE_FAN:
+			return SwordArrayConfig.MODE_FAN
+		SwordArrayConfig.MODE_PIERCE:
+			return SwordArrayConfig.MODE_PIERCE
+		_:
+			return SwordArrayConfig.MODE_RING
+
+
+func _get_rider_array_release_action(mode: String) -> String:
+	return "array_%s_release" % _normalize_rider_array_mode(mode)
+
+
+func _get_rider_array_transition_action(from_mode: String, to_mode: String) -> String:
+	var normalized_from: String = _normalize_rider_array_mode(from_mode)
+	var normalized_to: String = _normalize_rider_array_mode(to_mode)
+	if normalized_from == normalized_to:
+		return ""
+	return "array_%s_to_%s" % [normalized_from, normalized_to]
+
+
+func _get_rider_array_enter_action(mode: String) -> String:
+	return "idle_to_array_%s" % _normalize_rider_array_mode(mode)
+
+
+func _get_rider_array_exit_action(mode: String) -> String:
+	return "array_%s_to_idle" % _normalize_rider_array_mode(mode)
+
+
+func _trigger_rider_array_release(mode: String, direction: Vector2) -> void:
+	if rider_array_release_visual_cooldown > 0.0:
+		return
+	if _trigger_rider_action(_get_rider_array_release_action(mode), direction, RIDER_ARRAY_RELEASE_DURATION, 1.0):
+		rider_array_release_visual_cooldown = RIDER_ARRAY_RELEASE_VISUAL_COOLDOWN
+
+
+func _trigger_rider_array_mode_change(from_mode: String, to_mode: String, direction: Vector2) -> void:
+	var normalized_to: String = _normalize_rider_array_mode(to_mode)
+	var visual_from: String = _normalize_rider_array_mode(rider_array_visual_mode)
+	if visual_from == normalized_to:
+		rider_array_transition_pending_mode = ""
+		rider_array_transition_confirm_timer = 0.0
+		return
+	rider_array_transition_pending_from_mode = visual_from if rider_array_pose_active else _normalize_rider_array_mode(from_mode)
+	rider_array_transition_pending_mode = normalized_to
+	rider_array_transition_pending_direction = direction
+	rider_array_transition_confirm_timer = RIDER_ARRAY_TRANSITION_CONFIRM_DURATION
+
+
+func _play_rider_array_mode_change(from_mode: String, to_mode: String, direction: Vector2) -> bool:
+	var transition_action: String = _get_rider_array_transition_action(from_mode, to_mode)
+	if transition_action == "":
+		return true
+	return _trigger_rider_action(transition_action, direction, RIDER_ARRAY_TRANSITION_DURATION, 0.72)
+
+
+func _trigger_rider_sword_control_enter(direction: Vector2) -> void:
+	_trigger_rider_action("idle_to_sword_control", direction, RIDER_SWORD_CONTROL_ENTER_DURATION, 1.0)
+
+
+func _trigger_rider_sword_control_exit(direction: Vector2) -> void:
+	_trigger_rider_action("sword_control_to_idle", direction, RIDER_SWORD_CONTROL_EXIT_DURATION, 0.85)
+
+
+func _get_rider_body_array_mode() -> String:
+	return _normalize_rider_array_mode(rider_array_visual_mode)
+
+
+func _should_use_rider_array_idle_pose() -> bool:
+	return (
+		_is_flight_prototype_mode()
+		and not _should_hide_sword_array_ui()
+		and _is_any_array_unlocked()
+	)
+
+
+func _update_rider_array_pose_state() -> void:
+	if not _is_flight_prototype_mode():
+		rider_array_pose_active = false
+		rider_array_pose_mode = SwordArrayConfig.MODE_RING
+		return
+	var current_mode: String = _normalize_rider_array_mode(String(_get_sword_array_fire_state().get("dominant_mode", SwordArrayConfig.MODE_RING)))
+	var is_engaged: bool = _should_use_rider_array_idle_pose()
+	if is_engaged:
+		if not rider_array_pose_active:
+			rider_array_visual_mode = current_mode
+			_trigger_rider_action(_get_rider_array_enter_action(current_mode), mouse_world - player["pos"], RIDER_ARRAY_ENTER_DURATION, 0.7)
+		elif current_mode != rider_array_visual_mode and rider_array_transition_pending_mode != current_mode:
+			_trigger_rider_array_mode_change(rider_array_visual_mode, current_mode, mouse_world - player["pos"])
+		rider_array_pose_active = true
+		rider_array_pose_mode = rider_array_visual_mode
+		return
+	if rider_array_pose_active:
+		_trigger_rider_action(_get_rider_array_exit_action(rider_array_pose_mode), mouse_world - player["pos"], RIDER_ARRAY_EXIT_DURATION, 0.6)
+	rider_array_pose_active = false
+	rider_array_visual_mode = current_mode
+	rider_array_pose_mode = current_mode
+
+
+func _update_rider_action_state(delta: float) -> void:
+	rider_array_release_visual_cooldown = maxf(rider_array_release_visual_cooldown - delta, 0.0)
+	_update_rider_array_mode_change_request(delta)
+	if rider_action_timer <= 0.0:
+		rider_action_kind = ""
+		rider_action_strength = 0.0
+		return
+	rider_action_timer = maxf(rider_action_timer - delta, 0.0)
+	if rider_action_timer <= 0.0:
+		rider_action_kind = ""
+		rider_action_strength = 0.0
+
+
+func _update_rider_array_mode_change_request(delta: float) -> void:
+	if rider_array_transition_pending_mode == "":
+		return
+	rider_array_transition_confirm_timer = maxf(rider_array_transition_confirm_timer - delta, 0.0)
+	if rider_array_transition_confirm_timer > 0.0:
+		return
+	var target_mode: String = _normalize_rider_array_mode(rider_array_transition_pending_mode)
+	var from_mode: String = _normalize_rider_array_mode(rider_array_visual_mode)
+	if from_mode != target_mode and not _play_rider_array_mode_change(from_mode, target_mode, rider_array_transition_pending_direction):
+		return
+	rider_array_visual_mode = target_mode
+	rider_array_pose_mode = target_mode
+	rider_array_transition_pending_from_mode = target_mode
+	rider_array_transition_pending_mode = ""
+
+
+func _get_rider_action_state() -> Dictionary:
+	var duration: float = maxf(rider_action_duration, 0.001)
+	var life_ratio: float = clampf(rider_action_timer / duration, 0.0, 1.0)
+	var progress: float = 1.0 - life_ratio
+	return {
+		"kind": rider_action_kind,
+		"timer": rider_action_timer,
+		"duration": duration,
+		"progress": progress,
+		"life_ratio": life_ratio,
+		"direction": rider_action_direction,
+		"strength": rider_action_strength * life_ratio,
+		"peak_strength": rider_action_strength * sin(progress * PI),
+	}
 
 
 func _get_sword_hover_preset_data() -> Dictionary:
@@ -1346,6 +1835,14 @@ func _process(delta: float) -> void:
 	if is_game_over:
 		queue_redraw()
 		return
+	if demo_victory_visible:
+		if not score_loot_pickups.is_empty():
+			score_loot_pickups.clear()
+		_update_status_feedback(delta)
+		_update_focus_status_feedback(delta)
+		_update_ui()
+		queue_redraw()
+		return
 	if _consume_hitstop(delta):
 		queue_redraw()
 		return
@@ -1362,6 +1859,7 @@ func _process(delta: float) -> void:
 	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - delta, 0.0)
 	unsheath_press_flash_timer = max(unsheath_press_flash_timer - delta, 0.0)
 	unsheath_press_flash_repeat_timer = max(unsheath_press_flash_repeat_timer - delta, 0.0)
+	_update_rider_action_state(delta)
 
 	var bullet_time_ratio: float = 1.0
 	var player_time_ratio: float = 1.0
@@ -1383,6 +1881,7 @@ func _process(delta: float) -> void:
 	_update_array_morph_control(delta)
 	_refresh_sword_array_live_state()
 	SwordResonanceController.update(self, delta)
+	_update_sword_momentum_state(delta)
 
 	if debug_calibration_mode:
 		_ensure_debug_calibration_state()
@@ -1406,6 +1905,7 @@ func _process(delta: float) -> void:
 		else:
 			player["array_hold_ratio"] = 1.0
 			_update_sword_array_continuous_firing(delta)
+	_update_rider_array_pose_state()
 
 	_update_status_feedback(delta)
 	_update_focus_status_feedback(delta)
@@ -1413,6 +1913,7 @@ func _process(delta: float) -> void:
 	_update_array_energy_feedback_state(delta)
 	_update_array_mode_confirm_feedback(delta)
 	_update_player(delta, player_delta)
+	_update_flight_world_scroll(delta)
 	_update_sword(delta)
 	_trace_time_rift_sword()
 	_update_boss(delta, bullet_time_delta)
@@ -1421,9 +1922,14 @@ func _process(delta: float) -> void:
 	_update_time_rift_freeze_markers()
 	_update_array_swords(delta)
 	_update_particles(bullet_time_delta)
+	_update_score_loot_pickups(delta)
 	_update_sword_hit_effects(delta)
 	if _is_large_arena_test_enabled():
 		_update_large_arena_test(delta)
+	elif _is_flight_prototype_mode():
+		_update_flight_prototype(delta)
+	elif _is_demo_level_active():
+		demo_level_controller.update(self, delta)
 	else:
 		_update_wave(delta)
 	_update_large_arena_camera(delta)
@@ -1432,7 +1938,8 @@ func _process(delta: float) -> void:
 	_apply_debug_runtime_overrides()
 
 	if player["health"] <= 0.0:
-		_set_game_over()
+		if not (_is_demo_level_active() and demo_level_controller.handle_player_death(self)):
+			_set_game_over()
 
 	screen_shake = lerpf(screen_shake, 0.0, min(delta * 10.0, 1.0))
 	_update_ui()
@@ -1465,6 +1972,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE:
 				_start_game_from_menu()
 		return
+	if demo_victory_visible:
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE or event.keycode == KEY_ESCAPE:
+				_show_start_menu()
+			return
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_show_start_menu()
+			return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if _handle_debug_key_input(event):
 			return
@@ -1487,7 +2002,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				if is_game_over:
-					_reset_game()
+					_restart_current_run()
 					_sync_desktop_mouse_visibility_to_game_state()
 					return
 				left_mouse_held = true
@@ -1557,7 +2072,7 @@ func _build_start_menu() -> void:
 
 	var panel := PanelContainer.new()
 	panel.name = "MenuPanel"
-	panel.custom_minimum_size = Vector2(860.0, 620.0)
+	panel.custom_minimum_size = Vector2(860.0, 700.0)
 	panel.add_theme_stylebox_override("panel", _make_start_menu_style(Color(0.03, 0.055, 0.09, 0.92), Color("d7bb79"), 1, 8))
 	center.add_child(panel)
 
@@ -1584,7 +2099,7 @@ func _build_start_menu() -> void:
 	content.add_child(title_label)
 
 	var subtitle_label := Label.new()
-	subtitle_label.text = "御剑成阵，近守远破。先看操作，再入试炼。"
+	subtitle_label.text = "破庙一夜，只凭手中剑与一口气。"
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	subtitle_label.add_theme_font_size_override("font_size", 18)
@@ -1607,7 +2122,7 @@ func _build_start_menu() -> void:
 	content.add_child(start_menu_scheme_button)
 
 	start_button = Button.new()
-	start_button.text = "开始游戏"
+	start_button.text = "破庙夜袭"
 	start_button.custom_minimum_size = Vector2(0.0, 54.0)
 	start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	start_button.focus_mode = Control.FOCUS_ALL
@@ -1618,8 +2133,61 @@ func _build_start_menu() -> void:
 	start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.09, 0.13, 0.16, 0.94), Color("d7bb79"), 1, 6))
 	start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.11, 0.18, 0.22, 0.98), Color("88d8ff"), 1, 6))
 	start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.13, 0.16, 0.13, 0.98), Color("f1e3bc"), 1, 6))
-	start_button.pressed.connect(_start_game_from_menu)
+	start_button.pressed.connect(_start_demo_level_from_menu)
+	start_button.mouse_entered.connect(_show_demo_start_menu_guide)
+	start_button.focus_entered.connect(_show_demo_start_menu_guide)
 	content.add_child(start_button)
+
+	flight_start_button = Button.new()
+	flight_start_button.text = "御剑航行（自由）"
+	flight_start_button.custom_minimum_size = Vector2(0.0, 48.0)
+	flight_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	flight_start_button.focus_mode = Control.FOCUS_NONE
+	flight_start_button.add_theme_font_size_override("font_size", 21)
+	flight_start_button.add_theme_color_override("font_color", Color("f1e3bc"))
+	flight_start_button.add_theme_color_override("font_hover_color", Color("f6fbff"))
+	flight_start_button.add_theme_color_override("font_pressed_color", Color("f6fbff"))
+	flight_start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.075, 0.115, 0.13, 0.94), Color("88d8ff"), 1, 6))
+	flight_start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.1, 0.16, 0.18, 0.98), Color("f1e3bc"), 1, 6))
+	flight_start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.12, 0.16, 0.13, 0.98), Color("f1e3bc"), 1, 6))
+	flight_start_button.pressed.connect(_start_flight_prototype_from_menu)
+	flight_start_button.mouse_entered.connect(_show_flight_start_menu_guide)
+	flight_start_button.focus_entered.connect(_show_flight_start_menu_guide)
+	content.add_child(flight_start_button)
+
+	flight_anchor_start_button = Button.new()
+	flight_anchor_start_button.text = "御剑航行（风压回中）"
+	flight_anchor_start_button.custom_minimum_size = Vector2(0.0, 44.0)
+	flight_anchor_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	flight_anchor_start_button.focus_mode = Control.FOCUS_NONE
+	flight_anchor_start_button.add_theme_font_size_override("font_size", 19)
+	flight_anchor_start_button.add_theme_color_override("font_color", Color("d8e2ea"))
+	flight_anchor_start_button.add_theme_color_override("font_hover_color", Color("f6fbff"))
+	flight_anchor_start_button.add_theme_color_override("font_pressed_color", Color("f6fbff"))
+	flight_anchor_start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.055, 0.1, 0.125, 0.94), Color("7fa7c0"), 1, 6))
+	flight_anchor_start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.085, 0.145, 0.17, 0.98), Color("88d8ff"), 1, 6))
+	flight_anchor_start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.1, 0.15, 0.13, 0.98), Color("f1e3bc"), 1, 6))
+	flight_anchor_start_button.pressed.connect(_start_flight_anchored_prototype_from_menu)
+	flight_anchor_start_button.mouse_entered.connect(_show_flight_anchored_start_menu_guide)
+	flight_anchor_start_button.focus_entered.connect(_show_flight_anchored_start_menu_guide)
+	content.add_child(flight_anchor_start_button)
+
+	legacy_start_button = Button.new()
+	legacy_start_button.text = "旧波次入口"
+	legacy_start_button.custom_minimum_size = Vector2(0.0, 42.0)
+	legacy_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	legacy_start_button.focus_mode = Control.FOCUS_NONE
+	legacy_start_button.add_theme_font_size_override("font_size", 18)
+	legacy_start_button.add_theme_color_override("font_color", Color("d8e2ea"))
+	legacy_start_button.add_theme_color_override("font_hover_color", Color("f6fbff"))
+	legacy_start_button.add_theme_color_override("font_pressed_color", Color("f6fbff"))
+	legacy_start_button.add_theme_stylebox_override("normal", _make_start_menu_style(Color(0.06, 0.09, 0.13, 0.9), Color("7fa7c0"), 1, 6))
+	legacy_start_button.add_theme_stylebox_override("hover", _make_start_menu_style(Color(0.08, 0.13, 0.18, 0.96), Color("88d8ff"), 1, 6))
+	legacy_start_button.add_theme_stylebox_override("pressed", _make_start_menu_style(Color(0.11, 0.16, 0.13, 0.98), Color("f1e3bc"), 1, 6))
+	legacy_start_button.pressed.connect(_start_legacy_waves_from_menu)
+	legacy_start_button.mouse_entered.connect(_show_operation_start_menu_guide)
+	legacy_start_button.focus_entered.connect(_show_operation_start_menu_guide)
+	content.add_child(legacy_start_button)
 
 	var divider := ColorRect.new()
 	divider.custom_minimum_size = Vector2(0.0, 1.0)
@@ -1635,8 +2203,8 @@ func _build_start_menu() -> void:
 
 	start_menu_guide_label = RichTextLabel.new()
 	start_menu_guide_label.bbcode_enabled = true
-	start_menu_guide_label.text = START_MENU_OPERATION_TEXT
-	start_menu_guide_label.custom_minimum_size = Vector2(0.0, 350.0)
+	start_menu_guide_label.text = START_MENU_DEMO_TEXT
+	start_menu_guide_label.custom_minimum_size = Vector2(0.0, 250.0)
 	start_menu_guide_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	start_menu_guide_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	start_menu_guide_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1655,6 +2223,26 @@ func _make_start_menu_style(background_color: Color, border_color: Color, border
 	style.set_border_width_all(border_width)
 	style.set_corner_radius_all(corner_radius)
 	return style
+
+
+func _show_demo_start_menu_guide() -> void:
+	if start_menu_guide_label != null:
+		start_menu_guide_label.text = START_MENU_DEMO_TEXT
+
+
+func _show_flight_start_menu_guide() -> void:
+	if start_menu_guide_label != null:
+		start_menu_guide_label.text = START_MENU_FLIGHT_TEXT
+
+
+func _show_flight_anchored_start_menu_guide() -> void:
+	if start_menu_guide_label != null:
+		start_menu_guide_label.text = START_MENU_FLIGHT_ANCHORED_TEXT
+
+
+func _show_operation_start_menu_guide() -> void:
+	if start_menu_guide_label != null:
+		start_menu_guide_label.text = START_MENU_OPERATION_TEXT if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL else START_MENU_OPERATION_TEXT_DISTANCE
 
 
 func _set_desktop_mouse_visible(visible: bool) -> void:
@@ -1687,14 +2275,41 @@ func _show_start_menu() -> void:
 
 
 func _start_game_from_menu() -> void:
+	_start_demo_level_from_menu()
+
+
+func _start_demo_level_from_menu() -> void:
+	_start_run_from_menu(RUN_MODE_DEMO_LEVEL)
+
+
+func _start_flight_prototype_from_menu() -> void:
+	_start_run_from_menu(RUN_MODE_FLIGHT_PROTOTYPE)
+
+
+func _start_flight_anchored_prototype_from_menu() -> void:
+	_start_run_from_menu(RUN_MODE_FLIGHT_ANCHORED_PROTOTYPE)
+
+
+func _start_legacy_waves_from_menu() -> void:
+	_start_run_from_menu(RUN_MODE_LEGACY_WAVES)
+
+
+func _start_run_from_menu(mode: String) -> void:
 	if not is_start_menu_active:
 		return
+	run_mode = mode
 	is_start_menu_active = false
 	left_mouse_held = false
 	right_mouse_held = false
 	if start_menu != null:
 		start_menu.visible = false
 	_reset_game()
+	if _is_demo_level_mode():
+		demo_level_controller.start(self)
+		_update_ui()
+	elif _is_flight_prototype_mode():
+		_start_flight_prototype()
+		_update_ui()
 	_sync_desktop_mouse_visibility_to_game_state()
 
 
@@ -1729,6 +2344,7 @@ func _configure_lookdev_runtime() -> void:
 	array_swords.clear()
 	enemy_packages.clear()
 	particles.clear()
+	score_loot_pickups.clear()
 	sword_afterimages.clear()
 	sword_trail_points.clear()
 	sword_air_wakes.clear()
@@ -1886,12 +2502,20 @@ func _consume_lookdev_event(event_key: String) -> bool:
 func _reset_game() -> void:
 	GameStateFactory.reset_runtime(self )
 	_reset_large_arena_test_state()
+	if demo_level_controller != null:
+		demo_level_controller.active = false
+		demo_level_controller.completed = false
+	demo_recovery_pickups.clear()
+	demo_victory_visible = false
+	demo_victory_result.clear()
 	_reset_time_rift_fx()
 	action_failure_cooldowns.clear()
 	energy_feedback_timer = 0.0
 	energy_feedback_color = Color.WHITE
 	array_feedback_timer = 0.0
 	array_feedback_color = Color.WHITE
+	score_feedback_timer = 0.0
+	score_feedback_color = Color.WHITE
 	focus_status_message = ""
 	focus_status_message_timer = 0.0
 	focus_status_message_color = Color.WHITE
@@ -1902,11 +2526,114 @@ func _reset_game() -> void:
 	array_mode_confirm_cooldown = 0.0
 	array_mode_confirm_mode = ""
 	array_mode_confirm_angle = 0.0
+	sword_momentum_heat_display = 0.0
+	sword_momentum_full_flash_timer = 0.0
+	sword_momentum_was_full = false
 	array_distance_guide_timer = 0.0
 	_reset_sword_spirit_takeover_state()
 	_reset_cursor_intent_indicator()
-	_show_wave_unlock_feedback(wave)
+	if _is_flight_prototype_mode():
+		_reset_flight_prototype_state()
+	elif not _is_demo_level_mode():
+		_show_wave_unlock_feedback(wave)
 	_sync_desktop_mouse_visibility_to_game_state()
+
+
+func _restart_current_run() -> void:
+	_reset_game()
+	if _is_demo_level_mode():
+		demo_level_controller.start(self)
+		_update_ui()
+	elif _is_flight_prototype_mode():
+		_start_flight_prototype()
+		_update_ui()
+
+
+func _is_demo_level_mode() -> bool:
+	return run_mode == RUN_MODE_DEMO_LEVEL
+
+
+func _is_legacy_wave_mode() -> bool:
+	return run_mode == RUN_MODE_LEGACY_WAVES
+
+
+func _is_flight_free_prototype_mode() -> bool:
+	return run_mode == RUN_MODE_FLIGHT_PROTOTYPE
+
+
+func _is_flight_anchored_prototype_mode() -> bool:
+	return run_mode == RUN_MODE_FLIGHT_ANCHORED_PROTOTYPE
+
+
+func _is_flight_prototype_mode() -> bool:
+	return _is_flight_free_prototype_mode() or _is_flight_anchored_prototype_mode()
+
+
+func _is_demo_level_active() -> bool:
+	return _is_demo_level_mode() and demo_level_controller != null and bool(demo_level_controller.active)
+
+
+func _should_hide_sword_array_ui() -> bool:
+	return _is_demo_level_mode() and not lookdev_mode and not debug_calibration_mode
+
+
+func _reset_flight_prototype_state() -> void:
+	flight_stage_timer = 0.0
+	flight_scroll_speed = FLIGHT_BASE_SCROLL_SPEED
+	flight_scroll_distance = 0.0
+	flight_script_index = 0
+	flight_stage_complete = false
+	flight_segment_index = 0
+	flight_segment_label = "起飞校准"
+	flight_heading = Vector2.RIGHT
+	flight_roll_timer = 0.0
+	flight_roll_cooldown = 0.0
+	flight_roll_direction = Vector2.RIGHT
+	rider_action_kind = ""
+	rider_action_timer = 0.0
+	rider_action_duration = 0.0
+	rider_action_direction = Vector2.RIGHT
+	rider_action_strength = 0.0
+	rider_array_pose_active = false
+	rider_array_pose_mode = SwordArrayConfig.MODE_RING
+	rider_array_visual_mode = SwordArrayConfig.MODE_RING
+	rider_array_transition_pending_from_mode = SwordArrayConfig.MODE_RING
+	rider_array_transition_pending_mode = ""
+	rider_array_transition_pending_direction = Vector2.RIGHT
+	rider_array_transition_confirm_timer = 0.0
+	rider_array_release_visual_cooldown = 0.0
+	player["pos"] = FLIGHT_START_POS
+	player["vel"] = Vector2.ZERO
+	player["health"] = PLAYER_MAX_HEALTH
+	player["energy"] = PLAYER_MAX_ENERGY
+	player["array_selected_mode"] = SwordArrayConfig.MODE_RING
+	player["array_mode"] = SwordArrayConfig.MODE_RING
+	player["array_sticky_mode"] = SwordArrayConfig.MODE_RING
+	mouse_world = player["pos"] + Vector2(360.0, -16.0)
+	cursor_intent_previous_mouse_world = mouse_world
+	sword["pos"] = player["pos"] + Vector2(34.0, -12.0)
+	sword["prev_pos"] = sword["pos"]
+	sword["target_pos"] = mouse_world
+	sword["angle"] = 0.0
+	_rebuild_array_sword_pool()
+	_refresh_sword_array_live_state()
+
+
+func _start_flight_prototype() -> void:
+	flight_segment_label = "起飞校准"
+	var start_message: String = "风压回中测试开始" if _is_flight_anchored_prototype_mode() else "自由御剑测试开始"
+	_show_status_message(start_message, COLORS["ranged_sword"], 1.2)
+	_show_focus_status_message("云海航道", COLORS["ranged_sword"].lerp(Color.WHITE, 0.16), 0.72)
+
+
+func _get_flight_lane_rect() -> Rect2:
+	if _is_flight_anchored_prototype_mode():
+		return Rect2(FLIGHT_ANCHOR_LANE_MIN, FLIGHT_ANCHOR_LANE_MAX - FLIGHT_ANCHOR_LANE_MIN)
+	return Rect2(FLIGHT_CANVAS_MIN, FLIGHT_CANVAS_MAX - FLIGHT_CANVAS_MIN)
+
+
+func _get_flight_anchor_world() -> Vector2:
+	return FLIGHT_ANCHOR_POS
 
 
 func _reset_large_arena_test_state() -> void:
@@ -2271,12 +2998,19 @@ func _update_player(delta: float, player_delta: float) -> void:
 		player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
 		_update_melee_combo_state(delta)
 		return
+	if _is_flight_prototype_mode():
+		var move_input: Vector2 = _get_flight_control_input()
+		_update_flight_jet_lancer_motion(delta, player_delta, move_input)
+		_update_flight_scroll_speed(delta, move_input)
+		player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
+		player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
+		player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
+		return
 	var move_input: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if not move_input.is_zero_approx():
 		player["vel"] = move_input.normalized() * _get_player_move_speed()
 	else:
 		player["vel"] = player["vel"].lerp(Vector2.ZERO, min(delta * 8.0, 1.0))
-
 	player["pos"] += player["vel"] * player_delta
 	player["pos"] = player["pos"].clamp(Vector2(PLAYER_RADIUS, PLAYER_RADIUS), _get_arena_size() - Vector2(PLAYER_RADIUS, PLAYER_RADIUS))
 
@@ -2471,6 +3205,163 @@ func _update_melee_shadow_flashes(delta: float) -> void:
 			shadow_flashes[index] = flash
 		index -= 1
 	player["melee_shadow_flashes"] = shadow_flashes
+
+
+func _get_flight_control_input() -> Vector2:
+	return Vector2(
+		Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
+		Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	)
+
+
+func _update_flight_jet_lancer_motion(delta: float, player_delta: float, move_input: Vector2) -> void:
+	flight_roll_timer = maxf(flight_roll_timer - delta, 0.0)
+	flight_roll_cooldown = maxf(flight_roll_cooldown - delta, 0.0)
+
+	var velocity: Vector2 = Vector2(player.get("vel", Vector2.ZERO))
+	if flight_heading.is_zero_approx():
+		flight_heading = velocity.normalized() if velocity.length_squared() > 1.0 else Vector2.RIGHT
+
+	var thrust_pressure: float = maxf(-move_input.y, 0.0)
+	var brake_pressure: float = maxf(move_input.y, 0.0)
+	var afterburner_pressure: float = 1.0 if _is_flight_afterburner_pressed() else 0.0
+	var speed_ratio: float = clampf(velocity.length() / maxf(FLIGHT_JET_AFTERBURNER_MAX_SPEED, 1.0), 0.0, 1.0)
+	var turn_rate: float = lerpf(FLIGHT_JET_TURN_RATE, FLIGHT_JET_HIGH_SPEED_TURN_RATE, speed_ratio)
+	turn_rate += brake_pressure * FLIGHT_JET_BRAKE_TURN_BONUS
+	if absf(move_input.x) > 0.01:
+		flight_heading = flight_heading.rotated(move_input.x * turn_rate * delta).normalized()
+
+	if Input.is_action_just_pressed("dash") and flight_roll_cooldown <= 0.0:
+		_start_flight_roll(velocity)
+
+	if flight_roll_timer > 0.0:
+		velocity = flight_roll_direction * maxf(FLIGHT_JET_ROLL_SPEED, velocity.length() * FLIGHT_JET_ROLL_EXIT_SPEED_KEEP)
+	else:
+		var accel: float = thrust_pressure * FLIGHT_JET_THRUST_ACCEL + afterburner_pressure * FLIGHT_JET_AFTERBURNER_ACCEL
+		if accel > 0.0:
+			velocity += flight_heading * accel * delta
+
+		var damping: float = FLIGHT_JET_GLIDE_DAMPING + brake_pressure * FLIGHT_JET_BRAKE_DAMPING
+		if afterburner_pressure > 0.0:
+			damping *= 0.42
+		velocity = velocity.lerp(Vector2.ZERO, clampf(delta * damping, 0.0, 0.92))
+
+		var max_speed: float = lerpf(FLIGHT_JET_MAX_SPEED, FLIGHT_JET_AFTERBURNER_MAX_SPEED, afterburner_pressure)
+		if velocity.length() > max_speed:
+			velocity = velocity.normalized() * max_speed
+
+	if _is_flight_anchored_prototype_mode() and flight_roll_timer <= 0.0:
+		velocity.x += (FLIGHT_ANCHOR_POS.x - float(player["pos"].x)) * FLIGHT_JET_ANCHOR_RETURN_STRENGTH * delta
+
+	player["vel"] = velocity
+	player["pos"] += velocity * player_delta
+	_resolve_flight_lane_bounds()
+	player["flight_heading"] = flight_heading
+	player["flight_afterburner"] = afterburner_pressure
+	player["flight_brake"] = brake_pressure
+	player["flight_roll_timer"] = flight_roll_timer
+
+
+func _start_flight_roll(velocity: Vector2) -> void:
+	var roll_direction: Vector2 = velocity.normalized()
+	if roll_direction.is_zero_approx():
+		roll_direction = flight_heading
+	if roll_direction.is_zero_approx():
+		roll_direction = Vector2.RIGHT
+	flight_roll_direction = roll_direction
+	flight_roll_timer = FLIGHT_JET_ROLL_DURATION
+	flight_roll_cooldown = FLIGHT_JET_ROLL_COOLDOWN
+
+
+func _resolve_flight_lane_bounds() -> void:
+	var lane_min: Vector2 = FLIGHT_ANCHOR_LANE_MIN if _is_flight_anchored_prototype_mode() else FLIGHT_CANVAS_MIN
+	var lane_max: Vector2 = FLIGHT_ANCHOR_LANE_MAX if _is_flight_anchored_prototype_mode() else FLIGHT_CANVAS_MAX
+	var pos: Vector2 = Vector2(player["pos"])
+	var velocity: Vector2 = Vector2(player["vel"])
+	if pos.x < lane_min.x:
+		pos.x = lane_min.x
+		if velocity.x < 0.0:
+			velocity.x = -velocity.x * FLIGHT_JET_BOUND_BOUNCE
+	elif pos.x > lane_max.x:
+		pos.x = lane_max.x
+		if velocity.x > 0.0:
+			velocity.x = -velocity.x * FLIGHT_JET_BOUND_BOUNCE
+	if pos.y < lane_min.y:
+		pos.y = lane_min.y
+		if velocity.y < 0.0:
+			velocity.y = -velocity.y * FLIGHT_JET_BOUND_BOUNCE
+	elif pos.y > lane_max.y:
+		pos.y = lane_max.y
+		if velocity.y > 0.0:
+			velocity.y = -velocity.y * FLIGHT_JET_BOUND_BOUNCE
+	player["pos"] = pos
+	player["vel"] = velocity
+
+
+func _is_flight_afterburner_pressed() -> bool:
+	return Input.is_key_pressed(KEY_SHIFT)
+
+
+func _update_flight_scroll_speed(delta: float, move_input: Vector2) -> void:
+	var flight_velocity: Vector2 = Vector2(player.get("vel", Vector2.ZERO))
+	var forward_ratio: float = clampf(flight_velocity.x / maxf(FLIGHT_JET_MAX_SPEED, 1.0), -1.0, 1.0)
+	var forward_pressure: float = maxf(forward_ratio, 0.0)
+	var brake_pressure: float = maxf(-forward_ratio, maxf(move_input.y, 0.0))
+	var afterburner_pressure: float = 1.0 if _is_flight_afterburner_pressed() else 0.0
+	var anchor_offset_bonus := 0.0
+	if _is_flight_anchored_prototype_mode():
+		var anchor_offset_ratio: float = clampf((float(player["pos"].x) - FLIGHT_ANCHOR_POS.x) / 220.0, -1.0, 1.0)
+		anchor_offset_bonus = anchor_offset_ratio * 28.0
+	var target_speed: float = (
+		FLIGHT_BASE_SCROLL_SPEED
+		+ forward_pressure * FLIGHT_FORWARD_SPEED_BONUS
+		- brake_pressure * FLIGHT_BACK_SPEED_BRAKE
+		+ afterburner_pressure * 34.0
+		+ anchor_offset_bonus
+	)
+	target_speed = clampf(target_speed, FLIGHT_MIN_SCROLL_SPEED, FLIGHT_MAX_SCROLL_SPEED)
+	flight_scroll_speed = lerpf(flight_scroll_speed, target_speed, minf(delta * FLIGHT_SCROLL_ACCEL, 1.0))
+
+
+func _update_flight_world_scroll(delta: float) -> void:
+	if not _is_flight_prototype_mode():
+		return
+	var scroll_delta: float = flight_scroll_speed * delta
+	flight_scroll_distance += scroll_delta
+	var world_shift := Vector2(scroll_delta, 0.0)
+	for enemy in enemies:
+		enemy["pos"] = Vector2(enemy.get("pos", Vector2.ZERO)) - world_shift
+		if enemy.has("package_desired_pos"):
+			enemy["package_desired_pos"] = Vector2(enemy.get("package_desired_pos", enemy["pos"])) - world_shift
+		if enemy.has("package_center"):
+			enemy["package_center"] = Vector2(enemy.get("package_center", enemy["pos"])) - world_shift
+	for bullet in bullets:
+		if str(bullet.get("state", "normal")) == "deflected" or str(bullet.get("owner_id", "")) == "player":
+			continue
+		bullet["pos"] = Vector2(bullet.get("pos", Vector2.ZERO)) - world_shift
+	for pickup in score_loot_pickups:
+		pickup["pos"] = Vector2(pickup.get("pos", Vector2.ZERO)) - world_shift
+	for particle in particles:
+		particle["pos"] = Vector2(particle.get("pos", Vector2.ZERO)) - world_shift
+	_cleanup_flight_offscreen_world()
+
+
+func _cleanup_flight_offscreen_world() -> void:
+	var enemy_index: int = enemies.size() - 1
+	while enemy_index >= 0:
+		var enemy: Dictionary = enemies[enemy_index]
+		var enemy_pos: Vector2 = Vector2(enemy.get("pos", Vector2.ZERO))
+		if not bool(enemy.get("is_dying", false)) and enemy_pos.x < FLIGHT_OFFSCREEN_LEFT:
+			_clear_target_runtime_state(str(enemy.get("id", "")))
+			_clear_target_hurtboxes(str(enemy.get("id", "")))
+			enemies.remove_at(enemy_index)
+		enemy_index -= 1
+	var pickup_index: int = score_loot_pickups.size() - 1
+	while pickup_index >= 0:
+		var pickup_pos: Vector2 = Vector2(score_loot_pickups[pickup_index].get("pos", Vector2.ZERO))
+		if pickup_pos.x < FLIGHT_OFFSCREEN_LEFT:
+			score_loot_pickups.remove_at(pickup_index)
+		pickup_index -= 1
 
 
 func _get_bullet_time_recovery_duration() -> float:
@@ -3108,6 +3999,8 @@ func _append_pierce_time_stop_combo_point(sample_pos: Vector2, force := false) -
 
 
 func _can_use_array_attack() -> bool:
+	if _should_hide_sword_array_ui():
+		return false
 	if not left_mouse_held:
 		return false
 	if float(player.get("array_hold_timer", 0.0)) < SwordArrayConfig.HOLD_THRESHOLD:
@@ -3127,6 +4020,8 @@ func _get_active_array_sword_count() -> int:
 
 
 func _get_current_array_sword_capacity() -> int:
+	if _should_hide_sword_array_ui():
+		return 0
 	return ARRAY_SWORD_COUNT
 
 
@@ -3135,6 +4030,8 @@ func _get_array_sortie_profile(mode: String) -> Dictionary:
 
 
 func _should_array_consume_energy() -> bool:
+	if _is_flight_prototype_mode():
+		return false
 	return true
 
 
@@ -3388,6 +4285,7 @@ func _update_focus_status_feedback(delta: float) -> void:
 func _update_action_feedback(delta: float) -> void:
 	energy_feedback_timer = maxf(energy_feedback_timer - delta, 0.0)
 	array_feedback_timer = maxf(array_feedback_timer - delta, 0.0)
+	score_feedback_timer = maxf(score_feedback_timer - delta, 0.0)
 	energy_gain_feedback_timer = maxf(energy_gain_feedback_timer - delta, 0.0)
 	if energy_gain_feedback_timer <= 0.0:
 		energy_gain_feedback_strength = 0.0
@@ -3410,6 +4308,11 @@ func _consume_hitstop(delta: float) -> bool:
 
 
 func _update_array_energy_feedback_state(delta: float) -> void:
+	if _should_hide_sword_array_ui():
+		array_energy_forecast_level = ArrayEnergyForecastLevel.NONE
+		array_energy_warning_display = 0.0
+		array_energy_break_timer = 0.0
+		return
 	array_energy_break_timer = maxf(array_energy_break_timer - delta, 0.0)
 	var forecast: Dictionary = _build_array_energy_forecast()
 	array_energy_forecast_level = int(forecast.get("level", ArrayEnergyForecastLevel.NONE))
@@ -3429,6 +4332,11 @@ func _update_array_energy_feedback_state(delta: float) -> void:
 
 
 func _update_array_mode_confirm_feedback(delta: float) -> void:
+	if _should_hide_sword_array_ui():
+		array_mode_confirm_timer = 0.0
+		array_mode_confirm_cooldown = 0.0
+		array_mode_confirm_mode = ""
+		return
 	array_mode_confirm_timer = maxf(array_mode_confirm_timer - delta, 0.0)
 	array_mode_confirm_cooldown = maxf(array_mode_confirm_cooldown - delta, 0.0)
 	var fire_state: Dictionary = _get_sword_array_fire_state()
@@ -3499,12 +4407,22 @@ func _emit_action_feedback_sfx(_reason_key: String) -> void:
 
 
 func _is_flying_sword_unlocked() -> bool:
-	return _is_large_arena_test_enabled() or lookdev_mode or debug_calibration_mode or wave >= UNLOCK_WAVE_FLYING_SWORD
+	if _is_large_arena_test_enabled():
+		return true
+	if _is_demo_level_mode():
+		return true
+	if _is_flight_prototype_mode():
+		return true
+	return lookdev_mode or debug_calibration_mode or wave >= UNLOCK_WAVE_FLYING_SWORD
 
 
 func _is_array_mode_unlocked(mode: String) -> bool:
 	if _is_large_arena_test_enabled() or lookdev_mode or debug_calibration_mode:
 		return true
+	if _is_flight_prototype_mode():
+		return true
+	if _should_hide_sword_array_ui():
+		return false
 	match mode:
 		SwordArrayConfig.MODE_PIERCE:
 			return wave >= UNLOCK_WAVE_ARRAY_PIERCE
@@ -3645,6 +4563,8 @@ func _get_array_energy_break_strength() -> float:
 func _wake_array_distance_guide() -> void:
 	if not ARRAY_DISTANCE_GUIDE_ENABLED:
 		return
+	if _should_hide_sword_array_ui():
+		return
 	if _get_array_control_scheme() != ARRAY_CONTROL_SCHEME_DISTANCE:
 		return
 	array_distance_guide_timer = maxf(array_distance_guide_timer, ARRAY_DISTANCE_GUIDE_MOUSE_FADE_DURATION)
@@ -3653,7 +4573,7 @@ func _wake_array_distance_guide() -> void:
 func _get_array_distance_guide_strength() -> float:
 	if not ARRAY_DISTANCE_GUIDE_ENABLED:
 		return 0.0
-	if lookdev_mode or debug_calibration_mode or is_start_menu_active:
+	if lookdev_mode or debug_calibration_mode or is_start_menu_active or _should_hide_sword_array_ui():
 		return 0.0
 	if _get_array_control_scheme() != ARRAY_CONTROL_SCHEME_DISTANCE:
 		return 0.0
@@ -3685,6 +4605,13 @@ func _reset_cursor_intent_indicator() -> void:
 
 func _update_cursor_intent_indicator(delta: float) -> void:
 	if player.is_empty():
+		return
+	if _should_hide_sword_array_ui():
+		cursor_intent_pressure_display = 0.0
+		cursor_intent_out_of_range_display = 0.0
+		cursor_intent_resource_display = 0.0
+		cursor_intent_fire_kick = move_toward(cursor_intent_fire_kick, 0.0, delta * CURSOR_INTENT_FIRE_KICK_DECAY_SPEED)
+		cursor_intent_previous_mouse_world = mouse_world
 		return
 	var safe_delta: float = maxf(delta, 0.0001)
 	var mouse_delta: Vector2 = mouse_world - cursor_intent_previous_mouse_world
@@ -4541,13 +5468,79 @@ func _get_array_control_scheme_color(scheme := "") -> Color:
 	return Color("d7bb79")
 
 
+func _get_sword_momentum_ratio() -> float:
+	if player.is_empty():
+		return 0.0
+	return clampf(float(player.get("energy", 0.0)) / maxf(PLAYER_MAX_ENERGY, 0.001), 0.0, 1.0)
+
+
+func _get_sword_momentum_heat_strength() -> float:
+	return clampf(sword_momentum_heat_display, 0.0, 1.0)
+
+
+func _get_sword_momentum_full_flash_strength() -> float:
+	if SWORD_MOMENTUM_FULL_FLASH_DURATION <= 0.0:
+		return 0.0
+	return clampf(sword_momentum_full_flash_timer / SWORD_MOMENTUM_FULL_FLASH_DURATION, 0.0, 1.0)
+
+
+func _update_sword_momentum_state(delta: float) -> void:
+	sword_momentum_full_flash_timer = maxf(sword_momentum_full_flash_timer - delta, 0.0)
+	if player.is_empty():
+		sword_momentum_heat_display = move_toward(sword_momentum_heat_display, 0.0, delta * SWORD_MOMENTUM_HEAT_FADE_SPEED)
+		sword_momentum_was_full = false
+		return
+	var ratio: float = _get_sword_momentum_ratio()
+	var is_full: bool = ratio >= 1.0 - SWORD_MOMENTUM_FULL_EPSILON
+	if is_full and not sword_momentum_was_full:
+		sword_momentum_full_flash_timer = SWORD_MOMENTUM_FULL_FLASH_DURATION
+		_show_status_message("剑意充盈", COLORS["energy"].lerp(Color("ff7a3d"), 0.28), 0.62)
+		_show_focus_status_message("剑意充盈", COLORS["energy"].lerp(Color.WHITE, 0.12), 0.54)
+		_emit_sword_momentum_full_effect()
+	sword_momentum_was_full = is_full
+	var heat_target: float = clampf(inverse_lerp(SWORD_MOMENTUM_HEAT_START_RATIO, 1.0, ratio), 0.0, 1.0)
+	sword_momentum_heat_display = move_toward(
+		sword_momentum_heat_display,
+		heat_target,
+		delta * SWORD_MOMENTUM_HEAT_FADE_SPEED
+	)
+
+
+func _emit_sword_momentum_full_effect() -> void:
+	var player_pos: Vector2 = Vector2(player.get("pos", ARENA_SIZE * 0.5))
+	_create_particles(player_pos, COLORS["energy"].lerp(Color.WHITE, 0.12), 16)
+	_emit_sword_return_catch(player_pos, mouse_world - player_pos)
+	var ready_effect_count: int = 0
+	for array_sword in array_swords:
+		if String(array_sword.get("state", "")) != "ready":
+			continue
+		if ready_effect_count < 12:
+			_create_particles(Vector2(array_sword.get("pos", player_pos)), COLORS["array_sword_return"], 2)
+			ready_effect_count += 1
+	screen_shake = max(screen_shake, 3.2)
+
+
 func _get_current_operation_guide_text() -> String:
+	if is_start_menu_active:
+		return START_MENU_DEMO_TEXT
 	return START_MENU_OPERATION_TEXT if _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL else START_MENU_OPERATION_TEXT_DISTANCE
 
 
 func _get_progression_hint_text() -> String:
 	if _is_large_arena_test_enabled():
 		return "%s | WASD 移动 | 左键/右键 御剑 | 长按左键 剑阵环/扇/贯 | F7 战斗调试" % _get_large_arena_goal_text()
+	if _is_demo_level_mode():
+		var demo_hint := "WASD 移动 | 左键 挥剑/弹反 | 右键 御剑"
+		if _is_demo_level_active():
+			var objective: String = demo_level_controller.get_objective_text()
+			if objective != "":
+				demo_hint += " | %s" % objective
+		demo_hint += " | F7 战斗调试"
+		return demo_hint
+	if _is_flight_anchored_prototype_mode():
+		return "WASD 调整航线/控速 | 松开左右回中 | 鼠标控距 | 左键 挥剑/长按剑阵 | 右键 御剑 | F7 航道调试"
+	if _is_flight_prototype_mode():
+		return "WASD 自由飞行/控速 | 鼠标控距 | 左键 挥剑/长按剑阵 | 右键 御剑 | F7 边界调试"
 	var hint_parts: Array[String] = [
 		"WASD 移动",
 		"左键 挥剑",
@@ -4576,7 +5569,7 @@ func _update_array_control_scheme_ui() -> void:
 		start_menu_guide_label.text = _get_current_operation_guide_text()
 	if operation_scheme_button != null:
 		operation_scheme_button.text = "操作：%s" % scheme_name
-		operation_scheme_button.visible = not lookdev_mode and not is_start_menu_active and not debug_calibration_mode
+		operation_scheme_button.visible = not lookdev_mode and not is_start_menu_active and not debug_calibration_mode and not _should_hide_sword_array_ui()
 		var viewport_size: Vector2 = get_viewport_rect().size
 		operation_scheme_button.position = Vector2(viewport_size.x - 208.0, 92.0)
 		operation_scheme_button.size = Vector2(196.0, 34.0)
@@ -4627,7 +5620,7 @@ func _toggle_array_control_scheme() -> void:
 
 
 func _uses_manual_array_mode_toggle() -> bool:
-	return _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL and not debug_calibration_mode
+	return _get_array_control_scheme() == ARRAY_CONTROL_SCHEME_MANUAL and not debug_calibration_mode and not _should_hide_sword_array_ui()
 
 
 func _normalize_array_selected_mode(mode: String) -> String:
@@ -4718,6 +5711,7 @@ func _toggle_selected_array_mode() -> void:
 	_refresh_sword_array_live_state()
 	if current_mode == SwordArrayConfig.MODE_PIERCE and next_mode == SwordArrayConfig.MODE_RING:
 		_trigger_ring_switch_strike(current_mode, ready_source_snapshot)
+	_trigger_rider_array_mode_change(current_mode, next_mode, mouse_world - player["pos"])
 	_trigger_array_mode_confirm(next_mode)
 	_show_focus_status_message(
 		_get_array_mode_display_name(next_mode),
@@ -4781,6 +5775,8 @@ func _get_sword_array_formation_ratio() -> float:
 
 
 func _should_draw_sword_array_preview() -> bool:
+	if _should_hide_sword_array_ui():
+		return false
 	return left_mouse_held and not bool(player.get("array_is_firing", false)) and float(player.get("array_hold_ratio", 0.0)) > 0.08
 
 
@@ -4838,6 +5834,9 @@ func _refresh_sword_array_live_state() -> void:
 	player["array_morph_state"] = visual_state
 	player["array_fire_morph_state"] = fire_state
 	player["array_mode"] = fire_state["dominant_mode"]
+	var new_mode: String = str(fire_state.get("dominant_mode", SwordArrayConfig.MODE_RING))
+	if not _uses_manual_array_mode_toggle() and previous_mode != new_mode:
+		_trigger_rider_array_mode_change(previous_mode, new_mode, mouse_world - player["pos"])
 
 
 func _begin_sword_array_firing() -> void:
@@ -5221,6 +6220,7 @@ func _update_sword(delta: float) -> void:
 				_start_slicing()
 				sword["prev_pos"] = sword["pos"]
 				return
+			_trigger_rider_sword_control_exit(recall_direction)
 			return
 
 	if sword["vel"].length_squared() > 1.0:
@@ -5496,6 +6496,8 @@ func _begin_enemy_death(enemy: Dictionary) -> void:
 		return
 	if bool(enemy.get("is_debug_static", false)) and debug_calibration_mode:
 		return
+	if _is_demo_level_active():
+		demo_level_controller.on_enemy_death(self, enemy)
 	enemy["is_dying"] = true
 	enemy["death_feedback_timer"] = ENEMY_DEATH_FEEDBACK_DURATION
 	enemy["death_feedback_color"] = Color.WHITE
@@ -5508,7 +6510,7 @@ func _begin_enemy_death(enemy: Dictionary) -> void:
 	_clear_target_runtime_state(str(enemy.get("id", "")))
 	_clear_target_hurtboxes(str(enemy.get("id", "")))
 	if enemy["type"] != PUPPET:
-		score += enemy["score"]
+		_spawn_score_loot_for_enemy(enemy)
 		_add_player_energy(ENERGY_GAIN_MELEE_HIT * 2.0)
 
 
@@ -6064,6 +7066,11 @@ func _update_enemies(delta: float, feedback_delta := -1.0) -> void:
 				_begin_enemy_death(enemy)
 			index -= 1
 			continue
+		if _is_flight_prototype_mode() and _update_flight_enemy(enemy, delta):
+			if enemy["health"] <= 0.0:
+				_begin_enemy_death(enemy)
+			index -= 1
+			continue
 		var to_player: Vector2 = player["pos"] - enemy["pos"]
 		var distance: float = max(to_player.length(), 0.001)
 		var enemy_move_speed_scale := _get_enemy_move_speed_scale(enemy)
@@ -6576,6 +7583,8 @@ func _update_particles(delta: float) -> void:
 
 
 func _update_wave(delta: float) -> void:
+	if _is_demo_level_mode():
+		return
 	if debug_calibration_mode:
 		return
 	if _has_boss() and boss["health"] <= 0.0:
@@ -7233,6 +8242,7 @@ func _start_melee_swing_visual(attack_direction: Vector2, stage_data: Dictionary
 	player["melee_flash_inner_color"] = stage_data.get("inner_color", COLORS["melee_sword"].lerp(Color.WHITE, 0.42))
 	sword["afterimage_burst_timer"] = maxf(float(sword.get("afterimage_burst_timer", 0.0)), SWORD_AFTERIMAGE_BURST_DURATION)
 	sword["afterimage_emit_timer"] = 0.0
+	_trigger_rider_action("parry", swing_direction, RIDER_MELEE_BODY_DURATION, 1.15)
 
 
 func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> void:
@@ -7253,6 +8263,8 @@ func _deflect_enemy_bullet(bullet: Dictionary, attack_direction: Vector2) -> voi
 	bullet["attack_profile_id"] = str(attack_instance.get("profile_id", AttackProfiles.PROFILE_DEFLECTED_BULLET))
 	bullet["channel_scalar"] = float(bullet.get("damage", BULLET_DAMAGE)) / maxf(BULLET_DAMAGE, 0.001)
 	bullet["vel"] = blended_direction.normalized() * maxf(bullet["vel"].length(), BULLET_SPEED) * DEFLECT_BULLET_SPEED_MULTIPLIER
+	if _is_demo_level_active():
+		demo_level_controller.on_deflect(self)
 	_create_particles(bullet["pos"], COLORS["melee_sword"], 4)
 
 
@@ -7260,6 +8272,7 @@ func _start_point_strike() -> void:
 	var unsheath_direction: Vector2 = mouse_world - player["pos"]
 	var release_anchor: Vector2 = _get_unsheath_flash_release_anchor(unsheath_direction, SwordState.POINT_STRIKE)
 	var combo_id: String = SwordResonanceController.consume_time_stop_combo(player)
+	_trigger_rider_sword_control_enter(unsheath_direction)
 	_trigger_unsheath_flash(
 		unsheath_direction,
 		release_anchor
@@ -7280,6 +8293,7 @@ func _start_slicing() -> void:
 	var unsheath_direction: Vector2 = mouse_world - player["pos"]
 	var release_anchor: Vector2 = _get_unsheath_flash_release_anchor(unsheath_direction, SwordState.SLICING)
 	var combo_id: String = SwordResonanceController.consume_time_stop_combo(player)
+	_trigger_rider_sword_control_enter(unsheath_direction)
 	_trigger_unsheath_flash(
 		unsheath_direction,
 		release_anchor
@@ -7305,6 +8319,7 @@ func _start_slicing() -> void:
 
 
 func _commit_quick_release_point_strike() -> void:
+	_trigger_rider_sword_control_enter(mouse_world - player["pos"])
 	_set_sword_attack_profile(AttackProfiles.PROFILE_FLYING_SWORD_POINT)
 	sword["state"] = SwordState.POINT_STRIKE
 	sword["target_pos"] = mouse_world
@@ -7340,7 +8355,10 @@ func _get_unsheath_flash_release_anchor(flash_direction: Vector2, next_sword_sta
 		flash_direction = Vector2.RIGHT
 	else:
 		flash_direction = flash_direction.normalized()
-	var target_distance: float = player["pos"].distance_to(mouse_world)
+	var release_origin: Vector2 = player["pos"]
+	if _is_flight_prototype_mode():
+		release_origin = Vector2(_get_flight_held_sword_pose().get("center", player["pos"]))
+	var target_distance: float = release_origin.distance_to(mouse_world)
 	var desired_distance: float = SWORD_ORBIT_DISTANCE + UNSHEATH_FLASH_SWORD_FORWARD_OFFSET
 	match next_sword_state:
 		SwordState.POINT_STRIKE:
@@ -7352,7 +8370,7 @@ func _get_unsheath_flash_release_anchor(flash_direction: Vector2, next_sword_sta
 				UNSHEATH_FLASH_SLICE_RELEASE_RATIO
 			)
 	var clamped_distance: float = _get_unsheath_flash_release_distance(target_distance, desired_distance)
-	return player["pos"] + flash_direction * (clamped_distance + UNSHEATH_FLASH_SWORD_FORWARD_OFFSET)
+	return release_origin + flash_direction * (clamped_distance + UNSHEATH_FLASH_SWORD_FORWARD_OFFSET)
 
 
 func _get_unsheath_flash_release_distance(target_distance: float, desired_distance: float) -> float:
@@ -7365,6 +8383,8 @@ func _get_unsheath_flash_release_distance(target_distance: float, desired_distan
 
 
 func _get_unsheath_press_flash_anchor(flash_direction: Vector2, anchor_lerp: float) -> Vector2:
+	if _is_flight_prototype_mode():
+		return Vector2(_get_flight_held_sword_pose().get("hilt", player["pos"])) - flash_direction * UNSHEATH_FLASH_ROOT_BACK_OFFSET
 	var contact_anchor: Vector2 = player["pos"].lerp(sword["pos"], anchor_lerp)
 	return contact_anchor - flash_direction * UNSHEATH_FLASH_ROOT_BACK_OFFSET
 
@@ -7852,6 +8872,7 @@ func _fire_array_swords() -> bool:
 	var batch_id: String = _next_id("array_batch") if mode == SwordArrayConfig.MODE_FAN else ""
 	var fire_override_target_pos: Variant = _get_array_fire_override_target_pos_for_mode(mode)
 	var fire_override_target_kind: String = _get_array_fire_override_target_kind_for_mode(mode)
+	_trigger_rider_array_release(mode, mouse_world - player["pos"])
 	var burst_step: int = 0
 	var fired_count: int = 0
 	while fired_count < fire_count:
@@ -8180,6 +9201,242 @@ func _create_particles(position: Vector2, color: Color, count: int) -> void:
 		particle_index += 1
 
 
+func _spawn_score_loot_for_enemy(enemy: Dictionary) -> void:
+	var value: int = int(enemy.get("score", 0))
+	if value <= 0:
+		return
+	var drop_pos: Vector2 = Vector2(enemy.get("pos", player["pos"])) + Vector2(enemy.get("hit_reaction_offset", Vector2.ZERO))
+	drop_pos = drop_pos.clamp(Vector2(SCORE_LOOT_RADIUS, SCORE_LOOT_RADIUS), ARENA_SIZE - Vector2(SCORE_LOOT_RADIUS, SCORE_LOOT_RADIUS))
+	score_loot_pickups.append({
+		"id": _next_id("score_loot"),
+		"pos": drop_pos,
+		"value": value,
+		"life": SCORE_LOOT_LIFE_DURATION,
+		"max_life": SCORE_LOOT_LIFE_DURATION,
+		"radius": SCORE_LOOT_RADIUS,
+		"pulse": randf() * TAU,
+		"pickup_delay": SCORE_LOOT_PICKUP_ARM_DELAY,
+		"source_enemy_type": str(enemy.get("type", "")),
+	})
+
+
+func _update_score_loot_pickups(delta: float) -> void:
+	var index: int = score_loot_pickups.size() - 1
+	while index >= 0:
+		var pickup: Dictionary = score_loot_pickups[index]
+		pickup["pulse"] = float(pickup.get("pulse", 0.0)) + delta
+		pickup["pickup_delay"] = maxf(float(pickup.get("pickup_delay", 0.0)) - delta, 0.0)
+		pickup["life"] = maxf(float(pickup.get("life", 0.0)) - delta, 0.0)
+		var pickup_pos: Vector2 = Vector2(pickup.get("pos", Vector2.ZERO))
+		var can_pick_up: bool = float(pickup.get("pickup_delay", 0.0)) <= 0.0
+		can_pick_up = can_pick_up and pickup_pos.distance_to(Vector2(player.get("pos", Vector2.ZERO))) <= SCORE_LOOT_PICKUP_DISTANCE
+		if can_pick_up:
+			_collect_score_loot_pickup(pickup)
+			score_loot_pickups.remove_at(index)
+		elif float(pickup.get("life", 0.0)) <= 0.0:
+			score_loot_pickups.remove_at(index)
+		else:
+			score_loot_pickups[index] = pickup
+		index -= 1
+
+
+func _collect_score_loot_pickup(pickup: Dictionary) -> void:
+	var value: int = int(pickup.get("value", 0))
+	if value <= 0:
+		return
+	var pickup_pos: Vector2 = Vector2(pickup.get("pos", player["pos"]))
+	score += value
+	var loot_color: Color = COLORS["energy"].lerp(Color.WHITE, 0.16)
+	_create_particles(pickup_pos, loot_color, 12)
+	score_feedback_timer = maxf(score_feedback_timer, SCORE_LOOT_FEEDBACK_DURATION)
+	score_feedback_color = loot_color
+
+
+func _update_flight_prototype(delta: float) -> void:
+	if flight_stage_complete:
+		_add_player_energy(FLIGHT_PASSIVE_ENERGY_REGEN * delta, false)
+		return
+	flight_stage_timer += delta
+	_add_player_energy(FLIGHT_PASSIVE_ENERGY_REGEN * delta, false)
+	_update_flight_scripted_events()
+	if flight_stage_timer >= FLIGHT_STAGE_DURATION:
+		flight_stage_complete = true
+		flight_segment_label = "航道测试完成"
+		_show_status_message("航道测试完成", COLORS["energy"], 1.6)
+		_show_focus_status_message("测试完成", COLORS["energy"].lerp(Color.WHITE, 0.18), 0.8)
+
+
+func _get_flight_scripted_events() -> Array:
+	return [
+		{"time": 1.0, "kind": "intro_shooters", "label": "起飞校准"},
+		{"time": 9.0, "kind": "fan_wall", "label": "扇阵清面"},
+		{"time": 19.0, "kind": "ring_pressure", "label": "环阵护身"},
+		{"time": 30.0, "kind": "pierce_eye", "label": "贯穿破线"},
+		{"time": 42.0, "kind": "vertical_clamp", "label": "上下夹击"},
+		{"time": 55.0, "kind": "rear_chase", "label": "后侧追袭"},
+		{"time": 68.0, "kind": "mixed_wave", "label": "综合敌阵"},
+		{"time": 81.0, "kind": "final_eye", "label": "小型阵眼"},
+	]
+
+
+func _update_flight_scripted_events() -> void:
+	var events: Array = _get_flight_scripted_events()
+	while flight_script_index < events.size():
+		var event: Dictionary = events[flight_script_index]
+		if flight_stage_timer < float(event.get("time", 0.0)):
+			return
+		flight_segment_index = flight_script_index + 1
+		flight_segment_label = str(event.get("label", "航道段落"))
+		_spawn_flight_event(str(event.get("kind", "")))
+		_show_status_message(flight_segment_label, COLORS["ranged_sword"], 1.0)
+		flight_script_index += 1
+
+
+func _spawn_flight_event(kind: String) -> void:
+	if _has_debug_flag("no_spawn"):
+		return
+	match kind:
+		"intro_shooters":
+			_spawn_flight_enemy(SHOOTER, Vector2(820.0, 240.0), "drift_shooter")
+			_spawn_flight_enemy(SHOOTER, Vector2(875.0, 420.0), "drift_shooter")
+		"fan_wall":
+			for lane_index in range(5):
+				var y: float = 150.0 + float(lane_index) * 84.0
+				_spawn_flight_enemy(SHOOTER, Vector2(830.0 + float(lane_index % 2) * 54.0, y), "fan_cluster")
+		"ring_pressure":
+			_spawn_flight_enemy(RING_LEECH, Vector2(340.0, 38.0), "ring_pursuer")
+			_spawn_flight_enemy(RING_LEECH, Vector2(420.0, 586.0), "ring_pursuer")
+			_spawn_flight_enemy(TANK, Vector2(850.0, 322.0), "drift_shooter")
+		"pierce_eye":
+			_spawn_flight_enemy(MIRROR_NEEDLER, Vector2(870.0, 318.0), "array_eye")
+			_spawn_flight_enemy(SHOOTER, Vector2(805.0, 224.0), "drift_shooter")
+			_spawn_flight_enemy(SHOOTER, Vector2(805.0, 414.0), "drift_shooter")
+		"vertical_clamp":
+			_spawn_flight_enemy(CASTER, Vector2(845.0, 118.0), "caster_lane")
+			_spawn_flight_enemy(CASTER, Vector2(890.0, 514.0), "caster_lane")
+			_spawn_flight_enemy(HEAVY, Vector2(910.0, 318.0), "heavy_gate")
+		"rear_chase":
+			_spawn_flight_enemy(RING_LEECH, Vector2(74.0, 172.0), "ring_pursuer")
+			_spawn_flight_enemy(RING_LEECH, Vector2(54.0, 454.0), "ring_pursuer")
+			_spawn_flight_enemy(SHOOTER, Vector2(865.0, 318.0), "fan_cluster")
+		"mixed_wave":
+			_spawn_flight_enemy(DRAPE_PRIEST, Vector2(850.0, 190.0), "drift_shooter")
+			_spawn_flight_enemy(SHOOTER, Vector2(885.0, 288.0), "fan_cluster")
+			_spawn_flight_enemy(SHOOTER, Vector2(885.0, 382.0), "fan_cluster")
+			_spawn_flight_enemy(HEAVY, Vector2(930.0, 470.0), "heavy_gate")
+		"final_eye":
+			_spawn_flight_enemy(MIRROR_NEEDLER, Vector2(900.0, 318.0), "array_eye")
+			for lane_index in range(4):
+				var side_y: float = 162.0 + float(lane_index) * 104.0
+				_spawn_flight_enemy(SHOOTER, Vector2(830.0 + float(lane_index) * 42.0, side_y), "fan_cluster")
+
+
+func _spawn_flight_enemy(enemy_type: String, spawn_pos: Vector2, behavior: String) -> Dictionary:
+	var enemy: Dictionary = _spawn_enemy(enemy_type, spawn_pos.clamp(Vector2.ZERO, ARENA_SIZE))
+	enemy["pos"] = spawn_pos
+	enemy["package_desired_pos"] = spawn_pos
+	enemy["package_center"] = spawn_pos
+	enemy["flight_behavior"] = behavior
+	enemy["flight_spawn_time"] = flight_stage_timer
+	enemy["flight_base_y"] = spawn_pos.y
+	enemy["flight_phase"] = randf() * TAU
+	enemy["shoot_cooldown"] = randf_range(0.45, 1.1)
+	if behavior == "array_eye":
+		enemy["health"] = maxf(float(enemy.get("health", 0.0)), 72.0)
+		enemy["max_health"] = enemy["health"]
+		enemy["mirror_vulnerable_timer"] = 999.0
+		enemy["charge_timer"] = 0.0
+	elif behavior == "heavy_gate":
+		enemy["shoot_cooldown"] = randf_range(0.7, 1.2)
+	return enemy
+
+
+func _update_flight_enemy(enemy: Dictionary, delta: float) -> bool:
+	var behavior: String = str(enemy.get("flight_behavior", ""))
+	if behavior == "":
+		return false
+	var life: float = maxf(flight_stage_timer - float(enemy.get("flight_spawn_time", flight_stage_timer)), 0.0)
+	var phase: float = float(enemy.get("flight_phase", 0.0))
+	match behavior:
+		"ring_pursuer":
+			var to_player: Vector2 = player["pos"] - enemy["pos"]
+			if not to_player.is_zero_approx():
+				enemy["pos"] += to_player.normalized() * RING_LEECH_SPEED * 0.92 * delta
+			if to_player.length() < PLAYER_RADIUS + float(enemy.get("radius", RING_LEECH_RADIUS)) + 10.0:
+				if _apply_player_damage(18.0 * delta, RING_LEECH):
+					screen_shake = max(screen_shake, 2.0)
+		"array_eye":
+			var eye_pos: Vector2 = Vector2(enemy["pos"])
+			eye_pos.x += flight_scroll_speed * 0.58 * delta
+			eye_pos.y = lerpf(eye_pos.y, ARENA_SIZE.y * 0.5 + sin(life * 1.4 + phase) * 28.0, minf(delta * 1.7, 1.0))
+			enemy["pos"] = eye_pos
+			enemy["charge_timer"] = maxf(float(enemy.get("charge_timer", 0.0)) - delta, 0.0)
+			if _tick_flight_enemy_cooldown(enemy, delta, 1.35):
+				enemy["charge_timer"] = MIRROR_NEEDLER_CHARGE_DURATION
+				_spawn_flight_aimed_bullet(enemy, MIRROR_NEEDLER_BULLET_SPEED * 1.08, "large", COLORS["bullet"], {
+					"family": BULLET_FAMILY_CORE,
+					"radius": MIRROR_NEEDLER_BULLET_RADIUS,
+					"damage": MIRROR_NEEDLER_BULLET_DAMAGE,
+					"source_enemy_type": MIRROR_NEEDLER,
+				})
+		"caster_lane":
+			var caster_pos: Vector2 = Vector2(enemy["pos"])
+			caster_pos.y = lerpf(caster_pos.y, float(enemy.get("flight_base_y", caster_pos.y)) + sin(life * 1.8 + phase) * 34.0, minf(delta * 1.5, 1.0))
+			enemy["pos"] = caster_pos
+			if _tick_flight_enemy_cooldown(enemy, delta, 2.1):
+				for spoke in range(6):
+					var angle: float = PI + (TAU / 6.0) * float(spoke) + 0.22
+					_spawn_bullet(enemy["pos"], Vector2.RIGHT.rotated(angle) * BULLET_SPEED * 0.72, "small", enemy["id"], COLORS["bullet"], {
+						"family": BULLET_FAMILY_WEAVE,
+						"source_enemy_type": CASTER,
+					})
+		"heavy_gate":
+			var heavy_pos: Vector2 = Vector2(enemy["pos"])
+			heavy_pos.x += flight_scroll_speed * 0.36 * delta
+			heavy_pos.y = lerpf(heavy_pos.y, float(enemy.get("flight_base_y", heavy_pos.y)) + sin(life * 1.1 + phase) * 18.0, minf(delta, 1.0))
+			enemy["pos"] = heavy_pos
+			if _tick_flight_enemy_cooldown(enemy, delta, 1.65):
+				_spawn_flight_aimed_bullet(enemy, BULLET_LARGE_SPEED * 1.2, "large", COLORS["bullet"], {
+					"family": BULLET_FAMILY_CORE,
+					"source_enemy_type": HEAVY,
+				})
+		"fan_cluster":
+			var fan_pos: Vector2 = Vector2(enemy["pos"])
+			fan_pos.y = lerpf(fan_pos.y, float(enemy.get("flight_base_y", fan_pos.y)) + sin(life * 2.0 + phase) * 22.0, minf(delta * 2.0, 1.0))
+			enemy["pos"] = fan_pos
+			if _tick_flight_enemy_cooldown(enemy, delta, 1.8):
+				_spawn_flight_aimed_bullet(enemy, BULLET_SPEED * 0.85, "small", COLORS["bullet"], {
+					"family": BULLET_FAMILY_NEEDLE,
+					"source_enemy_type": SHOOTER,
+				})
+		_:
+			var drift_pos: Vector2 = Vector2(enemy["pos"])
+			drift_pos.y = lerpf(drift_pos.y, float(enemy.get("flight_base_y", drift_pos.y)) + sin(life * 1.6 + phase) * 18.0, minf(delta * 1.6, 1.0))
+			enemy["pos"] = drift_pos
+			if _tick_flight_enemy_cooldown(enemy, delta, 2.0):
+				_spawn_flight_aimed_bullet(enemy, BULLET_SPEED * 0.8, "small", COLORS["bullet"], {
+					"family": BULLET_FAMILY_NEEDLE,
+					"source_enemy_type": str(enemy.get("type", SHOOTER)),
+				})
+	return true
+
+
+func _tick_flight_enemy_cooldown(enemy: Dictionary, delta: float, reset_time: float) -> bool:
+	enemy["shoot_cooldown"] = float(enemy.get("shoot_cooldown", reset_time)) - delta
+	if float(enemy.get("shoot_cooldown", 0.0)) > 0.0:
+		return false
+	enemy["shoot_cooldown"] = reset_time
+	return true
+
+
+func _spawn_flight_aimed_bullet(enemy: Dictionary, speed: float, bullet_type: String, color: Color, extra := {}) -> void:
+	var to_player: Vector2 = player["pos"] - enemy["pos"]
+	var direction: Vector2 = to_player.normalized()
+	if direction.is_zero_approx():
+		direction = Vector2.LEFT
+	_spawn_bullet(enemy["pos"], direction * speed, bullet_type, enemy["id"], color, extra)
+
+
 func _remove_bullet(index: int) -> void:
 	if index < 0 or index >= bullets.size():
 		return
@@ -8238,6 +9495,8 @@ func _get_large_arena_state_label(objective_key: String) -> String:
 func _update_ui() -> void:
 	_update_array_control_scheme_ui()
 	if lookdev_mode:
+		health_label.visible = true
+		energy_label.visible = true
 		health_label.text = "预览场景"
 		energy_label.text = "真实 Main 状态机"
 		wave_label.text = "模式 %s" % [_get_lookdev_mode_label()]
@@ -8255,6 +9514,8 @@ func _update_ui() -> void:
 		hint_label.text = "1 点刺 | 2 连斩 | 3 回收 | Space 暂停/继续 | R 重播"
 		game_over_label.visible = false
 		return
+	health_label.visible = true
+	energy_label.visible = not _should_hide_sword_array_ui()
 	health_label.text = "生命 %.0f / %.0f" % [player["health"], PLAYER_MAX_HEALTH]
 	energy_label.text = "剑意 %.0f / %.0f" % [
 		player["energy"],
@@ -8296,6 +9557,42 @@ func _update_ui() -> void:
 			_format_distance_delta(distances["fan_stable_end"] - default_distances["fan_stable_end"]),
 			_format_distance_delta(distances["fan_to_pierce_end"] - default_distances["fan_to_pierce_end"])
 		]
+	elif _is_demo_level_mode():
+		var demo_stats: Dictionary = demo_victory_result if demo_victory_visible else demo_level_controller.stats
+		wave_label.text = demo_level_controller.get_objective_text() if _is_demo_level_active() or demo_victory_visible else "破庙夜袭"
+		score_label.text = "受伤 %.0f | 弹反 %d | 御剑击杀 %d | 切丝 %d | 恢复 %d" % [
+			float(demo_stats.get("damage_taken", 0.0)),
+			int(demo_stats.get("deflects", 0)),
+			int(demo_stats.get("flying_sword_kills", 0)),
+			int(demo_stats.get("silks_cut", 0)),
+			int(demo_stats.get("pickups", 0))
+		]
+	elif _is_flight_prototype_mode():
+		var event_count: int = _get_flight_scripted_events().size()
+		var array_mode_name: String = _get_array_mode_display_name(String(_get_sword_array_fire_state().get("dominant_mode", SwordArrayConfig.MODE_RING)))
+		var complete_text: String = " | 完成" if flight_stage_complete else ""
+		var flight_mode_name: String = "风压回中" if _is_flight_anchored_prototype_mode() else "自由"
+		var flight_body_speed: float = Vector2(player.get("vel", Vector2.ZERO)).length()
+		var afterburner_text: String = " | 后燃" if _is_flight_afterburner_pressed() else ""
+		var roll_text: String = " | 翻滚" if flight_roll_timer > 0.0 else ""
+		wave_label.text = "御剑航行 %s | 段落 %d / %d %s%s" % [
+			flight_mode_name,
+			flight_segment_index,
+			event_count,
+			flight_segment_label,
+			complete_text
+		]
+		score_label.text = "航速 %.0f | 机速 %.0f%s%s | 航程 %.1f | %s | 飞剑 %d / %d%s" % [
+			flight_scroll_speed,
+			flight_body_speed,
+			afterburner_text,
+			roll_text,
+			flight_scroll_distance / 100.0,
+			array_mode_name,
+			_get_ready_array_sword_count(),
+			_get_current_array_sword_capacity(),
+			_get_debug_status_suffix()
+		]
 	else:
 		if _is_large_arena_test_enabled():
 			wave_label.text = _get_large_arena_progress_text()
@@ -8317,11 +9614,16 @@ func _update_ui() -> void:
 			]
 			if debug_battle_mode:
 				score_label.text = "%s\n%s" % [score_label.text, _format_sword_spirit_intent_debug()]
-	var sword_mode_text: String = "近战" if sword["state"] == SwordState.ORBITING else "御剑"
+	var sword_mode_text: String = "剑阵" if bool(player.get("array_is_firing", false)) else ("近战" if sword["state"] == SwordState.ORBITING else "御剑")
 	var bullet_time_text: String = " | 子弹时间" if sword["state"] != SwordState.ORBITING else ""
 	var debug_mode_text: String = " | DEBUG" if debug_battle_mode else ""
 	mode_label.text = "%s%s%s" % [sword_mode_text, bullet_time_text, debug_mode_text]
 	energy_label.modulate = Color.WHITE
+	var momentum_heat: float = _get_sword_momentum_heat_strength()
+	if momentum_heat > 0.01:
+		var heat_pulse: float = 0.42 + 0.58 * absf(sin(elapsed_time * 10.0))
+		var heat_color: Color = COLORS["energy"].lerp(Color("ff6a2a"), 0.44 + 0.28 * heat_pulse)
+		energy_label.modulate = energy_label.modulate.lerp(heat_color, 0.18 + 0.62 * momentum_heat)
 	if array_energy_warning_display > 0.0:
 		var warning_color: Color = COLORS["energy"].lerp(
 			COLORS["health"],
@@ -8344,6 +9646,12 @@ func _update_ui() -> void:
 		score_label.modulate = score_label.modulate.lerp(
 			array_feedback_color,
 			(0.45 + 0.35 * absf(sin(elapsed_time * 22.0))) * array_feedback_strength
+		)
+	if score_feedback_timer > 0.0:
+		var score_feedback_strength: float = clampf(score_feedback_timer / SCORE_LOOT_FEEDBACK_DURATION, 0.0, 1.0)
+		score_label.modulate = score_label.modulate.lerp(
+			score_feedback_color,
+			(0.5 + 0.34 * absf(sin(elapsed_time * 18.0))) * score_feedback_strength
 		)
 	status_label.text = status_message
 	status_label.modulate = status_message_color
@@ -8372,7 +9680,12 @@ func _update_ui() -> void:
 		hint_label.text = "战斗调试 | 1 无限生命 | 2 无限剑意 | 3 一击击杀 | 4 停刷怪 | 5 清敌弹 | %s | F7 退出 | F6 校准" % _get_sword_hover_preset_shortcut_hint()
 	else:
 		hint_label.text = _get_progression_hint_text()
-	game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
+	if _is_demo_level_mode():
+		game_over_label.text = "夜色吞身\n破庙夜袭未竟\n左键重新开始"
+	elif _is_flight_prototype_mode():
+		game_over_label.text = "坠出航道\n御剑航行测试中断\n左键重新开始"
+	else:
+		game_over_label.text = "力竭身亡\n最终得分 %d  波次 %d\n左键重新开始" % [score, wave]
 
 
 func _get_lookdev_mode_label() -> String:
@@ -8595,6 +9908,9 @@ func _get_sword_array_target(fire_index: int, bullet_pos: Vector2, volley_count 
 
 
 func _update_boss(delta: float, bullet_time_delta: float) -> void:
+	if _is_demo_level_active():
+		demo_level_controller.update_boss(self, delta, bullet_time_delta)
+		return
 	GameBossController.update_boss(self , delta, bullet_time_delta)
 
 
@@ -9840,6 +11156,8 @@ func _apply_attack_instance_hit_to_target(
 	if not bool(result.get("allowed", false)):
 		return result
 	result["apply_result"] = _apply_hit_result_to_target(target_id, target_profile_id, hit_result, damage_source)
+	if _is_demo_level_active():
+		demo_level_controller.on_attack_result(self, damage_source, result["apply_result"])
 	_apply_target_hit_feedback(
 		target_id,
 		target_profile_id,
@@ -10059,10 +11377,14 @@ func _apply_debug_runtime_overrides() -> void:
 func _apply_player_damage(amount: float, _damage_source: String = DAMAGE_SOURCE_NONE) -> bool:
 	if amount <= 0.0:
 		return false
+	if _is_flight_prototype_mode() and flight_roll_timer > 0.0:
+		return false
 	if _has_debug_flag("infinite_health"):
 		player["health"] = PLAYER_MAX_HEALTH
 		return false
 	player["health"] = max(player["health"] - amount, 0.0)
+	if _is_demo_level_active():
+		demo_level_controller.on_player_damage(self, amount)
 	return true
 
 
@@ -10167,6 +11489,7 @@ func _enter_debug_calibration_mode() -> void:
 	enemies.clear()
 	enemy_packages.clear()
 	particles.clear()
+	score_loot_pickups.clear()
 	sword_afterimages.clear()
 	sword_trail_points.clear()
 	sword_air_wakes.clear()

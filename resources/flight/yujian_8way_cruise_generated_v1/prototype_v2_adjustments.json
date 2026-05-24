@@ -1,0 +1,38 @@
+{
+  "target_head_width": 86.0,
+  "global_scale": 1.0,
+  "directions": {
+    "01_right": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "02_up_right": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "03_up": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "04_up_left": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "05_left": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "06_down_left": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "07_down": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    },
+    "08_down_right": {
+      "scale": 1.0,
+      "offset": [0, 0]
+    }
+  }
+}

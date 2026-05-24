@@ -19,6 +19,45 @@ const CELL_SIZE := Vector2(512.0, 512.0)
 const SPRITE_SCALE := 0.47
 const SHEET_FACE_SIGN := 1.0
 const POSE_OFFSET := Vector2(-10.0, -6.0)
+const USE_GEMINI_8WAY_CRUISE := true
+const EIGHT_WAY_SET_V1 := 0
+const EIGHT_WAY_SET_V2 := 1
+const EIGHT_WAY_SET_V3_FACE := 2
+const GEMINI_EIGHT_WAY_SCALE := 0.34
+const GEMINI_POSE_OFFSET := Vector2(0.0, -18.0)
+const GEMINI_EIGHT_WAY_SET_LABELS := [
+	"V1 prototype",
+	"V2 accepted",
+	"V3 face",
+]
+const GEMINI_EIGHT_WAY_BASE_PATHS := [
+	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype",
+	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v2",
+	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face",
+]
+const EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_runtime_adjustments.json"
+const GEMINI_EIGHT_WAY_NAMES := [
+	"01_right",
+	"02_up_right",
+	"03_up",
+	"04_up_left",
+	"05_left",
+	"06_down_left",
+	"07_down",
+	"08_down_right",
+]
+const GEMINI_EIGHT_WAY_VECTORS := [
+	Vector2(1.0, 0.0),
+	Vector2(0.7071, -0.7071),
+	Vector2(0.0, -1.0),
+	Vector2(-0.7071, -0.7071),
+	Vector2(-1.0, 0.0),
+	Vector2(-0.7071, 0.7071),
+	Vector2(0.0, 1.0),
+	Vector2(0.7071, 0.7071),
+]
+
+@export_enum("V1 prototype", "V2 accepted", "V3 face") var eight_way_character_set := EIGHT_WAY_SET_V3_FACE
 
 const CRUISE_SPEED := 390.0
 const BOOST_SPEED := 650.0
@@ -28,6 +67,7 @@ const HOVER_BRAKE := 5200.0
 const SLIP_BRAKE := 4200.0
 const SLIP_DURATION := 0.12
 const HOVER_STOP_SPEED := 16.0
+const INPUT_HEADING_TURN_RATE := 4.8
 const HEADING_TURN_RATE := 5.6
 const HOVER_HEADING_TURN_RATE := 8.4
 const HARD_HEADING_TURN_RATE := 9.0
@@ -163,6 +203,8 @@ var trail_ribbon: Line2D
 var trail_core: Line2D
 
 var texture_cache: Dictionary = {}
+var eight_way_textures: Array = []
+var eight_way_index := 0
 var sheet_texture: Texture2D
 var clip_index := CLIP_CRUISE_IDLE
 var frame_index := 0
@@ -198,6 +240,23 @@ var turn_energy := 0.0
 var time := 0.0
 var background_key_enabled := true
 var auto_demo := false
+var eight_way_adjustments: Dictionary = {}
+var adjustment_selected_direction := 0
+var adjustment_follow_current := true
+var adjustment_updating_controls := false
+
+var adjustment_layer: CanvasLayer
+var adjustment_panel: PanelContainer
+var adjustment_set_option: OptionButton
+var adjustment_direction_option: OptionButton
+var adjustment_follow_checkbox: CheckBox
+var adjustment_global_scale_slider: HSlider
+var adjustment_global_scale_spin: SpinBox
+var adjustment_direction_scale_slider: HSlider
+var adjustment_direction_scale_spin: SpinBox
+var adjustment_offset_x_spin: SpinBox
+var adjustment_offset_y_spin: SpinBox
+var adjustment_status_label: Label
 
 var trail_points: Array = []
 var afterimages: Array = []
@@ -205,6 +264,10 @@ var afterimages: Array = []
 
 func _ready() -> void:
 	_create_nodes()
+	if USE_GEMINI_8WAY_CRUISE:
+		_load_eight_way_adjustments()
+		_load_eight_way_textures()
+		_create_adjustment_panel()
 	_start_clip(CLIP_CRUISE_IDLE, facing_sign)
 	set_process(true)
 	queue_redraw()
@@ -221,6 +284,7 @@ func _process(delta: float) -> void:
 	_advance_clip(step, axis, boosting)
 	_update_camera(step)
 	_update_visual_state(step)
+	_update_adjustment_panel_follow_state()
 	_update_afterimages(step)
 	_update_trail(step)
 	queue_redraw()
@@ -244,6 +308,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_update_key_material()
 			KEY_T:
 				auto_demo = not auto_demo
+			KEY_V:
+				_set_eight_way_character_set((eight_way_character_set + 1) % GEMINI_EIGHT_WAY_BASE_PATHS.size())
+			KEY_F2:
+				_toggle_adjustment_panel()
 			KEY_R:
 				_start_clip(clip_index, render_sign)
 
@@ -283,10 +351,141 @@ void fragment() {
 	character_sprite = Sprite2D.new()
 	character_sprite.name = "SequenceCharacter"
 	character_sprite.centered = true
-	character_sprite.region_enabled = true
+	character_sprite.region_enabled = not USE_GEMINI_8WAY_CRUISE
 	character_sprite.material = _make_key_material()
 	character_sprite.position = POSE_OFFSET
 	sprite_root.add_child(character_sprite)
+
+
+func _create_adjustment_panel() -> void:
+	adjustment_layer = CanvasLayer.new()
+	adjustment_layer.name = "EightWayAdjustmentLayer"
+	adjustment_layer.layer = 80
+	add_child(adjustment_layer)
+
+	adjustment_panel = PanelContainer.new()
+	adjustment_panel.name = "EightWayAdjustmentPanel"
+	adjustment_panel.position = Vector2(930.0, 78.0)
+	adjustment_panel.custom_minimum_size = Vector2(320.0, 0.0)
+	adjustment_layer.add_child(adjustment_panel)
+
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 8)
+	adjustment_panel.add_child(root)
+
+	var title := Label.new()
+	title.text = "八向人物调参  F2"
+	title.add_theme_font_size_override("font_size", 18)
+	root.add_child(title)
+
+	adjustment_set_option = OptionButton.new()
+	for index in range(GEMINI_EIGHT_WAY_SET_LABELS.size()):
+		adjustment_set_option.add_item(String(GEMINI_EIGHT_WAY_SET_LABELS[index]), index)
+	adjustment_set_option.select(clampi(eight_way_character_set, 0, GEMINI_EIGHT_WAY_SET_LABELS.size() - 1))
+	adjustment_set_option.item_selected.connect(Callable(self, "_on_adjustment_set_selected"))
+	root.add_child(_make_adjustment_row("资源集", adjustment_set_option))
+
+	adjustment_direction_option = OptionButton.new()
+	for index in range(GEMINI_EIGHT_WAY_NAMES.size()):
+		adjustment_direction_option.add_item(String(GEMINI_EIGHT_WAY_NAMES[index]), index)
+	adjustment_direction_option.select(adjustment_selected_direction)
+	adjustment_direction_option.item_selected.connect(Callable(self, "_on_adjustment_direction_selected"))
+	root.add_child(_make_adjustment_row("方向", adjustment_direction_option))
+
+	adjustment_follow_checkbox = CheckBox.new()
+	adjustment_follow_checkbox.text = "跟随当前方向"
+	adjustment_follow_checkbox.button_pressed = adjustment_follow_current
+	adjustment_follow_checkbox.toggled.connect(Callable(self, "_on_adjustment_follow_toggled"))
+	root.add_child(adjustment_follow_checkbox)
+
+	adjustment_global_scale_slider = _make_adjustment_slider(0.6, 1.4, 0.005)
+	adjustment_global_scale_spin = _make_adjustment_spin(0.4, 1.8, 0.01)
+	adjustment_global_scale_slider.value_changed.connect(Callable(self, "_on_adjustment_global_scale_changed"))
+	adjustment_global_scale_spin.value_changed.connect(Callable(self, "_on_adjustment_global_scale_changed"))
+	root.add_child(_make_adjustment_slider_row("全局缩放", adjustment_global_scale_slider, adjustment_global_scale_spin))
+
+	adjustment_direction_scale_slider = _make_adjustment_slider(0.6, 1.4, 0.005)
+	adjustment_direction_scale_spin = _make_adjustment_spin(0.4, 1.8, 0.01)
+	adjustment_direction_scale_slider.value_changed.connect(Callable(self, "_on_adjustment_direction_scale_changed"))
+	adjustment_direction_scale_spin.value_changed.connect(Callable(self, "_on_adjustment_direction_scale_changed"))
+	root.add_child(_make_adjustment_slider_row("方向缩放", adjustment_direction_scale_slider, adjustment_direction_scale_spin))
+
+	adjustment_offset_x_spin = _make_adjustment_spin(-256.0, 256.0, 1.0)
+	adjustment_offset_x_spin.value_changed.connect(Callable(self, "_on_adjustment_offset_x_changed"))
+	root.add_child(_make_adjustment_row("X 偏移", adjustment_offset_x_spin))
+
+	adjustment_offset_y_spin = _make_adjustment_spin(-256.0, 256.0, 1.0)
+	adjustment_offset_y_spin.value_changed.connect(Callable(self, "_on_adjustment_offset_y_changed"))
+	root.add_child(_make_adjustment_row("Y 偏移", adjustment_offset_y_spin))
+
+	var button_row := HBoxContainer.new()
+	button_row.add_theme_constant_override("separation", 6)
+	root.add_child(button_row)
+	var reset_direction_button := Button.new()
+	reset_direction_button.text = "重置方向"
+	reset_direction_button.pressed.connect(Callable(self, "_on_adjustment_reset_direction_pressed"))
+	button_row.add_child(reset_direction_button)
+	var reset_set_button := Button.new()
+	reset_set_button.text = "重置资源集"
+	reset_set_button.pressed.connect(Callable(self, "_on_adjustment_reset_set_pressed"))
+	button_row.add_child(reset_set_button)
+	var save_button := Button.new()
+	save_button.text = "保存 JSON"
+	save_button.pressed.connect(Callable(self, "_on_adjustment_save_pressed"))
+	root.add_child(save_button)
+
+	adjustment_status_label = Label.new()
+	adjustment_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	adjustment_status_label.add_theme_font_size_override("font_size", 12)
+	root.add_child(adjustment_status_label)
+
+	_refresh_adjustment_controls()
+
+
+func _make_adjustment_row(label_text: String, control: Control) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(76.0, 0.0)
+	row.add_child(label)
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(control)
+	return row
+
+
+func _make_adjustment_slider_row(label_text: String, slider: HSlider, spin: SpinBox) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(76.0, 0.0)
+	row.add_child(label)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(slider)
+	spin.custom_minimum_size = Vector2(74.0, 0.0)
+	row.add_child(spin)
+	return row
+
+
+func _make_adjustment_slider(min_value: float, max_value: float, step: float) -> HSlider:
+	var slider := HSlider.new()
+	slider.min_value = min_value
+	slider.max_value = max_value
+	slider.step = step
+	slider.allow_greater = true
+	slider.allow_lesser = true
+	return slider
+
+
+func _make_adjustment_spin(min_value: float, max_value: float, step: float) -> SpinBox:
+	var spin := SpinBox.new()
+	spin.min_value = min_value
+	spin.max_value = max_value
+	spin.step = step
+	spin.allow_greater = true
+	spin.allow_lesser = true
+	return spin
 
 
 func _create_trail_line(line_name: String, z: int) -> Line2D:
@@ -331,6 +530,300 @@ func _load_sequence_texture(path: String) -> Texture2D:
 	if texture != null:
 		texture_cache[path] = texture
 	return texture
+
+
+func _load_eight_way_adjustments() -> void:
+	eight_way_adjustments = {"sets": {}}
+	var global_path := ProjectSettings.globalize_path(EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH)
+	if FileAccess.file_exists(global_path):
+		var file := FileAccess.open(global_path, FileAccess.READ)
+		if file != null:
+			var parsed: Variant = JSON.parse_string(file.get_as_text())
+			if typeof(parsed) == TYPE_DICTIONARY:
+				eight_way_adjustments = parsed
+	_ensure_all_eight_way_adjustments()
+
+
+func _save_eight_way_adjustments() -> bool:
+	_ensure_all_eight_way_adjustments()
+	var global_path := ProjectSettings.globalize_path(EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH)
+	var file := FileAccess.open(global_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(eight_way_adjustments, "\t"))
+	return true
+
+
+func _ensure_all_eight_way_adjustments() -> void:
+	if typeof(eight_way_adjustments) != TYPE_DICTIONARY:
+		eight_way_adjustments = {}
+	if not eight_way_adjustments.has("sets") or typeof(eight_way_adjustments["sets"]) != TYPE_DICTIONARY:
+		eight_way_adjustments["sets"] = {}
+	for index in range(GEMINI_EIGHT_WAY_BASE_PATHS.size()):
+		_ensure_eight_way_adjustment_set(index)
+
+
+func _ensure_eight_way_adjustment_set(set_index: int) -> void:
+	var sets: Dictionary = eight_way_adjustments["sets"]
+	var set_key := _get_eight_way_set_key(set_index)
+	if not sets.has(set_key) or typeof(sets[set_key]) != TYPE_DICTIONARY:
+		sets[set_key] = {
+			"global_scale": 1.0,
+			"directions": {},
+		}
+	var set_data: Dictionary = sets[set_key]
+	if not set_data.has("global_scale"):
+		set_data["global_scale"] = 1.0
+	if not set_data.has("directions") or typeof(set_data["directions"]) != TYPE_DICTIONARY:
+		set_data["directions"] = {}
+	var directions: Dictionary = set_data["directions"]
+	for name_variant in GEMINI_EIGHT_WAY_NAMES:
+		var name := String(name_variant)
+		if not directions.has(name) or typeof(directions[name]) != TYPE_DICTIONARY:
+			directions[name] = {
+				"scale": 1.0,
+				"offset": [0.0, 0.0],
+			}
+		var direction_data: Dictionary = directions[name]
+		if not direction_data.has("scale"):
+			direction_data["scale"] = 1.0
+		if not direction_data.has("offset") or typeof(direction_data["offset"]) != TYPE_ARRAY:
+			direction_data["offset"] = [0.0, 0.0]
+
+
+func _get_eight_way_set_key(set_index: int) -> String:
+	var safe_index := clampi(set_index, 0, GEMINI_EIGHT_WAY_BASE_PATHS.size() - 1)
+	return String(GEMINI_EIGHT_WAY_BASE_PATHS[safe_index])
+
+
+func _get_eight_way_set_adjustment(set_index: int) -> Dictionary:
+	if not eight_way_adjustments.has("sets") or typeof(eight_way_adjustments["sets"]) != TYPE_DICTIONARY:
+		_ensure_all_eight_way_adjustments()
+	_ensure_eight_way_adjustment_set(set_index)
+	var sets: Dictionary = eight_way_adjustments["sets"]
+	return sets[_get_eight_way_set_key(set_index)]
+
+
+func _get_eight_way_direction_adjustment(set_index: int, direction_index: int) -> Dictionary:
+	var set_data := _get_eight_way_set_adjustment(set_index)
+	var directions: Dictionary = set_data["directions"]
+	var direction_name := String(GEMINI_EIGHT_WAY_NAMES[clampi(direction_index, 0, GEMINI_EIGHT_WAY_NAMES.size() - 1)])
+	return directions[direction_name]
+
+
+func _get_eight_way_global_scale(set_index: int) -> float:
+	var set_data := _get_eight_way_set_adjustment(set_index)
+	return float(set_data.get("global_scale", 1.0))
+
+
+func _get_eight_way_direction_scale(set_index: int, direction_index: int) -> float:
+	var direction_data := _get_eight_way_direction_adjustment(set_index, direction_index)
+	return float(direction_data.get("scale", 1.0))
+
+
+func _get_eight_way_direction_offset(set_index: int, direction_index: int) -> Vector2:
+	var direction_data := _get_eight_way_direction_adjustment(set_index, direction_index)
+	var raw_offset: Array = direction_data.get("offset", [0.0, 0.0])
+	if raw_offset.size() < 2:
+		return Vector2.ZERO
+	return Vector2(float(raw_offset[0]), float(raw_offset[1]))
+
+
+func _load_eight_way_textures() -> void:
+	eight_way_textures.clear()
+	for index in range(GEMINI_EIGHT_WAY_NAMES.size()):
+		var path := _get_eight_way_path(index)
+		var texture := _load_sequence_texture(path)
+		if texture == null:
+			push_warning("Missing Gemini 8-way yujian sprite (%s): %s" % [_current_eight_way_set_label(), path])
+		eight_way_textures.append(texture)
+
+
+func _set_eight_way_character_set(next_set: int) -> void:
+	eight_way_character_set = clampi(next_set, 0, GEMINI_EIGHT_WAY_BASE_PATHS.size() - 1)
+	if not USE_GEMINI_8WAY_CRUISE:
+		return
+	_load_eight_way_textures()
+	_apply_eight_way_texture(body_heading)
+	_refresh_adjustment_controls()
+	queue_redraw()
+
+
+func _get_eight_way_path(index: int) -> String:
+	var set_index := clampi(eight_way_character_set, 0, GEMINI_EIGHT_WAY_BASE_PATHS.size() - 1)
+	var name_index := clampi(index, 0, GEMINI_EIGHT_WAY_NAMES.size() - 1)
+	return "%s/%s.png" % [
+		String(GEMINI_EIGHT_WAY_BASE_PATHS[set_index]),
+		String(GEMINI_EIGHT_WAY_NAMES[name_index]),
+	]
+
+
+func _toggle_adjustment_panel() -> void:
+	if adjustment_panel == null:
+		return
+	adjustment_panel.visible = not adjustment_panel.visible
+
+
+func _update_adjustment_panel_follow_state() -> void:
+	if adjustment_panel == null or not adjustment_panel.visible:
+		return
+	var needs_refresh := false
+	if adjustment_set_option != null and adjustment_set_option.selected != eight_way_character_set:
+		adjustment_set_option.select(clampi(eight_way_character_set, 0, GEMINI_EIGHT_WAY_SET_LABELS.size() - 1))
+		needs_refresh = true
+	if adjustment_follow_current and adjustment_selected_direction != eight_way_index:
+		adjustment_selected_direction = eight_way_index
+		if adjustment_direction_option != null:
+			adjustment_direction_option.select(adjustment_selected_direction)
+		needs_refresh = true
+	if needs_refresh:
+		_refresh_adjustment_controls()
+
+
+func _refresh_adjustment_controls() -> void:
+	if adjustment_panel == null:
+		return
+	var set_index := clampi(eight_way_character_set, 0, GEMINI_EIGHT_WAY_BASE_PATHS.size() - 1)
+	var direction_index := clampi(adjustment_selected_direction, 0, GEMINI_EIGHT_WAY_NAMES.size() - 1)
+	var global_scale := _get_eight_way_global_scale(set_index)
+	var direction_scale := _get_eight_way_direction_scale(set_index, direction_index)
+	var offset := _get_eight_way_direction_offset(set_index, direction_index)
+
+	adjustment_updating_controls = true
+	adjustment_set_option.select(set_index)
+	adjustment_direction_option.select(direction_index)
+	adjustment_follow_checkbox.button_pressed = adjustment_follow_current
+	adjustment_global_scale_slider.value = global_scale
+	adjustment_global_scale_spin.value = global_scale
+	adjustment_direction_scale_slider.value = direction_scale
+	adjustment_direction_scale_spin.value = direction_scale
+	adjustment_offset_x_spin.value = offset.x
+	adjustment_offset_y_spin.value = offset.y
+	adjustment_updating_controls = false
+	_update_adjustment_status()
+
+
+func _update_adjustment_status(extra_message := "") -> void:
+	if adjustment_status_label == null:
+		return
+	var set_label := _current_eight_way_set_label()
+	var direction_name := String(GEMINI_EIGHT_WAY_NAMES[clampi(adjustment_selected_direction, 0, GEMINI_EIGHT_WAY_NAMES.size() - 1)])
+	var global_scale := _get_eight_way_global_scale(eight_way_character_set)
+	var direction_scale := _get_eight_way_direction_scale(eight_way_character_set, adjustment_selected_direction)
+	var offset := _get_eight_way_direction_offset(eight_way_character_set, adjustment_selected_direction)
+	adjustment_status_label.text = "%s / %s\n全局 %.3f  方向 %.3f  偏移 %.0f, %.0f" % [
+		set_label,
+		direction_name,
+		global_scale,
+		direction_scale,
+		offset.x,
+		offset.y,
+	]
+	if extra_message != "":
+		adjustment_status_label.text += "\n%s" % extra_message
+
+
+func _on_adjustment_set_selected(index: int) -> void:
+	if adjustment_updating_controls:
+		return
+	_set_eight_way_character_set(index)
+
+
+func _on_adjustment_direction_selected(index: int) -> void:
+	if adjustment_updating_controls:
+		return
+	adjustment_selected_direction = clampi(index, 0, GEMINI_EIGHT_WAY_NAMES.size() - 1)
+	adjustment_follow_current = false
+	_refresh_adjustment_controls()
+
+
+func _on_adjustment_follow_toggled(pressed: bool) -> void:
+	if adjustment_updating_controls:
+		return
+	adjustment_follow_current = pressed
+	if adjustment_follow_current:
+		adjustment_selected_direction = eight_way_index
+	_refresh_adjustment_controls()
+
+
+func _on_adjustment_global_scale_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	var set_data := _get_eight_way_set_adjustment(eight_way_character_set)
+	set_data["global_scale"] = value
+	adjustment_updating_controls = true
+	adjustment_global_scale_slider.value = value
+	adjustment_global_scale_spin.value = value
+	adjustment_updating_controls = false
+	_apply_sprite_transform()
+	_update_adjustment_status()
+
+
+func _on_adjustment_direction_scale_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	var direction_data := _get_eight_way_direction_adjustment(eight_way_character_set, adjustment_selected_direction)
+	direction_data["scale"] = value
+	adjustment_updating_controls = true
+	adjustment_direction_scale_slider.value = value
+	adjustment_direction_scale_spin.value = value
+	adjustment_updating_controls = false
+	_apply_sprite_transform()
+	_update_adjustment_status()
+
+
+func _on_adjustment_offset_x_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	var offset := _get_eight_way_direction_offset(eight_way_character_set, adjustment_selected_direction)
+	_set_eight_way_direction_offset(adjustment_selected_direction, Vector2(value, offset.y))
+
+
+func _on_adjustment_offset_y_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	var offset := _get_eight_way_direction_offset(eight_way_character_set, adjustment_selected_direction)
+	_set_eight_way_direction_offset(adjustment_selected_direction, Vector2(offset.x, value))
+
+
+func _set_eight_way_direction_offset(direction_index: int, offset: Vector2) -> void:
+	var direction_data := _get_eight_way_direction_adjustment(eight_way_character_set, direction_index)
+	direction_data["offset"] = [offset.x, offset.y]
+	adjustment_updating_controls = true
+	adjustment_offset_x_spin.value = offset.x
+	adjustment_offset_y_spin.value = offset.y
+	adjustment_updating_controls = false
+	_apply_sprite_transform()
+	_update_adjustment_status()
+
+
+func _on_adjustment_reset_direction_pressed() -> void:
+	var direction_data := _get_eight_way_direction_adjustment(eight_way_character_set, adjustment_selected_direction)
+	direction_data["scale"] = 1.0
+	direction_data["offset"] = [0.0, 0.0]
+	_apply_sprite_transform()
+	_refresh_adjustment_controls()
+
+
+func _on_adjustment_reset_set_pressed() -> void:
+	var set_data := _get_eight_way_set_adjustment(eight_way_character_set)
+	set_data["global_scale"] = 1.0
+	var directions: Dictionary = set_data["directions"]
+	for name_variant in GEMINI_EIGHT_WAY_NAMES:
+		var name := String(name_variant)
+		directions[name] = {
+			"scale": 1.0,
+			"offset": [0.0, 0.0],
+		}
+	_apply_sprite_transform()
+	_refresh_adjustment_controls()
+
+
+func _on_adjustment_save_pressed() -> void:
+	if _save_eight_way_adjustments():
+		_update_adjustment_status("已保存到 prototype_runtime_adjustments.json")
+	else:
+		_update_adjustment_status("保存失败：无法写入 JSON")
 
 
 func _start_clip(next_clip: int, fixed_render_sign := 0.0, entry_frame := 0) -> void:
@@ -450,8 +943,7 @@ func _finish_clip(_axis: Vector2, _boosting: bool) -> void:
 			_start_clip(CLIP_CRUISE_IDLE, facing_sign)
 
 
-func _update_clip_requests(axis: Vector2, _boosting: bool) -> void:
-	var horizontal_sign := _axis_sign(axis)
+func _update_clip_requests(_axis: Vector2, _boosting: bool) -> void:
 	var desired_sign := _heading_render_sign(body_heading, render_sign)
 	var can_interrupt_turn := not _is_turn_clip() or _clip_phase() >= 0.22
 
@@ -462,8 +954,6 @@ func _update_clip_requests(axis: Vector2, _boosting: bool) -> void:
 		return
 
 	if not _is_clip_looping():
-		if horizontal_sign != 0.0:
-			desired_sign = horizontal_sign
 		if _clip_phase() >= 0.18 and absf(body_heading.x) > 0.34 and desired_sign != facing_sign:
 			if _should_use_hard_turn():
 				_start_hard_turn(render_sign, desired_sign)
@@ -479,9 +969,6 @@ func _update_clip_requests(axis: Vector2, _boosting: bool) -> void:
 		if absf(body_heading.x) > 0.34:
 			facing_sign = desired_sign
 		return
-
-	if horizontal_sign != 0.0:
-		desired_sign = horizontal_sign
 
 	var sign_changed := absf(body_heading.x) > 0.34 and desired_sign != facing_sign
 	if sign_changed:
@@ -504,10 +991,7 @@ func _update_clip_requests(axis: Vector2, _boosting: bool) -> void:
 
 
 func _update_motion(axis: Vector2, boosting: bool, delta: float) -> void:
-	heading_input_active = axis.length_squared() > 0.01
-	if heading_input_active:
-		heading_input = axis.normalized()
-		target_heading = heading_input
+	_update_target_heading_from_input(axis, delta)
 
 	var boundary_steer := _get_boundary_steer()
 	boundary_energy = clampf(boundary_steer.length(), 0.0, 1.0)
@@ -565,6 +1049,17 @@ func _update_motion(axis: Vector2, boosting: bool, delta: float) -> void:
 	_apply_boundary_failsafe()
 
 
+func _update_target_heading_from_input(axis: Vector2, delta: float) -> void:
+	heading_input_active = axis.length_squared() > 0.01
+	if not heading_input_active:
+		return
+	heading_input = axis.normalized()
+	var input_strength := clampf(axis.length(), 0.0, 1.0)
+	var turn_delta := _signed_angle_between(target_heading, heading_input)
+	var angle_step := clampf(turn_delta, -INPUT_HEADING_TURN_RATE * input_strength * delta, INPUT_HEADING_TURN_RATE * input_strength * delta)
+	target_heading = target_heading.rotated(angle_step).normalized()
+
+
 func _update_speed_mode() -> void:
 	var speed := velocity.length()
 	if speed_mode == SPEED_MODE_CRUISE and speed >= BOOST_ENTER_SPEED:
@@ -593,6 +1088,19 @@ func _update_visual_state(delta: float) -> void:
 func _apply_sprite_transform() -> void:
 	if sprite_root == null or character_sprite == null:
 		return
+	if USE_GEMINI_8WAY_CRUISE:
+		_apply_eight_way_texture(body_heading)
+		sprite_root.position = _world_to_screen(visual_pos)
+		sprite_root.rotation = 0.0
+		sprite_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+		var turn_lean := clampf(heading_angle_delta / 1.4, -1.0, 1.0)
+		var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * _get_eight_way_direction_scale(eight_way_character_set, eight_way_index)
+		var adjustment_offset := _get_eight_way_direction_offset(eight_way_character_set, eight_way_index)
+		var sprite_scale := GEMINI_EIGHT_WAY_SCALE * adjustment_scale * (1.0 + 0.035 * boost_energy + 0.035 * carve_energy)
+		character_sprite.position = GEMINI_POSE_OFFSET + adjustment_offset + Vector2(0.0, -3.0 * boost_energy - 2.0 * carve_energy)
+		character_sprite.rotation = -turn_lean * 0.035 + carve_direction * carve_energy * 0.045
+		character_sprite.scale = Vector2(sprite_scale, sprite_scale)
+		return
 	sprite_root.position = _world_to_screen(visual_pos)
 	sprite_root.rotation = _visual_root_rotation()
 	sprite_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
@@ -605,8 +1113,54 @@ func _apply_sprite_transform() -> void:
 	character_sprite.scale = Vector2(render_sign * SHEET_FACE_SIGN * scale_x, scale_y)
 
 
+func _apply_eight_way_texture(heading: Vector2) -> void:
+	if eight_way_textures.is_empty():
+		return
+	var next_index := _get_eight_way_index(heading)
+	eight_way_index = next_index
+	var texture := eight_way_textures[next_index] as Texture2D
+	if texture == null:
+		return
+	if character_sprite.texture == texture and not character_sprite.region_enabled:
+		return
+	character_sprite.texture = texture
+	character_sprite.region_enabled = false
+	character_sprite.region_rect = Rect2(Vector2.ZERO, texture.get_size())
+
+
+func _get_eight_way_index(heading: Vector2) -> int:
+	var safe_heading := heading
+	if safe_heading.length_squared() <= 0.0001:
+		safe_heading = Vector2.RIGHT
+	else:
+		safe_heading = safe_heading.normalized()
+	var best_index := 0
+	var best_dot := -9999.0
+	for index in range(GEMINI_EIGHT_WAY_VECTORS.size()):
+		var direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[index]
+		var dot_value := safe_heading.dot(direction.normalized())
+		if dot_value > best_dot:
+			best_dot = dot_value
+			best_index = index
+	return best_index
+
+
+func _current_eight_way_name() -> String:
+	if GEMINI_EIGHT_WAY_NAMES.is_empty():
+		return "none"
+	return String(GEMINI_EIGHT_WAY_NAMES[clampi(eight_way_index, 0, GEMINI_EIGHT_WAY_NAMES.size() - 1)])
+
+
+func _current_eight_way_set_label() -> String:
+	if GEMINI_EIGHT_WAY_SET_LABELS.is_empty():
+		return "unknown"
+	return String(GEMINI_EIGHT_WAY_SET_LABELS[clampi(eight_way_character_set, 0, GEMINI_EIGHT_WAY_SET_LABELS.size() - 1)])
+
+
 func _apply_frame() -> void:
 	if character_sprite == null:
+		return
+	if USE_GEMINI_8WAY_CRUISE:
 		return
 	character_sprite.region_rect = _get_frame_rect(frame_index)
 
@@ -639,12 +1193,6 @@ func _get_move_axis() -> Vector2:
 
 func _is_boost_pressed() -> bool:
 	return auto_demo or Input.is_action_pressed("dash")
-
-
-func _axis_sign(axis: Vector2) -> float:
-	if absf(axis.x) <= 0.18:
-		return 0.0
-	return signf(axis.x)
 
 
 func _clip_phase() -> float:
@@ -795,6 +1343,21 @@ func _update_afterimages(delta: float) -> void:
 
 
 func _capture_afterimage(pos: Vector2, intensity: float) -> void:
+	if USE_GEMINI_8WAY_CRUISE and character_sprite != null and character_sprite.texture != null:
+		var texture := character_sprite.texture
+		afterimages.append({
+			"texture": texture,
+			"source": Rect2(Vector2.ZERO, texture.get_size()),
+			"pos": pos,
+			"scale": character_sprite.scale.abs(),
+			"facing": 1.0,
+			"rotation": character_sprite.rotation,
+			"age": 0.0,
+			"life": 0.20 + 0.16 * clampf(intensity, 0.0, 1.0),
+			"intensity": clampf(intensity, 0.0, 1.0),
+			"velocity": velocity,
+		})
+		return
 	if sheet_texture == null:
 		return
 	afterimages.append({
@@ -1011,7 +1574,10 @@ func _draw_afterimages() -> void:
 		var pos := _world_to_screen(Vector2(image["pos"]) + drift)
 		var stretch := 1.0 + age * (0.32 + float(image.get("intensity", 0.0)) * 0.18)
 		var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
-		var destination := Rect2(-CELL_SIZE * draw_scale * stretch * camera_scale * 0.5, CELL_SIZE * draw_scale * stretch * camera_scale)
+		var source_size := frame_rect.size
+		if source_size.x <= 0.0 or source_size.y <= 0.0:
+			source_size = texture.get_size()
+		var destination := Rect2(-source_size * draw_scale * stretch * camera_scale * 0.5, source_size * draw_scale * stretch * camera_scale)
 		var color := Color(0.46, 1.0, 1.0, 0.06 * life * float(image.get("intensity", 1.0)))
 		draw_set_transform(pos, rotation, Vector2(facing, 1.0))
 		draw_texture_rect_region(texture, destination, frame_rect, color)
@@ -1022,8 +1588,11 @@ func _draw_debug() -> void:
 	var clip := _current_clip()
 	var material_label := "green key" if background_key_enabled else "raw bg"
 	var speed_label := "boost" if speed_mode == SPEED_MODE_BOOST else "cruise"
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD heading  Space throttle  K key  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "clip: %s  frame: %d/%d  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [String(clip["name"]), frame_index, int(clip["frames"]) - 1, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
+	var visual_label := "sheet"
+	if USE_GEMINI_8WAY_CRUISE:
+		visual_label = "Gemini 8way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD steering  Space throttle  K key  V set  F2 panel  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
 
 
 func _safe_velocity_dir() -> Vector2:

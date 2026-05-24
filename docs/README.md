@@ -25,6 +25,7 @@
 ### `docs/decisions/`
 
 - 已定案的设计决策
+- 已否定、不应从旧提交中恢复的实装设计
 - 只记录已经确认、可以作为实现依据的规则
 - 不放脑暴内容，不放过程性讨论
 
@@ -63,7 +64,7 @@
 如果要快速恢复项目上下文，建议按以下顺序阅读：
 
 1. `docs/project/CURRENT_PROJECT_DESIGN.md`
-2. `docs/decisions/PROJECT_DECISIONS.md`
+2. `docs/decisions/PROJECT_DECISIONS.md` 与 `docs/decisions/REJECTED_IMPLEMENTED_DESIGNS.md`
 3. `docs/systems/`
 4. `docs/reviews/`
 5. `docs/discussions/`
@@ -82,4 +83,5 @@
 - 统一伤害与命中框架
 - 第一章关卡波次引导方案
 - 已定案设计决策清单
+- 已踩坑与不再恢复的实装设计清单
 - 内部进度记录

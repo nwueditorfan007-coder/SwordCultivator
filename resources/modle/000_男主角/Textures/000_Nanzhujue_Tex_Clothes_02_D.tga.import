@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b4wyknh7u6asi"
-path.s3tc="res://.godot/imported/000_Nanzhujue_Tex_Clothes_02_D.tga-fba7d7a5e0b1ab1c48c5365295fb77f7.s3tc.ctex"
+path.s3tc="res://.godot/imported/000_Nanzhujue_Tex_Clothes_02_D.tga-34bad17cd1aa7b41312d6ca9c0f1ba77.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://resources/modle/000_男主角/textures/000_Nanzhujue_Tex_Clothes_02_D.tga"
-dest_files=["res://.godot/imported/000_Nanzhujue_Tex_Clothes_02_D.tga-fba7d7a5e0b1ab1c48c5365295fb77f7.s3tc.ctex"]
+source_file="res://resources/modle/000_男主角/Textures/000_Nanzhujue_Tex_Clothes_02_D.tga"
+dest_files=["res://.godot/imported/000_Nanzhujue_Tex_Clothes_02_D.tga-34bad17cd1aa7b41312d6ca9c0f1ba77.s3tc.ctex"]
 
 [params]
 
