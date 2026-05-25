@@ -25,6 +25,15 @@ const EIGHT_WAY_SET_V2 := 1
 const EIGHT_WAY_SET_V3_FACE := 2
 const GEMINI_EIGHT_WAY_SCALE := 0.34
 const GEMINI_POSE_OFFSET := Vector2(0.0, -18.0)
+const VISUAL_HEADING_TURN_RATE := 8.8
+const VISUAL_HEADING_HARD_TURN_RATE := 12.0
+const VISUAL_HEADING_HOVER_TURN_RATE := 13.5
+const EIGHT_WAY_SWITCH_HYSTERESIS := 0.07
+const EIGHT_WAY_LOCAL_ROTATION_LIMIT := 0.42
+const EIGHT_WAY_ADJUSTMENT_HALF_LIFE := 0.045
+const EIGHT_WAY_SWITCH_GHOST_LIFE := 0.055
+const CONTROL_MODE_DIRECT_INTENT := 0
+const CONTROL_MODE_STEER_THROTTLE := 1
 const GEMINI_EIGHT_WAY_SET_LABELS := [
 	"V1 prototype",
 	"V2 accepted",
@@ -58,11 +67,16 @@ const GEMINI_EIGHT_WAY_VECTORS := [
 ]
 
 @export_enum("V1 prototype", "V2 accepted", "V3 face") var eight_way_character_set := EIGHT_WAY_SET_V3_FACE
+@export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
 
 const CRUISE_SPEED := 390.0
 const BOOST_SPEED := 650.0
 const ACCELERATION := 1320.0
 const BOOST_ACCELERATION := 1920.0
+const DIRECT_CRUISE_ACCELERATION := 1850.0
+const DIRECT_BOOST_ACCELERATION := 2500.0
+const DIRECT_BODY_TURN_RATE := 10.6
+const DIRECT_HARD_BODY_TURN_RATE := 14.0
 const HOVER_BRAKE := 5200.0
 const SLIP_BRAKE := 4200.0
 const SLIP_DURATION := 0.12
@@ -222,6 +236,7 @@ var camera_center := FLIGHT_START_POS
 var camera_zoom := CAMERA_MIN_ZOOM
 var target_heading := Vector2.RIGHT
 var body_heading := Vector2.RIGHT
+var visual_heading := Vector2.RIGHT
 var heading_input := Vector2.RIGHT
 var heading_input_active := false
 var throttle_pressed := false
@@ -237,6 +252,11 @@ var heading_turn_rate := 0.0
 var boundary_energy := 0.0
 var boost_energy := 0.0
 var turn_energy := 0.0
+var eight_way_local_rotation := 0.0
+var eight_way_visual_offset := Vector2.ZERO
+var eight_way_visual_direction_scale := 1.0
+var eight_way_visual_adjustments_initialized := false
+var eight_way_texture_initialized := false
 var time := 0.0
 var background_key_enabled := true
 var auto_demo := false
@@ -312,8 +332,23 @@ func _unhandled_input(event: InputEvent) -> void:
 				_set_eight_way_character_set((eight_way_character_set + 1) % GEMINI_EIGHT_WAY_BASE_PATHS.size())
 			KEY_F2:
 				_toggle_adjustment_panel()
+			KEY_F3:
+				_toggle_control_mode()
 			KEY_R:
 				_start_clip(clip_index, render_sign)
+
+
+func _toggle_control_mode() -> void:
+	if control_mode == CONTROL_MODE_DIRECT_INTENT:
+		control_mode = CONTROL_MODE_STEER_THROTTLE
+	else:
+		control_mode = CONTROL_MODE_DIRECT_INTENT
+	if velocity.length_squared() > 0.001:
+		target_heading = velocity.normalized()
+	else:
+		target_heading = body_heading.normalized()
+	slip_timer = 0.0
+	hard_turn_request_timer = 0.0
 
 
 func _create_nodes() -> void:
@@ -643,8 +678,10 @@ func _set_eight_way_character_set(next_set: int) -> void:
 	eight_way_character_set = clampi(next_set, 0, GEMINI_EIGHT_WAY_BASE_PATHS.size() - 1)
 	if not USE_GEMINI_8WAY_CRUISE:
 		return
+	eight_way_texture_initialized = false
+	eight_way_visual_adjustments_initialized = false
 	_load_eight_way_textures()
-	_apply_eight_way_texture(body_heading)
+	_apply_eight_way_texture(visual_heading)
 	_refresh_adjustment_controls()
 	queue_redraw()
 
@@ -991,6 +1028,13 @@ func _update_clip_requests(_axis: Vector2, _boosting: bool) -> void:
 
 
 func _update_motion(axis: Vector2, boosting: bool, delta: float) -> void:
+	if control_mode == CONTROL_MODE_STEER_THROTTLE:
+		_update_steer_throttle_motion(axis, boosting, delta)
+	else:
+		_update_direct_intent_motion(axis, boosting, delta)
+
+
+func _update_steer_throttle_motion(axis: Vector2, boosting: bool, delta: float) -> void:
 	_update_target_heading_from_input(axis, delta)
 
 	var boundary_steer := _get_boundary_steer()
@@ -1049,6 +1093,87 @@ func _update_motion(axis: Vector2, boosting: bool, delta: float) -> void:
 	_apply_boundary_failsafe()
 
 
+func _update_direct_intent_motion(axis: Vector2, boosting: bool, delta: float) -> void:
+	var previous_input_active := heading_input_active
+	var input_active := axis.length_squared() > 0.01
+	heading_input_active = input_active
+	if input_active:
+		heading_input = axis.normalized()
+
+	var boundary_steer := _get_boundary_steer()
+	boundary_energy = clampf(boundary_steer.length(), 0.0, 1.0)
+
+	var previous_throttle := throttle_pressed
+	throttle_pressed = boosting
+	if (previous_input_active and not input_active) or (previous_throttle and not throttle_pressed):
+		if velocity.length() > HOVER_STOP_SPEED and not input_active and not throttle_pressed:
+			slip_timer = SLIP_DURATION
+	if input_active or throttle_pressed:
+		slip_timer = 0.0
+
+	if carve_timer > 0.0:
+		carve_timer = maxf(carve_timer - delta, 0.0)
+	if hard_turn_request_timer > 0.0:
+		hard_turn_request_timer = maxf(hard_turn_request_timer - delta, 0.0)
+
+	if input_active:
+		target_heading = heading_input
+	elif throttle_pressed:
+		if velocity.length_squared() > 0.001:
+			target_heading = velocity.normalized()
+		else:
+			target_heading = body_heading.normalized()
+	elif velocity.length_squared() > 0.001:
+		target_heading = velocity.normalized()
+
+	if boundary_energy > 0.0:
+		target_heading = (target_heading + boundary_steer.normalized() * boundary_energy * BOUNDARY_HEADING_PULL).normalized()
+
+	var turn_delta := _signed_angle_between(body_heading, target_heading)
+	var speed_ratio := clampf(velocity.length() / BOOST_SPEED, 0.0, 1.0)
+	var turn_pressure := clampf(absf(turn_delta) / PI, 0.0, 1.0)
+	var turn_rate := lerpf(DIRECT_BODY_TURN_RATE, DIRECT_HARD_BODY_TURN_RATE, turn_pressure)
+	if not throttle_pressed or velocity.length() < CRUISE_SPEED * 0.35:
+		turn_rate = maxf(turn_rate, HOVER_HEADING_TURN_RATE)
+	var angle_step := clampf(turn_delta, -turn_rate * delta, turn_rate * delta)
+	body_heading = body_heading.rotated(angle_step).normalized()
+	heading_turn_rate = absf(angle_step) / maxf(delta, 0.001)
+	heading_angle_delta = _signed_angle_between(body_heading, target_heading)
+
+	if input_active and velocity.length() >= HARD_TURN_MIN_SPEED and carve_timer <= 0.0:
+		var velocity_turn_delta := _signed_angle_between(_safe_velocity_dir(), target_heading)
+		if absf(velocity_turn_delta) >= HARD_TURN_MIN_ANGLE:
+			_begin_carve(signf(velocity_turn_delta))
+
+	if input_active or throttle_pressed:
+		var carve_ratio := clampf(carve_timer / CARVE_DURATION, 0.0, 1.0)
+		var target_speed := BOOST_SPEED if throttle_pressed else CRUISE_SPEED
+		target_speed *= lerpf(1.0, CARVE_SPEED_KEEP, carve_ratio)
+		var target_velocity := target_heading * target_speed
+		var throttle_ratio := 1.0 if throttle_pressed else 0.0
+		var acceleration := lerpf(DIRECT_CRUISE_ACCELERATION, DIRECT_BOOST_ACCELERATION, clampf(throttle_ratio + speed_ratio * 0.35, 0.0, 1.0))
+		velocity = velocity.move_toward(target_velocity, acceleration * delta)
+		if carve_ratio > 0.0 and carve_direction != 0.0:
+			var carve_side := body_heading.rotated(carve_direction * PI * 0.5)
+			velocity += carve_side * CARVE_SIDE_FORCE * carve_ratio * delta
+	else:
+		if slip_timer > 0.0:
+			slip_timer = maxf(slip_timer - delta, 0.0)
+			velocity = velocity.move_toward(Vector2.ZERO, SLIP_BRAKE * delta)
+		else:
+			velocity = velocity.move_toward(Vector2.ZERO, HOVER_BRAKE * delta)
+			if velocity.length() <= HOVER_STOP_SPEED:
+				velocity = Vector2.ZERO
+
+	if boundary_energy > 0.0:
+		var inward := boundary_steer.normalized()
+		var return_speed := maxf(velocity.length(), CRUISE_SPEED * 0.45)
+		velocity = velocity.move_toward(inward * return_speed, BOUNDARY_RETURN_ACCEL * boundary_energy * delta)
+
+	flight_pos += velocity * delta
+	_apply_boundary_failsafe()
+
+
 func _update_target_heading_from_input(axis: Vector2, delta: float) -> void:
 	heading_input_active = axis.length_squared() > 0.01
 	if not heading_input_active:
@@ -1070,6 +1195,7 @@ func _update_speed_mode() -> void:
 
 func _update_visual_state(delta: float) -> void:
 	visual_pos = flight_pos
+	_update_visual_heading(delta)
 	var speed_ratio := clampf((velocity.length() - CRUISE_SPEED) / maxf(BOOST_SPEED - CRUISE_SPEED, 1.0), 0.0, 1.0)
 	var boost_target := maxf(speed_ratio, 0.55 if throttle_pressed else 0.0)
 	var turn_target := clampf(absf(heading_angle_delta) / 1.35, 0.0, 1.0) * clampf(velocity.length() / CRUISE_SPEED, 0.0, 1.0)
@@ -1082,23 +1208,43 @@ func _update_visual_state(delta: float) -> void:
 	throttle_energy = _damp_float(throttle_energy, 1.0 if throttle_pressed else 0.0, 0.08, delta)
 	slip_energy = _damp_float(slip_energy, clampf(slip_timer / SLIP_DURATION, 0.0, 1.0), 0.05, delta)
 	carve_energy = _damp_float(carve_energy, carve_target, 0.045, delta)
-	_apply_sprite_transform()
+	_apply_sprite_transform(delta)
 
 
-func _apply_sprite_transform() -> void:
+func _update_visual_heading(delta: float) -> void:
+	var target := body_heading
+	if target.length_squared() <= 0.0001:
+		target = Vector2.RIGHT
+	else:
+		target = target.normalized()
+	if visual_heading.length_squared() <= 0.0001:
+		visual_heading = target
+		return
+	var angle_delta := _signed_angle_between(visual_heading, target)
+	var turn_pressure := clampf(absf(angle_delta) / PI, 0.0, 1.0)
+	var turn_rate := lerpf(VISUAL_HEADING_TURN_RATE, VISUAL_HEADING_HARD_TURN_RATE, turn_pressure)
+	if velocity.length() < CRUISE_SPEED * 0.35 or not throttle_pressed:
+		turn_rate = maxf(turn_rate, VISUAL_HEADING_HOVER_TURN_RATE)
+	var angle_step := clampf(angle_delta, -turn_rate * delta, turn_rate * delta)
+	visual_heading = visual_heading.rotated(angle_step).normalized()
+
+
+func _apply_sprite_transform(delta := 0.0) -> void:
 	if sprite_root == null or character_sprite == null:
 		return
 	if USE_GEMINI_8WAY_CRUISE:
-		_apply_eight_way_texture(body_heading)
+		_apply_eight_way_texture(visual_heading)
 		sprite_root.position = _world_to_screen(visual_pos)
 		sprite_root.rotation = 0.0
 		sprite_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
 		var turn_lean := clampf(heading_angle_delta / 1.4, -1.0, 1.0)
-		var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * _get_eight_way_direction_scale(eight_way_character_set, eight_way_index)
-		var adjustment_offset := _get_eight_way_direction_offset(eight_way_character_set, eight_way_index)
+		var target_direction_scale := _get_eight_way_direction_scale(eight_way_character_set, eight_way_index)
+		var target_offset := _get_eight_way_direction_offset(eight_way_character_set, eight_way_index)
+		_update_eight_way_visual_adjustments(target_offset, target_direction_scale, delta)
+		var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
 		var sprite_scale := GEMINI_EIGHT_WAY_SCALE * adjustment_scale * (1.0 + 0.035 * boost_energy + 0.035 * carve_energy)
-		character_sprite.position = GEMINI_POSE_OFFSET + adjustment_offset + Vector2(0.0, -3.0 * boost_energy - 2.0 * carve_energy)
-		character_sprite.rotation = -turn_lean * 0.035 + carve_direction * carve_energy * 0.045
+		character_sprite.position = GEMINI_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -3.0 * boost_energy - 2.0 * carve_energy)
+		character_sprite.rotation = eight_way_local_rotation - turn_lean * 0.035 + carve_direction * carve_energy * 0.045
 		character_sprite.scale = Vector2(sprite_scale, sprite_scale)
 		return
 	sprite_root.position = _world_to_screen(visual_pos)
@@ -1113,19 +1259,57 @@ func _apply_sprite_transform() -> void:
 	character_sprite.scale = Vector2(render_sign * SHEET_FACE_SIGN * scale_x, scale_y)
 
 
+func _update_eight_way_visual_adjustments(target_offset: Vector2, target_direction_scale: float, delta: float) -> void:
+	if not eight_way_visual_adjustments_initialized or delta <= 0.0:
+		eight_way_visual_offset = target_offset
+		eight_way_visual_direction_scale = target_direction_scale
+		eight_way_visual_adjustments_initialized = true
+		return
+	eight_way_visual_offset = _damp_vector2(eight_way_visual_offset, target_offset, EIGHT_WAY_ADJUSTMENT_HALF_LIFE, delta)
+	eight_way_visual_direction_scale = _damp_float(eight_way_visual_direction_scale, target_direction_scale, EIGHT_WAY_ADJUSTMENT_HALF_LIFE, delta)
+
+
 func _apply_eight_way_texture(heading: Vector2) -> void:
 	if eight_way_textures.is_empty():
 		return
-	var next_index := _get_eight_way_index(heading)
+	var next_index := _get_eight_way_index_with_hysteresis(heading)
+	var direction_changed := eight_way_texture_initialized and next_index != eight_way_index
+	if direction_changed:
+		_capture_eight_way_switch_ghost()
 	eight_way_index = next_index
+	eight_way_local_rotation = _get_eight_way_local_rotation(heading, next_index)
 	var texture := eight_way_textures[next_index] as Texture2D
 	if texture == null:
 		return
+	eight_way_texture_initialized = true
 	if character_sprite.texture == texture and not character_sprite.region_enabled:
 		return
 	character_sprite.texture = texture
 	character_sprite.region_enabled = false
 	character_sprite.region_rect = Rect2(Vector2.ZERO, texture.get_size())
+
+
+func _capture_eight_way_switch_ghost() -> void:
+	if character_sprite == null or character_sprite.texture == null:
+		return
+	var texture := character_sprite.texture
+	var source := Rect2(Vector2.ZERO, texture.get_size())
+	if character_sprite.region_enabled:
+		source = character_sprite.region_rect
+	afterimages.append({
+		"texture": texture,
+		"source": source,
+		"pos": visual_pos,
+		"screen_offset": character_sprite.position,
+		"scale": character_sprite.scale.abs(),
+		"facing": 1.0,
+		"rotation": character_sprite.rotation,
+		"age": 0.0,
+		"life": EIGHT_WAY_SWITCH_GHOST_LIFE,
+		"intensity": 1.0,
+		"alpha": 0.12,
+		"velocity": velocity * 0.35,
+	})
 
 
 func _get_eight_way_index(heading: Vector2) -> int:
@@ -1143,6 +1327,37 @@ func _get_eight_way_index(heading: Vector2) -> int:
 			best_dot = dot_value
 			best_index = index
 	return best_index
+
+
+func _get_eight_way_index_with_hysteresis(heading: Vector2) -> int:
+	var nearest_index := _get_eight_way_index(heading)
+	if nearest_index == eight_way_index:
+		return nearest_index
+	if eight_way_index < 0 or eight_way_index >= GEMINI_EIGHT_WAY_VECTORS.size():
+		return nearest_index
+	var safe_heading := heading
+	if safe_heading.length_squared() <= 0.0001:
+		safe_heading = Vector2.RIGHT
+	else:
+		safe_heading = safe_heading.normalized()
+	var current_direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[eight_way_index].normalized()
+	var nearest_direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[nearest_index].normalized()
+	var current_error := absf(_signed_angle_between(current_direction, safe_heading))
+	var nearest_error := absf(_signed_angle_between(nearest_direction, safe_heading))
+	if current_error <= nearest_error + EIGHT_WAY_SWITCH_HYSTERESIS:
+		return eight_way_index
+	return nearest_index
+
+
+func _get_eight_way_local_rotation(heading: Vector2, index: int) -> float:
+	if index < 0 or index >= GEMINI_EIGHT_WAY_VECTORS.size():
+		return 0.0
+	var safe_heading := heading
+	if safe_heading.length_squared() <= 0.0001:
+		return 0.0
+	safe_heading = safe_heading.normalized()
+	var base_direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[index].normalized()
+	return clampf(_signed_angle_between(base_direction, safe_heading), -EIGHT_WAY_LOCAL_ROTATION_LIMIT, EIGHT_WAY_LOCAL_ROTATION_LIMIT)
 
 
 func _current_eight_way_name() -> String:
@@ -1349,6 +1564,7 @@ func _capture_afterimage(pos: Vector2, intensity: float) -> void:
 			"texture": texture,
 			"source": Rect2(Vector2.ZERO, texture.get_size()),
 			"pos": pos,
+			"screen_offset": character_sprite.position,
 			"scale": character_sprite.scale.abs(),
 			"facing": 1.0,
 			"rotation": character_sprite.rotation,
@@ -1364,6 +1580,7 @@ func _capture_afterimage(pos: Vector2, intensity: float) -> void:
 		"texture": sheet_texture,
 		"source": _get_frame_rect(frame_index),
 		"pos": pos,
+		"screen_offset": character_sprite.position,
 		"scale": character_sprite.scale.abs(),
 		"facing": render_sign * SHEET_FACE_SIGN,
 		"rotation": _visual_root_rotation(),
@@ -1571,14 +1788,15 @@ func _draw_afterimages() -> void:
 		var rotation := float(image.get("rotation", 0.0))
 		var stored_velocity: Vector2 = image.get("velocity", Vector2.ZERO)
 		var drift := stored_velocity.normalized() * -24.0 * age
-		var pos := _world_to_screen(Vector2(image["pos"]) + drift)
-		var stretch := 1.0 + age * (0.32 + float(image.get("intensity", 0.0)) * 0.18)
 		var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
+		var screen_offset: Vector2 = image.get("screen_offset", Vector2.ZERO)
+		var pos := _world_to_screen(Vector2(image["pos"]) + drift) + screen_offset * camera_scale
+		var stretch := 1.0 + age * (0.32 + float(image.get("intensity", 0.0)) * 0.18)
 		var source_size := frame_rect.size
 		if source_size.x <= 0.0 or source_size.y <= 0.0:
 			source_size = texture.get_size()
 		var destination := Rect2(-source_size * draw_scale * stretch * camera_scale * 0.5, source_size * draw_scale * stretch * camera_scale)
-		var color := Color(0.46, 1.0, 1.0, 0.06 * life * float(image.get("intensity", 1.0)))
+		var color := Color(0.46, 1.0, 1.0, float(image.get("alpha", 0.06)) * life * float(image.get("intensity", 1.0)))
 		draw_set_transform(pos, rotation, Vector2(facing, 1.0))
 		draw_texture_rect_region(texture, destination, frame_rect, color)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -1588,11 +1806,12 @@ func _draw_debug() -> void:
 	var clip := _current_clip()
 	var material_label := "green key" if background_key_enabled else "raw bg"
 	var speed_label := "boost" if speed_mode == SPEED_MODE_BOOST else "cruise"
+	var control_label := "direct intent" if control_mode == CONTROL_MODE_DIRECT_INTENT else "steer throttle"
 	var visual_label := "sheet"
 	if USE_GEMINI_8WAY_CRUISE:
 		visual_label = "Gemini 8way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD steering  Space throttle  K key  V set  F2 panel  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  V set  F2 panel  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "control: %s  clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg visual %.0fdeg local %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [control_label, String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(visual_heading.angle()), rad_to_deg(eight_way_local_rotation), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
 
 
 func _safe_velocity_dir() -> Vector2:
