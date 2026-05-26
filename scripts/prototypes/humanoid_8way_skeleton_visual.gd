@@ -41,6 +41,7 @@ const JADE := Color(0.64, 1.0, 0.86, 0.98)
 const SWORD := Color(0.62, 0.96, 1.0, 0.88)
 const SWORD_CORE := Color(0.96, 1.0, 0.98, 0.98)
 const FACE_DARK := Color(0.06, 0.07, 0.08, 0.92)
+const FLIGHT_SPEED_POSE_REFERENCE := 1950.0
 const POSE_OVERRIDE_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton_pose_overrides.json"
 const EDIT_JOINT_KEYS := [
 	"head_center",
@@ -241,7 +242,7 @@ func _draw() -> void:
 func _build_flight_pose(apply_overrides := true) -> Dictionary:
 	var pose_boost := _boost
 	var pose_throttle := _throttle
-	var speed_ratio := clampf(_velocity.length() / 650.0, 0.0, 1.0)
+	var speed_ratio := clampf(_velocity.length() / FLIGHT_SPEED_POSE_REFERENCE, 0.0, 1.0)
 	if _editor_active:
 		if _editor_pose == "fast":
 			pose_boost = 1.0

@@ -1,4 +1,13 @@
 {
+	"camera": {
+		"hard_turn_look_ahead_scale": 0.2,
+		"look_ahead_half_life": 0.18,
+		"look_ahead_time": 0.06,
+		"max_look_ahead": [
+			80.0,
+			50.0
+		]
+	},
 	"sets": {
 		"res://resources/flight/yujian_8way_cruise_generated_v1/prototype": {
 			"directions": {
@@ -7,7 +16,7 @@
 						0.0,
 						0.0
 					],
-					"scale": 0.845
+					"scale": 0.745
 				},
 				"02_up_right": {
 					"offset": [
@@ -21,7 +30,7 @@
 						0.0,
 						0.0
 					],
-					"scale": 0.795
+					"scale": 0.7
 				},
 				"04_up_left": {
 					"offset": [
@@ -49,7 +58,7 @@
 						0.0,
 						0.0
 					],
-					"scale": 0.795
+					"scale": 0.7
 				},
 				"08_down_right": {
 					"offset": [
@@ -179,6 +188,39 @@
 						0.0
 					],
 					"scale": 0.75
+				}
+			},
+			"global_scale": 1.0
+		},
+		"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton": {
+			"directions": {
+				"01_right": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				},
+				"03_up": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				},
+				"05_left": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				},
+				"07_down": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
 				}
 			},
 			"global_scale": 1.0

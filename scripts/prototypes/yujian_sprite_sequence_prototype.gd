@@ -1,24 +1,28 @@
 extends Node2D
 
 const HUMANOID_8WAY_SKELETON_VISUAL := preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
+const YUJIAN_INK_PART_VISUAL := preload("res://scripts/prototypes/yujian_ink_part_visual.gd")
 
 const VIEW_SIZE := Vector2(1280.0, 720.0)
 const BASE_PLAY_ORIGIN := Vector2(92.0, 86.0)
 const BASE_PLAY_SIZE := Vector2(1096.0, 548.0)
-const FLIGHT_TEST_HORIZONTAL_SCALE := 5.0
-const FLIGHT_TEST_VERTICAL_SCALE := 3.0
+const BATTLEFIELD_SIZE_MULTIPLIER := 8.0
+const FLIGHT_SPEED_MULTIPLIER := 3.0
+const FLIGHT_TEST_HORIZONTAL_SCALE := 10.0 * BATTLEFIELD_SIZE_MULTIPLIER
+const FLIGHT_TEST_VERTICAL_SCALE := 6.0 * BATTLEFIELD_SIZE_MULTIPLIER
 const PLAY_SIZE := Vector2(BASE_PLAY_SIZE.x * FLIGHT_TEST_HORIZONTAL_SCALE, BASE_PLAY_SIZE.y * FLIGHT_TEST_VERTICAL_SCALE)
 const PLAY_RECT := Rect2(BASE_PLAY_ORIGIN, PLAY_SIZE)
 const FLIGHT_START_POS := BASE_PLAY_ORIGIN + Vector2(PLAY_SIZE.x * 0.16, PLAY_SIZE.y * 0.52)
-const CAMERA_LOOK_AHEAD_TIME := 0.24
-const CAMERA_MAX_LOOK_AHEAD := Vector2(260.0, 120.0)
-const CAMERA_HALF_LIFE := 0.08
+const CAMERA_LOOK_AHEAD_TIME := 0.10
+const CAMERA_MAX_LOOK_AHEAD := Vector2(360.0, 110.0)
+const CAMERA_LOOK_AHEAD_HALF_LIFE := 0.075
+const CAMERA_HARD_TURN_LOOK_AHEAD_SCALE := 0.58
 const WORLD_GRID_STEP := 360.0
 const CYAN := Color(0.42, 0.96, 1.0, 1.0)
 
 const FRAME_COLUMNS := 7
 const CELL_SIZE := Vector2(512.0, 512.0)
-const SPRITE_SCALE := 0.47
+const SPRITE_SCALE := 0.235
 const SHEET_FACE_SIGN := 1.0
 const POSE_OFFSET := Vector2(-10.0, -6.0)
 const USE_GEMINI_8WAY_CRUISE := true
@@ -26,17 +30,25 @@ const EIGHT_WAY_SET_V1 := 0
 const EIGHT_WAY_SET_V2 := 1
 const EIGHT_WAY_SET_V3_FACE := 2
 const EIGHT_WAY_SET_V4_SKELETON := 3
-const GEMINI_EIGHT_WAY_SCALE := 0.34
+const EIGHT_WAY_SET_V5_INK_PARTS := 4
+const GEMINI_EIGHT_WAY_SCALE := 0.17
+const INK_PART_EIGHT_WAY_SCALE := 1.22
 const GEMINI_POSE_OFFSET := Vector2(0.0, -18.0)
 const SKELETON_EIGHT_WAY_SCALE := 1.16
 const SKELETON_POSE_OFFSET := Vector2(0.0, -6.0)
 const VISUAL_HEADING_TURN_RATE := 8.8
 const VISUAL_HEADING_HARD_TURN_RATE := 12.0
 const VISUAL_HEADING_HOVER_TURN_RATE := 13.5
-const EIGHT_WAY_SWITCH_HYSTERESIS := 0.07
-const EIGHT_WAY_LOCAL_ROTATION_LIMIT := 0.42
+const EIGHT_WAY_SWITCH_HYSTERESIS := 0.14
+const EIGHT_WAY_LOCAL_ROTATION_LIMIT := 0.66
 const EIGHT_WAY_ADJUSTMENT_HALF_LIFE := 0.045
-const EIGHT_WAY_SWITCH_GHOST_LIFE := 0.055
+const EIGHT_WAY_SWITCH_GHOST_LIFE := 0.12
+const DIRECTION_SWITCH_FX_LIFE := 0.24
+const DIRECTION_SWITCH_FX_HARD_LIFE := 0.34
+const DIRECTION_SWITCH_ENERGY_HALF_LIFE := 0.075
+const DIRECTION_SWITCH_ARC_RADIUS := 92.0
+const DIRECTION_SWITCH_ARC_HARD_RADIUS := 150.0
+const DIRECTION_SWITCH_MAX_ARCS := 8
 const CONTROL_MODE_DIRECT_INTENT := 0
 const CONTROL_MODE_STEER_THROTTLE := 1
 const GEMINI_EIGHT_WAY_SET_LABELS := [
@@ -44,48 +56,43 @@ const GEMINI_EIGHT_WAY_SET_LABELS := [
 	"V2 accepted",
 	"V3 face",
 	"V4 skeleton rig",
+	"V5 ink parts",
 ]
 const GEMINI_EIGHT_WAY_BASE_PATHS := [
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v2",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton",
+	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v5_ink_parts",
 ]
 const EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_runtime_adjustments.json"
 const GEMINI_EIGHT_WAY_NAMES := [
 	"01_right",
-	"02_up_right",
 	"03_up",
-	"04_up_left",
 	"05_left",
-	"06_down_left",
 	"07_down",
-	"08_down_right",
 ]
 const GEMINI_EIGHT_WAY_VECTORS := [
 	Vector2(1.0, 0.0),
-	Vector2(0.7071, -0.7071),
 	Vector2(0.0, -1.0),
-	Vector2(-0.7071, -0.7071),
 	Vector2(-1.0, 0.0),
-	Vector2(-0.7071, 0.7071),
 	Vector2(0.0, 1.0),
-	Vector2(0.7071, 0.7071),
 ]
 
-@export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
+@export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig", "V5 ink parts") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
 @export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
+@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 0.3
 
-const CRUISE_SPEED := 390.0
-const BOOST_SPEED := 760.0
-const ACCELERATION := 1320.0
-const BOOST_ACCELERATION := 2300.0
-const DIRECT_CRUISE_ACCELERATION := 1850.0
-const DIRECT_BOOST_ACCELERATION := 3000.0
+const CRUISE_SPEED := 390.0 * FLIGHT_SPEED_MULTIPLIER
+const BOOST_SPEED := 760.0 * FLIGHT_SPEED_MULTIPLIER
+const ACCELERATION := 1320.0 * FLIGHT_SPEED_MULTIPLIER
+const BOOST_ACCELERATION := 2300.0 * FLIGHT_SPEED_MULTIPLIER
+const DIRECT_CRUISE_ACCELERATION := 1850.0 * FLIGHT_SPEED_MULTIPLIER
+const DIRECT_BOOST_ACCELERATION := 3000.0 * FLIGHT_SPEED_MULTIPLIER
 const DIRECT_BODY_TURN_RATE := 10.6
 const DIRECT_HARD_BODY_TURN_RATE := 14.0
-const HOVER_BRAKE := 5200.0
-const SLIP_BRAKE := 4200.0
+const HOVER_BRAKE := 5200.0 * FLIGHT_SPEED_MULTIPLIER
+const SLIP_BRAKE := 4200.0 * FLIGHT_SPEED_MULTIPLIER
 const SLIP_DURATION := 0.12
 const HOVER_STOP_SPEED := 16.0
 const INPUT_HEADING_TURN_RATE := 4.8
@@ -93,18 +100,18 @@ const HEADING_TURN_RATE := 5.6
 const HOVER_HEADING_TURN_RATE := 8.4
 const HARD_HEADING_TURN_RATE := 9.0
 const HARD_TURN_MIN_ANGLE := 2.06
-const HARD_TURN_MIN_SPEED := 420.0
+const HARD_TURN_MIN_SPEED := 420.0 * FLIGHT_SPEED_MULTIPLIER
 const CARVE_DURATION := 0.24
-const CARVE_SIDE_FORCE := 720.0
+const CARVE_SIDE_FORCE := 720.0 * FLIGHT_SPEED_MULTIPLIER
 const CARVE_SPEED_KEEP := 0.86
-const BOUNDARY_SOFT_MARGIN := 280.0
+const BOUNDARY_SOFT_MARGIN := 280.0 * FLIGHT_SPEED_MULTIPLIER
 const BOUNDARY_HEADING_PULL := 2.2
-const BOUNDARY_RETURN_ACCEL := 1550.0
-const CAMERA_MIN_ZOOM := 1.0
-const CAMERA_MAX_ZOOM := 1.18
-const CAMERA_ZOOM_HALF_LIFE := 0.16
-const BOOST_ENTER_SPEED := 520.0
-const BOOST_EXIT_SPEED := 455.0
+const BOUNDARY_RETURN_ACCEL := 1550.0 * FLIGHT_SPEED_MULTIPLIER
+const CAMERA_MIN_ZOOM := 1.12
+const CAMERA_MAX_ZOOM := 1.30
+const CAMERA_ZOOM_HALF_LIFE := 0.18
+const BOOST_ENTER_SPEED := 520.0 * FLIGHT_SPEED_MULTIPLIER
+const BOOST_EXIT_SPEED := 455.0 * FLIGHT_SPEED_MULTIPLIER
 const BOOST_IDLE_HARD_TURN_ENTRY_FRAME := 4
 
 const KEY_MODE_NONE := 0
@@ -219,6 +226,7 @@ const CLIPS := [
 var sprite_root: Node2D
 var character_sprite: Sprite2D
 var skeleton_character: Node2D
+var ink_part_character: Node2D
 var key_shader: Shader
 var trail_halo: Line2D
 var trail_ribbon: Line2D
@@ -241,6 +249,11 @@ var flight_pos := FLIGHT_START_POS
 var visual_pos := flight_pos
 var velocity := Vector2.ZERO
 var camera_center := FLIGHT_START_POS
+var camera_look_ahead := Vector2.ZERO
+var camera_look_ahead_time := CAMERA_LOOK_AHEAD_TIME
+var camera_max_look_ahead := CAMERA_MAX_LOOK_AHEAD
+var camera_look_ahead_half_life := CAMERA_LOOK_AHEAD_HALF_LIFE
+var camera_hard_turn_look_ahead_scale := CAMERA_HARD_TURN_LOOK_AHEAD_SCALE
 var camera_zoom := CAMERA_MIN_ZOOM
 var target_heading := Vector2.RIGHT
 var body_heading := Vector2.RIGHT
@@ -260,6 +273,8 @@ var heading_turn_rate := 0.0
 var boundary_energy := 0.0
 var boost_energy := 0.0
 var turn_energy := 0.0
+var direction_switch_energy := 0.0
+var direction_switch_direction := 0.0
 var eight_way_local_rotation := 0.0
 var eight_way_visual_offset := Vector2.ZERO
 var eight_way_visual_direction_scale := 1.0
@@ -284,10 +299,21 @@ var adjustment_direction_scale_slider: HSlider
 var adjustment_direction_scale_spin: SpinBox
 var adjustment_offset_x_spin: SpinBox
 var adjustment_offset_y_spin: SpinBox
+var camera_look_ahead_time_slider: HSlider
+var camera_look_ahead_time_spin: SpinBox
+var camera_max_look_ahead_x_slider: HSlider
+var camera_max_look_ahead_x_spin: SpinBox
+var camera_max_look_ahead_y_slider: HSlider
+var camera_max_look_ahead_y_spin: SpinBox
+var camera_look_ahead_half_life_slider: HSlider
+var camera_look_ahead_half_life_spin: SpinBox
+var camera_hard_turn_look_ahead_scale_slider: HSlider
+var camera_hard_turn_look_ahead_scale_spin: SpinBox
 var adjustment_status_label: Label
 
 var trail_points: Array = []
 var afterimages: Array = []
+var direction_switch_fx: Array = []
 
 
 func _ready() -> void:
@@ -313,6 +339,7 @@ func _process(delta: float) -> void:
 	_update_camera(step)
 	_update_visual_state(step)
 	_update_adjustment_panel_follow_state()
+	_update_direction_switch_fx(step)
 	_update_afterimages(step)
 	_update_trail(step)
 	queue_redraw()
@@ -397,13 +424,18 @@ void fragment() {
 	character_sprite.region_enabled = not USE_GEMINI_8WAY_CRUISE
 	character_sprite.material = _make_key_material()
 	character_sprite.position = POSE_OFFSET
-	character_sprite.visible = not _uses_skeleton_eight_way()
+	character_sprite.visible = not _uses_procedural_eight_way()
 	sprite_root.add_child(character_sprite)
 
 	skeleton_character = HUMANOID_8WAY_SKELETON_VISUAL.new()
 	skeleton_character.name = "SkeletonEightWayCharacter"
 	skeleton_character.visible = _uses_skeleton_eight_way()
 	sprite_root.add_child(skeleton_character)
+
+	ink_part_character = YUJIAN_INK_PART_VISUAL.new()
+	ink_part_character.name = "InkPartEightWayCharacter"
+	ink_part_character.visible = _uses_ink_part_eight_way()
+	sprite_root.add_child(ink_part_character)
 
 
 func _create_adjustment_panel() -> void:
@@ -423,7 +455,7 @@ func _create_adjustment_panel() -> void:
 	adjustment_panel.add_child(root)
 
 	var title := Label.new()
-	title.text = "八向人物调参  F2"
+	title.text = "四向人物调参  F2"
 	title.add_theme_font_size_override("font_size", 18)
 	root.add_child(title)
 
@@ -467,6 +499,41 @@ func _create_adjustment_panel() -> void:
 	adjustment_offset_y_spin.value_changed.connect(Callable(self, "_on_adjustment_offset_y_changed"))
 	root.add_child(_make_adjustment_row("Y 偏移", adjustment_offset_y_spin))
 
+	var camera_title := Label.new()
+	camera_title.text = "镜头"
+	camera_title.add_theme_font_size_override("font_size", 14)
+	root.add_child(camera_title)
+
+	camera_look_ahead_time_slider = _make_adjustment_slider(0.0, 0.22, 0.005)
+	camera_look_ahead_time_spin = _make_adjustment_spin(0.0, 0.35, 0.005)
+	camera_look_ahead_time_slider.value_changed.connect(Callable(self, "_on_camera_look_ahead_time_changed"))
+	camera_look_ahead_time_spin.value_changed.connect(Callable(self, "_on_camera_look_ahead_time_changed"))
+	root.add_child(_make_adjustment_slider_row("预判时间", camera_look_ahead_time_slider, camera_look_ahead_time_spin))
+
+	camera_max_look_ahead_x_slider = _make_adjustment_slider(0.0, 720.0, 5.0)
+	camera_max_look_ahead_x_spin = _make_adjustment_spin(0.0, 1200.0, 5.0)
+	camera_max_look_ahead_x_slider.value_changed.connect(Callable(self, "_on_camera_max_look_ahead_x_changed"))
+	camera_max_look_ahead_x_spin.value_changed.connect(Callable(self, "_on_camera_max_look_ahead_x_changed"))
+	root.add_child(_make_adjustment_slider_row("预判X", camera_max_look_ahead_x_slider, camera_max_look_ahead_x_spin))
+
+	camera_max_look_ahead_y_slider = _make_adjustment_slider(0.0, 320.0, 5.0)
+	camera_max_look_ahead_y_spin = _make_adjustment_spin(0.0, 800.0, 5.0)
+	camera_max_look_ahead_y_slider.value_changed.connect(Callable(self, "_on_camera_max_look_ahead_y_changed"))
+	camera_max_look_ahead_y_spin.value_changed.connect(Callable(self, "_on_camera_max_look_ahead_y_changed"))
+	root.add_child(_make_adjustment_slider_row("预判Y", camera_max_look_ahead_y_slider, camera_max_look_ahead_y_spin))
+
+	camera_look_ahead_half_life_slider = _make_adjustment_slider(0.01, 0.18, 0.005)
+	camera_look_ahead_half_life_spin = _make_adjustment_spin(0.01, 0.30, 0.005)
+	camera_look_ahead_half_life_slider.value_changed.connect(Callable(self, "_on_camera_look_ahead_half_life_changed"))
+	camera_look_ahead_half_life_spin.value_changed.connect(Callable(self, "_on_camera_look_ahead_half_life_changed"))
+	root.add_child(_make_adjustment_slider_row("预判平滑", camera_look_ahead_half_life_slider, camera_look_ahead_half_life_spin))
+
+	camera_hard_turn_look_ahead_scale_slider = _make_adjustment_slider(0.10, 1.0, 0.01)
+	camera_hard_turn_look_ahead_scale_spin = _make_adjustment_spin(0.05, 1.0, 0.01)
+	camera_hard_turn_look_ahead_scale_slider.value_changed.connect(Callable(self, "_on_camera_hard_turn_look_ahead_scale_changed"))
+	camera_hard_turn_look_ahead_scale_spin.value_changed.connect(Callable(self, "_on_camera_hard_turn_look_ahead_scale_changed"))
+	root.add_child(_make_adjustment_slider_row("急转预判", camera_hard_turn_look_ahead_scale_slider, camera_hard_turn_look_ahead_scale_spin))
+
 	var button_row := HBoxContainer.new()
 	button_row.add_theme_constant_override("separation", 6)
 	root.add_child(button_row)
@@ -478,8 +545,12 @@ func _create_adjustment_panel() -> void:
 	reset_set_button.text = "重置资源集"
 	reset_set_button.pressed.connect(Callable(self, "_on_adjustment_reset_set_pressed"))
 	button_row.add_child(reset_set_button)
+	var reset_camera_button := Button.new()
+	reset_camera_button.text = "重置镜头"
+	reset_camera_button.pressed.connect(Callable(self, "_on_camera_reset_pressed"))
+	button_row.add_child(reset_camera_button)
 	var save_button := Button.new()
-	save_button.text = "保存 JSON"
+	save_button.text = "保存调参 JSON"
 	save_button.pressed.connect(Callable(self, "_on_adjustment_save_pressed"))
 	root.add_child(save_button)
 
@@ -591,10 +662,12 @@ func _load_eight_way_adjustments() -> void:
 			if typeof(parsed) == TYPE_DICTIONARY:
 				eight_way_adjustments = parsed
 	_ensure_all_eight_way_adjustments()
+	_apply_camera_adjustments_from_data()
 
 
 func _save_eight_way_adjustments() -> bool:
 	_ensure_all_eight_way_adjustments()
+	_write_camera_adjustments_to_data()
 	var global_path := ProjectSettings.globalize_path(EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH)
 	var file := FileAccess.open(global_path, FileAccess.WRITE)
 	if file == null:
@@ -610,6 +683,45 @@ func _ensure_all_eight_way_adjustments() -> void:
 		eight_way_adjustments["sets"] = {}
 	for index in range(GEMINI_EIGHT_WAY_BASE_PATHS.size()):
 		_ensure_eight_way_adjustment_set(index)
+	_ensure_camera_adjustments()
+
+
+func _ensure_camera_adjustments() -> void:
+	if not eight_way_adjustments.has("camera") or typeof(eight_way_adjustments["camera"]) != TYPE_DICTIONARY:
+		eight_way_adjustments["camera"] = {}
+	var camera_data: Dictionary = eight_way_adjustments["camera"]
+	if not camera_data.has("look_ahead_time"):
+		camera_data["look_ahead_time"] = CAMERA_LOOK_AHEAD_TIME
+	if not camera_data.has("max_look_ahead") or typeof(camera_data["max_look_ahead"]) != TYPE_ARRAY:
+		camera_data["max_look_ahead"] = [CAMERA_MAX_LOOK_AHEAD.x, CAMERA_MAX_LOOK_AHEAD.y]
+	if not camera_data.has("look_ahead_half_life"):
+		camera_data["look_ahead_half_life"] = CAMERA_LOOK_AHEAD_HALF_LIFE
+	if not camera_data.has("hard_turn_look_ahead_scale"):
+		camera_data["hard_turn_look_ahead_scale"] = CAMERA_HARD_TURN_LOOK_AHEAD_SCALE
+
+
+func _apply_camera_adjustments_from_data() -> void:
+	_ensure_camera_adjustments()
+	var camera_data: Dictionary = eight_way_adjustments["camera"]
+	camera_look_ahead_time = clampf(float(camera_data.get("look_ahead_time", CAMERA_LOOK_AHEAD_TIME)), 0.0, 0.35)
+	var raw_max: Array = camera_data.get("max_look_ahead", [CAMERA_MAX_LOOK_AHEAD.x, CAMERA_MAX_LOOK_AHEAD.y])
+	if raw_max.size() < 2:
+		raw_max = [CAMERA_MAX_LOOK_AHEAD.x, CAMERA_MAX_LOOK_AHEAD.y]
+	camera_max_look_ahead = Vector2(
+		clampf(float(raw_max[0]), 0.0, 1200.0),
+		clampf(float(raw_max[1]), 0.0, 800.0)
+	)
+	camera_look_ahead_half_life = clampf(float(camera_data.get("look_ahead_half_life", CAMERA_LOOK_AHEAD_HALF_LIFE)), 0.01, 0.30)
+	camera_hard_turn_look_ahead_scale = clampf(float(camera_data.get("hard_turn_look_ahead_scale", CAMERA_HARD_TURN_LOOK_AHEAD_SCALE)), 0.05, 1.0)
+
+
+func _write_camera_adjustments_to_data() -> void:
+	_ensure_camera_adjustments()
+	var camera_data: Dictionary = eight_way_adjustments["camera"]
+	camera_data["look_ahead_time"] = camera_look_ahead_time
+	camera_data["max_look_ahead"] = [camera_max_look_ahead.x, camera_max_look_ahead.y]
+	camera_data["look_ahead_half_life"] = camera_look_ahead_half_life
+	camera_data["hard_turn_look_ahead_scale"] = camera_hard_turn_look_ahead_scale
 
 
 func _ensure_eight_way_adjustment_set(set_index: int) -> void:
@@ -680,7 +792,7 @@ func _get_eight_way_direction_offset(set_index: int, direction_index: int) -> Ve
 
 func _load_eight_way_textures() -> void:
 	eight_way_textures.clear()
-	if _uses_skeleton_eight_way():
+	if _uses_procedural_eight_way():
 		return
 	for index in range(GEMINI_EIGHT_WAY_NAMES.size()):
 		var path := _get_eight_way_path(index)
@@ -697,11 +809,20 @@ func _set_eight_way_character_set(next_set: int) -> void:
 	eight_way_texture_initialized = false
 	eight_way_visual_adjustments_initialized = false
 	if character_sprite != null:
-		character_sprite.visible = not _uses_skeleton_eight_way()
+		character_sprite.visible = not _uses_procedural_eight_way()
 	if skeleton_character != null:
 		skeleton_character.visible = _uses_skeleton_eight_way()
+	if ink_part_character != null:
+		ink_part_character.visible = _uses_ink_part_eight_way()
 	_load_eight_way_textures()
-	_apply_eight_way_texture(visual_heading)
+	if _use_v1_sequence_visual():
+		if sheet_texture == null:
+			_start_clip(CLIP_CRUISE_IDLE, facing_sign)
+		else:
+			_apply_v1_hybrid_texture(visual_heading)
+			_apply_sprite_transform()
+	else:
+		_apply_eight_way_texture(visual_heading)
 	_refresh_adjustment_controls()
 	queue_redraw()
 
@@ -712,6 +833,14 @@ func _eight_way_set_count() -> int:
 
 func _uses_skeleton_eight_way() -> bool:
 	return eight_way_character_set == EIGHT_WAY_SET_V4_SKELETON
+
+
+func _uses_ink_part_eight_way() -> bool:
+	return eight_way_character_set == EIGHT_WAY_SET_V5_INK_PARTS
+
+
+func _uses_procedural_eight_way() -> bool:
+	return _uses_skeleton_eight_way() or _uses_ink_part_eight_way()
 
 
 func _get_eight_way_path(index: int) -> String:
@@ -764,6 +893,16 @@ func _refresh_adjustment_controls() -> void:
 	adjustment_direction_scale_spin.value = direction_scale
 	adjustment_offset_x_spin.value = offset.x
 	adjustment_offset_y_spin.value = offset.y
+	camera_look_ahead_time_slider.value = camera_look_ahead_time
+	camera_look_ahead_time_spin.value = camera_look_ahead_time
+	camera_max_look_ahead_x_slider.value = camera_max_look_ahead.x
+	camera_max_look_ahead_x_spin.value = camera_max_look_ahead.x
+	camera_max_look_ahead_y_slider.value = camera_max_look_ahead.y
+	camera_max_look_ahead_y_spin.value = camera_max_look_ahead.y
+	camera_look_ahead_half_life_slider.value = camera_look_ahead_half_life
+	camera_look_ahead_half_life_spin.value = camera_look_ahead_half_life
+	camera_hard_turn_look_ahead_scale_slider.value = camera_hard_turn_look_ahead_scale
+	camera_hard_turn_look_ahead_scale_spin.value = camera_hard_turn_look_ahead_scale
 	adjustment_updating_controls = false
 	_update_adjustment_status()
 
@@ -783,6 +922,13 @@ func _update_adjustment_status(extra_message := "") -> void:
 		direction_scale,
 		offset.x,
 		offset.y,
+	]
+	adjustment_status_label.text += "\n镜头 预判 %.3f  X%.0f Y%.0f  平滑 %.3f  急转 %.2f" % [
+		camera_look_ahead_time,
+		camera_max_look_ahead.x,
+		camera_max_look_ahead.y,
+		camera_look_ahead_half_life,
+		camera_hard_turn_look_ahead_scale,
 	]
 	if extra_message != "":
 		adjustment_status_label.text += "\n%s" % extra_message
@@ -862,6 +1008,68 @@ func _set_eight_way_direction_offset(direction_index: int, offset: Vector2) -> v
 	_update_adjustment_status()
 
 
+func _sync_camera_control_pair(slider: HSlider, spin: SpinBox, value: float) -> void:
+	adjustment_updating_controls = true
+	slider.value = value
+	spin.value = value
+	adjustment_updating_controls = false
+
+
+func _on_camera_look_ahead_time_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	camera_look_ahead_time = clampf(value, 0.0, 0.35)
+	_sync_camera_control_pair(camera_look_ahead_time_slider, camera_look_ahead_time_spin, camera_look_ahead_time)
+	_write_camera_adjustments_to_data()
+	_update_adjustment_status()
+
+
+func _on_camera_max_look_ahead_x_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	camera_max_look_ahead.x = clampf(value, 0.0, 1200.0)
+	_sync_camera_control_pair(camera_max_look_ahead_x_slider, camera_max_look_ahead_x_spin, camera_max_look_ahead.x)
+	_write_camera_adjustments_to_data()
+	_update_adjustment_status()
+
+
+func _on_camera_max_look_ahead_y_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	camera_max_look_ahead.y = clampf(value, 0.0, 800.0)
+	_sync_camera_control_pair(camera_max_look_ahead_y_slider, camera_max_look_ahead_y_spin, camera_max_look_ahead.y)
+	_write_camera_adjustments_to_data()
+	_update_adjustment_status()
+
+
+func _on_camera_look_ahead_half_life_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	camera_look_ahead_half_life = clampf(value, 0.01, 0.30)
+	_sync_camera_control_pair(camera_look_ahead_half_life_slider, camera_look_ahead_half_life_spin, camera_look_ahead_half_life)
+	_write_camera_adjustments_to_data()
+	_update_adjustment_status()
+
+
+func _on_camera_hard_turn_look_ahead_scale_changed(value: float) -> void:
+	if adjustment_updating_controls:
+		return
+	camera_hard_turn_look_ahead_scale = clampf(value, 0.05, 1.0)
+	_sync_camera_control_pair(camera_hard_turn_look_ahead_scale_slider, camera_hard_turn_look_ahead_scale_spin, camera_hard_turn_look_ahead_scale)
+	_write_camera_adjustments_to_data()
+	_update_adjustment_status()
+
+
+func _on_camera_reset_pressed() -> void:
+	camera_look_ahead_time = CAMERA_LOOK_AHEAD_TIME
+	camera_max_look_ahead = CAMERA_MAX_LOOK_AHEAD
+	camera_look_ahead_half_life = CAMERA_LOOK_AHEAD_HALF_LIFE
+	camera_hard_turn_look_ahead_scale = CAMERA_HARD_TURN_LOOK_AHEAD_SCALE
+	camera_look_ahead = Vector2.ZERO
+	_write_camera_adjustments_to_data()
+	_refresh_adjustment_controls()
+
+
 func _on_adjustment_reset_direction_pressed() -> void:
 	var direction_data := _get_eight_way_direction_adjustment(eight_way_character_set, adjustment_selected_direction)
 	direction_data["scale"] = 1.0
@@ -925,6 +1133,10 @@ func _reset_directional_vfx() -> void:
 
 
 func _start_cruise_turn(from_sign: float, to_sign: float, entry_phase := 0.0) -> void:
+	if _use_v1_sequence_visual():
+		facing_sign = signf(to_sign)
+		_set_render_sign(facing_sign)
+		return
 	turn_from_sign = signf(from_sign)
 	turn_to_sign = signf(to_sign)
 	var entry_frame := int(round(clampf(entry_phase, 0.0, 1.0) * float(int(CLIPS[CLIP_CRUISE_TURN]["frames"]) - 1)))
@@ -933,6 +1145,11 @@ func _start_cruise_turn(from_sign: float, to_sign: float, entry_phase := 0.0) ->
 
 
 func _start_hard_turn(from_sign: float, to_sign: float) -> void:
+	if _use_v1_sequence_visual():
+		hard_turn_request_timer = 0.0
+		facing_sign = signf(to_sign)
+		_set_render_sign(facing_sign)
+		return
 	turn_from_sign = signf(from_sign)
 	turn_to_sign = signf(to_sign)
 	_start_clip(CLIP_HARD_TURN_CORE, turn_from_sign)
@@ -1010,6 +1227,15 @@ func _finish_clip(_axis: Vector2, _boosting: bool) -> void:
 
 func _update_clip_requests(_axis: Vector2, _boosting: bool) -> void:
 	var desired_sign := _heading_render_sign(body_heading, render_sign)
+	var using_v1_sequence := _use_v1_sequence_visual()
+	if using_v1_sequence:
+		hard_turn_request_timer = 0.0
+		if _is_hard_turn_clip() or clip_index == CLIP_CRUISE_TURN:
+			_start_clip(CLIP_BOOST_IDLE if speed_mode == SPEED_MODE_BOOST else CLIP_CRUISE_IDLE, facing_sign)
+			return
+		if absf(body_heading.x) > 0.34 and desired_sign != facing_sign:
+			facing_sign = desired_sign
+			_set_render_sign(desired_sign)
 	var can_interrupt_turn := not _is_turn_clip() or _clip_phase() >= 0.22
 
 	if hard_turn_request_timer > 0.0 and can_interrupt_turn:
@@ -1145,7 +1371,8 @@ func _update_direct_intent_motion(axis: Vector2, boosting: bool, delta: float) -
 		hard_turn_request_timer = maxf(hard_turn_request_timer - delta, 0.0)
 
 	if input_active:
-		target_heading = heading_input
+		var input_strength := clampf(axis.length(), 0.0, 1.0)
+		_steer_target_heading_toward(heading_input, INPUT_HEADING_TURN_RATE, input_strength, delta)
 	elif throttle_pressed:
 		if velocity.length_squared() > 0.001:
 			target_heading = velocity.normalized()
@@ -1208,8 +1435,18 @@ func _update_target_heading_from_input(axis: Vector2, delta: float) -> void:
 		return
 	heading_input = axis.normalized()
 	var input_strength := clampf(axis.length(), 0.0, 1.0)
-	var turn_delta := _signed_angle_between(target_heading, heading_input)
-	var angle_step := clampf(turn_delta, -INPUT_HEADING_TURN_RATE * input_strength * delta, INPUT_HEADING_TURN_RATE * input_strength * delta)
+	_steer_target_heading_toward(heading_input, INPUT_HEADING_TURN_RATE, input_strength, delta)
+
+
+func _steer_target_heading_toward(desired_heading: Vector2, turn_rate: float, strength: float, delta: float) -> void:
+	if desired_heading.length_squared() <= 0.0001:
+		return
+	if target_heading.length_squared() <= 0.0001:
+		target_heading = body_heading.normalized() if body_heading.length_squared() > 0.0001 else Vector2.RIGHT
+	var safe_desired := desired_heading.normalized()
+	var safe_strength := clampf(strength, 0.0, 1.0)
+	var turn_delta := _signed_angle_between(target_heading, safe_desired)
+	var angle_step := clampf(turn_delta, -turn_rate * safe_strength * delta, turn_rate * safe_strength * delta)
 	target_heading = target_heading.rotated(angle_step).normalized()
 
 
@@ -1233,6 +1470,7 @@ func _update_visual_state(delta: float) -> void:
 	turn_target = maxf(turn_target, carve_target)
 	boost_energy = _damp_float(boost_energy, boost_target, 0.09, delta)
 	turn_energy = _damp_float(turn_energy, turn_target, 0.06, delta)
+	direction_switch_energy = _damp_float(direction_switch_energy, 0.0, DIRECTION_SWITCH_ENERGY_HALF_LIFE, delta)
 	throttle_energy = _damp_float(throttle_energy, 1.0 if throttle_pressed else 0.0, 0.08, delta)
 	slip_energy = _damp_float(slip_energy, clampf(slip_timer / SLIP_DURATION, 0.0, 1.0), 0.05, delta)
 	carve_energy = _damp_float(carve_energy, carve_target, 0.045, delta)
@@ -1260,8 +1498,14 @@ func _update_visual_heading(delta: float) -> void:
 func _apply_sprite_transform(delta := 0.0) -> void:
 	if sprite_root == null or character_sprite == null:
 		return
+	var use_static_direction_pose := false
 	if USE_GEMINI_8WAY_CRUISE:
-		_apply_eight_way_texture(visual_heading)
+		if _use_v1_sequence_visual():
+			use_static_direction_pose = _apply_v1_hybrid_texture(visual_heading)
+		else:
+			_apply_eight_way_texture(visual_heading)
+			use_static_direction_pose = true
+	if use_static_direction_pose:
 		sprite_root.position = _world_to_screen(visual_pos)
 		sprite_root.rotation = 0.0
 		sprite_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
@@ -1272,15 +1516,24 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 		if _uses_skeleton_eight_way():
 			_apply_skeleton_eight_way_transform(delta, turn_lean)
 			return
+		if _uses_ink_part_eight_way():
+			_apply_ink_part_eight_way_transform(delta, turn_lean)
+			return
 		if character_sprite != null:
 			character_sprite.visible = true
 		if skeleton_character != null:
 			skeleton_character.visible = false
+		if ink_part_character != null:
+			ink_part_character.visible = false
 		var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
+		var switch_side := visual_heading.rotated(direction_switch_direction * PI * 0.5)
+		var switch_offset := (-visual_heading * 5.0 + switch_side * 4.0) * direction_switch_energy
 		var sprite_scale := GEMINI_EIGHT_WAY_SCALE * adjustment_scale * (1.0 + 0.035 * boost_energy + 0.035 * carve_energy)
-		character_sprite.position = GEMINI_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -3.0 * boost_energy - 2.0 * carve_energy)
-		character_sprite.rotation = eight_way_local_rotation - turn_lean * 0.035 + carve_direction * carve_energy * 0.045
-		character_sprite.scale = Vector2(sprite_scale, sprite_scale)
+		var scale_x := sprite_scale * (1.0 + 0.035 * direction_switch_energy)
+		var scale_y := sprite_scale * (1.0 - 0.022 * direction_switch_energy)
+		character_sprite.position = GEMINI_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -3.0 * boost_energy - 2.0 * carve_energy) + switch_offset
+		character_sprite.rotation = eight_way_local_rotation - turn_lean * 0.035 + carve_direction * carve_energy * 0.045 + direction_switch_direction * direction_switch_energy * 0.055
+		character_sprite.scale = Vector2(scale_x, scale_y)
 		return
 	sprite_root.position = _world_to_screen(visual_pos)
 	sprite_root.rotation = _visual_root_rotation()
@@ -1299,14 +1552,45 @@ func _apply_skeleton_eight_way_transform(delta: float, turn_lean: float) -> void
 		return
 	if character_sprite != null:
 		character_sprite.visible = false
+	if ink_part_character != null:
+		ink_part_character.visible = false
 	skeleton_character.visible = true
 	var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
-	var skeleton_scale := SKELETON_EIGHT_WAY_SCALE * adjustment_scale * (1.0 + 0.045 * boost_energy + 0.03 * carve_energy)
+	var skeleton_scale := SKELETON_EIGHT_WAY_SCALE * skeleton_size_scale * adjustment_scale * (1.0 + 0.045 * boost_energy + 0.03 * carve_energy)
 	skeleton_character.position = SKELETON_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -4.0 * boost_energy - 2.0 * carve_energy)
 	skeleton_character.rotation = 0.0
 	skeleton_character.scale = Vector2.ONE * skeleton_scale
 	if skeleton_character.has_method("set_flight_pose"):
 		skeleton_character.call(
+			"set_flight_pose",
+			eight_way_index,
+			visual_heading,
+			velocity,
+			boost_energy,
+			turn_energy,
+			carve_energy,
+			throttle_energy,
+			delta
+		)
+
+
+func _apply_ink_part_eight_way_transform(delta: float, turn_lean: float) -> void:
+	if ink_part_character == null:
+		return
+	if character_sprite != null:
+		character_sprite.visible = false
+	if skeleton_character != null:
+		skeleton_character.visible = false
+	ink_part_character.visible = true
+	var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
+	var ink_scale := INK_PART_EIGHT_WAY_SCALE * skeleton_size_scale * adjustment_scale * (1.0 + 0.055 * boost_energy + 0.035 * carve_energy)
+	var switch_side := visual_heading.rotated(direction_switch_direction * PI * 0.5)
+	var switch_offset := (-visual_heading * 4.0 + switch_side * 5.0) * direction_switch_energy
+	ink_part_character.position = SKELETON_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -5.0 * boost_energy - 2.0 * carve_energy) + switch_offset
+	ink_part_character.rotation = -turn_lean * 0.025 + carve_direction * carve_energy * 0.035 + direction_switch_direction * direction_switch_energy * 0.035
+	ink_part_character.scale = Vector2.ONE * ink_scale
+	if ink_part_character.has_method("set_flight_pose"):
+		ink_part_character.call(
 			"set_flight_pose",
 			eight_way_index,
 			visual_heading,
@@ -1334,10 +1618,13 @@ func _update_eight_way_visual_adjustments(target_offset: Vector2, target_directi
 
 
 func _apply_eight_way_texture(heading: Vector2) -> void:
-	if _uses_skeleton_eight_way():
-		var skeleton_next_index := _get_eight_way_index_with_hysteresis(heading)
-		eight_way_index = skeleton_next_index
-		eight_way_local_rotation = _get_eight_way_local_rotation(heading, skeleton_next_index)
+	if _uses_procedural_eight_way():
+		var procedural_next_index := _get_eight_way_index_with_hysteresis(heading)
+		var direction_changed := eight_way_texture_initialized and procedural_next_index != eight_way_index
+		if direction_changed and _uses_ink_part_eight_way():
+			_trigger_eight_way_direction_switch(eight_way_index, procedural_next_index)
+		eight_way_index = procedural_next_index
+		eight_way_local_rotation = _get_eight_way_local_rotation(heading, procedural_next_index)
 		eight_way_texture_initialized = true
 		return
 	if eight_way_textures.is_empty():
@@ -1345,7 +1632,7 @@ func _apply_eight_way_texture(heading: Vector2) -> void:
 	var next_index := _get_eight_way_index_with_hysteresis(heading)
 	var direction_changed := eight_way_texture_initialized and next_index != eight_way_index
 	if direction_changed:
-		_capture_eight_way_switch_ghost()
+		_trigger_eight_way_direction_switch(eight_way_index, next_index)
 	eight_way_index = next_index
 	eight_way_local_rotation = _get_eight_way_local_rotation(heading, next_index)
 	var texture := eight_way_textures[next_index] as Texture2D
@@ -1359,8 +1646,69 @@ func _apply_eight_way_texture(heading: Vector2) -> void:
 	character_sprite.region_rect = Rect2(Vector2.ZERO, texture.get_size())
 
 
-func _capture_eight_way_switch_ghost() -> void:
-	if _uses_skeleton_eight_way():
+func _apply_v1_hybrid_texture(heading: Vector2) -> bool:
+	var next_index := _get_eight_way_index_with_hysteresis(heading)
+	var direction_changed := eight_way_texture_initialized and next_index != eight_way_index
+	if direction_changed:
+		_trigger_eight_way_direction_switch(eight_way_index, next_index)
+	eight_way_index = next_index
+	eight_way_local_rotation = _get_eight_way_local_rotation(heading, next_index)
+	eight_way_texture_initialized = true
+	if _is_v1_sequence_sheet_index(next_index):
+		if sheet_texture != null:
+			character_sprite.texture = sheet_texture
+			character_sprite.region_enabled = true
+			character_sprite.region_rect = _get_frame_rect(frame_index)
+		return false
+	if eight_way_textures.is_empty():
+		return false
+	var texture := eight_way_textures[next_index] as Texture2D
+	if texture == null:
+		return false
+	character_sprite.texture = texture
+	character_sprite.region_enabled = false
+	character_sprite.region_rect = Rect2(Vector2.ZERO, texture.get_size())
+	return true
+
+
+func _trigger_eight_way_direction_switch(previous_index: int, next_index: int) -> void:
+	var previous_direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[clampi(previous_index, 0, GEMINI_EIGHT_WAY_VECTORS.size() - 1)].normalized()
+	var next_direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[clampi(next_index, 0, GEMINI_EIGHT_WAY_VECTORS.size() - 1)].normalized()
+	var signed_switch_angle := _signed_angle_between(previous_direction, next_direction)
+	var switch_direction := signf(signed_switch_angle)
+	if switch_direction == 0.0:
+		switch_direction = signf(direction_switch_direction) if direction_switch_direction != 0.0 else 1.0
+	var angle_pressure := clampf(absf(signed_switch_angle) / (PI * 0.75), 0.0, 1.0)
+	var intent_pressure := clampf(absf(heading_angle_delta) / PI, 0.0, 1.0)
+	var speed_pressure := clampf((velocity.length() - CRUISE_SPEED * 0.35) / maxf(BOOST_SPEED - CRUISE_SPEED * 0.35, 1.0), 0.0, 1.0)
+	var switch_strength := clampf(maxf(angle_pressure, intent_pressure) * lerpf(0.68, 1.0, speed_pressure) + carve_energy * 0.45, 0.34, 1.0)
+	direction_switch_direction = switch_direction
+	direction_switch_energy = maxf(direction_switch_energy, switch_strength)
+	turn_energy = maxf(turn_energy, switch_strength * 0.45)
+	_capture_eight_way_switch_ghost(switch_strength)
+	_spawn_direction_switch_arc(previous_direction, next_direction, switch_direction, switch_strength)
+
+
+func _spawn_direction_switch_arc(previous_direction: Vector2, next_direction: Vector2, switch_direction: float, switch_strength: float) -> void:
+	var radius := lerpf(DIRECTION_SWITCH_ARC_RADIUS, DIRECTION_SWITCH_ARC_HARD_RADIUS, switch_strength)
+	var life := lerpf(DIRECTION_SWITCH_FX_LIFE, DIRECTION_SWITCH_FX_HARD_LIFE, switch_strength)
+	direction_switch_fx.append({
+		"center": visual_pos,
+		"old_dir": previous_direction,
+		"new_dir": next_direction,
+		"direction": switch_direction,
+		"radius": radius,
+		"age": 0.0,
+		"life": life,
+		"strength": switch_strength,
+		"velocity": velocity,
+	})
+	while direction_switch_fx.size() > DIRECTION_SWITCH_MAX_ARCS:
+		direction_switch_fx.pop_front()
+
+
+func _capture_eight_way_switch_ghost(switch_strength := 0.5) -> void:
+	if _uses_procedural_eight_way():
 		return
 	if character_sprite == null or character_sprite.texture == null:
 		return
@@ -1368,6 +1716,7 @@ func _capture_eight_way_switch_ghost() -> void:
 	var source := Rect2(Vector2.ZERO, texture.get_size())
 	if character_sprite.region_enabled:
 		source = character_sprite.region_rect
+	var ghost_life := lerpf(EIGHT_WAY_SWITCH_GHOST_LIFE, DIRECTION_SWITCH_FX_HARD_LIFE * 0.58, switch_strength)
 	afterimages.append({
 		"texture": texture,
 		"source": source,
@@ -1377,10 +1726,10 @@ func _capture_eight_way_switch_ghost() -> void:
 		"facing": 1.0,
 		"rotation": character_sprite.rotation,
 		"age": 0.0,
-		"life": EIGHT_WAY_SWITCH_GHOST_LIFE,
-		"intensity": 1.0,
-		"alpha": 0.12,
-		"velocity": velocity * 0.35,
+		"life": ghost_life,
+		"intensity": lerpf(0.78, 1.18, switch_strength),
+		"alpha": lerpf(0.10, 0.18, switch_strength),
+		"velocity": velocity * lerpf(0.26, 0.52, switch_strength),
 	})
 
 
@@ -1444,11 +1793,24 @@ func _current_eight_way_set_label() -> String:
 	return String(GEMINI_EIGHT_WAY_SET_LABELS[clampi(eight_way_character_set, 0, GEMINI_EIGHT_WAY_SET_LABELS.size() - 1)])
 
 
+func _use_v1_sequence_visual() -> bool:
+	return USE_GEMINI_8WAY_CRUISE and eight_way_character_set == EIGHT_WAY_SET_V1
+
+
+func _is_v1_sequence_sheet_index(index: int) -> bool:
+	return index == 0 or index == 2
+
+
+func _use_v1_static_direction_visual() -> bool:
+	return _use_v1_sequence_visual() and not _is_v1_sequence_sheet_index(eight_way_index)
+
+
 func _apply_frame() -> void:
 	if character_sprite == null:
 		return
-	if USE_GEMINI_8WAY_CRUISE:
+	if USE_GEMINI_8WAY_CRUISE and (not _use_v1_sequence_visual() or _use_v1_static_direction_visual()):
 		return
+	character_sprite.region_enabled = true
 	character_sprite.region_rect = _get_frame_rect(frame_index)
 
 
@@ -1584,14 +1946,16 @@ func _current_clip() -> Dictionary:
 func _update_camera(delta: float) -> void:
 	var zoom_target := lerpf(CAMERA_MIN_ZOOM, CAMERA_MAX_ZOOM, clampf((velocity.length() - CRUISE_SPEED * 0.55) / maxf(BOOST_SPEED - CRUISE_SPEED * 0.55, 1.0), 0.0, 1.0))
 	camera_zoom = _damp_float(camera_zoom, zoom_target, CAMERA_ZOOM_HALF_LIFE, delta)
-	var look_ahead := velocity * CAMERA_LOOK_AHEAD_TIME
-	look_ahead.x = clampf(look_ahead.x, -CAMERA_MAX_LOOK_AHEAD.x, CAMERA_MAX_LOOK_AHEAD.x)
-	look_ahead.y = clampf(look_ahead.y, -CAMERA_MAX_LOOK_AHEAD.y, CAMERA_MAX_LOOK_AHEAD.y)
-	var target_center := _clamp_camera_center(flight_pos + look_ahead)
+	var turn_pressure := clampf(maxf(maxf(absf(heading_angle_delta) / PI, carve_energy), direction_switch_energy), 0.0, 1.0)
+	var look_ahead_scale := lerpf(1.0, camera_hard_turn_look_ahead_scale, turn_pressure)
+	var target_look_ahead := velocity * camera_look_ahead_time * look_ahead_scale
+	target_look_ahead.x = clampf(target_look_ahead.x, -camera_max_look_ahead.x, camera_max_look_ahead.x)
+	target_look_ahead.y = clampf(target_look_ahead.y, -camera_max_look_ahead.y, camera_max_look_ahead.y)
 	if delta <= 0.0:
-		camera_center = target_center
+		camera_look_ahead = target_look_ahead
 	else:
-		camera_center = _damp_vector2(camera_center, target_center, CAMERA_HALF_LIFE, delta)
+		camera_look_ahead = _damp_vector2(camera_look_ahead, target_look_ahead, camera_look_ahead_half_life, delta)
+	camera_center = _clamp_camera_center(flight_pos + camera_look_ahead)
 
 
 func _clamp_camera_center(center: Vector2) -> Vector2:
@@ -1625,7 +1989,7 @@ func _update_afterimages(delta: float) -> void:
 	afterimages = afterimages.filter(func(image: Dictionary) -> bool: return float(image["age"]) <= float(image.get("life", 0.28)))
 
 	var clip := _current_clip()
-	var fast_enough := velocity.length() > 440.0 or _is_hard_turn_clip() or clip_index == CLIP_BOOST_IDLE
+	var fast_enough := velocity.length() > 440.0 * FLIGHT_SPEED_MULTIPLIER or _is_hard_turn_clip() or clip_index == CLIP_BOOST_IDLE
 	if not fast_enough:
 		return
 	var min_distance := lerpf(54.0, 30.0, clampf(boost_energy + turn_energy + carve_energy, 0.0, 1.0))
@@ -1633,14 +1997,23 @@ func _update_afterimages(delta: float) -> void:
 		_capture_afterimage(flight_pos - _safe_velocity_dir() * 24.0, float(clip.get("smear_weight", 0.3)))
 
 
+func _update_direction_switch_fx(delta: float) -> void:
+	for fx in direction_switch_fx:
+		fx["age"] = float(fx["age"]) + delta
+	direction_switch_fx = direction_switch_fx.filter(func(fx: Dictionary) -> bool: return float(fx["age"]) <= float(fx.get("life", DIRECTION_SWITCH_FX_LIFE)))
+
+
 func _capture_afterimage(pos: Vector2, intensity: float) -> void:
-	if _uses_skeleton_eight_way():
+	if _uses_procedural_eight_way():
 		return
-	if USE_GEMINI_8WAY_CRUISE and character_sprite != null and character_sprite.texture != null:
+	if USE_GEMINI_8WAY_CRUISE and (not _use_v1_sequence_visual() or _use_v1_static_direction_visual()) and character_sprite != null and character_sprite.texture != null:
 		var texture := character_sprite.texture
+		var source := Rect2(Vector2.ZERO, texture.get_size())
+		if character_sprite.region_enabled:
+			source = character_sprite.region_rect
 		afterimages.append({
 			"texture": texture,
-			"source": Rect2(Vector2.ZERO, texture.get_size()),
+			"source": source,
 			"pos": pos,
 			"screen_offset": character_sprite.position,
 			"scale": character_sprite.scale.abs(),
@@ -1782,6 +2155,7 @@ func _catmull_rom(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float) 
 
 func _draw() -> void:
 	_draw_background()
+	_draw_direction_switch_fx()
 	_draw_afterimages()
 	_draw_debug()
 
@@ -1853,6 +2227,80 @@ func _draw_cloud_wisp(origin: Vector2, length: float, color: Color) -> void:
 	draw_polyline(points, color, 5.0, true)
 
 
+func _draw_direction_switch_fx() -> void:
+	for fx in direction_switch_fx:
+		var age := float(fx.get("age", 0.0))
+		var life := maxf(float(fx.get("life", DIRECTION_SWITCH_FX_LIFE)), 0.001)
+		var progress := clampf(age / life, 0.0, 1.0)
+		var fade := pow(1.0 - progress, 1.35)
+		if fade <= 0.01:
+			continue
+		var strength := clampf(float(fx.get("strength", 0.5)), 0.0, 1.0)
+		var points := _build_direction_switch_arc_points(fx, progress)
+		if points.size() < 2:
+			continue
+		var width := lerpf(8.0, 24.0, strength) * fade / maxf(camera_zoom, 0.001)
+		var halo := CYAN
+		halo.a = 0.12 * fade * lerpf(0.65, 1.0, strength)
+		var ribbon := Color(0.72, 1.0, 0.98, 0.26 * fade)
+		var core := Color(0.98, 1.0, 0.94, 0.54 * fade)
+		draw_polyline(points, halo, width * 2.4, true)
+		draw_polyline(points, ribbon, width * 0.72, true)
+		draw_polyline(points, core, maxf(width * 0.16, 1.5), true)
+		if strength > 0.58:
+			_draw_direction_switch_front_edge(fx, fade, strength)
+
+
+func _build_direction_switch_arc_points(fx: Dictionary, progress: float) -> PackedVector2Array:
+	var center: Vector2 = fx.get("center", visual_pos)
+	var old_dir: Vector2 = fx.get("old_dir", Vector2.RIGHT)
+	var new_dir: Vector2 = fx.get("new_dir", Vector2.RIGHT)
+	if old_dir.length_squared() <= 0.0001:
+		old_dir = Vector2.RIGHT
+	else:
+		old_dir = old_dir.normalized()
+	if new_dir.length_squared() <= 0.0001:
+		new_dir = Vector2.RIGHT
+	else:
+		new_dir = new_dir.normalized()
+	var strength := clampf(float(fx.get("strength", 0.5)), 0.0, 1.0)
+	var age := float(fx.get("age", 0.0))
+	var radius := float(fx.get("radius", DIRECTION_SWITCH_ARC_RADIUS)) * (1.0 + progress * 0.12)
+	var velocity_drift: Vector2 = fx.get("velocity", Vector2.ZERO)
+	var center_drift := velocity_drift * age * 0.075
+	var start_angle := (-old_dir).angle()
+	var angle_delta := _signed_angle_between(-old_dir, -new_dir)
+	var switch_direction := float(fx.get("direction", 1.0))
+	var packed := PackedVector2Array()
+	for index in range(11):
+		var point_progress := float(index) / 10.0
+		var eased := point_progress * point_progress * (3.0 - 2.0 * point_progress)
+		var pulse := sin(point_progress * PI)
+		var overshoot := switch_direction * 0.16 * strength * pulse * (1.0 - progress)
+		var angle := start_angle + angle_delta * eased + overshoot
+		var arc_radius := radius * (1.0 + 0.16 * pulse * strength)
+		var world_point := center + center_drift + Vector2(cos(angle), sin(angle)) * arc_radius
+		packed.append(_world_to_screen(world_point))
+	return packed
+
+
+func _draw_direction_switch_front_edge(fx: Dictionary, fade: float, strength: float) -> void:
+	var center: Vector2 = fx.get("center", visual_pos)
+	var new_dir: Vector2 = fx.get("new_dir", Vector2.RIGHT)
+	if new_dir.length_squared() <= 0.0001:
+		new_dir = Vector2.RIGHT
+	else:
+		new_dir = new_dir.normalized()
+	var switch_direction := float(fx.get("direction", 1.0))
+	var age := float(fx.get("age", 0.0))
+	var velocity_drift: Vector2 = fx.get("velocity", Vector2.ZERO)
+	var side_dir := new_dir.rotated(switch_direction * PI * 0.5)
+	var base := center + velocity_drift * age * 0.055 + new_dir * lerpf(24.0, 52.0, strength)
+	var start := _world_to_screen(base - new_dir * lerpf(20.0, 34.0, strength) - side_dir * 6.0)
+	var end := _world_to_screen(base + new_dir * lerpf(22.0, 42.0, strength) + side_dir * 8.0)
+	draw_line(start, end, Color(0.98, 1.0, 0.94, 0.36 * fade), lerpf(2.0, 4.0, strength) / maxf(camera_zoom, 0.001), true)
+
+
 func _draw_afterimages() -> void:
 	for image in afterimages:
 		var texture := image.get("texture") as Texture2D
@@ -1887,7 +2335,17 @@ func _draw_debug() -> void:
 	var control_label := "direct intent" if control_mode == CONTROL_MODE_DIRECT_INTENT else "steer throttle"
 	var visual_label := "sheet"
 	if USE_GEMINI_8WAY_CRUISE:
-		visual_label = "Gemini 8way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
+		if _uses_skeleton_eight_way():
+			visual_label = "V4 skeleton %s" % _current_eight_way_name()
+		elif _uses_ink_part_eight_way():
+			visual_label = "V5 ink parts %s" % _current_eight_way_name()
+		elif _use_v1_sequence_visual():
+			if _use_v1_static_direction_visual():
+				visual_label = "V1 static %s" % _current_eight_way_name()
+			else:
+				visual_label = "V1 sequence %s" % String(clip["name"])
+		else:
+			visual_label = "Gemini 4way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
 	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  V set  F2 panel  F4 pose  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
 	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "control: %s  clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg visual %.0fdeg local %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [control_label, String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(visual_heading.angle()), rad_to_deg(eight_way_local_rotation), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
 
