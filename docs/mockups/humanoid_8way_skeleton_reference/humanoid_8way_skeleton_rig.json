@@ -1,0 +1,1723 @@
+{
+  "version": 1,
+  "unit": "local_pixels",
+  "part_types": [
+    "head",
+    "torso",
+    "upper_arm",
+    "forearm",
+    "thigh",
+    "calf"
+  ],
+  "notes": [
+    "This is a programmatic reference sheet, not final character art.",
+    "near/far limbs are kept separate so the layer order can change per direction.",
+    "Joints are local to each direction root; root is drawn under the body baseline."
+  ],
+  "directions": [
+    {
+      "key": "down",
+      "label": "下 / 正面",
+      "facing": "front",
+      "grid": [
+        0,
+        0
+      ],
+      "joints": {
+        "neck": [
+          0,
+          -96
+        ],
+        "head": [
+          0,
+          -124
+        ],
+        "shoulder_far": [
+          -36,
+          -78
+        ],
+        "elbow_far": [
+          -55,
+          -28
+        ],
+        "wrist_far": [
+          -44,
+          24
+        ],
+        "shoulder_near": [
+          36,
+          -78
+        ],
+        "elbow_near": [
+          55,
+          -28
+        ],
+        "wrist_near": [
+          44,
+          24
+        ],
+        "hip_far": [
+          -18,
+          6
+        ],
+        "knee_far": [
+          -27,
+          62
+        ],
+        "ankle_far": [
+          -28,
+          124
+        ],
+        "hip_near": [
+          18,
+          6
+        ],
+        "knee_near": [
+          27,
+          62
+        ],
+        "ankle_near": [
+          28,
+          124
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            0,
+            -124
+          ],
+          "rx": 21,
+          "ry": 25,
+          "view": "front",
+          "sign": 0
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              -32,
+              -92
+            ],
+            [
+              32,
+              -92
+            ],
+            [
+              26,
+              -24
+            ],
+            [
+              15,
+              12
+            ],
+            [
+              -15,
+              12
+            ],
+            [
+              -26,
+              -24
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -36,
+            -78
+          ],
+          "to": [
+            -55,
+            -28
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -55,
+            -28
+          ],
+          "to": [
+            -44,
+            24
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            36,
+            -78
+          ],
+          "to": [
+            55,
+            -28
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            55,
+            -28
+          ],
+          "to": [
+            44,
+            24
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -18,
+            6
+          ],
+          "to": [
+            -27,
+            62
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -27,
+            62
+          ],
+          "to": [
+            -28,
+            124
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            18,
+            6
+          ],
+          "to": [
+            27,
+            62
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            27,
+            62
+          ],
+          "to": [
+            28,
+            124
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "down_right",
+      "label": "右下 / 右前",
+      "facing": "front_diag",
+      "grid": [
+        1,
+        0
+      ],
+      "joints": {
+        "neck": [
+          7,
+          -96
+        ],
+        "head": [
+          9,
+          -124
+        ],
+        "shoulder_far": [
+          -27,
+          -80
+        ],
+        "elbow_far": [
+          -39,
+          -31
+        ],
+        "wrist_far": [
+          -29,
+          20
+        ],
+        "shoulder_near": [
+          35,
+          -75
+        ],
+        "elbow_near": [
+          51,
+          -25
+        ],
+        "wrist_near": [
+          41,
+          29
+        ],
+        "hip_far": [
+          -14,
+          5
+        ],
+        "knee_far": [
+          -22,
+          58
+        ],
+        "ankle_far": [
+          -16,
+          120
+        ],
+        "hip_near": [
+          16,
+          9
+        ],
+        "knee_near": [
+          31,
+          64
+        ],
+        "ankle_near": [
+          31,
+          126
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            9,
+            -124
+          ],
+          "rx": 21,
+          "ry": 25,
+          "view": "front_diag",
+          "sign": 1
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              -29,
+              -92
+            ],
+            [
+              33,
+              -86
+            ],
+            [
+              24,
+              -20
+            ],
+            [
+              11,
+              14
+            ],
+            [
+              -16,
+              8
+            ],
+            [
+              -25,
+              -24
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -27,
+            -80
+          ],
+          "to": [
+            -39,
+            -31
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -39,
+            -31
+          ],
+          "to": [
+            -29,
+            20
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            35,
+            -75
+          ],
+          "to": [
+            51,
+            -25
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            51,
+            -25
+          ],
+          "to": [
+            41,
+            29
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -14,
+            5
+          ],
+          "to": [
+            -22,
+            58
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -22,
+            58
+          ],
+          "to": [
+            -16,
+            120
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            16,
+            9
+          ],
+          "to": [
+            31,
+            64
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            31,
+            64
+          ],
+          "to": [
+            31,
+            126
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "right",
+      "label": "右 / 侧面",
+      "facing": "side",
+      "grid": [
+        2,
+        0
+      ],
+      "joints": {
+        "neck": [
+          7,
+          -96
+        ],
+        "head": [
+          11,
+          -124
+        ],
+        "shoulder_far": [
+          -7,
+          -79
+        ],
+        "elbow_far": [
+          -15,
+          -29
+        ],
+        "wrist_far": [
+          -6,
+          24
+        ],
+        "shoulder_near": [
+          14,
+          -76
+        ],
+        "elbow_near": [
+          24,
+          -25
+        ],
+        "wrist_near": [
+          19,
+          30
+        ],
+        "hip_far": [
+          -6,
+          7
+        ],
+        "knee_far": [
+          -8,
+          61
+        ],
+        "ankle_far": [
+          -2,
+          122
+        ],
+        "hip_near": [
+          8,
+          10
+        ],
+        "knee_near": [
+          18,
+          66
+        ],
+        "ankle_near": [
+          23,
+          126
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            11,
+            -124
+          ],
+          "rx": 18,
+          "ry": 25,
+          "view": "side",
+          "sign": 1
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              -12,
+              -90
+            ],
+            [
+              20,
+              -84
+            ],
+            [
+              17,
+              -19
+            ],
+            [
+              7,
+              16
+            ],
+            [
+              -9,
+              10
+            ],
+            [
+              -14,
+              -25
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -7,
+            -79
+          ],
+          "to": [
+            -15,
+            -29
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -15,
+            -29
+          ],
+          "to": [
+            -6,
+            24
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            14,
+            -76
+          ],
+          "to": [
+            24,
+            -25
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            24,
+            -25
+          ],
+          "to": [
+            19,
+            30
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -6,
+            7
+          ],
+          "to": [
+            -8,
+            61
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -8,
+            61
+          ],
+          "to": [
+            -2,
+            122
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            8,
+            10
+          ],
+          "to": [
+            18,
+            66
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            18,
+            66
+          ],
+          "to": [
+            23,
+            126
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "up_right",
+      "label": "右上 / 右后",
+      "facing": "back_diag",
+      "grid": [
+        3,
+        0
+      ],
+      "joints": {
+        "neck": [
+          5,
+          -96
+        ],
+        "head": [
+          7,
+          -124
+        ],
+        "shoulder_far": [
+          -30,
+          -75
+        ],
+        "elbow_far": [
+          -44,
+          -24
+        ],
+        "wrist_far": [
+          -37,
+          28
+        ],
+        "shoulder_near": [
+          30,
+          -82
+        ],
+        "elbow_near": [
+          46,
+          -31
+        ],
+        "wrist_near": [
+          39,
+          22
+        ],
+        "hip_far": [
+          -14,
+          9
+        ],
+        "knee_far": [
+          -18,
+          64
+        ],
+        "ankle_far": [
+          -13,
+          124
+        ],
+        "hip_near": [
+          14,
+          5
+        ],
+        "knee_near": [
+          28,
+          60
+        ],
+        "ankle_near": [
+          30,
+          122
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            7,
+            -124
+          ],
+          "rx": 21,
+          "ry": 25,
+          "view": "back_diag",
+          "sign": 1
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              -31,
+              -87
+            ],
+            [
+              28,
+              -92
+            ],
+            [
+              23,
+              -22
+            ],
+            [
+              12,
+              14
+            ],
+            [
+              -16,
+              10
+            ],
+            [
+              -24,
+              -18
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -30,
+            -75
+          ],
+          "to": [
+            -44,
+            -24
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -44,
+            -24
+          ],
+          "to": [
+            -37,
+            28
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            30,
+            -82
+          ],
+          "to": [
+            46,
+            -31
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            46,
+            -31
+          ],
+          "to": [
+            39,
+            22
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -14,
+            9
+          ],
+          "to": [
+            -18,
+            64
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -18,
+            64
+          ],
+          "to": [
+            -13,
+            124
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            14,
+            5
+          ],
+          "to": [
+            28,
+            60
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            28,
+            60
+          ],
+          "to": [
+            30,
+            122
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "up",
+      "label": "上 / 背面",
+      "facing": "back",
+      "grid": [
+        0,
+        1
+      ],
+      "joints": {
+        "neck": [
+          0,
+          -96
+        ],
+        "head": [
+          0,
+          -124
+        ],
+        "shoulder_far": [
+          -36,
+          -78
+        ],
+        "elbow_far": [
+          -52,
+          -25
+        ],
+        "wrist_far": [
+          -45,
+          26
+        ],
+        "shoulder_near": [
+          36,
+          -78
+        ],
+        "elbow_near": [
+          52,
+          -25
+        ],
+        "wrist_near": [
+          45,
+          26
+        ],
+        "hip_far": [
+          -18,
+          7
+        ],
+        "knee_far": [
+          -25,
+          62
+        ],
+        "ankle_far": [
+          -24,
+          124
+        ],
+        "hip_near": [
+          18,
+          7
+        ],
+        "knee_near": [
+          25,
+          62
+        ],
+        "ankle_near": [
+          24,
+          124
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            0,
+            -124
+          ],
+          "rx": 21,
+          "ry": 25,
+          "view": "back",
+          "sign": 0
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              -32,
+              -92
+            ],
+            [
+              32,
+              -92
+            ],
+            [
+              26,
+              -24
+            ],
+            [
+              15,
+              12
+            ],
+            [
+              -15,
+              12
+            ],
+            [
+              -26,
+              -24
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -36,
+            -78
+          ],
+          "to": [
+            -52,
+            -25
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -52,
+            -25
+          ],
+          "to": [
+            -45,
+            26
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            36,
+            -78
+          ],
+          "to": [
+            52,
+            -25
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            52,
+            -25
+          ],
+          "to": [
+            45,
+            26
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -18,
+            7
+          ],
+          "to": [
+            -25,
+            62
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -25,
+            62
+          ],
+          "to": [
+            -24,
+            124
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            18,
+            7
+          ],
+          "to": [
+            25,
+            62
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            25,
+            62
+          ],
+          "to": [
+            24,
+            124
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "up_left",
+      "label": "左上 / 左后",
+      "facing": "back_diag",
+      "grid": [
+        1,
+        1
+      ],
+      "joints": {
+        "neck": [
+          -5,
+          -96
+        ],
+        "head": [
+          -7,
+          -124
+        ],
+        "shoulder_far": [
+          30,
+          -75
+        ],
+        "elbow_far": [
+          44,
+          -24
+        ],
+        "wrist_far": [
+          37,
+          28
+        ],
+        "shoulder_near": [
+          -30,
+          -82
+        ],
+        "elbow_near": [
+          -46,
+          -31
+        ],
+        "wrist_near": [
+          -39,
+          22
+        ],
+        "hip_far": [
+          14,
+          9
+        ],
+        "knee_far": [
+          18,
+          64
+        ],
+        "ankle_far": [
+          13,
+          124
+        ],
+        "hip_near": [
+          -14,
+          5
+        ],
+        "knee_near": [
+          -28,
+          60
+        ],
+        "ankle_near": [
+          -30,
+          122
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            -7,
+            -124
+          ],
+          "rx": 21,
+          "ry": 25,
+          "view": "back_diag",
+          "sign": -1
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              31,
+              -87
+            ],
+            [
+              -28,
+              -92
+            ],
+            [
+              -23,
+              -22
+            ],
+            [
+              -12,
+              14
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              24,
+              -18
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            30,
+            -75
+          ],
+          "to": [
+            44,
+            -24
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            44,
+            -24
+          ],
+          "to": [
+            37,
+            28
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -30,
+            -82
+          ],
+          "to": [
+            -46,
+            -31
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -46,
+            -31
+          ],
+          "to": [
+            -39,
+            22
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            14,
+            9
+          ],
+          "to": [
+            18,
+            64
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            18,
+            64
+          ],
+          "to": [
+            13,
+            124
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -14,
+            5
+          ],
+          "to": [
+            -28,
+            60
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -28,
+            60
+          ],
+          "to": [
+            -30,
+            122
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "left",
+      "label": "左 / 侧面",
+      "facing": "side",
+      "grid": [
+        2,
+        1
+      ],
+      "joints": {
+        "neck": [
+          -7,
+          -96
+        ],
+        "head": [
+          -11,
+          -124
+        ],
+        "shoulder_far": [
+          7,
+          -79
+        ],
+        "elbow_far": [
+          15,
+          -29
+        ],
+        "wrist_far": [
+          6,
+          24
+        ],
+        "shoulder_near": [
+          -14,
+          -76
+        ],
+        "elbow_near": [
+          -24,
+          -25
+        ],
+        "wrist_near": [
+          -19,
+          30
+        ],
+        "hip_far": [
+          6,
+          7
+        ],
+        "knee_far": [
+          8,
+          61
+        ],
+        "ankle_far": [
+          2,
+          122
+        ],
+        "hip_near": [
+          -8,
+          10
+        ],
+        "knee_near": [
+          -18,
+          66
+        ],
+        "ankle_near": [
+          -23,
+          126
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            -11,
+            -124
+          ],
+          "rx": 18,
+          "ry": 25,
+          "view": "side",
+          "sign": -1
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              12,
+              -90
+            ],
+            [
+              -20,
+              -84
+            ],
+            [
+              -17,
+              -19
+            ],
+            [
+              -7,
+              16
+            ],
+            [
+              9,
+              10
+            ],
+            [
+              14,
+              -25
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            7,
+            -79
+          ],
+          "to": [
+            15,
+            -29
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            15,
+            -29
+          ],
+          "to": [
+            6,
+            24
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -14,
+            -76
+          ],
+          "to": [
+            -24,
+            -25
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -24,
+            -25
+          ],
+          "to": [
+            -19,
+            30
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            6,
+            7
+          ],
+          "to": [
+            8,
+            61
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            8,
+            61
+          ],
+          "to": [
+            2,
+            122
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -8,
+            10
+          ],
+          "to": [
+            -18,
+            66
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -18,
+            66
+          ],
+          "to": [
+            -23,
+            126
+          ],
+          "width": 19
+        }
+      }
+    },
+    {
+      "key": "down_left",
+      "label": "左下 / 左前",
+      "facing": "front_diag",
+      "grid": [
+        3,
+        1
+      ],
+      "joints": {
+        "neck": [
+          -7,
+          -96
+        ],
+        "head": [
+          -9,
+          -124
+        ],
+        "shoulder_far": [
+          27,
+          -80
+        ],
+        "elbow_far": [
+          39,
+          -31
+        ],
+        "wrist_far": [
+          29,
+          20
+        ],
+        "shoulder_near": [
+          -35,
+          -75
+        ],
+        "elbow_near": [
+          -51,
+          -25
+        ],
+        "wrist_near": [
+          -41,
+          29
+        ],
+        "hip_far": [
+          14,
+          5
+        ],
+        "knee_far": [
+          22,
+          58
+        ],
+        "ankle_far": [
+          16,
+          120
+        ],
+        "hip_near": [
+          -16,
+          9
+        ],
+        "knee_near": [
+          -31,
+          64
+        ],
+        "ankle_near": [
+          -31,
+          126
+        ]
+      },
+      "parts": {
+        "head": {
+          "type": "ellipse",
+          "center": [
+            -9,
+            -124
+          ],
+          "rx": 21,
+          "ry": 25,
+          "view": "front_diag",
+          "sign": -1
+        },
+        "torso": {
+          "type": "polygon",
+          "points": [
+            [
+              29,
+              -92
+            ],
+            [
+              -33,
+              -86
+            ],
+            [
+              -24,
+              -20
+            ],
+            [
+              -11,
+              14
+            ],
+            [
+              16,
+              8
+            ],
+            [
+              25,
+              -24
+            ]
+          ]
+        },
+        "upper_arm_far": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            27,
+            -80
+          ],
+          "to": [
+            39,
+            -31
+          ],
+          "width": 18
+        },
+        "forearm_far": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            39,
+            -31
+          ],
+          "to": [
+            29,
+            20
+          ],
+          "width": 15
+        },
+        "upper_arm_near": {
+          "type": "capsule",
+          "part_type": "upper_arm",
+          "from": [
+            -35,
+            -75
+          ],
+          "to": [
+            -51,
+            -25
+          ],
+          "width": 19
+        },
+        "forearm_near": {
+          "type": "capsule",
+          "part_type": "forearm",
+          "from": [
+            -51,
+            -25
+          ],
+          "to": [
+            -41,
+            29
+          ],
+          "width": 16
+        },
+        "thigh_far": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            14,
+            5
+          ],
+          "to": [
+            22,
+            58
+          ],
+          "width": 22
+        },
+        "calf_far": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            22,
+            58
+          ],
+          "to": [
+            16,
+            120
+          ],
+          "width": 18
+        },
+        "thigh_near": {
+          "type": "capsule",
+          "part_type": "thigh",
+          "from": [
+            -16,
+            9
+          ],
+          "to": [
+            -31,
+            64
+          ],
+          "width": 23
+        },
+        "calf_near": {
+          "type": "capsule",
+          "part_type": "calf",
+          "from": [
+            -31,
+            64
+          ],
+          "to": [
+            -31,
+            126
+          ],
+          "width": 19
+        }
+      }
+    }
+  ]
+}

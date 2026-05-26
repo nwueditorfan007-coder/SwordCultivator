@@ -1,0 +1,712 @@
+{
+	"bone_lengths": {
+		"calf": 32.48,
+		"forearm": 21.19,
+		"thigh": 40.77,
+		"torso": 37.82,
+		"upper_arm": 29.78
+	},
+	"format_version": 1,
+	"poses": {
+		"fast": {
+			"01_right": {
+				"_draw_order": [
+					"far_arm",
+					"far_leg",
+					"torso",
+					"near_leg",
+					"near_arm",
+					"head"
+				],
+				"_front_side_sign": 1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					187.66,
+					-4.75
+				],
+				"ankle_near": [
+					-93.16,
+					-9.54
+				],
+				"elbow_far": [
+					91.48,
+					-0.09
+				],
+				"elbow_near": [
+					-28.07,
+					3.33
+				],
+				"head_center": [
+					-32.61,
+					12.84
+				],
+				"hip_far": [
+					60.96,
+					11.03
+				],
+				"hip_near": [
+					27.41,
+					19.14
+				],
+				"knee_far": [
+					143.6,
+					4.46
+				],
+				"knee_near": [
+					-61.75,
+					18.69
+				],
+				"shoulder_far": [
+					6.91,
+					10.62
+				],
+				"shoulder_near": [
+					-30.65,
+					9.61
+				],
+				"wrist_far": [
+					159.93,
+					4.16
+				],
+				"wrist_near": [
+					-3.46,
+					13.85
+				]
+			},
+			"02_up_right": {
+				"ankle_far": [
+					53.4,
+					-5.12
+				],
+				"ankle_near": [
+					-27.5,
+					-10.86
+				],
+				"elbow_far": [
+					5.64,
+					-29.73
+				],
+				"elbow_near": [
+					-32.17,
+					-15.99
+				],
+				"head_center": [
+					-29.72,
+					-4.0
+				],
+				"hip_far": [
+					18.8,
+					7.46
+				],
+				"hip_near": [
+					29.33,
+					13.8
+				],
+				"knee_far": [
+					45.11,
+					10.85
+				],
+				"knee_near": [
+					-3.46,
+					0.57
+				],
+				"shoulder_far": [
+					-13.16,
+					-5.14
+				],
+				"shoulder_near": [
+					-12.07,
+					-0.57
+				],
+				"wrist_far": [
+					24.05,
+					-7.43
+				],
+				"wrist_near": [
+					-2.86,
+					-1.15
+				]
+			},
+			"03_up": {
+				"_front_side_sign": 1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					17.85,
+					-123.69
+				],
+				"ankle_near": [
+					-29.23,
+					61.89
+				],
+				"elbow_far": [
+					14.99,
+					43.76
+				],
+				"elbow_near": [
+					-18.13,
+					69.28
+				],
+				"head_center": [
+					12.86,
+					144.25
+				],
+				"hip_far": [
+					6.03,
+					36.11
+				],
+				"hip_near": [
+					-5.62,
+					48.67
+				],
+				"knee_far": [
+					21.17,
+					-35.96
+				],
+				"knee_near": [
+					-9.19,
+					92.56
+				],
+				"shoulder_far": [
+					12.66,
+					114.35
+				],
+				"shoulder_near": [
+					-7.7,
+					119.55
+				],
+				"wrist_far": [
+					18.01,
+					-6.19
+				],
+				"wrist_near": [
+					-17.07,
+					28.41
+				]
+			},
+			"04_up_left": {
+				"ankle_far": [
+					53.4,
+					-5.12
+				],
+				"ankle_near": [
+					-27.5,
+					-10.86
+				],
+				"elbow_far": [
+					5.64,
+					-29.73
+				],
+				"elbow_near": [
+					-32.17,
+					-15.99
+				],
+				"head_center": [
+					-29.72,
+					-4.0
+				],
+				"hip_far": [
+					18.8,
+					7.46
+				],
+				"hip_near": [
+					29.33,
+					13.8
+				],
+				"knee_far": [
+					45.11,
+					10.85
+				],
+				"knee_near": [
+					-3.46,
+					0.57
+				],
+				"shoulder_far": [
+					-13.16,
+					-5.14
+				],
+				"shoulder_near": [
+					-12.07,
+					-0.57
+				],
+				"wrist_far": [
+					24.05,
+					-7.43
+				],
+				"wrist_near": [
+					-2.86,
+					-1.15
+				]
+			},
+			"05_left": {
+				"_front_side_sign": -1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					-103.59,
+					-2.93
+				],
+				"ankle_near": [
+					3.37,
+					-9.51
+				],
+				"elbow_far": [
+					-24.05,
+					-2.33
+				],
+				"elbow_near": [
+					-49.43,
+					13.16
+				],
+				"head_center": [
+					26.47,
+					13.23
+				],
+				"hip_far": [
+					-45.9,
+					12.98
+				],
+				"hip_near": [
+					-64.21,
+					17.0
+				],
+				"knee_far": [
+					-69.53,
+					13.08
+				],
+				"knee_near": [
+					-22.74,
+					15.57
+				],
+				"shoulder_far": [
+					9.9,
+					11.82
+				],
+				"shoulder_near": [
+					1.65,
+					14.3
+				],
+				"wrist_far": [
+					-63.92,
+					-4.84
+				],
+				"wrist_near": [
+					-101.26,
+					16.71
+				]
+			},
+			"06_down_left": {
+				"ankle_far": [
+					53.4,
+					-5.12
+				],
+				"ankle_near": [
+					-27.5,
+					-10.86
+				],
+				"elbow_far": [
+					5.64,
+					-29.73
+				],
+				"elbow_near": [
+					-32.17,
+					-15.99
+				],
+				"head_center": [
+					-29.72,
+					-4.0
+				],
+				"hip_far": [
+					18.8,
+					7.46
+				],
+				"hip_near": [
+					29.33,
+					13.8
+				],
+				"knee_far": [
+					45.11,
+					10.85
+				],
+				"knee_near": [
+					-3.46,
+					0.57
+				],
+				"shoulder_far": [
+					-13.16,
+					-5.14
+				],
+				"shoulder_near": [
+					-12.07,
+					-0.57
+				],
+				"wrist_far": [
+					24.05,
+					-7.43
+				],
+				"wrist_near": [
+					-2.86,
+					-1.15
+				]
+			},
+			"07_down": {
+				"_draw_order": [
+					"far_arm",
+					"far_leg",
+					"torso",
+					"near_leg",
+					"near_arm",
+					"head"
+				],
+				"_front_side_sign": -1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					18.04,
+					170.02
+				],
+				"ankle_near": [
+					-29.29,
+					-21.71
+				],
+				"elbow_far": [
+					43.03,
+					73.88
+				],
+				"elbow_near": [
+					-60.29,
+					56.03
+				],
+				"head_center": [
+					-12.02,
+					11.14
+				],
+				"hip_far": [
+					6.63,
+					98.43
+				],
+				"hip_near": [
+					-8.86,
+					65.42
+				],
+				"knee_far": [
+					5.02,
+					135.16
+				],
+				"knee_near": [
+					-28.88,
+					-10.32
+				],
+				"shoulder_far": [
+					14.49,
+					36.46
+				],
+				"shoulder_near": [
+					-21.75,
+					18.95
+				],
+				"wrist_far": [
+					58.95,
+					132.74
+				],
+				"wrist_near": [
+					-73.04,
+					104.47
+				]
+			},
+			"08_down_right": {
+				"ankle_far": [
+					53.4,
+					-5.12
+				],
+				"ankle_near": [
+					-27.5,
+					-10.86
+				],
+				"elbow_far": [
+					5.64,
+					-29.73
+				],
+				"elbow_near": [
+					-32.17,
+					-15.99
+				],
+				"head_center": [
+					-29.72,
+					-4.0
+				],
+				"hip_far": [
+					18.8,
+					7.46
+				],
+				"hip_near": [
+					29.33,
+					13.8
+				],
+				"knee_far": [
+					45.11,
+					10.85
+				],
+				"knee_near": [
+					-3.46,
+					0.57
+				],
+				"shoulder_far": [
+					-13.16,
+					-5.14
+				],
+				"shoulder_near": [
+					-12.07,
+					-0.57
+				],
+				"wrist_far": [
+					24.05,
+					-7.43
+				],
+				"wrist_near": [
+					-2.86,
+					-1.15
+				]
+			}
+		},
+		"low": {
+			"01_right": {
+				"_front_side_sign": 1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					41.2,
+					-19.53
+				],
+				"ankle_near": [
+					-63.86,
+					-19.41
+				],
+				"elbow_far": [
+					26.22,
+					-6.25
+				],
+				"elbow_near": [
+					-99.76,
+					-0.67
+				],
+				"head_center": [
+					-21.11,
+					3.37
+				],
+				"hip_far": [
+					1.99,
+					-3.87
+				],
+				"hip_near": [
+					-31.05,
+					-4.53
+				],
+				"knee_far": [
+					29.19,
+					-13.28
+				],
+				"knee_near": [
+					-59.21,
+					-13.12
+				],
+				"shoulder_far": [
+					1.64,
+					-4.12
+				],
+				"shoulder_near": [
+					-36.35,
+					-4.78
+				],
+				"wrist_far": [
+					51.55,
+					-20.64
+				],
+				"wrist_near": [
+					-101.68,
+					4.89
+				]
+			},
+			"03_up": {
+				"_draw_order": [
+					"far_arm",
+					"far_leg",
+					"torso",
+					"near_leg",
+					"near_arm",
+					"head"
+				],
+				"_front_side_sign": 1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					11.21,
+					-6.8
+				],
+				"ankle_near": [
+					-13.94,
+					53.32
+				],
+				"elbow_far": [
+					17.55,
+					47.87
+				],
+				"elbow_near": [
+					-26.88,
+					130.6
+				],
+				"head_center": [
+					6.34,
+					129.06
+				],
+				"hip_far": [
+					13.57,
+					60.84
+				],
+				"hip_near": [
+					-11.05,
+					82.78
+				],
+				"knee_far": [
+					20.29,
+					29.08
+				],
+				"knee_near": [
+					-2.62,
+					72.34
+				],
+				"shoulder_far": [
+					16.62,
+					95.14
+				],
+				"shoulder_near": [
+					-15.27,
+					114.26
+				],
+				"wrist_far": [
+					-2.52,
+					16.48
+				],
+				"wrist_near": [
+					-23.47,
+					141.61
+				]
+			},
+			"05_left": {
+				"_front_side_sign": -1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					-6.56,
+					-19.29
+				],
+				"ankle_near": [
+					32.17,
+					-18.22
+				],
+				"elbow_far": [
+					38.86,
+					0.08
+				],
+				"elbow_near": [
+					40.5,
+					4.88
+				],
+				"head_center": [
+					26.13,
+					4.39
+				],
+				"hip_far": [
+					23.57,
+					-4.57
+				],
+				"hip_near": [
+					15.55,
+					-1.61
+				],
+				"knee_far": [
+					5.07,
+					-13.08
+				],
+				"knee_near": [
+					29.63,
+					-11.99
+				],
+				"shoulder_far": [
+					26.54,
+					-4.73
+				],
+				"shoulder_near": [
+					21.74,
+					-1.85
+				],
+				"wrist_far": [
+					7.64,
+					-6.82
+				],
+				"wrist_near": [
+					36.39,
+					-7.15
+				]
+			},
+			"07_down": {
+				"_draw_order": [
+					"far_arm",
+					"far_leg",
+					"torso",
+					"near_leg",
+					"near_arm",
+					"head"
+				],
+				"_front_side_sign": -1.0,
+				"_head_scale": 0.81,
+				"ankle_far": [
+					14.05,
+					13.18
+				],
+				"ankle_near": [
+					-14.54,
+					-38.92
+				],
+				"elbow_far": [
+					37.9,
+					42.84
+				],
+				"elbow_near": [
+					-59.74,
+					-2.52
+				],
+				"head_center": [
+					3.95,
+					65.34
+				],
+				"hip_far": [
+					17.24,
+					45.55
+				],
+				"hip_near": [
+					-12.47,
+					36.52
+				],
+				"knee_far": [
+					14.7,
+					18.43
+				],
+				"knee_near": [
+					-25.11,
+					-14.96
+				],
+				"shoulder_far": [
+					21.66,
+					64.66
+				],
+				"shoulder_near": [
+					-25.57,
+					53.94
+				],
+				"wrist_far": [
+					-4.72,
+					27.09
+				],
+				"wrist_near": [
+					-77.71,
+					-51.19
+				]
+			}
+		}
+	}
+}

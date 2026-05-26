@@ -1,5 +1,7 @@
 extends Node2D
 
+const HUMANOID_8WAY_SKELETON_VISUAL := preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
+
 const VIEW_SIZE := Vector2(1280.0, 720.0)
 const BASE_PLAY_ORIGIN := Vector2(92.0, 86.0)
 const BASE_PLAY_SIZE := Vector2(1096.0, 548.0)
@@ -23,8 +25,11 @@ const USE_GEMINI_8WAY_CRUISE := true
 const EIGHT_WAY_SET_V1 := 0
 const EIGHT_WAY_SET_V2 := 1
 const EIGHT_WAY_SET_V3_FACE := 2
+const EIGHT_WAY_SET_V4_SKELETON := 3
 const GEMINI_EIGHT_WAY_SCALE := 0.34
 const GEMINI_POSE_OFFSET := Vector2(0.0, -18.0)
+const SKELETON_EIGHT_WAY_SCALE := 1.16
+const SKELETON_POSE_OFFSET := Vector2(0.0, -6.0)
 const VISUAL_HEADING_TURN_RATE := 8.8
 const VISUAL_HEADING_HARD_TURN_RATE := 12.0
 const VISUAL_HEADING_HOVER_TURN_RATE := 13.5
@@ -38,11 +43,13 @@ const GEMINI_EIGHT_WAY_SET_LABELS := [
 	"V1 prototype",
 	"V2 accepted",
 	"V3 face",
+	"V4 skeleton rig",
 ]
 const GEMINI_EIGHT_WAY_BASE_PATHS := [
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v2",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face",
+	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton",
 ]
 const EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_runtime_adjustments.json"
 const GEMINI_EIGHT_WAY_NAMES := [
@@ -66,15 +73,15 @@ const GEMINI_EIGHT_WAY_VECTORS := [
 	Vector2(0.7071, 0.7071),
 ]
 
-@export_enum("V1 prototype", "V2 accepted", "V3 face") var eight_way_character_set := EIGHT_WAY_SET_V3_FACE
+@export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
 @export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
 
 const CRUISE_SPEED := 390.0
-const BOOST_SPEED := 650.0
+const BOOST_SPEED := 760.0
 const ACCELERATION := 1320.0
-const BOOST_ACCELERATION := 1920.0
+const BOOST_ACCELERATION := 2300.0
 const DIRECT_CRUISE_ACCELERATION := 1850.0
-const DIRECT_BOOST_ACCELERATION := 2500.0
+const DIRECT_BOOST_ACCELERATION := 3000.0
 const DIRECT_BODY_TURN_RATE := 10.6
 const DIRECT_HARD_BODY_TURN_RATE := 14.0
 const HOVER_BRAKE := 5200.0
@@ -211,6 +218,7 @@ const CLIPS := [
 
 var sprite_root: Node2D
 var character_sprite: Sprite2D
+var skeleton_character: Node2D
 var key_shader: Shader
 var trail_halo: Line2D
 var trail_ribbon: Line2D
@@ -329,7 +337,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_T:
 				auto_demo = not auto_demo
 			KEY_V:
-				_set_eight_way_character_set((eight_way_character_set + 1) % GEMINI_EIGHT_WAY_BASE_PATHS.size())
+				_set_eight_way_character_set((eight_way_character_set + 1) % _eight_way_set_count())
 			KEY_F2:
 				_toggle_adjustment_panel()
 			KEY_F3:
@@ -389,7 +397,13 @@ void fragment() {
 	character_sprite.region_enabled = not USE_GEMINI_8WAY_CRUISE
 	character_sprite.material = _make_key_material()
 	character_sprite.position = POSE_OFFSET
+	character_sprite.visible = not _uses_skeleton_eight_way()
 	sprite_root.add_child(character_sprite)
+
+	skeleton_character = HUMANOID_8WAY_SKELETON_VISUAL.new()
+	skeleton_character.name = "SkeletonEightWayCharacter"
+	skeleton_character.visible = _uses_skeleton_eight_way()
+	sprite_root.add_child(skeleton_character)
 
 
 func _create_adjustment_panel() -> void:
@@ -666,6 +680,8 @@ func _get_eight_way_direction_offset(set_index: int, direction_index: int) -> Ve
 
 func _load_eight_way_textures() -> void:
 	eight_way_textures.clear()
+	if _uses_skeleton_eight_way():
+		return
 	for index in range(GEMINI_EIGHT_WAY_NAMES.size()):
 		var path := _get_eight_way_path(index)
 		var texture := _load_sequence_texture(path)
@@ -675,15 +691,27 @@ func _load_eight_way_textures() -> void:
 
 
 func _set_eight_way_character_set(next_set: int) -> void:
-	eight_way_character_set = clampi(next_set, 0, GEMINI_EIGHT_WAY_BASE_PATHS.size() - 1)
+	eight_way_character_set = clampi(next_set, 0, _eight_way_set_count() - 1)
 	if not USE_GEMINI_8WAY_CRUISE:
 		return
 	eight_way_texture_initialized = false
 	eight_way_visual_adjustments_initialized = false
+	if character_sprite != null:
+		character_sprite.visible = not _uses_skeleton_eight_way()
+	if skeleton_character != null:
+		skeleton_character.visible = _uses_skeleton_eight_way()
 	_load_eight_way_textures()
 	_apply_eight_way_texture(visual_heading)
 	_refresh_adjustment_controls()
 	queue_redraw()
+
+
+func _eight_way_set_count() -> int:
+	return GEMINI_EIGHT_WAY_SET_LABELS.size()
+
+
+func _uses_skeleton_eight_way() -> bool:
+	return eight_way_character_set == EIGHT_WAY_SET_V4_SKELETON
 
 
 func _get_eight_way_path(index: int) -> String:
@@ -1241,6 +1269,13 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 		var target_direction_scale := _get_eight_way_direction_scale(eight_way_character_set, eight_way_index)
 		var target_offset := _get_eight_way_direction_offset(eight_way_character_set, eight_way_index)
 		_update_eight_way_visual_adjustments(target_offset, target_direction_scale, delta)
+		if _uses_skeleton_eight_way():
+			_apply_skeleton_eight_way_transform(delta, turn_lean)
+			return
+		if character_sprite != null:
+			character_sprite.visible = true
+		if skeleton_character != null:
+			skeleton_character.visible = false
 		var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
 		var sprite_scale := GEMINI_EIGHT_WAY_SCALE * adjustment_scale * (1.0 + 0.035 * boost_energy + 0.035 * carve_energy)
 		character_sprite.position = GEMINI_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -3.0 * boost_energy - 2.0 * carve_energy)
@@ -1259,6 +1294,35 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 	character_sprite.scale = Vector2(render_sign * SHEET_FACE_SIGN * scale_x, scale_y)
 
 
+func _apply_skeleton_eight_way_transform(delta: float, turn_lean: float) -> void:
+	if skeleton_character == null:
+		return
+	if character_sprite != null:
+		character_sprite.visible = false
+	skeleton_character.visible = true
+	var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
+	var skeleton_scale := SKELETON_EIGHT_WAY_SCALE * adjustment_scale * (1.0 + 0.045 * boost_energy + 0.03 * carve_energy)
+	skeleton_character.position = SKELETON_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -4.0 * boost_energy - 2.0 * carve_energy)
+	skeleton_character.rotation = 0.0
+	skeleton_character.scale = Vector2.ONE * skeleton_scale
+	if skeleton_character.has_method("set_flight_pose"):
+		skeleton_character.call(
+			"set_flight_pose",
+			eight_way_index,
+			visual_heading,
+			velocity,
+			boost_energy,
+			turn_energy,
+			carve_energy,
+			throttle_energy,
+			delta
+		)
+
+
+func _is_skeleton_pose_editor_active() -> bool:
+	return _uses_skeleton_eight_way() and skeleton_character != null and skeleton_character.has_method("is_pose_editor_active") and bool(skeleton_character.call("is_pose_editor_active"))
+
+
 func _update_eight_way_visual_adjustments(target_offset: Vector2, target_direction_scale: float, delta: float) -> void:
 	if not eight_way_visual_adjustments_initialized or delta <= 0.0:
 		eight_way_visual_offset = target_offset
@@ -1270,6 +1334,12 @@ func _update_eight_way_visual_adjustments(target_offset: Vector2, target_directi
 
 
 func _apply_eight_way_texture(heading: Vector2) -> void:
+	if _uses_skeleton_eight_way():
+		var skeleton_next_index := _get_eight_way_index_with_hysteresis(heading)
+		eight_way_index = skeleton_next_index
+		eight_way_local_rotation = _get_eight_way_local_rotation(heading, skeleton_next_index)
+		eight_way_texture_initialized = true
+		return
 	if eight_way_textures.is_empty():
 		return
 	var next_index := _get_eight_way_index_with_hysteresis(heading)
@@ -1290,6 +1360,8 @@ func _apply_eight_way_texture(heading: Vector2) -> void:
 
 
 func _capture_eight_way_switch_ghost() -> void:
+	if _uses_skeleton_eight_way():
+		return
 	if character_sprite == null or character_sprite.texture == null:
 		return
 	var texture := character_sprite.texture
@@ -1387,6 +1459,8 @@ func _get_frame_rect(index: int) -> Rect2:
 
 
 func _get_move_axis() -> Vector2:
+	if _is_skeleton_pose_editor_active():
+		return Vector2.ZERO
 	var manual_axis := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var arrow_axis := Vector2(
 		float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT)),
@@ -1407,6 +1481,8 @@ func _get_move_axis() -> Vector2:
 
 
 func _is_boost_pressed() -> bool:
+	if _is_skeleton_pose_editor_active():
+		return false
 	return auto_demo or Input.is_action_pressed("dash")
 
 
@@ -1558,6 +1634,8 @@ func _update_afterimages(delta: float) -> void:
 
 
 func _capture_afterimage(pos: Vector2, intensity: float) -> void:
+	if _uses_skeleton_eight_way():
+		return
 	if USE_GEMINI_8WAY_CRUISE and character_sprite != null and character_sprite.texture != null:
 		var texture := character_sprite.texture
 		afterimages.append({
@@ -1810,7 +1888,7 @@ func _draw_debug() -> void:
 	var visual_label := "sheet"
 	if USE_GEMINI_8WAY_CRUISE:
 		visual_label = "Gemini 8way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  V set  F2 panel  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  V set  F2 panel  F4 pose  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
 	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "control: %s  clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg visual %.0fdeg local %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [control_label, String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(visual_heading.angle()), rad_to_deg(eight_way_local_rotation), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
 
 
