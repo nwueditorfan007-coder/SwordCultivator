@@ -10,6 +10,30 @@ const BASE_POSE_IMPORTED := "imported_pose"
 const PREVIEW_MODE_EDIT := "edit_base"
 const PREVIEW_MODE_FLIGHT := "flight_state"
 const JOINT_PICK_RADIUS := 18.0
+const VIEW_YAW_STEP := 15.0
+const VIEW_PITCH_STEP := 8.0
+const VIEW_PRESETS := [
+	{
+		"label": "运行斜视",
+		"rotation": Vector3(-2.0, 0.0, -135.0),
+	},
+	{
+		"label": "正侧 A",
+		"rotation": Vector3(-2.0, 0.0, -90.0),
+	},
+	{
+		"label": "正侧 B",
+		"rotation": Vector3(-2.0, 0.0, 90.0),
+	},
+	{
+		"label": "背侧",
+		"rotation": Vector3(-2.0, 0.0, 45.0),
+	},
+	{
+		"label": "俯看斜视",
+		"rotation": Vector3(-18.0, 0.0, -135.0),
+	},
+]
 const JOINT_LINE_PAIRS := [
 	["head", "neck"],
 	["neck", "chest"],
@@ -104,6 +128,9 @@ var editor_panel: PanelContainer
 var pose_option: OptionButton
 var preview_mode_option: OptionButton
 var base_pose_option: OptionButton
+var view_option: OptionButton
+var view_yaw_spin: SpinBox
+var view_pitch_spin: SpinBox
 var bone_option: OptionButton
 var rotation_sliders: Array[HSlider] = []
 var rotation_spins: Array[SpinBox] = []
@@ -117,9 +144,12 @@ var current_bone_name := ""
 var syncing_controls := false
 var preview_flight_state := false
 var use_t_pose_base := true
+var editor_view_rotation_degrees := Vector3(-2.0, 0.0, -135.0)
 var active_drag_handle := ""
 var active_drag_target := Vector2.ZERO
+var rotating_view := false
 var solving_drag := false
+var syncing_view_controls := false
 
 
 func _ready() -> void:
@@ -144,6 +174,8 @@ func _draw() -> void:
 
 func _finish_setup() -> void:
 	_load_pose_file()
+	_apply_editor_view_rotation_to_visual()
+	_sync_view_controls()
 	_refresh_bone_list()
 	_apply_current_pose_preview()
 	_sync_rotation_controls_from_selected_bone()
@@ -159,6 +191,7 @@ func _create_visual() -> void:
 	model_visual.position = Vector2(420.0, 430.0)
 	model_visual.scale = Vector2.ONE * preview_root_scale
 	add_child(model_visual)
+	_apply_editor_view_rotation_to_visual()
 	if model_visual.has_method("set_neutral_preview_enabled"):
 		model_visual.call("set_neutral_preview_enabled", true)
 	if model_visual.has_method("set_neutral_preview_t_pose_enabled"):
@@ -234,6 +267,65 @@ func _create_editor_panel() -> void:
 	base_pose_option.item_selected.connect(Callable(self, "_on_base_pose_selected"))
 	content.add_child(_make_row("基准", base_pose_option))
 
+	view_option = OptionButton.new()
+	view_option.add_item("自定义", 0)
+	for index in range(VIEW_PRESETS.size()):
+		var preset: Dictionary = VIEW_PRESETS[index]
+		view_option.add_item(String(preset.get("label", "视角")), index + 1)
+	view_option.item_selected.connect(Callable(self, "_on_view_preset_selected"))
+	content.add_child(_make_row("视角", view_option))
+
+	var view_button_row := HBoxContainer.new()
+	view_button_row.add_theme_constant_override("separation", 6)
+	content.add_child(view_button_row)
+
+	var rotate_left_button := Button.new()
+	rotate_left_button.text = "左转"
+	rotate_left_button.pressed.connect(Callable(self, "_on_view_rotate_left_pressed"))
+	view_button_row.add_child(rotate_left_button)
+
+	var rotate_right_button := Button.new()
+	rotate_right_button.text = "右转"
+	rotate_right_button.pressed.connect(Callable(self, "_on_view_rotate_right_pressed"))
+	view_button_row.add_child(rotate_right_button)
+
+	var pitch_up_button := Button.new()
+	pitch_up_button.text = "上仰"
+	pitch_up_button.pressed.connect(Callable(self, "_on_view_pitch_up_pressed"))
+	view_button_row.add_child(pitch_up_button)
+
+	var pitch_down_button := Button.new()
+	pitch_down_button.text = "下俯"
+	pitch_down_button.pressed.connect(Callable(self, "_on_view_pitch_down_pressed"))
+	view_button_row.add_child(pitch_down_button)
+
+	var reset_view_button := Button.new()
+	reset_view_button.text = "重置视角"
+	reset_view_button.pressed.connect(Callable(self, "_on_view_reset_pressed"))
+	view_button_row.add_child(reset_view_button)
+
+	var view_spin_row := HBoxContainer.new()
+	view_spin_row.add_theme_constant_override("separation", 8)
+	content.add_child(view_spin_row)
+
+	var yaw_label := Label.new()
+	yaw_label.text = "Yaw"
+	yaw_label.custom_minimum_size = Vector2(64.0, 0.0)
+	view_spin_row.add_child(yaw_label)
+
+	view_yaw_spin = _make_spin(-180.0, 180.0, 1.0)
+	view_yaw_spin.value_changed.connect(Callable(self, "_on_view_yaw_changed"))
+	view_spin_row.add_child(view_yaw_spin)
+
+	var pitch_label := Label.new()
+	pitch_label.text = "Pitch"
+	pitch_label.custom_minimum_size = Vector2(58.0, 0.0)
+	view_spin_row.add_child(pitch_label)
+
+	view_pitch_spin = _make_spin(-60.0, 60.0, 1.0)
+	view_pitch_spin.value_changed.connect(Callable(self, "_on_view_pitch_changed"))
+	view_spin_row.add_child(view_pitch_spin)
+
 	bone_option = OptionButton.new()
 	bone_option.item_selected.connect(Callable(self, "_on_bone_selected"))
 	content.add_child(_make_row("骨骼", bone_option))
@@ -273,7 +365,7 @@ func _create_editor_panel() -> void:
 	button_row.add_child(reload_button)
 
 	var help := Label.new()
-	help.text = "调法: 直接拖角色上的亮点摆大形；滑杆只做选中骨骼的细调。展开编辑负责摆骨，飞行预览负责检查速度/转向姿态。"
+	help.text = "调法: 左键拖亮点摆大形；右键拖空白处旋转编辑视角；滑杆只做选中骨骼的细调。展开编辑负责摆骨，飞行预览负责检查速度/转向姿态。"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.add_theme_font_size_override("font_size", 12)
 	content.add_child(help)
@@ -333,6 +425,16 @@ func _make_spin(min_value: float, max_value: float, step: float) -> SpinBox:
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+			if mouse_event.pressed:
+				if _is_point_inside_editor_panel(mouse_event.position):
+					return
+				rotating_view = true
+				get_viewport().set_input_as_handled()
+			elif rotating_view:
+				rotating_view = false
+				get_viewport().set_input_as_handled()
+			return
 		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
 			return
 		if mouse_event.pressed:
@@ -354,10 +456,40 @@ func _input(event: InputEvent) -> void:
 		active_drag_target = motion_event.position
 		_solve_drag_handle(active_drag_handle, active_drag_target)
 		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and rotating_view:
+		var motion_event := event as InputEventMouseMotion
+		_set_editor_view_rotation(Vector3(
+			editor_view_rotation_degrees.x + motion_event.relative.y * 0.18,
+			editor_view_rotation_degrees.y,
+			editor_view_rotation_degrees.z + motion_event.relative.x * 0.32
+		))
+		get_viewport().set_input_as_handled()
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and not _is_text_input_focused():
+			match key_event.keycode:
+				KEY_Q:
+					_nudge_view_yaw(-VIEW_YAW_STEP)
+					get_viewport().set_input_as_handled()
+				KEY_E:
+					_nudge_view_yaw(VIEW_YAW_STEP)
+					get_viewport().set_input_as_handled()
+				KEY_R:
+					_set_editor_view_rotation(_coerce_rotation_degrees(Dictionary(VIEW_PRESETS[0]).get("rotation", editor_view_rotation_degrees)))
+					_set_status("已重置编辑视角")
+					get_viewport().set_input_as_handled()
+				KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
+					_apply_view_preset(clampi(key_event.keycode - KEY_1, 0, VIEW_PRESETS.size() - 1))
+					get_viewport().set_input_as_handled()
 
 
 func _is_point_inside_editor_panel(point: Vector2) -> bool:
 	return editor_panel != null and editor_panel.get_global_rect().has_point(point)
+
+
+func _is_text_input_focused() -> bool:
+	var focus_owner := get_viewport().gui_get_focus_owner()
+	return focus_owner is LineEdit or focus_owner is TextEdit
 
 
 func _initialize_empty_pose_data() -> void:
@@ -475,6 +607,80 @@ func _nearest_drag_handle(point: Vector2) -> String:
 	return best_key
 
 
+func _apply_view_preset(index: int) -> void:
+	var safe_index := clampi(index, 0, VIEW_PRESETS.size() - 1)
+	var preset: Dictionary = VIEW_PRESETS[safe_index]
+	_set_editor_view_rotation(_coerce_rotation_degrees(preset.get("rotation", editor_view_rotation_degrees)))
+	_set_status("编辑视角: %s" % String(preset.get("label", "视角")))
+
+
+func _nudge_view_yaw(delta_degrees: float) -> void:
+	_set_editor_view_rotation(Vector3(
+		editor_view_rotation_degrees.x,
+		editor_view_rotation_degrees.y,
+		editor_view_rotation_degrees.z + delta_degrees
+	))
+	_set_status("编辑视角 Yaw: %.0f" % editor_view_rotation_degrees.z)
+
+
+func _nudge_view_pitch(delta_degrees: float) -> void:
+	_set_editor_view_rotation(Vector3(
+		editor_view_rotation_degrees.x + delta_degrees,
+		editor_view_rotation_degrees.y,
+		editor_view_rotation_degrees.z
+	))
+	_set_status("编辑视角 Pitch: %.0f" % editor_view_rotation_degrees.x)
+
+
+func _set_editor_view_rotation(rotation_degrees: Vector3) -> void:
+	editor_view_rotation_degrees = _normalized_editor_view_rotation(rotation_degrees)
+	_apply_editor_view_rotation_to_visual()
+	_sync_view_controls()
+	_apply_current_pose_preview()
+	queue_redraw()
+
+
+func _normalized_editor_view_rotation(rotation_degrees: Vector3) -> Vector3:
+	return Vector3(
+		clampf(rotation_degrees.x, -60.0, 60.0),
+		clampf(rotation_degrees.y, -60.0, 60.0),
+		_normalize_angle_degrees(rotation_degrees.z)
+	)
+
+
+func _normalize_angle_degrees(angle_degrees: float) -> float:
+	return snappedf(fposmod(angle_degrees + 180.0, 360.0) - 180.0, 0.001)
+
+
+func _apply_editor_view_rotation_to_visual() -> void:
+	if model_visual == null:
+		return
+	model_visual.set("model_pitch_offset_degrees", editor_view_rotation_degrees.x)
+	model_visual.set("model_roll_offset_degrees", editor_view_rotation_degrees.y)
+	model_visual.set("model_yaw_offset_degrees", editor_view_rotation_degrees.z)
+
+
+func _sync_view_controls() -> void:
+	syncing_view_controls = true
+	if view_option != null:
+		var preset_index := _matching_view_preset_index()
+		view_option.select(preset_index + 1 if preset_index >= 0 else 0)
+	if view_yaw_spin != null:
+		view_yaw_spin.set_value_no_signal(editor_view_rotation_degrees.z)
+	if view_pitch_spin != null:
+		view_pitch_spin.set_value_no_signal(editor_view_rotation_degrees.x)
+	syncing_view_controls = false
+
+
+func _matching_view_preset_index() -> int:
+	for index in range(VIEW_PRESETS.size()):
+		var preset: Dictionary = VIEW_PRESETS[index]
+		var rotation := _coerce_rotation_degrees(preset.get("rotation", Vector3.ZERO))
+		if absf(rotation.x - editor_view_rotation_degrees.x) <= 0.01 and absf(rotation.y - editor_view_rotation_degrees.y) <= 0.01 and absf(_normalize_angle_degrees(rotation.z - editor_view_rotation_degrees.z)) <= 0.01:
+			return index
+	return -1
+
+
 func _on_pose_selected(index: int) -> void:
 	var safe_index := clampi(index, 0, POSE_NAMES.size() - 1)
 	current_pose_name = String(POSE_NAMES[safe_index])
@@ -498,6 +704,44 @@ func _on_base_pose_selected(index: int) -> void:
 	_apply_current_pose_preview()
 	_sync_rotation_controls_from_selected_bone()
 	_set_status("基准姿态: %s" % _current_base_pose_label())
+
+
+func _on_view_preset_selected(index: int) -> void:
+	if syncing_view_controls or index <= 0:
+		return
+	_apply_view_preset(index - 1)
+
+
+func _on_view_rotate_left_pressed() -> void:
+	_nudge_view_yaw(-VIEW_YAW_STEP)
+
+
+func _on_view_rotate_right_pressed() -> void:
+	_nudge_view_yaw(VIEW_YAW_STEP)
+
+
+func _on_view_pitch_up_pressed() -> void:
+	_nudge_view_pitch(-VIEW_PITCH_STEP)
+
+
+func _on_view_pitch_down_pressed() -> void:
+	_nudge_view_pitch(VIEW_PITCH_STEP)
+
+
+func _on_view_reset_pressed() -> void:
+	_apply_view_preset(0)
+
+
+func _on_view_yaw_changed(value: float) -> void:
+	if syncing_view_controls:
+		return
+	_set_editor_view_rotation(Vector3(editor_view_rotation_degrees.x, editor_view_rotation_degrees.y, value))
+
+
+func _on_view_pitch_changed(value: float) -> void:
+	if syncing_view_controls:
+		return
+	_set_editor_view_rotation(Vector3(value, editor_view_rotation_degrees.y, editor_view_rotation_degrees.z))
 
 
 func _on_bone_selected(index: int) -> void:
@@ -764,6 +1008,9 @@ func _load_pose_file() -> void:
 		_set_status("姿态文件格式错误: %s" % pose_save_path)
 		return
 	var data: Dictionary = parsed
+	editor_view_rotation_degrees = _normalized_editor_view_rotation(_coerce_rotation_degrees(data.get("editor_view_rotation", editor_view_rotation_degrees)))
+	_apply_editor_view_rotation_to_visual()
+	_sync_view_controls()
 	preview_flight_state = String(data.get("editor_preview_mode", PREVIEW_MODE_EDIT)) == PREVIEW_MODE_FLIGHT
 	_sync_preview_mode_option()
 	use_t_pose_base = String(data.get("editor_base_pose", BASE_POSE_T_POSE)) != BASE_POSE_IMPORTED
@@ -804,6 +1051,11 @@ func _save_pose_file() -> void:
 		"model_path": model_path,
 		"editor_preview_mode": _current_preview_mode_key(),
 		"editor_base_pose": _current_base_pose_key(),
+		"editor_view_rotation": [
+			editor_view_rotation_degrees.x,
+			editor_view_rotation_degrees.y,
+			editor_view_rotation_degrees.z,
+		],
 		"poses": pose_data,
 	}
 	file.store_string(JSON.stringify(data, "\t"))
