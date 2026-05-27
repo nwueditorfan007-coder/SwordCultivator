@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://1y36vndt311t"]
 
-[ext_resource type="Script" path="res://scripts/prototypes/yujian_model_pose_editor_prototype.gd" id="1_pose_editor"]
+[ext_resource type="Script" uid="uid://c05mubjeo3ows" path="res://scripts/prototypes/yujian_model_pose_editor_prototype.gd" id="1_pose_editor"]
 
-[node name="YujianModelPoseEditorPrototype" type="Node2D"]
+[node name="YujianModelPoseEditorPrototype" type="Node2D" unique_id=1826820853]
 script = ExtResource("1_pose_editor")

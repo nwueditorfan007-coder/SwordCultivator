@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://cec1on5o0xwei"]
 
-[ext_resource type="Script" path="res://scripts/prototypes/yujian_sprite_sequence_prototype.gd" id="1_sequence"]
+[ext_resource type="Script" uid="uid://cuabmouwyyrw8" path="res://scripts/prototypes/yujian_sprite_sequence_prototype.gd" id="1_sequence"]
 
-[node name="YujianSpriteSequencePrototype" type="Node2D"]
+[node name="YujianSpriteSequencePrototype" type="Node2D" unique_id=145182697]
 script = ExtResource("1_sequence")
