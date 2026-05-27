@@ -620,9 +620,8 @@ func _draw_clean_skeleton_layer(layer_key: String, pose: Dictionary, arm_width: 
 		"torso":
 			_draw_clean_torso(pose, spine_width, width_scale)
 		"head":
-			var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
-			var head_radius := (10.4 + 1.4 * fast) * width_scale
-			_draw_clean_head_volume(pose["head_center"], pose["heading"], pose["side"], head_radius, width_scale)
+			var head_radius := 10.4
+			_draw_clean_head_volume(pose["head_center"], pose["heading"], pose["side"], head_radius, 1.0)
 		"near_leg":
 			var near_leg_front := _is_front_body_layer(layer_key, pose)
 			_draw_clean_limb(

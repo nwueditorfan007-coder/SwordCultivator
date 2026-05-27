@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://cuabmouwyyrw8" path="res://scripts/prototypes/yujian_sprite_sequence_prototype.gd" id="1_sequence"]
 
-[node name="YujianSpriteSequencePrototype" type="Node2D" unique_id=145182697]
+[node name="YujianSpriteSequencePrototype" type="Node2D" unique_id=713209019]
 script = ExtResource("1_sequence")

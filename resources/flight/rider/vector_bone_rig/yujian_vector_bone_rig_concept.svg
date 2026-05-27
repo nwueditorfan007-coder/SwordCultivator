@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 560" width="512" height="512">
+  <defs>
+    <radialGradient id="bodyInk" cx="45%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#31393b"/>
+      <stop offset="58%" stop-color="#111719"/>
+      <stop offset="100%" stop-color="#020506"/>
+    </radialGradient>
+    <linearGradient id="limbInk" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#384043"/>
+      <stop offset="54%" stop-color="#12181a"/>
+      <stop offset="100%" stop-color="#030607"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur"/>
+      <feOffset in="blur" dx="-1.4" dy="1.8" result="shadow"/>
+      <feColorMatrix in="shadow" type="matrix" values="0 0 0 0 0.0  0 0 0 0 0.01  0 0 0 0 0.012  0 0 0 .78 0" result="inkshadow"/>
+      <feMerge>
+        <feMergeNode in="inkshadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .body { fill: url(#bodyInk); stroke: #4b5759; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; filter: url(#softShadow); }
+      .limb { fill: url(#limbInk); stroke: #3f4a4d; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; filter: url(#softShadow); }
+      .back { fill: #05090a; stroke: #273235; stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; filter: url(#softShadow); }
+      .edge { fill: none; stroke: #d9f3ef; stroke-opacity: .42; stroke-width: 1.2; stroke-linecap: round; }
+      .fold { fill: none; stroke: #9ba8a6; stroke-opacity: .32; stroke-width: 1; stroke-linecap: round; }
+      .rig { fill: none; stroke: #56e7ff; stroke-opacity: .70; stroke-width: 1.35; stroke-linecap: round; }
+      .joint { fill: #ffe06b; stroke: #0d1112; stroke-width: 1.25; }
+      .label { fill: #d8e9e7; font-family: Arial, sans-serif; font-size: 11px; opacity: .72; }
+    </style>
+  </defs>
+
+  <rect width="512" height="512" fill="transparent"/>
+
+  <g id="body_major_parts" transform="translate(68 34) rotate(-8 206 232)">
+    <g id="part_forearm_back" data-pivot="170,193">
+      <path class="back" d="M170 181 C139 183 108 196 82 220 C84 235 99 244 113 238 C135 218 156 210 184 211 C190 198 184 185 170 181 Z"/>
+      <path class="edge" d="M157 193 C132 200 109 213 91 229"/>
+    </g>
+    <g id="part_hand_back" data-pivot="92,230">
+      <path class="back" d="M84 219 C96 216 110 222 115 234 C106 243 92 245 82 237 C76 231 77 223 84 219 Z"/>
+    </g>
+    <g id="part_upper_arm_back" data-pivot="220,154">
+      <path class="back" d="M223 142 C198 151 177 171 163 198 C171 212 189 217 203 208 C213 188 230 175 253 165 C251 151 239 141 223 142 Z"/>
+      <path class="edge" d="M219 158 C199 170 184 187 174 204"/>
+    </g>
+
+    <g id="part_calf_back" data-pivot="211,324">
+      <path class="back" d="M205 313 C184 335 175 366 181 396 C195 402 212 397 224 382 C222 355 233 337 251 322 C244 310 220 305 205 313 Z"/>
+      <path class="edge" d="M208 329 C197 348 193 371 195 391"/>
+    </g>
+    <g id="part_thigh_back" data-pivot="224,260">
+      <path class="back" d="M214 245 C194 267 187 296 199 322 C216 330 236 325 250 310 C251 287 265 270 281 256 C268 241 230 234 214 245 Z"/>
+      <path class="edge" d="M218 260 C207 279 207 301 216 318"/>
+    </g>
+
+    <g id="part_torso" data-pivot="252,177">
+      <path class="body" d="M219 100 C245 80 287 85 313 113 C335 145 334 197 311 233 C282 260 234 257 206 226 C185 188 190 127 219 100 Z"/>
+      <path class="edge" d="M229 107 C214 139 212 189 229 223"/>
+      <path class="fold" d="M264 95 C261 136 268 187 298 229"/>
+      <path class="fold" d="M211 177 C244 191 280 187 319 169"/>
+    </g>
+
+    <g id="part_thigh_front" data-pivot="277,258">
+      <path class="limb" d="M269 241 C296 250 321 270 338 298 C337 318 323 332 304 333 C282 310 269 286 261 262 C257 252 260 244 269 241 Z"/>
+      <path class="edge" d="M278 258 C295 277 306 300 312 324"/>
+    </g>
+    <g id="part_calf_front" data-pivot="318,318">
+      <path class="limb" d="M311 306 C334 319 352 343 365 373 C360 390 344 399 327 393 C309 366 300 339 299 318 C301 310 304 307 311 306 Z"/>
+      <path class="edge" d="M317 323 C331 343 340 364 344 389"/>
+    </g>
+
+    <g id="part_upper_arm_front" data-pivot="300,150">
+      <path class="limb" d="M293 137 C326 144 354 162 379 190 C380 206 369 217 352 218 C329 197 307 184 283 176 C278 160 281 144 293 137 Z"/>
+      <path class="edge" d="M300 153 C324 163 347 181 366 207"/>
+    </g>
+    <g id="part_forearm_front" data-pivot="370,199">
+      <path class="limb" d="M364 188 C398 185 432 195 462 214 C465 228 454 240 438 243 C411 228 388 223 358 222 C352 207 354 194 364 188 Z"/>
+      <path class="edge" d="M371 201 C397 202 424 210 451 228"/>
+    </g>
+    <g id="part_hand_front" data-pivot="448,225">
+      <path class="limb" d="M442 213 C456 211 470 218 475 231 C466 241 450 244 438 237 C431 229 433 217 442 213 Z"/>
+    </g>
+
+    <g id="part_head" data-pivot="266,77">
+      <path class="body" d="M243 34 C265 12 306 20 322 48 C334 78 315 113 282 119 C253 122 228 103 224 75 C221 59 228 42 243 34 Z"/>
+      <path class="body" d="M264 11 C275 -1 298 1 307 14 C296 24 277 24 264 11 Z"/>
+      <path class="edge" d="M246 42 C233 62 235 91 252 108"/>
+      <path class="fold" d="M282 36 C300 45 312 61 315 82"/>
+    </g>
+  </g>
+
+  <g id="rig_overlay" opacity=".78">
+    <path class="rig" d="M320 286 L321 188 L332 111"/>
+    <path class="rig" d="M321 188 L286 166 L240 206 L160 262"/>
+    <path class="rig" d="M321 188 L365 162 L435 208 L511 238"/>
+    <path class="rig" d="M320 286 L293 352 L274 433"/>
+    <path class="rig" d="M320 286 L358 349 L401 433"/>
+    <circle class="joint" cx="320" cy="286" r="4.2"/>
+    <circle class="joint" cx="321" cy="188" r="4.2"/>
+    <circle class="joint" cx="332" cy="111" r="4.2"/>
+    <circle class="joint" cx="286" cy="166" r="3.6"/>
+    <circle class="joint" cx="240" cy="206" r="3.6"/>
+    <circle class="joint" cx="160" cy="262" r="3.6"/>
+    <circle class="joint" cx="365" cy="162" r="3.6"/>
+    <circle class="joint" cx="435" cy="208" r="3.6"/>
+    <circle class="joint" cx="293" cy="352" r="3.6"/>
+    <circle class="joint" cx="274" cy="433" r="3.6"/>
+    <circle class="joint" cx="358" cy="349" r="3.6"/>
+    <circle class="joint" cx="401" cy="433" r="3.6"/>
+  </g>
+
+  <text class="label" x="28" y="32">major body parts: head / torso / upper arm / forearm / hand / thigh / calf</text>
+</svg>

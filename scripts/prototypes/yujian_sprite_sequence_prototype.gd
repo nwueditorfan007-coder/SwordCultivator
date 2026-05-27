@@ -2,6 +2,7 @@ extends Node2D
 
 const HUMANOID_8WAY_SKELETON_VISUAL := preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
 const YUJIAN_INK_PART_VISUAL := preload("res://scripts/prototypes/yujian_ink_part_visual.gd")
+const GOOGLE_PARTS_SKELETON_VISUAL := preload("res://scripts/prototypes/google_parts_skeleton_visual.gd")
 const WIND_RIBBON_EFFECT_SCRIPT := preload("res://third_party/ffttasd/wind_ribbon/scripts/wind_ribbon_effect.gd")
 const FOG_CARD_3D_SCRIPT := preload("res://third_party/ffttasd/godot_fog_card/scripts/fog_card_3d.gd")
 const FOG_CARD_SHADER := preload("res://third_party/ffttasd/godot_fog_card/reference_fog/shaders/fog-card.gdshader")
@@ -68,8 +69,11 @@ const EIGHT_WAY_SET_V2 := 1
 const EIGHT_WAY_SET_V3_FACE := 2
 const EIGHT_WAY_SET_V4_SKELETON := 3
 const EIGHT_WAY_SET_V5_INK_PARTS := 4
+const EIGHT_WAY_SET_V6_GOOGLE_PARTS := 5
+const EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2 := 6
 const GEMINI_EIGHT_WAY_SCALE := 0.17
 const INK_PART_EIGHT_WAY_SCALE := 1.22
+const GOOGLE_PARTS_EIGHT_WAY_SCALE := 1.12
 const GEMINI_POSE_OFFSET := Vector2(0.0, -18.0)
 const SKELETON_EIGHT_WAY_SCALE := 1.16
 const SKELETON_POSE_OFFSET := Vector2(0.0, -6.0)
@@ -94,6 +98,8 @@ const GEMINI_EIGHT_WAY_SET_LABELS := [
 	"V3 face",
 	"V4 skeleton rig",
 	"V5 ink parts",
+	"V6 google parts",
+	"V7 google parts v2",
 ]
 const GEMINI_EIGHT_WAY_BASE_PATHS := [
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype",
@@ -101,6 +107,8 @@ const GEMINI_EIGHT_WAY_BASE_PATHS := [
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v5_ink_parts",
+	"res://resources/flight/rider/google_parts_v1",
+	"res://resources/flight/rider/google_parts_v2",
 ]
 const EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_runtime_adjustments.json"
 const GEMINI_EIGHT_WAY_NAMES := [
@@ -116,9 +124,9 @@ const GEMINI_EIGHT_WAY_VECTORS := [
 	Vector2(0.0, 1.0),
 ]
 
-@export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig", "V5 ink parts") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
+@export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig", "V5 ink parts", "V6 google parts", "V7 google parts v2") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
 @export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
-@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 0.3
+@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 2
 
 const CRUISE_SPEED := 390.0 * FLIGHT_SPEED_MULTIPLIER
 const BOOST_SPEED := 760.0 * FLIGHT_SPEED_MULTIPLIER
@@ -264,6 +272,7 @@ var sprite_root: Node2D
 var character_sprite: Sprite2D
 var skeleton_character: Node2D
 var ink_part_character: Node2D
+var google_part_character: Node2D
 var reference_vfx_viewport: SubViewport
 var reference_vfx_sprite: Sprite2D
 var reference_vfx_camera: Camera3D
@@ -495,6 +504,13 @@ void fragment() {
 	ink_part_character.name = "InkPartEightWayCharacter"
 	ink_part_character.visible = _uses_ink_part_eight_way()
 	sprite_root.add_child(ink_part_character)
+
+	google_part_character = GOOGLE_PARTS_SKELETON_VISUAL.new()
+	google_part_character.name = "GooglePartsEightWayCharacter"
+	if google_part_character.has_method("set_part_set_root"):
+		google_part_character.call("set_part_set_root", _google_part_root_path())
+	google_part_character.visible = _uses_google_part_eight_way()
+	sprite_root.add_child(google_part_character)
 
 
 func _create_adjustment_panel() -> void:
@@ -1034,6 +1050,10 @@ func _set_eight_way_character_set(next_set: int) -> void:
 		skeleton_character.visible = _uses_skeleton_eight_way()
 	if ink_part_character != null:
 		ink_part_character.visible = _uses_ink_part_eight_way()
+	if google_part_character != null:
+		if google_part_character.has_method("set_part_set_root"):
+			google_part_character.call("set_part_set_root", _google_part_root_path())
+		google_part_character.visible = _uses_google_part_eight_way()
 	_load_eight_way_textures()
 	if _use_v1_sequence_visual():
 		if sheet_texture == null:
@@ -1059,8 +1079,18 @@ func _uses_ink_part_eight_way() -> bool:
 	return eight_way_character_set == EIGHT_WAY_SET_V5_INK_PARTS
 
 
+func _uses_google_part_eight_way() -> bool:
+	return eight_way_character_set == EIGHT_WAY_SET_V6_GOOGLE_PARTS or eight_way_character_set == EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2
+
+
+func _google_part_root_path() -> String:
+	if eight_way_character_set == EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2:
+		return "res://resources/flight/rider/google_parts_v2"
+	return "res://resources/flight/rider/google_parts_v1"
+
+
 func _uses_procedural_eight_way() -> bool:
-	return _uses_skeleton_eight_way() or _uses_ink_part_eight_way()
+	return _uses_skeleton_eight_way() or _uses_ink_part_eight_way() or _uses_google_part_eight_way()
 
 
 func _get_eight_way_path(index: int) -> String:
@@ -1739,12 +1769,17 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 		if _uses_ink_part_eight_way():
 			_apply_ink_part_eight_way_transform(delta, turn_lean)
 			return
+		if _uses_google_part_eight_way():
+			_apply_google_part_eight_way_transform(delta, turn_lean)
+			return
 		if character_sprite != null:
 			character_sprite.visible = true
 		if skeleton_character != null:
 			skeleton_character.visible = false
 		if ink_part_character != null:
 			ink_part_character.visible = false
+		if google_part_character != null:
+			google_part_character.visible = false
 		var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
 		var switch_side := visual_heading.rotated(direction_switch_direction * PI * 0.5)
 		var switch_offset := (-visual_heading * 5.0 + switch_side * 4.0) * direction_switch_energy
@@ -1774,6 +1809,8 @@ func _apply_skeleton_eight_way_transform(delta: float, turn_lean: float) -> void
 		character_sprite.visible = false
 	if ink_part_character != null:
 		ink_part_character.visible = false
+	if google_part_character != null:
+		google_part_character.visible = false
 	skeleton_character.visible = true
 	var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
 	var skeleton_scale := SKELETON_EIGHT_WAY_SCALE * skeleton_size_scale * adjustment_scale * (1.0 + 0.045 * boost_energy + 0.03 * carve_energy)
@@ -1801,6 +1838,8 @@ func _apply_ink_part_eight_way_transform(delta: float, turn_lean: float) -> void
 		character_sprite.visible = false
 	if skeleton_character != null:
 		skeleton_character.visible = false
+	if google_part_character != null:
+		google_part_character.visible = false
 	ink_part_character.visible = true
 	var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
 	var ink_scale := INK_PART_EIGHT_WAY_SCALE * skeleton_size_scale * adjustment_scale * (1.0 + 0.055 * boost_energy + 0.035 * carve_energy)
@@ -1811,6 +1850,39 @@ func _apply_ink_part_eight_way_transform(delta: float, turn_lean: float) -> void
 	ink_part_character.scale = Vector2.ONE * ink_scale
 	if ink_part_character.has_method("set_flight_pose"):
 		ink_part_character.call(
+			"set_flight_pose",
+			eight_way_index,
+			visual_heading,
+			velocity,
+			boost_energy,
+			turn_energy,
+			carve_energy,
+			throttle_energy,
+			delta
+		)
+
+
+func _apply_google_part_eight_way_transform(delta: float, turn_lean: float) -> void:
+	if google_part_character == null:
+		return
+	if character_sprite != null:
+		character_sprite.visible = false
+	if skeleton_character != null:
+		skeleton_character.visible = false
+	if ink_part_character != null:
+		ink_part_character.visible = false
+	if google_part_character.has_method("set_part_set_root"):
+		google_part_character.call("set_part_set_root", _google_part_root_path())
+	google_part_character.visible = true
+	var adjustment_scale := _get_eight_way_global_scale(eight_way_character_set) * eight_way_visual_direction_scale
+	var google_scale := GOOGLE_PARTS_EIGHT_WAY_SCALE * skeleton_size_scale * adjustment_scale * (1.0 + 0.035 * boost_energy + 0.025 * carve_energy)
+	var switch_side := visual_heading.rotated(direction_switch_direction * PI * 0.5)
+	var switch_offset := (-visual_heading * 4.0 + switch_side * 4.5) * direction_switch_energy
+	google_part_character.position = SKELETON_POSE_OFFSET + eight_way_visual_offset + Vector2(0.0, -4.0 * boost_energy - 2.0 * carve_energy) + switch_offset
+	google_part_character.rotation = -turn_lean * 0.018 + carve_direction * carve_energy * 0.030 + direction_switch_direction * direction_switch_energy * 0.030
+	google_part_character.scale = Vector2.ONE * google_scale
+	if google_part_character.has_method("set_flight_pose"):
+		google_part_character.call(
 			"set_flight_pose",
 			eight_way_index,
 			visual_heading,
@@ -1841,7 +1913,7 @@ func _apply_eight_way_texture(heading: Vector2) -> void:
 	if _uses_procedural_eight_way():
 		var procedural_next_index := _get_eight_way_index_with_hysteresis(heading)
 		var direction_changed := eight_way_texture_initialized and procedural_next_index != eight_way_index
-		if direction_changed and _uses_ink_part_eight_way():
+		if direction_changed and (_uses_ink_part_eight_way() or _uses_google_part_eight_way()):
 			_trigger_eight_way_direction_switch(eight_way_index, procedural_next_index)
 		eight_way_index = procedural_next_index
 		eight_way_local_rotation = _get_eight_way_local_rotation(heading, procedural_next_index)
@@ -2821,6 +2893,8 @@ func _draw_debug() -> void:
 			visual_label = "V4 skeleton %s" % _current_eight_way_name()
 		elif _uses_ink_part_eight_way():
 			visual_label = "V5 ink parts %s" % _current_eight_way_name()
+		elif _uses_google_part_eight_way():
+			visual_label = "%s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
 		elif _use_v1_sequence_visual():
 			if _use_v1_static_direction_visual():
 				visual_label = "V1 static %s" % _current_eight_way_name()
