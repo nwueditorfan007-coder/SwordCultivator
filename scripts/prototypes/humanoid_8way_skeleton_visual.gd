@@ -27,15 +27,15 @@ const CARDINAL_BLEND_DIRECTION_INDICES := [0, 6, 4, 2]
 const OUTLINE := Color(0.035, 0.045, 0.055, 0.94)
 const JOINT := Color(0.94, 0.98, 1.0, 0.96)
 const SHOW_JOINTS_IN_GAME := false
-const CLEAN_BONE := Color(0.98, 0.995, 1.0, 0.96)
-const CLEAN_BONE_SOFT := Color(0.96, 0.985, 1.0, 0.15)
-const CLEAN_BONE_SHADOW := Color(0.68, 0.74, 0.80, 0.20)
-const CLEAN_BONE_HIGHLIGHT := Color(1.0, 1.0, 1.0, 0.76)
-const CLEAN_VOLUME := Color(0.96, 0.985, 1.0, 0.12)
-const CLEAN_VOLUME_RIM := Color(1.0, 1.0, 1.0, 0.28)
+const CLEAN_BONE := Color(0.070, 0.078, 0.082, 0.98)
+const CLEAN_BONE_SOFT := Color(0.70, 0.90, 1.0, 0.14)
+const CLEAN_BONE_SHADOW := Color(0.005, 0.007, 0.010, 0.44)
+const CLEAN_BONE_HIGHLIGHT := Color(0.92, 0.98, 1.0, 0.46)
+const CLEAN_VOLUME := Color(0.040, 0.048, 0.052, 0.76)
+const CLEAN_VOLUME_RIM := Color(0.84, 0.92, 0.94, 0.34)
 const CLEAN_JOINT := Color(1.0, 1.0, 1.0, 0.94)
-const CLEAN_HEAD := Color(1.0, 1.0, 1.0, 0.76)
-const CLEAN_HEAD_FILL := Color(1.0, 1.0, 1.0, 0.18)
+const CLEAN_HEAD := Color(0.84, 0.92, 0.94, 0.54)
+const CLEAN_HEAD_FILL := Color(0.035, 0.040, 0.044, 0.94)
 const HEAD := Color(0.075, 0.078, 0.080, 1.0)
 const TORSO := Color(0.105, 0.115, 0.112, 1.0)
 const UPPER_ARM := Color(0.145, 0.155, 0.150, 1.0)
@@ -531,46 +531,95 @@ func _draw_sword(h: Vector2, speed_ratio: float) -> void:
 
 func _draw_clean_skeleton(pose: Dictionary) -> void:
 	var speed_ratio: float = clampf(float(pose.get("speed_ratio", 0.0)), 0.0, 1.0)
-	var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
-	var width_scale := 1.0 + speed_ratio * 0.25 + _boost * 0.20
-	var spine_width := 5.2 * width_scale
-	var limb_width := 4.1 * width_scale
-	var side: Vector2 = pose["side"]
-	var h: Vector2 = pose["heading"]
-	var head_center: Vector2 = pose["head_center"]
+	var width_scale := 1.0 + speed_ratio * 0.18 + _boost * 0.12
+	var spine_width := 8.4 * width_scale
+	var arm_width := 6.2 * width_scale
+	var leg_width := 7.4 * width_scale
 	var shoulder_center: Vector2 = pose["shoulder_center"]
 	var hip_center: Vector2 = pose["hip_center"]
-	var neck: Vector2 = shoulder_center.lerp(head_center, 0.34)
-	var hip_mid: Vector2 = pose["hip_near"].lerp(pose["hip_far"], 0.5)
+	var draw_order := _front_side_adjusted_draw_order(pose.get("draw_order", EDIT_DRAW_LAYER_KEYS), pose)
+	for layer_key_variant in draw_order:
+		_draw_clean_skeleton_layer(String(layer_key_variant), pose, arm_width, leg_width, spine_width, width_scale)
 
-	_draw_clean_limb(pose["shoulder_far"], pose["elbow_far"], pose["wrist_far"], limb_width * 0.94, 0.46, -0.7)
-	_draw_clean_limb(pose["hip_far"], pose["knee_far"], pose["ankle_far"], limb_width * 0.96, 0.46, -0.7)
-	_draw_clean_body_volume(pose, width_scale)
-	_draw_clean_bone(neck, hip_mid, spine_width + 1.2, _clean_alpha(CLEAN_BONE, 0.82), 0.45)
-	_draw_clean_bone(pose["shoulder_far"], pose["shoulder_near"], spine_width, CLEAN_BONE, 0.65)
-	_draw_clean_bone(pose["hip_far"], pose["hip_near"], spine_width * 0.86, _clean_alpha(CLEAN_BONE, 0.76), 0.55)
-	_draw_clean_limb(pose["shoulder_near"], pose["elbow_near"], pose["wrist_near"], limb_width + 0.65, 1.0, 1.0)
-	_draw_clean_limb(pose["hip_near"], pose["knee_near"], pose["ankle_near"], limb_width + 0.35, 0.90, 0.9)
-
-	var head_radius := (9.0 + 2.0 * fast) * width_scale
-	_draw_clean_head_volume(head_center, h, side, head_radius, width_scale)
-
-	for key in EDIT_JOINT_KEYS:
-		var point: Vector2 = pose[key]
-		var radius := 2.35 * width_scale
-		if key == "head_center":
-			radius = 1.7 * width_scale
-		_draw_clean_joint(point, radius)
+	if _editor_active or SHOW_JOINTS_IN_GAME:
+		for key in EDIT_JOINT_KEYS:
+			var point: Vector2 = pose[key]
+			var radius := 2.35 * width_scale
+			if key == "head_center":
+				radius = 1.7 * width_scale
+			_draw_clean_joint(point, radius)
 
 	if _switch_flash > 0.0:
 		var flash_color := Color(0.86, 1.0, 1.0, 0.16 * _switch_flash)
 		draw_arc(shoulder_center.lerp(hip_center, 0.46), 42.0 + _switch_flash * 12.0, -PI * 0.15, PI * 1.15, 36, flash_color, 1.6, true)
 
 
+func _draw_clean_skeleton_layer(layer_key: String, pose: Dictionary, arm_width: float, leg_width: float, spine_width: float, width_scale: float) -> void:
+	match layer_key:
+		"far_arm":
+			var far_arm_front := _is_front_body_layer(layer_key, pose)
+			_draw_clean_limb(
+				pose["shoulder_far"],
+				pose["elbow_far"],
+				pose["wrist_far"],
+				arm_width * (1.08 if far_arm_front else 0.90),
+				1.0 if far_arm_front else 0.48,
+				1.0 if far_arm_front else -0.7
+			)
+		"far_leg":
+			var far_leg_front := _is_front_body_layer(layer_key, pose)
+			_draw_clean_limb(
+				pose["hip_far"],
+				pose["knee_far"],
+				pose["ankle_far"],
+				leg_width * (1.04 if far_leg_front else 0.92),
+				0.94 if far_leg_front else 0.48,
+				0.9 if far_leg_front else -0.7
+			)
+		"torso":
+			_draw_clean_torso(pose, spine_width, width_scale)
+		"head":
+			var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
+			var head_radius := (10.4 + 1.4 * fast) * width_scale
+			_draw_clean_head_volume(pose["head_center"], pose["heading"], pose["side"], head_radius, width_scale)
+		"near_leg":
+			var near_leg_front := _is_front_body_layer(layer_key, pose)
+			_draw_clean_limb(
+				pose["hip_near"],
+				pose["knee_near"],
+				pose["ankle_near"],
+				leg_width * (1.04 if near_leg_front else 0.92),
+				0.94 if near_leg_front else 0.48,
+				0.9 if near_leg_front else -0.7
+			)
+		"near_arm":
+			var near_arm_front := _is_front_body_layer(layer_key, pose)
+			_draw_clean_limb(
+				pose["shoulder_near"],
+				pose["elbow_near"],
+				pose["wrist_near"],
+				arm_width * (1.08 if near_arm_front else 0.90),
+				1.0 if near_arm_front else 0.48,
+				1.0 if near_arm_front else -0.7
+			)
+
+
+func _draw_clean_torso(pose: Dictionary, spine_width: float, width_scale: float) -> void:
+	var head_center: Vector2 = pose["head_center"]
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_mid: Vector2 = pose["hip_near"].lerp(pose["hip_far"], 0.5)
+	var neck: Vector2 = shoulder_center.lerp(head_center, 0.34)
+	_draw_clean_body_volume(pose, width_scale)
+	_draw_clean_bone(neck, hip_mid, spine_width + 2.0, _clean_alpha(CLEAN_BONE, 0.94), 0.45)
+	_draw_clean_bone(pose["shoulder_far"], pose["shoulder_near"], spine_width * 0.98, _clean_alpha(CLEAN_BONE, 0.94), 0.65)
+	_draw_clean_bone(pose["hip_far"], pose["hip_near"], spine_width * 0.88, _clean_alpha(CLEAN_BONE, 0.82), 0.55)
+
+
 func _draw_clean_limb(a: Vector2, b: Vector2, c: Vector2, width: float, alpha: float, depth := 1.0) -> void:
 	var color := _clean_alpha(CLEAN_BONE, alpha)
-	_draw_clean_bone(a, b, width * 1.08, color, depth)
-	_draw_clean_bone(b, c, width * 0.92, _clean_alpha(CLEAN_BONE, alpha * 0.92), depth)
+	_draw_clean_bone(a, b, width * 1.14, color, depth)
+	_draw_clean_bone(b, c, width * 0.94, _clean_alpha(CLEAN_BONE, alpha * 0.94), depth)
+	_draw_clean_joint_volume(b, width * 0.48, alpha, depth)
 
 
 func _draw_clean_bone(a: Vector2, b: Vector2, width: float, color: Color, depth := 1.0) -> void:
@@ -580,22 +629,39 @@ func _draw_clean_bone(a: Vector2, b: Vector2, width: float, color: Color, depth 
 	var normal := dir.normalized().rotated(PI * 0.5)
 	var depth_sign := -1.0 if depth < 0.0 else 1.0
 	var depth_strength := clampf(absf(depth), 0.0, 1.0)
-	var depth_offset := normal * clampf(width * 0.20, 0.45, 1.45) * depth_sign
-	var glow_width := width + 5.4
-	var glow := _clean_alpha(CLEAN_BONE_SOFT, color.a / CLEAN_BONE.a)
+	var depth_offset := normal * clampf(width * 0.24, 0.75, 2.10) * depth_sign + Vector2(0.0, 0.55)
+	var glow_width := width + 4.8
+	var glow := _clean_alpha(CLEAN_BONE_SOFT, 0.68 * color.a / CLEAN_BONE.a)
 	draw_line(a, b, glow, glow_width, true)
 	draw_circle(a, glow_width * 0.5, glow)
 	draw_circle(b, glow_width * 0.5, glow)
-	var shadow := _clean_alpha(CLEAN_BONE_SHADOW, (0.70 + depth_strength * 0.30) * color.a / CLEAN_BONE.a)
-	draw_line(a - depth_offset, b - depth_offset, shadow, width + 1.7, true)
-	draw_circle(a - depth_offset, (width + 1.7) * 0.5, shadow)
-	draw_circle(b - depth_offset, (width + 1.7) * 0.5, shadow)
+	var shadow := _clean_alpha(CLEAN_BONE_SHADOW, (0.86 + depth_strength * 0.34) * color.a / CLEAN_BONE.a)
+	draw_line(a + depth_offset, b + depth_offset, shadow, width + 2.4, true)
+	draw_circle(a + depth_offset, (width + 2.4) * 0.5, shadow)
+	draw_circle(b + depth_offset, (width + 2.4) * 0.5, shadow)
+	var rim := _clean_alpha(CLEAN_VOLUME_RIM, (0.58 + depth_strength * 0.18) * color.a / CLEAN_BONE.a)
+	draw_line(a, b, rim, width + 2.1, true)
+	draw_circle(a, (width + 2.1) * 0.5, rim)
+	draw_circle(b, (width + 2.1) * 0.5, rim)
 	draw_line(a, b, color, width, true)
 	draw_circle(a, width * 0.5, color)
 	draw_circle(b, width * 0.5, color)
-	var highlight := _clean_alpha(CLEAN_BONE_HIGHLIGHT, (0.42 + depth_strength * 0.22) * color.a / CLEAN_BONE.a)
-	var highlight_offset := depth_offset * 0.48 + Vector2(-0.25, -0.35)
-	draw_line(a + highlight_offset, b + highlight_offset, highlight, maxf(width * 0.23, 0.9), true)
+	var core_shadow := _clean_alpha(Color(0.018, 0.024, 0.028, 0.56), color.a / CLEAN_BONE.a)
+	draw_line(a + depth_offset * 0.35, b + depth_offset * 0.35, core_shadow, maxf(width * 0.48, 1.8), true)
+	var highlight := _clean_alpha(CLEAN_BONE_HIGHLIGHT, (0.56 + depth_strength * 0.20) * color.a / CLEAN_BONE.a)
+	var highlight_offset := -depth_offset * 0.42 + Vector2(-0.15, -0.35)
+	draw_line(a + highlight_offset, b + highlight_offset, highlight, maxf(width * 0.30, 1.2), true)
+	draw_circle(a + highlight_offset, maxf(width * 0.12, 0.65), highlight)
+
+
+func _draw_clean_joint_volume(point: Vector2, radius: float, alpha: float, depth := 1.0) -> void:
+	var depth_sign := -1.0 if depth < 0.0 else 1.0
+	var shadow_offset := Vector2(0.65 * depth_sign, 0.75)
+	var shadow := _clean_alpha(CLEAN_BONE_SHADOW, 0.78 * alpha)
+	draw_circle(point + shadow_offset, radius + 1.4, shadow)
+	draw_circle(point, radius + 0.8, _clean_alpha(CLEAN_VOLUME_RIM, 0.58 * alpha))
+	draw_circle(point, radius, _clean_alpha(CLEAN_BONE, alpha))
+	draw_circle(point + Vector2(-0.45, -0.60) * radius, maxf(radius * 0.32, 0.8), _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.72 * alpha))
 
 
 func _draw_clean_body_volume(pose: Dictionary, width_scale: float) -> void:
@@ -608,27 +674,29 @@ func _draw_clean_body_volume(pose: Dictionary, width_scale: float) -> void:
 	var h: Vector2 = pose["heading"]
 	var side: Vector2 = pose["side"]
 	var chest := PackedVector2Array([
-		shoulder_far + h * 1.4,
-		shoulder_near + h * 1.8,
-		hip_near - h * 0.8 + side * 0.8,
-		hip_far - h * 1.0 - side * 0.5,
+		shoulder_far + h * 2.0 - side * 1.2,
+		shoulder_near + h * 2.4 + side * 1.4,
+		hip_near - h * 1.0 + side * 2.2,
+		hip_far - h * 1.2 - side * 1.6,
 	])
 	_draw_quad_safe(chest[0], chest[1], chest[2], chest[3], CLEAN_VOLUME)
-	_draw_closed_polyline(chest, CLEAN_VOLUME_RIM, 1.25 * width_scale)
+	_draw_closed_polyline(chest, _clean_alpha(CLEAN_VOLUME_RIM, 0.95), 2.0 * width_scale)
 	var rib_a := shoulder_center.lerp(hip_center, 0.32)
 	var rib_b := shoulder_center.lerp(hip_center, 0.60)
-	draw_line(rib_a - side * 6.5 * width_scale, rib_a + side * 6.0 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.58), 1.2 * width_scale, true)
-	draw_line(rib_b - side * 4.8 * width_scale, rib_b + side * 4.2 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.42), 1.0 * width_scale, true)
-	draw_circle(shoulder_center.lerp(hip_center, 0.48) - side * 2.0 * width_scale + h * 1.0, 2.0 * width_scale, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.46))
+	draw_line(rib_a - side * 7.4 * width_scale, rib_a + side * 6.8 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.70), 1.8 * width_scale, true)
+	draw_line(rib_b - side * 5.4 * width_scale, rib_b + side * 4.8 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.46), 1.2 * width_scale, true)
+	draw_line(shoulder_center.lerp(hip_center, 0.18) - side * 2.2 * width_scale, hip_center - side * 1.6 * width_scale, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.28), 2.0 * width_scale, true)
+	draw_circle(shoulder_center.lerp(hip_center, 0.48) - side * 2.0 * width_scale + h * 1.0, 2.4 * width_scale, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.48))
 
 
 func _draw_clean_head_volume(head_center: Vector2, h: Vector2, side: Vector2, head_radius: float, width_scale: float) -> void:
-	draw_circle(head_center, head_radius + 3.6 * width_scale, _clean_alpha(CLEAN_BONE_SOFT, 0.82))
-	draw_circle(head_center + side * 1.0 + Vector2(0.0, 0.8) * width_scale, head_radius + 0.6 * width_scale, _clean_alpha(CLEAN_BONE_SHADOW, 0.58))
+	draw_circle(head_center, head_radius + 4.0 * width_scale, _clean_alpha(CLEAN_BONE_SOFT, 0.72))
+	draw_circle(head_center + side * 1.2 * width_scale + Vector2(0.0, 1.1) * width_scale, head_radius + 1.2 * width_scale, _clean_alpha(CLEAN_BONE_SHADOW, 0.70))
+	draw_circle(head_center, head_radius + 0.8 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.54))
 	draw_circle(head_center, head_radius, CLEAN_HEAD_FILL)
-	draw_arc(head_center, head_radius + 1.0 * width_scale, 0.0, TAU, 32, CLEAN_HEAD, 2.2 * width_scale, true)
-	draw_arc(head_center - h * 1.8 * width_scale - side * 1.2 * width_scale, head_radius * 0.64, PI * 0.10, PI * 1.24, 18, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.46), 1.1 * width_scale, true)
-	draw_circle(head_center - side * 2.8 * width_scale + Vector2(-0.7, -1.8) * width_scale, maxf(1.45 * width_scale, 0.8), CLEAN_BONE_HIGHLIGHT)
+	draw_arc(head_center, head_radius + 1.1 * width_scale, 0.0, TAU, 32, CLEAN_HEAD, 2.4 * width_scale, true)
+	draw_arc(head_center - h * 1.8 * width_scale - side * 1.2 * width_scale, head_radius * 0.70, PI * 0.10, PI * 1.24, 18, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.58), 1.4 * width_scale, true)
+	draw_circle(head_center - side * 2.9 * width_scale + Vector2(-0.8, -2.0) * width_scale, maxf(1.7 * width_scale, 0.9), _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.92))
 
 
 func _draw_clean_joint(point: Vector2, radius: float) -> void:
