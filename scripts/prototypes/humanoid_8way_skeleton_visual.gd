@@ -476,6 +476,7 @@ func _blend_flight_poses(first_pose: Dictionary, second_pose: Dictionary, weight
 		var first_point := _pose_joint_for_output_side(first_pose, String(key), output_near_side_sign)
 		var second_point := _pose_joint_for_output_side(second_pose, String(key), output_near_side_sign)
 		pose[key] = first_point.lerp(second_point, t)
+	_align_blended_feet_to_sword_line(pose)
 	var shoulder_near: Vector2 = pose["shoulder_near"]
 	var shoulder_far: Vector2 = pose["shoulder_far"]
 	var hip_near: Vector2 = pose["hip_near"]
@@ -483,6 +484,42 @@ func _blend_flight_poses(first_pose: Dictionary, second_pose: Dictionary, weight
 	pose["shoulder_center"] = (shoulder_near + shoulder_far) * 0.5
 	pose["hip_center"] = (hip_near + hip_far) * 0.5
 	return pose
+
+
+func _align_blended_feet_to_sword_line(pose: Dictionary) -> void:
+	var h: Vector2 = pose["heading"]
+	if h.length_squared() <= 0.0001:
+		return
+	h = h.normalized()
+	var diagonal_strength: float = clampf(minf(absf(h.x), absf(h.y)) * 1.41421356237, 0.0, 1.0)
+	diagonal_strength = smoothstep(0.08, 0.65, diagonal_strength)
+	if diagonal_strength <= 0.001:
+		return
+	var sword_center: Vector2 = _sword_center()
+	_align_blended_foot_to_sword_line(pose, "near", h, sword_center, diagonal_strength)
+	_align_blended_foot_to_sword_line(pose, "far", h, sword_center, diagonal_strength)
+
+
+func _align_blended_foot_to_sword_line(
+		pose: Dictionary,
+		side_key: String,
+		h: Vector2,
+		sword_center: Vector2,
+		strength: float
+) -> void:
+	var ankle_key := "ankle_%s" % side_key
+	var knee_key := "knee_%s" % side_key
+	var ankle: Vector2 = pose[ankle_key]
+	var correction: Vector2 = _point_to_sword_line_correction(ankle, h, sword_center) * strength
+	pose[ankle_key] = ankle + correction
+	var knee: Vector2 = pose[knee_key]
+	pose[knee_key] = knee + correction * 0.45
+
+
+func _point_to_sword_line_correction(point: Vector2, h: Vector2, sword_center: Vector2) -> Vector2:
+	var normal: Vector2 = h.rotated(PI * 0.5)
+	var distance: float = (point - sword_center).dot(normal)
+	return -normal * distance
 
 
 func _pose_joint_for_output_side(source_pose: Dictionary, joint_key: String, output_near_side_sign: float) -> Vector2:
@@ -514,7 +551,7 @@ func _draw_order_for_output_side(source_pose: Dictionary, output_near_side_sign:
 func _draw_sword(h: Vector2, speed_ratio: float) -> void:
 	var back := -h * (78.0 + 14.0 * _boost)
 	var front := h * (74.0 + 12.0 * _boost)
-	var drop := Vector2(0.0, 68.0 + 4.0 * _boost)
+	var drop := _sword_center()
 	var width := 5.0 + 3.0 * _boost
 	draw_line(back + drop, front + drop, Color(0.08, 0.18, 0.20, 0.84), width + 5.0, true)
 	draw_line(back + drop, front + drop, SWORD, width, true)
@@ -527,6 +564,10 @@ func _draw_sword(h: Vector2, speed_ratio: float) -> void:
 	draw_circle(back + h * 9.0 + drop, 2.0, JADE)
 	var glow := Color(0.58, 0.95, 1.0, 0.10 + 0.10 * _boost + 0.08 * _switch_flash)
 	draw_line(back - h * 28.0 + drop, front + h * 12.0 + drop, glow, 18.0 + 10.0 * _boost, true)
+
+
+func _sword_center() -> Vector2:
+	return Vector2(0.0, 68.0 + 4.0 * _boost)
 
 
 func _draw_clean_skeleton(pose: Dictionary) -> void:
