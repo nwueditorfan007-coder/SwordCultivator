@@ -26,18 +26,37 @@ const EDIT_CARDINAL_DIRECTION_INDICES := [0, 2, 4, 6]
 const CARDINAL_BLEND_DIRECTION_INDICES := [0, 6, 4, 2]
 const OUTLINE := Color(0.035, 0.045, 0.055, 0.94)
 const JOINT := Color(0.94, 0.98, 1.0, 0.96)
-const HEAD := Color(0.92, 0.76, 0.50, 1.0)
-const TORSO := Color(0.34, 0.66, 0.76, 1.0)
-const UPPER_ARM := Color(0.78, 0.89, 0.88, 1.0)
-const FOREARM := Color(0.62, 0.82, 0.86, 1.0)
-const THIGH := Color(0.25, 0.48, 0.58, 1.0)
-const CALF := Color(0.20, 0.36, 0.48, 1.0)
-const ROBE_LIGHT := Color(0.76, 0.90, 0.88, 1.0)
-const ROBE_SHADOW := Color(0.16, 0.30, 0.40, 1.0)
-const ROBE_TRIM := Color(0.90, 0.82, 0.47, 0.96)
-const SASH := Color(0.82, 0.28, 0.25, 0.96)
-const BOOT := Color(0.11, 0.13, 0.20, 1.0)
-const JADE := Color(0.64, 1.0, 0.86, 0.98)
+const SHOW_JOINTS_IN_GAME := false
+const CLEAN_BONE := Color(0.98, 0.995, 1.0, 0.96)
+const CLEAN_BONE_SOFT := Color(0.96, 0.985, 1.0, 0.15)
+const CLEAN_BONE_SHADOW := Color(0.68, 0.74, 0.80, 0.20)
+const CLEAN_BONE_HIGHLIGHT := Color(1.0, 1.0, 1.0, 0.76)
+const CLEAN_VOLUME := Color(0.96, 0.985, 1.0, 0.12)
+const CLEAN_VOLUME_RIM := Color(1.0, 1.0, 1.0, 0.28)
+const CLEAN_JOINT := Color(1.0, 1.0, 1.0, 0.94)
+const CLEAN_HEAD := Color(1.0, 1.0, 1.0, 0.76)
+const CLEAN_HEAD_FILL := Color(1.0, 1.0, 1.0, 0.18)
+const HEAD := Color(0.075, 0.078, 0.080, 1.0)
+const TORSO := Color(0.105, 0.115, 0.112, 1.0)
+const UPPER_ARM := Color(0.145, 0.155, 0.150, 1.0)
+const FOREARM := Color(0.075, 0.080, 0.080, 1.0)
+const THIGH := Color(0.100, 0.105, 0.104, 1.0)
+const CALF := Color(0.060, 0.063, 0.066, 1.0)
+const ROBE_LIGHT := Color(0.74, 0.78, 0.76, 0.96)
+const ROBE_SHADOW := Color(0.045, 0.048, 0.050, 1.0)
+const ROBE_TRIM := Color(0.86, 0.88, 0.80, 0.92)
+const SASH := Color(0.025, 0.026, 0.028, 0.98)
+const BOOT := Color(0.018, 0.020, 0.026, 1.0)
+const JADE := Color(0.66, 0.74, 0.69, 0.86)
+const HAIR := Color(0.015, 0.016, 0.018, 0.82)
+const HAIR_SOFT := Color(0.060, 0.062, 0.062, 0.38)
+const INK_EDGE := Color(0.86, 0.90, 0.86, 0.58)
+const INK_RIM_COLD := Color(0.70, 0.98, 1.0, 0.52)
+const INK_RIM_WARM := Color(0.96, 0.90, 0.70, 0.36)
+const INK_BODY_GLOW := Color(0.58, 0.86, 0.92, 0.11)
+const CLOTH_PANEL := Color(0.020, 0.022, 0.024, 0.34)
+const CLOTH_WASH := Color(0.22, 0.24, 0.23, 0.26)
+const CLOTH_RIM := Color(0.86, 0.88, 0.80, 0.30)
 const SWORD := Color(0.62, 0.96, 1.0, 0.88)
 const SWORD_CORE := Color(0.96, 1.0, 0.98, 0.98)
 const FACE_DARK := Color(0.06, 0.07, 0.08, 0.92)
@@ -104,6 +123,9 @@ var _carve := 0.0
 var _throttle := 0.0
 var _time := 0.0
 var _switch_flash := 0.0
+var _cloth_wind := 0.0
+var _cloth_turn := 0.0
+var _cloth_flow_dir := Vector2.DOWN
 var _pose_overrides := {"low": {}, "fast": {}}
 var _bone_lengths := {}
 var _editor_active := false
@@ -234,8 +256,7 @@ func _draw() -> void:
 	var h: Vector2 = pose["heading"]
 	var speed_ratio: float = pose["speed_ratio"]
 	_draw_sword(h, speed_ratio)
-	for layer_key in _front_side_adjusted_draw_order(pose.get("draw_order", EDIT_DRAW_LAYER_KEYS), pose):
-		_draw_body_layer(String(layer_key), pose)
+	_draw_clean_skeleton(pose)
 	_draw_joints(pose)
 
 
@@ -508,6 +529,186 @@ func _draw_sword(h: Vector2, speed_ratio: float) -> void:
 	draw_line(back - h * 28.0 + drop, front + h * 12.0 + drop, glow, 18.0 + 10.0 * _boost, true)
 
 
+func _draw_clean_skeleton(pose: Dictionary) -> void:
+	var speed_ratio: float = clampf(float(pose.get("speed_ratio", 0.0)), 0.0, 1.0)
+	var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
+	var width_scale := 1.0 + speed_ratio * 0.25 + _boost * 0.20
+	var spine_width := 5.2 * width_scale
+	var limb_width := 4.1 * width_scale
+	var side: Vector2 = pose["side"]
+	var h: Vector2 = pose["heading"]
+	var head_center: Vector2 = pose["head_center"]
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var neck: Vector2 = shoulder_center.lerp(head_center, 0.34)
+	var hip_mid: Vector2 = pose["hip_near"].lerp(pose["hip_far"], 0.5)
+
+	_draw_clean_limb(pose["shoulder_far"], pose["elbow_far"], pose["wrist_far"], limb_width * 0.94, 0.46, -0.7)
+	_draw_clean_limb(pose["hip_far"], pose["knee_far"], pose["ankle_far"], limb_width * 0.96, 0.46, -0.7)
+	_draw_clean_body_volume(pose, width_scale)
+	_draw_clean_bone(neck, hip_mid, spine_width + 1.2, _clean_alpha(CLEAN_BONE, 0.82), 0.45)
+	_draw_clean_bone(pose["shoulder_far"], pose["shoulder_near"], spine_width, CLEAN_BONE, 0.65)
+	_draw_clean_bone(pose["hip_far"], pose["hip_near"], spine_width * 0.86, _clean_alpha(CLEAN_BONE, 0.76), 0.55)
+	_draw_clean_limb(pose["shoulder_near"], pose["elbow_near"], pose["wrist_near"], limb_width + 0.65, 1.0, 1.0)
+	_draw_clean_limb(pose["hip_near"], pose["knee_near"], pose["ankle_near"], limb_width + 0.35, 0.90, 0.9)
+
+	var head_radius := (9.0 + 2.0 * fast) * width_scale
+	_draw_clean_head_volume(head_center, h, side, head_radius, width_scale)
+
+	for key in EDIT_JOINT_KEYS:
+		var point: Vector2 = pose[key]
+		var radius := 2.35 * width_scale
+		if key == "head_center":
+			radius = 1.7 * width_scale
+		_draw_clean_joint(point, radius)
+
+	if _switch_flash > 0.0:
+		var flash_color := Color(0.86, 1.0, 1.0, 0.16 * _switch_flash)
+		draw_arc(shoulder_center.lerp(hip_center, 0.46), 42.0 + _switch_flash * 12.0, -PI * 0.15, PI * 1.15, 36, flash_color, 1.6, true)
+
+
+func _draw_clean_limb(a: Vector2, b: Vector2, c: Vector2, width: float, alpha: float, depth := 1.0) -> void:
+	var color := _clean_alpha(CLEAN_BONE, alpha)
+	_draw_clean_bone(a, b, width * 1.08, color, depth)
+	_draw_clean_bone(b, c, width * 0.92, _clean_alpha(CLEAN_BONE, alpha * 0.92), depth)
+
+
+func _draw_clean_bone(a: Vector2, b: Vector2, width: float, color: Color, depth := 1.0) -> void:
+	if color.a <= 0.001 or a.distance_squared_to(b) <= 0.001:
+		return
+	var dir := b - a
+	var normal := dir.normalized().rotated(PI * 0.5)
+	var depth_sign := -1.0 if depth < 0.0 else 1.0
+	var depth_strength := clampf(absf(depth), 0.0, 1.0)
+	var depth_offset := normal * clampf(width * 0.20, 0.45, 1.45) * depth_sign
+	var glow_width := width + 5.4
+	var glow := _clean_alpha(CLEAN_BONE_SOFT, color.a / CLEAN_BONE.a)
+	draw_line(a, b, glow, glow_width, true)
+	draw_circle(a, glow_width * 0.5, glow)
+	draw_circle(b, glow_width * 0.5, glow)
+	var shadow := _clean_alpha(CLEAN_BONE_SHADOW, (0.70 + depth_strength * 0.30) * color.a / CLEAN_BONE.a)
+	draw_line(a - depth_offset, b - depth_offset, shadow, width + 1.7, true)
+	draw_circle(a - depth_offset, (width + 1.7) * 0.5, shadow)
+	draw_circle(b - depth_offset, (width + 1.7) * 0.5, shadow)
+	draw_line(a, b, color, width, true)
+	draw_circle(a, width * 0.5, color)
+	draw_circle(b, width * 0.5, color)
+	var highlight := _clean_alpha(CLEAN_BONE_HIGHLIGHT, (0.42 + depth_strength * 0.22) * color.a / CLEAN_BONE.a)
+	var highlight_offset := depth_offset * 0.48 + Vector2(-0.25, -0.35)
+	draw_line(a + highlight_offset, b + highlight_offset, highlight, maxf(width * 0.23, 0.9), true)
+
+
+func _draw_clean_body_volume(pose: Dictionary, width_scale: float) -> void:
+	var shoulder_near: Vector2 = pose["shoulder_near"]
+	var shoulder_far: Vector2 = pose["shoulder_far"]
+	var hip_near: Vector2 = pose["hip_near"]
+	var hip_far: Vector2 = pose["hip_far"]
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var h: Vector2 = pose["heading"]
+	var side: Vector2 = pose["side"]
+	var chest := PackedVector2Array([
+		shoulder_far + h * 1.4,
+		shoulder_near + h * 1.8,
+		hip_near - h * 0.8 + side * 0.8,
+		hip_far - h * 1.0 - side * 0.5,
+	])
+	_draw_quad_safe(chest[0], chest[1], chest[2], chest[3], CLEAN_VOLUME)
+	_draw_closed_polyline(chest, CLEAN_VOLUME_RIM, 1.25 * width_scale)
+	var rib_a := shoulder_center.lerp(hip_center, 0.32)
+	var rib_b := shoulder_center.lerp(hip_center, 0.60)
+	draw_line(rib_a - side * 6.5 * width_scale, rib_a + side * 6.0 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.58), 1.2 * width_scale, true)
+	draw_line(rib_b - side * 4.8 * width_scale, rib_b + side * 4.2 * width_scale, _clean_alpha(CLEAN_VOLUME_RIM, 0.42), 1.0 * width_scale, true)
+	draw_circle(shoulder_center.lerp(hip_center, 0.48) - side * 2.0 * width_scale + h * 1.0, 2.0 * width_scale, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.46))
+
+
+func _draw_clean_head_volume(head_center: Vector2, h: Vector2, side: Vector2, head_radius: float, width_scale: float) -> void:
+	draw_circle(head_center, head_radius + 3.6 * width_scale, _clean_alpha(CLEAN_BONE_SOFT, 0.82))
+	draw_circle(head_center + side * 1.0 + Vector2(0.0, 0.8) * width_scale, head_radius + 0.6 * width_scale, _clean_alpha(CLEAN_BONE_SHADOW, 0.58))
+	draw_circle(head_center, head_radius, CLEAN_HEAD_FILL)
+	draw_arc(head_center, head_radius + 1.0 * width_scale, 0.0, TAU, 32, CLEAN_HEAD, 2.2 * width_scale, true)
+	draw_arc(head_center - h * 1.8 * width_scale - side * 1.2 * width_scale, head_radius * 0.64, PI * 0.10, PI * 1.24, 18, _clean_alpha(CLEAN_BONE_HIGHLIGHT, 0.46), 1.1 * width_scale, true)
+	draw_circle(head_center - side * 2.8 * width_scale + Vector2(-0.7, -1.8) * width_scale, maxf(1.45 * width_scale, 0.8), CLEAN_BONE_HIGHLIGHT)
+
+
+func _draw_clean_joint(point: Vector2, radius: float) -> void:
+	draw_circle(point, radius + 2.5, _clean_alpha(CLEAN_BONE_SOFT, 0.76))
+	draw_circle(point + Vector2(0.55, 0.75), radius + 0.5, _clean_alpha(CLEAN_BONE_SHADOW, 0.68))
+	draw_circle(point, radius, CLEAN_JOINT)
+	draw_circle(point + Vector2(-0.34, -0.42) * radius, maxf(radius * 0.34, 0.75), CLEAN_BONE_HIGHLIGHT)
+
+
+func _clean_alpha(color: Color, alpha_scale: float) -> Color:
+	return Color(color.r, color.g, color.b, color.a * clampf(alpha_scale, 0.0, 1.8))
+
+
+func _draw_ink_presence(pose: Dictionary) -> void:
+	var head_center: Vector2 = pose["head_center"]
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var h: Vector2 = pose["heading"]
+	var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
+	var wind_power := _cloth_wind_power(pose)
+	var body_axis := hip_center - head_center
+	if body_axis.length_squared() <= 0.0001:
+		body_axis = Vector2.DOWN
+	var center := head_center.lerp(hip_center, 0.58)
+	var aura := Color(INK_BODY_GLOW.r, INK_BODY_GLOW.g, INK_BODY_GLOW.b, INK_BODY_GLOW.a * (0.82 + fast * 0.76))
+	draw_line(head_center - h * 5.0, hip_center + Vector2(0.0, 11.0), aura, 15.0 + fast * 7.0 + wind_power * 4.0, true)
+	draw_circle(center + Vector2(0.0, 5.0), 28.0 + fast * 5.0, Color(0.48, 0.78, 0.86, 0.014 + fast * 0.010))
+	draw_line(shoulder_center - h * (18.0 + fast * 13.0), shoulder_center + h * (14.0 + fast * 18.0), Color(0.90, 1.0, 0.94, 0.030 + fast * 0.026), 6.0 + fast * 4.0, true)
+	if _switch_flash > 0.0:
+		draw_arc(center, 52.0 + _switch_flash * 18.0, -PI * 0.18, PI * 1.12, 36, Color(0.66, 1.0, 1.0, 0.10 * _switch_flash), 2.2, true)
+
+
+func _draw_back_robe_tail(pose: Dictionary) -> void:
+	var hip_near: Vector2 = pose["hip_near"]
+	var hip_far: Vector2 = pose["hip_far"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var side: Vector2 = pose["side"]
+	var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
+	var wind_power: float = _cloth_wind_power(pose)
+	var flow: Vector2 = _cloth_motion_vector(pose, 30.0 + fast * 10.0, 42.0 + fast * 22.0, 3.0, 0.4)
+	var wind_unit := clampf(wind_power, 0.0, 1.0)
+	var base_width := 8.0 + fast * 3.0
+	_draw_cloth_panel(
+		hip_far.lerp(hip_center, 0.42) + Vector2(0.0, 3.0),
+		flow * (0.62 + wind_unit * 0.08),
+		side,
+		-base_width,
+		5.8,
+		8.2 + fast * 2.6,
+		2.8,
+		0.8,
+		Color(CLOTH_PANEL.r, CLOTH_PANEL.g, CLOTH_PANEL.b, 0.26),
+		Color(CLOTH_RIM.r, CLOTH_RIM.g, CLOTH_RIM.b, 0.22)
+	)
+	_draw_cloth_panel(
+		hip_center + Vector2(0.0, 4.0),
+		flow * (0.72 + wind_unit * 0.10),
+		side,
+		0.0,
+		6.2,
+		9.5 + fast * 3.0,
+		3.2,
+		2.0,
+		Color(0.010, 0.012, 0.014, 0.30),
+		Color(CLOTH_RIM.r, CLOTH_RIM.g, CLOTH_RIM.b, 0.24)
+	)
+	_draw_cloth_panel(
+		hip_near.lerp(hip_center, 0.38) + Vector2(0.0, 3.0),
+		flow * (0.64 + wind_unit * 0.08),
+		side,
+		base_width,
+		5.6,
+		8.0 + fast * 2.4,
+		2.8,
+		3.2,
+		Color(0.028, 0.031, 0.033, 0.22),
+		Color(CLOTH_RIM.r, CLOTH_RIM.g, CLOTH_RIM.b, 0.18)
+	)
+
+
 func _draw_torso(pose: Dictionary) -> void:
 	var shoulder_near: Vector2 = pose["shoulder_near"]
 	var shoulder_far: Vector2 = pose["shoulder_far"]
@@ -517,46 +718,76 @@ func _draw_torso(pose: Dictionary) -> void:
 	var hip_center: Vector2 = pose["hip_center"]
 	var h: Vector2 = pose["heading"]
 	var side: Vector2 = pose["side"]
+	var wind_power: float = _cloth_wind_power(pose)
 	var points := PackedVector2Array([
 		shoulder_near,
 		shoulder_far,
 		hip_far,
 		hip_near,
 	])
-	draw_colored_polygon(_expand_polygon(points, 3.5), OUTLINE)
-	draw_colored_polygon(points, TORSO)
-	var closed := PackedVector2Array(points)
-	closed.append(points[0])
-	draw_polyline(closed, Color(0.58, 0.78, 0.86, 0.86), 1.4, true)
-	var robe_drop := Vector2(0.0, 17.0 + 5.0 * clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0))
+	_draw_closed_polyline(points, OUTLINE, 5.2)
+	_draw_quad_safe(shoulder_near, shoulder_far, hip_far, hip_near, TORSO)
+	_draw_quad_safe(
+		shoulder_near.lerp(shoulder_far, 0.18),
+		shoulder_near.lerp(shoulder_far, 0.46),
+		hip_center + side * 1.5 + h * 2.0,
+		hip_near.lerp(hip_far, 0.28),
+		Color(0.25, 0.26, 0.25, 0.52)
+	)
+	_draw_closed_polyline(points, INK_EDGE, 1.4)
+	var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
+	var robe_drop: Vector2 = _cloth_motion_vector(pose, 20.0 + fast * 6.0, 22.0 + fast * 12.0, 2.2, 1.1)
+	var skirt_far_bottom: Vector2 = hip_far + robe_drop - side * 4.8 - h * 2.0
+	var skirt_bottom_center: Vector2 = hip_center + robe_drop + Vector2(0.0, 7.0 + fast * 2.0)
+	var skirt_near_bottom: Vector2 = hip_near + robe_drop + side * 5.6 - h * 2.0
 	var skirt_points := PackedVector2Array([
 		hip_near,
 		hip_far,
-		hip_far + robe_drop - side * 3.0 - h * 3.0,
-		hip_center + robe_drop + Vector2(0.0, 8.0),
-		hip_near + robe_drop + side * 3.0 - h * 3.0,
+		skirt_far_bottom,
+		skirt_bottom_center,
+		skirt_near_bottom,
 	])
-	draw_colored_polygon(_expand_polygon(skirt_points, 2.6), OUTLINE)
-	draw_colored_polygon(skirt_points, ROBE_SHADOW)
+	_draw_closed_polyline(skirt_points, OUTLINE, 3.4)
+	var skirt_color := Color(ROBE_SHADOW.r, ROBE_SHADOW.g, ROBE_SHADOW.b, 0.58)
+	_draw_triangle_safe(hip_near, hip_far, skirt_bottom_center, skirt_color)
+	_draw_triangle_safe(hip_far, skirt_far_bottom, skirt_bottom_center, skirt_color)
+	_draw_triangle_safe(hip_near, skirt_bottom_center, skirt_near_bottom, skirt_color)
+	var front_flap_root: Vector2 = hip_center + Vector2(0.0, 3.5)
+	_draw_cloth_panel(
+		front_flap_root,
+		robe_drop * (0.55 + clampf(wind_power, 0.0, 1.0) * 0.12),
+		side,
+		0.0,
+		3.6,
+		5.6,
+		1.6,
+		5.1,
+		Color(0.018, 0.020, 0.022, 0.34),
+		Color(CLOTH_RIM.r, CLOTH_RIM.g, CLOTH_RIM.b, 0.24)
+	)
+	draw_line(hip_far + robe_drop * 0.22, hip_far + robe_drop - side * 4.0, Color(ROBE_LIGHT.r, ROBE_LIGHT.g, ROBE_LIGHT.b, 0.44), 1.6, true)
+	draw_line(hip_center + robe_drop * 0.18, skirt_bottom_center, Color(0.82, 0.84, 0.80, 0.34), 1.8, true)
+	draw_line(hip_near + robe_drop * 0.22, hip_near + robe_drop + side * 4.4, Color(ROBE_LIGHT.r, ROBE_LIGHT.g, ROBE_LIGHT.b, 0.44), 1.6, true)
 	var collar_left := shoulder_center.lerp(shoulder_near, 0.56)
 	var collar_right := shoulder_center.lerp(shoulder_far, 0.56)
 	var collar_bottom := hip_center + h * 3.0 + Vector2(0.0, -3.0)
-	draw_line(collar_left, collar_bottom, ROBE_LIGHT, 3.0, true)
-	draw_line(collar_right, collar_bottom, ROBE_LIGHT, 3.0, true)
-	draw_line(collar_left, collar_bottom, ROBE_TRIM, 1.2, true)
-	draw_line(collar_right, collar_bottom, ROBE_TRIM, 1.2, true)
+	draw_line(collar_left, collar_bottom, OUTLINE, 3.2, true)
+	draw_line(collar_right, collar_bottom, OUTLINE, 3.2, true)
+	draw_line(collar_left, collar_bottom, ROBE_TRIM, 1.8, true)
+	draw_line(collar_right, collar_bottom, ROBE_TRIM, 1.8, true)
 	draw_line(hip_near, hip_far, OUTLINE, 6.2, true)
 	draw_line(hip_near, hip_far, SASH, 3.8, true)
+	draw_line(hip_near + Vector2(0.0, 4.0), hip_far + Vector2(0.0, 4.0), Color(0.60, 0.62, 0.58, 0.34), 1.6, true)
 	draw_circle(hip_center + h * 2.0, 3.0, OUTLINE)
 	draw_circle(hip_center + h * 2.0, 2.0, JADE)
-	draw_line(shoulder_near, shoulder_far, ROBE_TRIM, 1.4, true)
+	draw_line(shoulder_near, shoulder_far, ROBE_TRIM, 1.6, true)
 
 
 func _draw_body_layer(layer_key: String, pose: Dictionary) -> void:
 	match layer_key:
 		"far_arm":
 			var far_arm_front := _is_front_body_layer(layer_key, pose)
-			_draw_robed_arm(pose["shoulder_far"], pose["elbow_far"], pose["wrist_far"], far_arm_front)
+			_draw_robed_arm(pose, pose["shoulder_far"], pose["elbow_far"], pose["wrist_far"], far_arm_front)
 		"far_leg":
 			var far_leg_front := _is_front_body_layer(layer_key, pose)
 			_draw_robed_leg(pose["hip_far"], pose["knee_far"], pose["ankle_far"], far_leg_front)
@@ -569,30 +800,63 @@ func _draw_body_layer(layer_key: String, pose: Dictionary) -> void:
 			_draw_robed_leg(pose["hip_near"], pose["knee_near"], pose["ankle_near"], near_leg_front)
 		"near_arm":
 			var near_arm_front := _is_front_body_layer(layer_key, pose)
-			_draw_robed_arm(pose["shoulder_near"], pose["elbow_near"], pose["wrist_near"], near_arm_front)
+			_draw_robed_arm(pose, pose["shoulder_near"], pose["elbow_near"], pose["wrist_near"], near_arm_front)
 
 
-func _draw_robed_arm(shoulder: Vector2, elbow: Vector2, wrist: Vector2, is_front: bool) -> void:
+func _draw_robed_arm(pose: Dictionary, shoulder: Vector2, elbow: Vector2, wrist: Vector2, is_front: bool) -> void:
 	var alpha := 1.0 if is_front else 0.56
-	_draw_capsule(shoulder, elbow, 12.5 if is_front else 11.0, UPPER_ARM, alpha)
+	_draw_capsule(shoulder, elbow, 9.5 if is_front else 8.2, UPPER_ARM, alpha)
 	_draw_capsule(elbow, wrist, 10.5 if is_front else 9.0, FOREARM, alpha)
+	_draw_wide_sleeve(pose, shoulder, elbow, wrist, alpha)
 	_draw_sleeve_cuff(elbow, wrist, alpha)
+	_draw_hand_silhouette(elbow, wrist, alpha)
 	var fold_dir := (wrist - shoulder)
 	if fold_dir.length_squared() > 0.0001:
 		var normal := fold_dir.normalized().rotated(PI * 0.5)
 		var fold_start := elbow.lerp(wrist, 0.18)
 		var fold_end := elbow.lerp(wrist, 0.76)
-		draw_line(fold_start + normal * 2.0, fold_end + normal * 2.0, Color(0.96, 1.0, 0.94, 0.24 * alpha), 1.2, true)
+		draw_line(fold_start + normal * 2.0, fold_end + normal * 2.0, Color(0.96, 1.0, 0.94, 0.32 * alpha), 1.4, true)
+
+
+func _draw_wide_sleeve(pose: Dictionary, shoulder: Vector2, elbow: Vector2, wrist: Vector2, alpha: float) -> void:
+	var arm_dir := wrist - shoulder
+	if arm_dir.length_squared() <= 0.0001:
+		return
+	var normal := arm_dir.normalized().rotated(PI * 0.5)
+	var sleeve_tip := elbow.lerp(wrist, 0.34)
+	var sleeve_drag: Vector2 = _cloth_motion_vector(pose, 7.0, 12.0, 1.4, shoulder.x * 0.03 + wrist.y * 0.02)
+	var shoulder_outer: Vector2 = shoulder + normal * 6.4
+	var shoulder_inner: Vector2 = shoulder - normal * 4.6
+	var sleeve_inner: Vector2 = sleeve_tip - normal * 7.4 + sleeve_drag * 0.22
+	var wrist_inner: Vector2 = wrist - normal * 4.8 + sleeve_drag * 0.16
+	var elbow_outer: Vector2 = elbow + normal * 7.2 + sleeve_drag * 0.12
+	var sleeve := PackedVector2Array([
+		shoulder_outer,
+		shoulder_inner,
+		sleeve_inner,
+		wrist_inner,
+		elbow_outer,
+	])
+	_draw_closed_polyline(sleeve, OUTLINE, 2.8)
+	var sleeve_color := ROBE_SHADOW
+	sleeve_color.a *= alpha * 0.46
+	_draw_triangle_safe(shoulder_outer, shoulder_inner, elbow_outer, sleeve_color)
+	_draw_triangle_safe(shoulder_inner, sleeve_inner, elbow_outer, sleeve_color)
+	_draw_triangle_safe(sleeve_inner, wrist_inner, elbow_outer, sleeve_color)
+	draw_line(shoulder + normal * 5.2, elbow + normal * 6.6, Color(ROBE_LIGHT.r, ROBE_LIGHT.g, ROBE_LIGHT.b, 0.38 * alpha), 1.2, true)
+	draw_line(shoulder_inner.lerp(sleeve_inner, 0.18), wrist_inner, Color(CLOTH_RIM.r, CLOTH_RIM.g, CLOTH_RIM.b, 0.24 * alpha), 1.0, true)
 
 
 func _draw_robed_leg(hip: Vector2, knee: Vector2, ankle: Vector2, is_front: bool) -> void:
 	var alpha := 1.0 if is_front else 0.58
-	_draw_capsule(hip, knee, 15.0 if is_front else 13.8, THIGH, alpha)
-	_draw_capsule(knee, ankle, 12.0 if is_front else 10.8, CALF, alpha)
+	_draw_capsule(hip, knee, 12.6 if is_front else 11.4, THIGH, alpha)
+	_draw_capsule(knee, ankle, 9.6 if is_front else 8.6, CALF, alpha)
 	var leg_dir := ankle - knee
 	if leg_dir.length_squared() > 0.0001:
 		var boot_top := knee.lerp(ankle, 0.58)
-		_draw_capsule(boot_top, ankle, 10.2 if is_front else 9.2, BOOT, alpha)
+		_draw_capsule(boot_top, ankle, 8.6 if is_front else 7.8, BOOT, alpha)
+		var leg_normal: Vector2 = leg_dir.normalized().rotated(PI * 0.5)
+		draw_line(hip.lerp(knee, 0.18) + leg_normal * 2.0, ankle - leg_normal * 1.5, Color(0.72, 0.74, 0.70, 0.18 * alpha), 1.0, true)
 	_draw_boot_tip(knee, ankle, alpha)
 
 
@@ -606,21 +870,43 @@ func _draw_sleeve_cuff(elbow: Vector2, wrist: Vector2, alpha: float) -> void:
 	draw_line(cuff_center - normal * 4.2, cuff_center + normal * 4.2, ROBE_TRIM, 2.0 * alpha, true)
 
 
+func _draw_hand_silhouette(elbow: Vector2, wrist: Vector2, alpha: float) -> void:
+	var dir := wrist - elbow
+	if dir.length_squared() <= 0.0001:
+		return
+	var forward := dir.normalized()
+	var normal := forward.rotated(PI * 0.5)
+	var palm := wrist + forward * 3.0
+	var hand := PackedVector2Array([
+		palm + forward * 5.5,
+		palm + normal * 4.0,
+		palm - forward * 4.5,
+		palm - normal * 3.5,
+	])
+	_draw_closed_polyline(hand, OUTLINE, 2.2)
+	var hand_color := Color(0.012, 0.014, 0.016, 0.82 * alpha)
+	_draw_quad_safe(hand[0], hand[1], hand[2], hand[3], hand_color)
+	draw_line(palm + normal * 1.8, palm + forward * 7.5 + normal * 2.6, Color(0.84, 0.86, 0.80, 0.26 * alpha), 1.0, true)
+
+
 func _draw_boot_tip(knee: Vector2, ankle: Vector2, alpha: float) -> void:
 	var dir := ankle - knee
 	if dir.length_squared() <= 0.0001:
 		return
 	var forward := dir.normalized()
 	var normal := forward.rotated(PI * 0.5)
+	var toe := ankle + forward * 7.0
+	var heel_top := ankle - forward * 2.0 + normal * 4.2
+	var heel_bottom := ankle - forward * 4.0 - normal * 3.4
 	var boot_tip := PackedVector2Array([
-		ankle + forward * 7.0,
-		ankle - forward * 2.0 + normal * 4.2,
-		ankle - forward * 4.0 - normal * 3.4,
+		toe,
+		heel_top,
+		heel_bottom,
 	])
-	draw_colored_polygon(_expand_polygon(boot_tip, 1.5), OUTLINE)
+	_draw_closed_polyline(boot_tip, OUTLINE, 2.6)
 	var boot_color := BOOT
 	boot_color.a *= alpha
-	draw_colored_polygon(boot_tip, boot_color)
+	_draw_triangle_safe(toe, heel_top, heel_bottom, boot_color)
 
 
 func _is_front_body_layer(layer_key: String, pose: Dictionary) -> bool:
@@ -658,6 +944,204 @@ func _move_layer_after(order: Array, moved_layer: String, anchor_layer: String) 
 	order.insert(clampi(anchor_index + 1, 0, order.size()), moved_layer)
 
 
+func _draw_outer_rim(pose: Dictionary) -> void:
+	var h: Vector2 = pose["heading"]
+	var side: Vector2 = pose["side"]
+	var fast: float = clampf(float(pose.get("fast_pose", 0.0)), 0.0, 1.0)
+	var wind_power := _cloth_wind_power(pose)
+	var cold := Color(INK_RIM_COLD.r, INK_RIM_COLD.g, INK_RIM_COLD.b, INK_RIM_COLD.a * (0.58 + fast * 0.28))
+	var warm := Color(INK_RIM_WARM.r, INK_RIM_WARM.g, INK_RIM_WARM.b, INK_RIM_WARM.a * (0.54 + fast * 0.20))
+	var head_center: Vector2 = pose["head_center"]
+	var shoulder_near: Vector2 = pose["shoulder_near"]
+	var shoulder_far: Vector2 = pose["shoulder_far"]
+	var hip_near: Vector2 = pose["hip_near"]
+	var hip_far: Vector2 = pose["hip_far"]
+	var knee_near: Vector2 = pose["knee_near"]
+	var knee_far: Vector2 = pose["knee_far"]
+	var ankle_near: Vector2 = pose["ankle_near"]
+	var ankle_far: Vector2 = pose["ankle_far"]
+	var wind_edge := _cloth_direction(pose) * (2.0 + wind_power * 2.6)
+	draw_line(head_center - h * 9.0 + side * 5.0, shoulder_near + side * 3.5, cold, 2.2 + fast * 0.7, true)
+	draw_line(shoulder_near + side * 3.2, hip_near + side * 3.4 + wind_edge * 0.18, cold, 2.4 + fast * 0.8, true)
+	draw_line(shoulder_far - side * 2.5, hip_far - side * 2.8 + wind_edge * 0.12, Color(cold.r, cold.g, cold.b, cold.a * 0.58), 1.8, true)
+	draw_line(hip_near + side * 2.0, knee_near + side * 2.2, warm, 1.8, true)
+	draw_line(knee_near + side * 2.1, ankle_near + side * 1.8, warm, 1.6, true)
+	draw_line(hip_far - side * 1.6, knee_far - side * 1.8, Color(warm.r, warm.g, warm.b, warm.a * 0.50), 1.3, true)
+	draw_line(knee_far - side * 1.4, ankle_far - side * 1.3, Color(warm.r, warm.g, warm.b, warm.a * 0.45), 1.2, true)
+	var shoulder_edge_start := shoulder_far.lerp(shoulder_near, 0.18)
+	var shoulder_edge_end := shoulder_far.lerp(shoulder_near, 0.86)
+	draw_line(shoulder_edge_start, shoulder_edge_end, Color(0.95, 1.0, 0.94, 0.24 + fast * 0.06), 1.4, true)
+
+
+func _draw_hair_and_ribbons(pose: Dictionary) -> void:
+	var head_center: Vector2 = pose["head_center"]
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var h: Vector2 = pose["heading"]
+	var side: Vector2 = pose["side"]
+	var wind_power: float = _cloth_wind_power(pose)
+	var wind_unit: float = clampf(wind_power, 0.0, 1.0)
+	var hair_root: Vector2 = head_center - h * 8.0 + Vector2(0.0, -4.0)
+	for index in range(5):
+		var strand_t: float = float(index) / 4.0
+		var side_offset: Vector2 = side * lerpf(-11.0, 13.0, strand_t)
+		var start: Vector2 = hair_root + side_offset * 0.28 + Vector2(0.0, strand_t * 2.4)
+		var strand: PackedVector2Array = _cloth_curve_points(
+			pose,
+			start,
+			24.0 + strand_t * 7.0,
+			30.0 + strand_t * 15.0,
+			3.6 + strand_t * 2.6,
+			float(index) * 1.47,
+			side_offset.x * (0.38 + wind_unit * 0.18),
+			9
+		)
+		_draw_ink_strand(strand, 5.6 - float(index % 2) * 0.8, HAIR_SOFT)
+		_draw_ink_strand(strand, 3.2 - float(index % 2) * 0.4, HAIR)
+	var bun_center := head_center - h * 16.0 + Vector2(0.0, -9.0)
+	draw_circle(bun_center, 9.0, OUTLINE)
+	draw_circle(bun_center, 6.5, HAIR)
+	draw_arc(bun_center, 8.0, PI * 0.18, PI * 1.84, 18, INK_EDGE, 1.2, true)
+	var top_ribbon: PackedVector2Array = _cloth_curve_points(
+		pose,
+		bun_center + Vector2(0.0, -4.0),
+		14.0,
+		26.0,
+		2.8,
+		4.8,
+		side.x * 4.0,
+		8
+	)
+	_draw_cloth_band(top_ribbon, 3.0, 0.8, Color(0.055, 0.058, 0.058, 0.42), Color(0.0, 0.0, 0.0, 0.32), Color(0.84, 0.88, 0.80, 0.22))
+	for side_sign in [-1.0, 1.0]:
+		var side_sign_value := float(side_sign)
+		var ribbon_root: Vector2 = shoulder_center + side * side_sign_value * 5.0
+		var ribbon: PackedVector2Array = _cloth_curve_points(
+			pose,
+			ribbon_root,
+			20.0,
+			40.0,
+			4.2,
+			side_sign_value * 2.1,
+			side_sign_value * (5.2 + wind_power * 1.8),
+			9
+		)
+		_draw_cloth_band(ribbon, 3.2, 0.9, Color(0.030, 0.032, 0.034, 0.40), Color(0.0, 0.0, 0.0, 0.30), Color(CLOTH_RIM.r, CLOTH_RIM.g, CLOTH_RIM.b, 0.20))
+	var sash_anchor: Vector2 = hip_center + h * 4.0
+	for side_sign in [-1.0, 1.0]:
+		var side_sign_value := float(side_sign)
+		var sash_root: Vector2 = sash_anchor + side * side_sign_value * 5.0
+		var sash: PackedVector2Array = _cloth_curve_points(
+			pose,
+			sash_root,
+			24.0,
+			44.0,
+			4.8,
+			6.0 + side_sign_value,
+			side_sign_value * (7.0 + wind_power * 2.0),
+			10
+		)
+		_draw_cloth_band(sash, 3.8, 1.0, Color(0.030, 0.032, 0.034, 0.42), Color(0.0, 0.0, 0.0, 0.30), Color(0.86, 0.88, 0.80, 0.20))
+
+
+func _draw_ink_strand(points: PackedVector2Array, width: float, color: Color) -> void:
+	if points.size() < 2:
+		return
+	_draw_tapered_polyline(points, color, width, maxf(width * 0.25, 0.45), true)
+	var tip := points[points.size() - 1]
+	draw_circle(tip, maxf(width * 0.25, 0.8), color)
+
+
+func _cloth_curve_points(
+		pose: Dictionary,
+		root: Vector2,
+		hover_drop: float,
+		wind_drag: float,
+		side_wave: float,
+		phase: float,
+		side_bias: float,
+		steps: int
+) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_steps := maxi(steps, 2)
+	var wind_power: float = _cloth_wind_power(pose)
+	var wind_unit: float = clampf(wind_power, 0.0, 1.0)
+	var wave_axis: Vector2 = _cloth_wave_axis(pose)
+	var flow_dir: Vector2 = _cloth_direction(pose)
+	var fall: Vector2 = Vector2.DOWN * lerpf(hover_drop, hover_drop * 0.22, wind_unit)
+	var drag: Vector2 = flow_dir * wind_drag * wind_power * 0.58
+	var flow: Vector2 = fall + drag
+	var wave_rate: float = lerpf(1.20, 3.65, wind_unit)
+	for i in range(safe_steps + 1):
+		var t: float = float(i) / float(safe_steps)
+		var stiffness: float = t * t
+		var lag_phase: float = phase + _time * wave_rate - t * (1.65 + wind_unit * 1.15)
+		var wave: Vector2 = wave_axis * sin(lag_phase) * side_wave * stiffness * (0.34 + wind_power * 0.72 + _cloth_turn * 0.24)
+		var bias: Vector2 = wave_axis * side_bias * stiffness
+		var settle: Vector2 = Vector2.DOWN * sin(_time * 1.05 + phase + t * 1.8) * 1.4 * t * (1.0 - wind_unit)
+		points.append(root + flow * t + wave + bias + settle)
+	return points
+
+
+func _draw_cloth_band(points: PackedVector2Array, start_width: float, end_width: float, fill: Color, rim: Color, highlight: Color) -> void:
+	if points.size() < 2:
+		return
+	_draw_tapered_polyline(points, rim, start_width + 1.3, maxf(end_width + 0.8, 0.9), true)
+	_draw_tapered_polyline(points, fill, start_width, end_width, true)
+	if highlight.a > 0.001:
+		_draw_tapered_polyline(points, highlight, maxf(start_width * 0.28, 0.9), maxf(end_width * 0.30, 0.35), true)
+	var tip := points[points.size() - 1]
+	draw_circle(tip, maxf(end_width * 0.65, 0.75), rim)
+
+
+func _draw_cloth_panel(
+		root_center: Vector2,
+		flow: Vector2,
+		side: Vector2,
+		lane_offset: float,
+		root_width: float,
+		mid_width: float,
+		tip_width: float,
+		phase: float,
+		fill: Color,
+		rim: Color
+) -> void:
+	var wind_unit: float = clampf(_cloth_wind, 0.0, 1.0)
+	var wave_rate: float = lerpf(1.25, 3.25, wind_unit)
+	var panel_axis := _panel_wave_axis(flow, side)
+	var lane: Vector2 = panel_axis * lane_offset
+	var mid_wave: Vector2 = panel_axis * sin(_time * wave_rate + phase - 0.75) * (1.8 + _cloth_wind * 2.4 + _cloth_turn * 1.4)
+	var tip_wave: Vector2 = panel_axis * sin(_time * wave_rate + phase - 1.75) * (3.0 + _cloth_wind * 3.8 + _cloth_turn * 2.0)
+	var c0: Vector2 = root_center + lane * 0.30
+	var c1: Vector2 = root_center + flow * 0.56 + lane * 0.92 + mid_wave
+	var c2: Vector2 = root_center + flow * 1.08 + lane * 1.34 + tip_wave
+	var p0l: Vector2 = c0 - panel_axis * root_width
+	var p0r: Vector2 = c0 + panel_axis * root_width
+	var p1l: Vector2 = c1 - panel_axis * mid_width
+	var p1r: Vector2 = c1 + panel_axis * mid_width
+	var p2l: Vector2 = c2 - panel_axis * tip_width
+	var p2r: Vector2 = c2 + panel_axis * tip_width
+	_draw_quad_safe(p0l, p0r, p1r, p1l, fill)
+	_draw_quad_safe(p1l, p1r, p2r, p2l, fill)
+	var outline := PackedVector2Array([p0l, p0r, p1r, p2r, p2l, p1l])
+	var widest := maxf(maxf(root_width, mid_width), tip_width)
+	var outline_width := clampf(widest * 0.22 + 1.0, 1.5, 3.0)
+	_draw_closed_polyline(outline, OUTLINE, outline_width)
+	draw_line(p0l.lerp(p0r, 0.62), p2l.lerp(p2r, 0.62), rim, clampf(widest * 0.22, 0.7, 1.8), true)
+	draw_line(c0, c2, Color(CLOTH_WASH.r, CLOTH_WASH.g, CLOTH_WASH.b, CLOTH_WASH.a * fill.a), clampf(widest * 0.20, 0.8, 1.8), true)
+
+
+func _panel_wave_axis(flow: Vector2, fallback_side: Vector2) -> Vector2:
+	if flow.length_squared() > 0.0001:
+		var axis := flow.normalized().rotated(PI * 0.5)
+		if axis.y < 0.0:
+			axis = -axis
+		return axis
+	if fallback_side.length_squared() > 0.0001:
+		return fallback_side.normalized()
+	return Vector2.RIGHT
+
+
 func _draw_head(pose: Dictionary) -> void:
 	var head_center: Vector2 = pose["head_center"]
 	var h: Vector2 = pose["heading"]
@@ -666,21 +1150,18 @@ func _draw_head(pose: Dictionary) -> void:
 	var radius := (17.0 + absf(h.y) * 3.0) * head_scale
 	draw_circle(head_center, radius + 2.5, OUTLINE)
 	draw_circle(head_center, radius, HEAD)
+	draw_arc(head_center - h * 4.0 * head_scale, radius * 0.82, PI * 0.05, PI * 1.55, 22, HAIR_SOFT, 3.0 * head_scale, true)
 	var frontness: float = pose["frontness"]
 	if frontness > 0.42:
-		draw_line(head_center - side * 8.0 * head_scale - h * 3.0 * head_scale, head_center + side * 8.0 * head_scale - h * 3.0 * head_scale, ROBE_TRIM, 1.8 * head_scale, true)
-		draw_circle(head_center + side * 5.5 * head_scale + h * 3.0 * head_scale, 2.1 * head_scale, FACE_DARK)
-		draw_circle(head_center - side * 5.5 * head_scale + h * 3.0 * head_scale, 2.1 * head_scale, FACE_DARK)
-		draw_line(head_center + h * 5.0 * head_scale, head_center + h * 10.0 * head_scale, Color(0.42, 0.27, 0.16, 0.9), 1.6 * head_scale, true)
+		draw_line(head_center - side * 8.0 * head_scale - h * 3.0 * head_scale, head_center + side * 8.0 * head_scale - h * 3.0 * head_scale, INK_EDGE, 1.8 * head_scale, true)
 		draw_circle(head_center - h * 2.0 * head_scale, 2.0 * head_scale, OUTLINE)
 		draw_circle(head_center - h * 2.0 * head_scale, 1.2 * head_scale, JADE)
 	elif frontness < -0.42:
-		draw_line(head_center - side * 8.0 * head_scale + h * 2.0 * head_scale, head_center + side * 8.0 * head_scale + h * 2.0 * head_scale, ROBE_TRIM, 1.8 * head_scale, true)
-		draw_circle(head_center - h * 5.0 * head_scale, 2.0 * head_scale, JADE)
+		draw_line(head_center - side * 8.0 * head_scale + h * 2.0 * head_scale, head_center + side * 8.0 * head_scale + h * 2.0 * head_scale, INK_EDGE, 1.8 * head_scale, true)
+		draw_circle(head_center - h * 5.0 * head_scale, 1.8 * head_scale, HAIR_SOFT)
 	else:
-		draw_line(head_center - h * 2.0 * head_scale - side * 5.5 * head_scale, head_center - h * 2.0 * head_scale + side * 4.5 * head_scale, ROBE_TRIM, 1.6 * head_scale, true)
-		draw_circle(head_center + h * 7.5 * head_scale, 2.2 * head_scale, FACE_DARK)
-		draw_line(head_center + h * 7.0 * head_scale, head_center + h * 14.0 * head_scale + side * 2.0 * head_scale, Color(0.42, 0.27, 0.16, 0.9), 1.8 * head_scale, true)
+		draw_line(head_center - h * 2.0 * head_scale - side * 5.5 * head_scale, head_center - h * 2.0 * head_scale + side * 4.5 * head_scale, INK_EDGE, 1.6 * head_scale, true)
+		draw_circle(head_center + h * 7.5 * head_scale, 2.0 * head_scale, Color(0.0, 0.0, 0.0, 0.42))
 		draw_circle(head_center + h * 1.0 * head_scale, 1.5 * head_scale, JADE)
 	if _switch_flash > 0.0:
 		draw_arc(head_center, radius + 8.0 + _switch_flash * 8.0, 0.0, TAU, 32, Color(0.72, 1.0, 1.0, 0.16 * _switch_flash), 2.0, true)
@@ -699,6 +1180,8 @@ func _draw_capsule(a: Vector2, b: Vector2, width: float, color: Color, alpha: fl
 
 
 func _draw_joints(pose: Dictionary) -> void:
+	if not _editor_active and not SHOW_JOINTS_IN_GAME:
+		return
 	for key in EDIT_JOINT_KEYS:
 		var point: Vector2 = pose[key]
 		var selected: bool = _editor_active and String(key) == _editor_selected_joint
@@ -707,6 +1190,134 @@ func _draw_joints(pose: Dictionary) -> void:
 	if _editor_active:
 		var selected_point: Vector2 = pose[_editor_selected_joint]
 		draw_arc(selected_point, 12.0, 0.0, TAU, 28, Color(0.45, 1.0, 1.0, 0.72), 1.8, true)
+
+
+func _update_cloth_motion_state(delta: float) -> void:
+	var safe_delta := maxf(delta, 0.0)
+	var speed_ratio := clampf(_velocity.length() / FLIGHT_SPEED_POSE_REFERENCE, 0.0, 1.35)
+	var wind_target := clampf(speed_ratio * 0.44 + _boost * 0.20 + _carve * 0.14 + _throttle * 0.08, 0.0, 0.95)
+	_cloth_wind = _damp_float(_cloth_wind, wind_target, 0.22, safe_delta)
+	_cloth_turn = _damp_float(_cloth_turn, maxf(_turn, _carve * 0.55), 0.18, safe_delta)
+	var target_flow := _target_cloth_flow_direction(_heading, _velocity, wind_target)
+	_cloth_flow_dir = _damp_vector2(_cloth_flow_dir, target_flow, 0.24, safe_delta)
+	if _cloth_flow_dir.length_squared() <= 0.0001:
+		_cloth_flow_dir = Vector2.DOWN
+	else:
+		_cloth_flow_dir = _cloth_flow_dir.normalized()
+
+
+func _target_cloth_flow_direction(heading: Vector2, velocity: Vector2, wind_power: float) -> Vector2:
+	var safe_heading := heading.normalized() if heading.length_squared() > 0.0001 else _direction_vector(_direction_index)
+	var velocity_dir := velocity.normalized() if velocity.length_squared() > 1.0 else safe_heading
+	var wind_weight := clampf(wind_power * 0.72, 0.0, 0.72)
+	var target := Vector2.DOWN.lerp(-velocity_dir, wind_weight)
+	if velocity.length_squared() > 1.0:
+		var slip_sign := clampf(velocity_dir.cross(safe_heading), -1.0, 1.0)
+		target += safe_heading.rotated(PI * 0.5) * slip_sign * _cloth_turn * 0.18
+	if target.length_squared() <= 0.0001:
+		return Vector2.DOWN
+	return target.normalized()
+
+
+func _cloth_wind_power(pose: Dictionary) -> float:
+	var pose_wind := clampf(float(pose.get("wind", 0.0)), 0.0, 1.6)
+	if _editor_active:
+		return pose_wind
+	return clampf(maxf(_cloth_wind, pose_wind * 0.42), 0.0, 0.95)
+
+
+func _cloth_direction(pose: Dictionary) -> Vector2:
+	if _editor_active:
+		var h: Vector2 = pose["heading"]
+		var safe_heading := h.normalized() if h.length_squared() > 0.0001 else Vector2.RIGHT
+		var editor_flow := Vector2.DOWN.lerp(-safe_heading, clampf(_cloth_wind_power(pose), 0.0, 1.0))
+		return editor_flow.normalized() if editor_flow.length_squared() > 0.0001 else Vector2.DOWN
+	if _cloth_flow_dir.length_squared() <= 0.0001:
+		return Vector2.DOWN
+	return _cloth_flow_dir.normalized()
+
+
+func _cloth_wave_axis(pose: Dictionary) -> Vector2:
+	var flow_dir := _cloth_direction(pose)
+	if flow_dir.length_squared() > 0.0001:
+		var axis := flow_dir.normalized().rotated(PI * 0.5)
+		if axis.y < 0.0:
+			axis = -axis
+		if absf(axis.y) < 0.18 and absf(flow_dir.x) > 0.72:
+			axis = Vector2.DOWN
+		return axis.normalized()
+	var side: Vector2 = pose["side"]
+	return side.normalized() if side.length_squared() > 0.0001 else Vector2.RIGHT
+
+
+func _cloth_motion_vector(pose: Dictionary, hover_drop: float, wind_drag: float, side_wave: float, phase: float) -> Vector2:
+	var wind_power := _cloth_wind_power(pose)
+	var wind_unit := clampf(wind_power, 0.0, 1.0)
+	var wave_axis: Vector2 = _cloth_wave_axis(pose)
+	var wave_rate := lerpf(1.12, 3.45, wind_unit)
+	var wave_amount := side_wave * (0.20 + wind_power * 0.82 + _cloth_turn * 0.25)
+	var fall := Vector2.DOWN * lerpf(hover_drop, hover_drop * 0.28, wind_unit)
+	var drag := _cloth_direction(pose) * wind_drag * wind_power * 0.58
+	var wave := wave_axis * sin(_time * wave_rate + phase) * wave_amount
+	return fall + drag + wave
+
+
+func _damp_float(current: float, target: float, half_life: float, delta: float) -> float:
+	if delta <= 0.0 or half_life <= 0.0001:
+		return target if half_life <= 0.0001 else current
+	var keep := pow(0.5, delta / half_life)
+	return lerpf(target, current, keep)
+
+
+func _damp_vector2(current: Vector2, target: Vector2, half_life: float, delta: float) -> Vector2:
+	if delta <= 0.0:
+		return current
+	if half_life <= 0.0001:
+		return target
+	var keep := pow(0.5, delta / half_life)
+	return target.lerp(current, keep)
+
+
+func _quadratic_points(a: Vector2, b: Vector2, c: Vector2, steps: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_steps := maxi(steps, 2)
+	for i in range(safe_steps + 1):
+		var t := float(i) / float(safe_steps)
+		var inv := 1.0 - t
+		points.append(a * inv * inv + b * 2.0 * inv * t + c * t * t)
+	return points
+
+
+func _draw_tapered_polyline(points: PackedVector2Array, color: Color, start_width: float, end_width: float, antialiased := true) -> void:
+	if points.size() < 2 or color.a <= 0.001:
+		return
+	var segment_count := points.size() - 1
+	for i in range(segment_count):
+		var t := float(i) / maxf(float(segment_count - 1), 1.0)
+		var width := lerpf(start_width, end_width, t)
+		draw_line(points[i], points[i + 1], color, width, antialiased)
+
+
+func _draw_triangle_safe(a: Vector2, b: Vector2, c: Vector2, color: Color) -> void:
+	if color.a <= 0.001:
+		return
+	var area := absf((b - a).cross(c - a))
+	if area <= 0.001:
+		return
+	draw_colored_polygon(PackedVector2Array([a, b, c]), color)
+
+
+func _draw_quad_safe(a: Vector2, b: Vector2, c: Vector2, d: Vector2, color: Color) -> void:
+	_draw_triangle_safe(a, b, c, color)
+	_draw_triangle_safe(a, c, d, color)
+
+
+func _draw_closed_polyline(points: PackedVector2Array, color: Color, width: float) -> void:
+	if points.size() < 2 or color.a <= 0.001 or width <= 0.0:
+		return
+	var closed := PackedVector2Array(points)
+	closed.append(points[0])
+	draw_polyline(closed, color, width, true)
 
 
 func _expand_polygon(points: PackedVector2Array, amount: float) -> PackedVector2Array:

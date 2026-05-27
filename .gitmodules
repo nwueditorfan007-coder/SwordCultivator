@@ -1,0 +1,6 @@
+[submodule "third_party/ffttasd/godot_fog_card"]
+	path = third_party/ffttasd/godot_fog_card
+	url = https://github.com/ffttasd/godot_fog_card.git
+[submodule "third_party/ffttasd/wind_ribbon"]
+	path = third_party/ffttasd/wind_ribbon
+	url = https://github.com/ffttasd/wind_ribbon.git

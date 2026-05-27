@@ -19,6 +19,7 @@ const TargetDescriptorRegistry = preload("res://scripts/combat/target_descriptor
 const TargetEventSystem = preload("res://scripts/combat/target_event_system.gd")
 const TargetProfiles = preload("res://scripts/combat/target_profiles.gd")
 const TargetWritebackAdapters = preload("res://scripts/combat/target_writeback_adapters.gd")
+const HumanoidEightWaySkeletonVisual = preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
 const DEFAULT_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_default.tres")
 const DEFAULT_LOOKDEV_SWORD_VFX_PROFILE = preload("res://resources/vfx/sword_vfx_profile_lookdev.tres")
 enum CombatMode {
@@ -601,6 +602,35 @@ const FLIGHT_JET_ROLL_COOLDOWN := 0.48
 const FLIGHT_JET_ROLL_EXIT_SPEED_KEEP := 0.86
 const FLIGHT_JET_BOUND_BOUNCE := 0.18
 const FLIGHT_JET_ANCHOR_RETURN_STRENGTH := 0.82
+const FLIGHT_PROTOTYPE_SKELETON_BASE_SCALE := 1.16
+const FLIGHT_PROTOTYPE_SKELETON_POSE_OFFSET := Vector2(0.0, -6.0)
+const FLIGHT_VISUAL_HEADING_TURN_RATE := 8.8
+const FLIGHT_VISUAL_HEADING_HARD_TURN_RATE := 12.0
+const FLIGHT_VISUAL_HEADING_HOVER_TURN_RATE := 13.5
+const FLIGHT_VISUAL_TURN_HALF_LIFE := 0.06
+const FLIGHT_VISUAL_BOOST_HALF_LIFE := 0.09
+const FLIGHT_VISUAL_CARVE_HALF_LIFE := 0.045
+const FLIGHT_VISUAL_THROTTLE_HALF_LIFE := 0.08
+const FLIGHT_VISUAL_CARVE_DURATION := 0.24
+const FLIGHT_EIGHT_WAY_SWITCH_HYSTERESIS := 0.10
+const FLIGHT_EIGHT_WAY_VECTORS := [
+	Vector2(1.0, 0.0),
+	Vector2(0.7071, -0.7071),
+	Vector2(0.0, -1.0),
+	Vector2(-0.7071, -0.7071),
+	Vector2(-1.0, 0.0),
+	Vector2(-0.7071, 0.7071),
+	Vector2(0.0, 1.0),
+	Vector2(0.7071, 0.7071),
+]
+const LEGACY_FLIGHT_CRUISE_SPEED := 430.0
+const LEGACY_FLIGHT_BOOST_SPEED := 640.0
+const LEGACY_FLIGHT_ACCELERATION := 1680.0
+const LEGACY_FLIGHT_BOOST_ACCELERATION := 2450.0
+const LEGACY_FLIGHT_GLIDE_DAMPING := 0.62
+const LEGACY_FLIGHT_IDLE_BRAKE := 820.0
+const LEGACY_FLIGHT_TURN_RATE := 8.8
+const LEGACY_FLIGHT_HIGH_SPEED_TURN_RATE := 5.4
 const FLIGHT_ANCHOR_POS := Vector2(224.0, 318.0)
 const FLIGHT_ANCHOR_LANE_MIN := Vector2(24.0, 46.0)
 const FLIGHT_ANCHOR_LANE_MAX := Vector2(632.0, 554.0)
@@ -885,6 +915,8 @@ const START_MENU_FLIGHT_ANCHORED_TEXT := """[b]御剑航行：风压回中[/b]
 @export var large_arena_test_enabled := true
 @export var use_flight_rider_sprite_fx := true
 @export var use_flight_rider_body_rig_fx := false
+@export var use_flight_prototype_skeleton_visual := true
+@export_range(0.1, 1.2, 0.01) var flight_prototype_skeleton_scale := 0.3
 @export_group("Hover Preset")
 @export_enum("稳悬", "均衡", "灵动", "仙逸") var sword_hover_preset := 1
 @export var sword_hover_preset_next_key: Key = KEY_NONE
@@ -1021,9 +1053,18 @@ var flight_stage_complete: bool = false
 var flight_segment_index: int = 0
 var flight_segment_label: String = "起飞校准"
 var flight_heading: Vector2 = Vector2.RIGHT
+var flight_visual_heading: Vector2 = Vector2.RIGHT
+var flight_visual_turn_energy: float = 0.0
+var flight_visual_boost_energy: float = 0.0
+var flight_visual_carve_energy: float = 0.0
+var flight_visual_throttle_energy: float = 0.0
+var flight_visual_carve_timer: float = 0.0
+var flight_visual_eight_way_index: int = 0
+var legacy_flight_entry_active: bool = false
 var flight_roll_timer: float = 0.0
 var flight_roll_cooldown: float = 0.0
 var flight_roll_direction: Vector2 = Vector2.RIGHT
+var flight_skeleton_visual: Node2D = null
 var rider_action_kind: String = ""
 var rider_action_timer: float = 0.0
 var rider_action_duration: float = 0.0
@@ -1118,7 +1159,35 @@ func _use_node_sword_flight_vfx() -> bool:
 	return use_node_sword_flight_vfx and get_node_or_null("SwordFlightFx") != null
 
 
+func _uses_legacy_flight_entry() -> bool:
+	return legacy_flight_entry_active and _is_legacy_wave_mode() and not lookdev_mode
+
+
+func _uses_flight_movement() -> bool:
+	return _is_flight_prototype_mode() or _uses_legacy_flight_entry()
+
+
+func _uses_flight_world_scroll() -> bool:
+	return _is_flight_prototype_mode()
+
+
+func _uses_flight_visuals() -> bool:
+	return _uses_flight_movement() and not debug_calibration_mode
+
+
+func _use_flight_prototype_skeleton_visual() -> bool:
+	return use_flight_prototype_skeleton_visual and _uses_flight_visuals()
+
+
+func _get_flight_scene_parallax_distance() -> float:
+	if _uses_legacy_flight_entry() and _is_large_arena_test_enabled():
+		return large_arena_camera_center.x * 0.72 + large_arena_camera_center.y * 0.08
+	return flight_scroll_distance
+
+
 func _use_flight_rider_sprite_fx() -> bool:
+	if _use_flight_prototype_skeleton_visual():
+		return false
 	if _use_flight_rider_body_rig_fx():
 		return false
 	var rider_fx := get_node_or_null("FlightRiderSpriteFx")
@@ -1126,6 +1195,8 @@ func _use_flight_rider_sprite_fx() -> bool:
 
 
 func _use_flight_rider_body_rig_fx() -> bool:
+	if _use_flight_prototype_skeleton_visual():
+		return false
 	var rig_fx := get_node_or_null("FlightRiderBodyRigFx")
 	return use_flight_rider_body_rig_fx and rig_fx != null and bool(rig_fx.get("enabled"))
 
@@ -1133,12 +1204,165 @@ func _use_flight_rider_body_rig_fx() -> bool:
 func _use_flight_rider_clean_vfx() -> bool:
 	var rider_fx := get_node_or_null("FlightRiderSpriteFx")
 	return (
-		_is_flight_prototype_mode()
+		_uses_flight_visuals()
 		and _use_flight_rider_sprite_fx()
 		and rider_fx != null
 		and rider_fx.has_method("uses_layered_sheets")
 		and bool(rider_fx.call("uses_layered_sheets"))
 	)
+
+
+func _ensure_flight_skeleton_visual() -> Node2D:
+	if flight_skeleton_visual != null and is_instance_valid(flight_skeleton_visual):
+		return flight_skeleton_visual
+	var existing := get_node_or_null("FlightPrototypeSkeletonVisual") as Node2D
+	if existing != null:
+		flight_skeleton_visual = existing
+		return flight_skeleton_visual
+	flight_skeleton_visual = HumanoidEightWaySkeletonVisual.new()
+	flight_skeleton_visual.name = "FlightPrototypeSkeletonVisual"
+	flight_skeleton_visual.z_as_relative = false
+	flight_skeleton_visual.z_index = 18
+	flight_skeleton_visual.visible = false
+	add_child(flight_skeleton_visual)
+	return flight_skeleton_visual
+
+
+func _hide_flight_skeleton_visual() -> void:
+	if flight_skeleton_visual == null:
+		return
+	if not is_instance_valid(flight_skeleton_visual):
+		flight_skeleton_visual = null
+		return
+	flight_skeleton_visual.visible = false
+
+
+func _reset_flight_visual_pose_state() -> void:
+	var heading := flight_heading
+	if heading.length_squared() <= 0.0001:
+		heading = Vector2.RIGHT
+	flight_visual_heading = heading.normalized()
+	flight_visual_turn_energy = 0.0
+	flight_visual_boost_energy = 0.0
+	flight_visual_carve_energy = 0.0
+	flight_visual_throttle_energy = 0.0
+	flight_visual_carve_timer = 0.0
+	flight_visual_eight_way_index = _get_flight_eight_way_index(flight_visual_heading)
+	_hide_flight_skeleton_visual()
+
+
+func _update_flight_skeleton_visual(delta: float) -> void:
+	if (
+		not _use_flight_prototype_skeleton_visual()
+		or player.is_empty()
+		or is_start_menu_active
+		or is_game_over
+		or demo_victory_visible
+	):
+		_hide_flight_skeleton_visual()
+		return
+	var skeleton := _ensure_flight_skeleton_visual()
+	if skeleton == null:
+		return
+	var velocity := Vector2(player.get("vel", Vector2.ZERO))
+	var target_heading := Vector2(player.get("flight_heading", flight_heading))
+	if target_heading.length_squared() <= 0.0001:
+		target_heading = velocity.normalized() if velocity.length_squared() > 1.0 else Vector2.RIGHT
+	else:
+		target_heading = target_heading.normalized()
+	if flight_visual_heading.length_squared() <= 0.0001:
+		flight_visual_heading = target_heading
+	var visual_angle_delta := wrapf(target_heading.angle() - flight_visual_heading.angle(), -PI, PI)
+	var turn_pressure := clampf(absf(visual_angle_delta) / PI, 0.0, 1.0)
+	var turn_rate := lerpf(FLIGHT_VISUAL_HEADING_TURN_RATE, FLIGHT_VISUAL_HEADING_HARD_TURN_RATE, turn_pressure)
+	var throttle_pressure := clampf(float(player.get("flight_afterburner", 0.0)), 0.0, 1.0)
+	if velocity.length() < LEGACY_FLIGHT_CRUISE_SPEED * 0.35 or throttle_pressure <= 0.01:
+		turn_rate = maxf(turn_rate, FLIGHT_VISUAL_HEADING_HOVER_TURN_RATE)
+	var angle_step := clampf(visual_angle_delta, -turn_rate * delta, turn_rate * delta)
+	flight_visual_heading = flight_visual_heading.rotated(angle_step).normalized()
+	var speed_ratio := clampf(
+		(velocity.length() - LEGACY_FLIGHT_CRUISE_SPEED) / maxf(LEGACY_FLIGHT_BOOST_SPEED - LEGACY_FLIGHT_CRUISE_SPEED, 1.0),
+		0.0,
+		1.0
+	)
+	var turn_target := clampf(absf(visual_angle_delta) / 1.35, 0.0, 1.0) * clampf(velocity.length() / LEGACY_FLIGHT_CRUISE_SPEED, 0.0, 1.0)
+	if absf(visual_angle_delta) > 0.96 and velocity.length() > LEGACY_FLIGHT_CRUISE_SPEED * 0.72:
+		flight_visual_carve_timer = FLIGHT_VISUAL_CARVE_DURATION
+	else:
+		flight_visual_carve_timer = maxf(flight_visual_carve_timer - delta, 0.0)
+	var carve_target := clampf(flight_visual_carve_timer / FLIGHT_VISUAL_CARVE_DURATION, 0.0, 1.0)
+	turn_target = maxf(turn_target, carve_target)
+	var boost_target := maxf(speed_ratio, 0.55 if throttle_pressure > 0.01 else 0.0)
+	flight_visual_boost_energy = _damp_float(flight_visual_boost_energy, boost_target, FLIGHT_VISUAL_BOOST_HALF_LIFE, delta)
+	flight_visual_turn_energy = _damp_float(flight_visual_turn_energy, turn_target, FLIGHT_VISUAL_TURN_HALF_LIFE, delta)
+	flight_visual_carve_energy = _damp_float(flight_visual_carve_energy, carve_target, FLIGHT_VISUAL_CARVE_HALF_LIFE, delta)
+	flight_visual_throttle_energy = _damp_float(flight_visual_throttle_energy, throttle_pressure, FLIGHT_VISUAL_THROTTLE_HALF_LIFE, delta)
+	flight_visual_eight_way_index = _get_flight_eight_way_index_with_hysteresis(flight_visual_heading)
+	var skeleton_scale := (
+		FLIGHT_PROTOTYPE_SKELETON_BASE_SCALE
+		* clampf(flight_prototype_skeleton_scale, 0.1, 1.2)
+		* (1.0 + 0.045 * flight_visual_boost_energy + 0.03 * flight_visual_carve_energy)
+	)
+	skeleton.global_position = _to_screen(Vector2(player["pos"])) + FLIGHT_PROTOTYPE_SKELETON_POSE_OFFSET + Vector2(0.0, -4.0 * flight_visual_boost_energy - 2.0 * flight_visual_carve_energy)
+	skeleton.rotation = 0.0
+	skeleton.scale = Vector2.ONE * skeleton_scale
+	skeleton.visible = true
+	if skeleton.has_method("set_flight_pose"):
+		skeleton.call(
+			"set_flight_pose",
+			flight_visual_eight_way_index,
+			flight_visual_heading,
+			velocity,
+			flight_visual_boost_energy,
+			flight_visual_turn_energy,
+			flight_visual_carve_energy,
+			flight_visual_throttle_energy,
+			delta
+		)
+
+
+func _get_flight_eight_way_index(heading: Vector2) -> int:
+	var safe_heading := heading
+	if safe_heading.length_squared() <= 0.0001:
+		safe_heading = Vector2.RIGHT
+	else:
+		safe_heading = safe_heading.normalized()
+	var best_index := 0
+	var best_dot := -9999.0
+	for index in range(FLIGHT_EIGHT_WAY_VECTORS.size()):
+		var direction: Vector2 = FLIGHT_EIGHT_WAY_VECTORS[index]
+		var dot_value := safe_heading.dot(direction.normalized())
+		if dot_value > best_dot:
+			best_dot = dot_value
+			best_index = index
+	return best_index
+
+
+func _get_flight_eight_way_index_with_hysteresis(heading: Vector2) -> int:
+	var nearest_index := _get_flight_eight_way_index(heading)
+	if nearest_index == flight_visual_eight_way_index:
+		return nearest_index
+	if flight_visual_eight_way_index < 0 or flight_visual_eight_way_index >= FLIGHT_EIGHT_WAY_VECTORS.size():
+		return nearest_index
+	var safe_heading := heading
+	if safe_heading.length_squared() <= 0.0001:
+		safe_heading = Vector2.RIGHT
+	else:
+		safe_heading = safe_heading.normalized()
+	var current_direction: Vector2 = FLIGHT_EIGHT_WAY_VECTORS[flight_visual_eight_way_index].normalized()
+	var nearest_direction: Vector2 = FLIGHT_EIGHT_WAY_VECTORS[nearest_index].normalized()
+	var current_error := absf(wrapf(safe_heading.angle() - current_direction.angle(), -PI, PI))
+	var nearest_error := absf(wrapf(safe_heading.angle() - nearest_direction.angle(), -PI, PI))
+	if current_error <= nearest_error + FLIGHT_EIGHT_WAY_SWITCH_HYSTERESIS:
+		return flight_visual_eight_way_index
+	return nearest_index
+
+
+func _damp_float(current: float, target: float, half_life: float, delta: float) -> float:
+	if half_life <= 0.0:
+		return target
+	var decay := pow(0.5, maxf(delta, 0.0) / half_life)
+	return target + (current - target) * decay
 
 
 func _get_sword_visual_position() -> Vector2:
@@ -1187,7 +1411,7 @@ func _get_held_sword_aim_direction() -> Vector2:
 
 
 func _get_melee_sword_visual_angle() -> float:
-	if _is_flight_prototype_mode() and _is_held_melee_sword_active():
+	if _uses_flight_visuals() and _is_held_melee_sword_active():
 		return float(_get_flight_held_sword_pose().get("angle", 0.0))
 	var base_angle: float = _get_held_sword_aim_direction().angle()
 	if not _is_melee_swing_visual_active():
@@ -1203,7 +1427,7 @@ func _get_melee_sword_visual_angle() -> float:
 
 
 func _get_held_melee_sword_position() -> Vector2:
-	if _is_flight_prototype_mode():
+	if _uses_flight_visuals():
 		return Vector2(_get_flight_held_sword_pose().get("center", player["pos"]))
 	var sword_angle: float = _get_melee_sword_visual_angle()
 	var sword_forward: Vector2 = Vector2.RIGHT.rotated(sword_angle)
@@ -1302,7 +1526,9 @@ func _get_flight_held_sword_pose() -> Dictionary:
 
 
 func _trigger_rider_action(kind: String, direction: Vector2, duration: float, strength: float) -> bool:
-	if not _is_flight_prototype_mode():
+	if not _uses_flight_visuals():
+		return false
+	if _use_flight_prototype_skeleton_visual():
 		return false
 	var normalized_direction: Vector2 = direction.normalized()
 	if normalized_direction.is_zero_approx():
@@ -1436,14 +1662,15 @@ func _get_rider_body_array_mode() -> String:
 
 func _should_use_rider_array_idle_pose() -> bool:
 	return (
-		_is_flight_prototype_mode()
+		_uses_flight_visuals()
+		and not _use_flight_prototype_skeleton_visual()
 		and not _should_hide_sword_array_ui()
 		and _is_any_array_unlocked()
 	)
 
 
 func _update_rider_array_pose_state() -> void:
-	if not _is_flight_prototype_mode():
+	if not _uses_flight_visuals() or _use_flight_prototype_skeleton_visual():
 		rider_array_pose_active = false
 		rider_array_pose_mode = SwordArrayConfig.MODE_RING
 		return
@@ -1830,12 +2057,15 @@ func _process(delta: float) -> void:
 		_process_lookdev(delta)
 		return
 	if is_start_menu_active:
+		_hide_flight_skeleton_visual()
 		queue_redraw()
 		return
 	if is_game_over:
+		_hide_flight_skeleton_visual()
 		queue_redraw()
 		return
 	if demo_victory_visible:
+		_hide_flight_skeleton_visual()
 		if not score_loot_pickups.is_empty():
 			score_loot_pickups.clear()
 		_update_status_feedback(delta)
@@ -1913,6 +2143,7 @@ func _process(delta: float) -> void:
 	_update_array_energy_feedback_state(delta)
 	_update_array_mode_confirm_feedback(delta)
 	_update_player(delta, player_delta)
+	_update_flight_skeleton_visual(delta)
 	_update_flight_world_scroll(delta)
 	_update_sword(delta)
 	_trace_time_rift_sword()
@@ -2262,8 +2493,10 @@ func _set_player_combat_mode(mode: int) -> void:
 
 func _show_start_menu() -> void:
 	is_start_menu_active = true
+	legacy_flight_entry_active = false
 	left_mouse_held = false
 	right_mouse_held = false
+	_hide_flight_skeleton_visual()
 	_set_desktop_mouse_visible(true)
 	_update_array_control_scheme_ui()
 	if start_menu != null:
@@ -2298,6 +2531,7 @@ func _start_run_from_menu(mode: String) -> void:
 	if not is_start_menu_active:
 		return
 	run_mode = mode
+	legacy_flight_entry_active = mode == RUN_MODE_LEGACY_WAVES
 	is_start_menu_active = false
 	left_mouse_held = false
 	right_mouse_held = false
@@ -2502,6 +2736,7 @@ func _consume_lookdev_event(event_key: String) -> bool:
 func _reset_game() -> void:
 	GameStateFactory.reset_runtime(self )
 	_reset_large_arena_test_state()
+	_reset_flight_visual_pose_state()
 	if demo_level_controller != null:
 		demo_level_controller.active = false
 		demo_level_controller.completed = false
@@ -2534,6 +2769,8 @@ func _reset_game() -> void:
 	_reset_cursor_intent_indicator()
 	if _is_flight_prototype_mode():
 		_reset_flight_prototype_state()
+	elif _uses_legacy_flight_entry():
+		_reset_legacy_flight_entry_state()
 	elif not _is_demo_level_mode():
 		_show_wave_unlock_feedback(wave)
 	_sync_desktop_mouse_visibility_to_game_state()
@@ -2546,6 +2783,8 @@ func _restart_current_run() -> void:
 		_update_ui()
 	elif _is_flight_prototype_mode():
 		_start_flight_prototype()
+		_update_ui()
+	elif _uses_legacy_flight_entry():
 		_update_ui()
 
 
@@ -2586,6 +2825,7 @@ func _reset_flight_prototype_state() -> void:
 	flight_segment_index = 0
 	flight_segment_label = "起飞校准"
 	flight_heading = Vector2.RIGHT
+	_reset_flight_visual_pose_state()
 	flight_roll_timer = 0.0
 	flight_roll_cooldown = 0.0
 	flight_roll_direction = Vector2.RIGHT
@@ -2617,6 +2857,37 @@ func _reset_flight_prototype_state() -> void:
 	sword["angle"] = 0.0
 	_rebuild_array_sword_pool()
 	_refresh_sword_array_live_state()
+
+
+func _reset_legacy_flight_entry_state() -> void:
+	flight_stage_timer = 0.0
+	flight_scroll_speed = FLIGHT_BASE_SCROLL_SPEED
+	flight_scroll_distance = 0.0
+	flight_segment_index = 0
+	flight_segment_label = "旧波次飞行"
+	flight_heading = Vector2.RIGHT
+	_reset_flight_visual_pose_state()
+	flight_roll_timer = 0.0
+	flight_roll_cooldown = 0.0
+	flight_roll_direction = Vector2.RIGHT
+	rider_action_kind = ""
+	rider_action_timer = 0.0
+	rider_action_duration = 0.0
+	rider_action_direction = Vector2.RIGHT
+	rider_action_strength = 0.0
+	rider_array_pose_active = false
+	rider_array_pose_mode = SwordArrayConfig.MODE_RING
+	rider_array_visual_mode = SwordArrayConfig.MODE_RING
+	rider_array_transition_pending_from_mode = SwordArrayConfig.MODE_RING
+	rider_array_transition_pending_mode = ""
+	rider_array_transition_pending_direction = Vector2.RIGHT
+	rider_array_transition_confirm_timer = 0.0
+	rider_array_release_visual_cooldown = 0.0
+	player["flight_heading"] = flight_heading
+	player["flight_afterburner"] = 0.0
+	player["flight_brake"] = 0.0
+	player["flight_roll_timer"] = 0.0
+	cursor_intent_previous_mouse_world = mouse_world
 
 
 func _start_flight_prototype() -> void:
@@ -3006,6 +3277,15 @@ func _update_player(delta: float, player_delta: float) -> void:
 		player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
 		player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
 		return
+	if _uses_legacy_flight_entry():
+		var move_input: Vector2 = _get_flight_control_input()
+		_update_legacy_flight_motion(delta, player_delta, move_input)
+		_update_legacy_flight_scroll_speed(delta)
+		player["attack_cooldown"] = max(player["attack_cooldown"] - delta, 0.0)
+		player["attack_flash_timer"] = max(player["attack_flash_timer"] - delta, 0.0)
+		player["melee_swing_timer"] = maxf(float(player.get("melee_swing_timer", 0.0)) - delta, 0.0)
+		_update_melee_combo_state(delta)
+		return
 	var move_input: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if not move_input.is_zero_approx():
 		player["vel"] = move_input.normalized() * _get_player_move_speed()
@@ -3262,6 +3542,63 @@ func _update_flight_jet_lancer_motion(delta: float, player_delta: float, move_in
 	player["flight_roll_timer"] = flight_roll_timer
 
 
+func _update_legacy_flight_motion(delta: float, player_delta: float, move_input: Vector2) -> void:
+	var velocity: Vector2 = Vector2(player.get("vel", Vector2.ZERO))
+	if flight_heading.is_zero_approx():
+		flight_heading = velocity.normalized() if velocity.length_squared() > 1.0 else Vector2.RIGHT
+	var has_intent := not move_input.is_zero_approx()
+	var boost_pressure := 1.0 if _is_legacy_flight_boost_pressed() else 0.0
+	if has_intent:
+		var desired_heading := move_input.normalized()
+		var speed_ratio: float = clampf(velocity.length() / maxf(LEGACY_FLIGHT_BOOST_SPEED, 1.0), 0.0, 1.0)
+		var turn_rate := lerpf(LEGACY_FLIGHT_TURN_RATE, LEGACY_FLIGHT_HIGH_SPEED_TURN_RATE, speed_ratio)
+		var angle_delta := wrapf(desired_heading.angle() - flight_heading.angle(), -PI, PI)
+		var angle_step := clampf(angle_delta, -turn_rate * delta, turn_rate * delta)
+		flight_heading = flight_heading.rotated(angle_step).normalized()
+	var target_speed := lerpf(LEGACY_FLIGHT_CRUISE_SPEED, LEGACY_FLIGHT_BOOST_SPEED, boost_pressure)
+	if has_intent or boost_pressure > 0.0:
+		var target_velocity := flight_heading * target_speed
+		var accel := lerpf(LEGACY_FLIGHT_ACCELERATION, LEGACY_FLIGHT_BOOST_ACCELERATION, boost_pressure)
+		velocity = velocity.move_toward(target_velocity, accel * delta)
+	else:
+		velocity = velocity.lerp(Vector2.ZERO, clampf(delta * LEGACY_FLIGHT_GLIDE_DAMPING, 0.0, 0.9))
+		if velocity.length() < 72.0:
+			velocity = velocity.move_toward(Vector2.ZERO, LEGACY_FLIGHT_IDLE_BRAKE * delta)
+	if velocity.length() > LEGACY_FLIGHT_BOOST_SPEED:
+		velocity = velocity.normalized() * LEGACY_FLIGHT_BOOST_SPEED
+	player["vel"] = velocity
+	player["pos"] += velocity * player_delta
+	_resolve_legacy_flight_bounds()
+	player["flight_heading"] = flight_heading
+	player["flight_afterburner"] = boost_pressure
+	player["flight_brake"] = 0.0 if has_intent or boost_pressure > 0.0 else 1.0
+	player["flight_roll_timer"] = 0.0
+
+
+func _resolve_legacy_flight_bounds() -> void:
+	var arena_size := _get_arena_size()
+	var pos: Vector2 = Vector2(player["pos"])
+	var velocity: Vector2 = Vector2(player["vel"])
+	if pos.x < PLAYER_RADIUS:
+		pos.x = PLAYER_RADIUS
+		if velocity.x < 0.0:
+			velocity.x = -velocity.x * FLIGHT_JET_BOUND_BOUNCE
+	elif pos.x > arena_size.x - PLAYER_RADIUS:
+		pos.x = arena_size.x - PLAYER_RADIUS
+		if velocity.x > 0.0:
+			velocity.x = -velocity.x * FLIGHT_JET_BOUND_BOUNCE
+	if pos.y < PLAYER_RADIUS:
+		pos.y = PLAYER_RADIUS
+		if velocity.y < 0.0:
+			velocity.y = -velocity.y * FLIGHT_JET_BOUND_BOUNCE
+	elif pos.y > arena_size.y - PLAYER_RADIUS:
+		pos.y = arena_size.y - PLAYER_RADIUS
+		if velocity.y > 0.0:
+			velocity.y = -velocity.y * FLIGHT_JET_BOUND_BOUNCE
+	player["pos"] = pos
+	player["vel"] = velocity
+
+
 func _start_flight_roll(velocity: Vector2) -> void:
 	var roll_direction: Vector2 = velocity.normalized()
 	if roll_direction.is_zero_approx():
@@ -3302,6 +3639,19 @@ func _is_flight_afterburner_pressed() -> bool:
 	return Input.is_key_pressed(KEY_SHIFT)
 
 
+func _is_legacy_flight_boost_pressed() -> bool:
+	return Input.is_action_pressed("dash") or Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_SPACE)
+
+
+func _update_legacy_flight_scroll_speed(delta: float) -> void:
+	var velocity: Vector2 = Vector2(player.get("vel", Vector2.ZERO))
+	var speed_ratio: float = clampf(velocity.length() / maxf(LEGACY_FLIGHT_BOOST_SPEED, 1.0), 0.0, 1.0)
+	var boost_pressure := 1.0 if _is_legacy_flight_boost_pressed() else 0.0
+	var target_speed := FLIGHT_BASE_SCROLL_SPEED + speed_ratio * 82.0 + boost_pressure * 28.0
+	target_speed = clampf(target_speed, FLIGHT_MIN_SCROLL_SPEED, FLIGHT_MAX_SCROLL_SPEED)
+	flight_scroll_speed = lerpf(flight_scroll_speed, target_speed, minf(delta * FLIGHT_SCROLL_ACCEL, 1.0))
+
+
 func _update_flight_scroll_speed(delta: float, move_input: Vector2) -> void:
 	var flight_velocity: Vector2 = Vector2(player.get("vel", Vector2.ZERO))
 	var forward_ratio: float = clampf(flight_velocity.x / maxf(FLIGHT_JET_MAX_SPEED, 1.0), -1.0, 1.0)
@@ -3324,7 +3674,7 @@ func _update_flight_scroll_speed(delta: float, move_input: Vector2) -> void:
 
 
 func _update_flight_world_scroll(delta: float) -> void:
-	if not _is_flight_prototype_mode():
+	if not _uses_flight_world_scroll():
 		return
 	var scroll_delta: float = flight_scroll_speed * delta
 	flight_scroll_distance += scroll_delta

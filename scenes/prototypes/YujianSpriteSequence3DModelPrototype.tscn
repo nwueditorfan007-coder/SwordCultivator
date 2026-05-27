@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/prototypes/yujian_sprite_sequence_3d_model_prototype.gd" id="1_3dseq"]
+
+[node name="YujianSpriteSequence3DModelPrototype" type="Node2D"]
+script = ExtResource("1_3dseq")
+model_visual_texture_scale = 0.74
+model_visual_camera_size = 6.2
+model_visual_root_scale = 0.82

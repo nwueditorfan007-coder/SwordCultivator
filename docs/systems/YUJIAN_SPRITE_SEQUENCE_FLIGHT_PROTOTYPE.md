@@ -90,7 +90,9 @@ V4 不是传统地面角色八向站姿，也不是趴伏飞行姿态。它继�
 
 V4 速度姿态参考 `C:/Users/Han_112/Downloads/加速&减速/matted_frames/`：低速参考 `matte_00001.png` 的直立控剑手势，高速参考 `matte_00025.png` 的前压冲刺手势。程序骨骼按真实速度、油门和 boost 能量在两套姿态间插值，不直接使用这两张图作为运行时贴图。
 
-V4 外形目前由程序绘制，不是单独贴图资源。小人使用青白短道袍、暗色下摆、红色腰带、金色衣缘、袖口、靴子和额心玉点来强化修仙角色读法；这些外观只包裹骨骼点，不会改变 F4 面板中保存的关节坐标。
+V4 外形目前由程序绘制，不是单独贴图资源。小人参考 `resources/flight/Gemini_Generated_Image_193qyk193qyk193q.png` 的黑灰水墨剪影：束髻长发、飘发、发带、宽袖、长袍下摆、腰间飘带、暗色靴子和少量灰白描边来强化修仙角色读法；这些外观只包裹骨骼点，不会改变 F4 面板中保存的关节坐标。头发、袖口、袍摆和腰间飘带有轻量二级运动：悬停时按重力自然下垂，飞行时按真实速度、boost、carve 和 throttle 反向拖拽，速度越高拖拽和摆幅越明显。参考 `jimeng-2026-05-22-1171` 和 `jimeng-2026-05-22-5464` 的序列帧读法后，飘带不再是细直线，而是根部稳定、末端滞后的宽带 S 曲线；袍摆拆成多片宽面板，靠分段相位差产生更自然的飞行摆动。侧视左/右飞行时，S 曲线按风向法线做上下起伏，避免波形和水平拖拽方向重叠。
+
+V4 服饰二级运动在场景风带修正后只负责“角色衣物受风”，不再承担速度条职责；运行时会降低长发、发带、袍摆和腰间飘带的拖拽距离、透明度和转向跟随速度，避免黑灰贴身条被误读成另一层风带。
 
 V2 的缩放和位置可以手调：
 
@@ -138,7 +140,7 @@ V4 程序骨骼还有独立姿态编辑面板：
 - `导入姿态JSON`：从剪贴板读取姿态点位，并换算成当前姿态/方向的 offset；可先在 `low` 复制，再切到 `fast` 导入，作为高速姿态起点
 - `保存 JSON`：写入 `res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton_pose_overrides.json`，其中 `bone_lengths` 是全局骨段长度，`poses` 是各姿态/方向的点位偏移、头大小、绘制层级和前景侧；旧八向 key 仍可保留在 JSON 中兼容读取，但 V4 运行时只使用四个主方向生成斜向
 
-V4 当前去掉了头发绘制，运行时也不再对骨骼关节叠加摆臂、摆腿、turn/carve 关节变形和八向局部旋转。真实速度仍决定 `low` 到 `fast` 的插值，但当高速权重接近完成时会吸附到完整 `fast` 姿态，避免右向高速飞行时偏离编辑面板里摆好的骨骼。
+V4 当前不再对骨骼关节叠加摆臂、摆腿、turn/carve 关节变形和八向局部旋转；二级运动只作用在程序绘制的头发、袖口、袍摆和飘带上。真实速度仍决定 `low` 到 `fast` 的插值，但当高速权重接近完成时会吸附到完整 `fast` 姿态，避免右向高速飞行时偏离编辑面板里摆好的骨骼。
 
 V5 是成品化美术路线的第一阶段竖切。它暂时不使用最终 PNG 部件，而是在 `YujianInkPartVisual` 中用程序化水墨部件模拟最终拆层：飞剑、脚底气光、后袍摆、长发束、宽袖、前后腿、腰带飘带、头部和前景风线都按独立层绘制。V5 继续接收真实 `visual_heading`、速度、boost、turn、carve 和 throttle，不改飞行输入、不改镜头、不改移动模型；头发、袍摆和飘带会根据速度和急转做轻量二级动态。它的目的不是替代最终美术资源，而是先验证“骨骼/挂点控制器 + 水墨部件 + 御剑 VFX”的游戏内尺寸观感是否值得继续投入。
 
@@ -228,6 +230,31 @@ V1-V3 当前四向顺序：
 - 云层和山带作为低频参照
 - 拖尾和残影作为高速近身参照
 - 边界框暂时是调试读法，后续应换成云海/结界视觉
+
+场景效果测试接入：
+
+- 参考工程本地拉取在 `third_party/ffttasd/wind_ribbon` 和 `third_party/ffttasd/godot_fog_card`
+- 这两个仓库当前作为测试引用，不作为正式发布资源边界
+- 原型通过透明 3D `SubViewport` 直接挂载 `wind_ribbon/scripts/wind_ribbon_effect.gd`
+- 云雾卡片直接使用 `godot_fog_card/scripts/fog_card_3d.gd` 和 `reference_fog/shaders/fog-card.gdshader`
+- `SubViewport` 的合成图贴回 2D 原型，作为人物下方、背景上方的测试效果层
+
+当前触发规则：
+
+- 远山和中景山常驻，使用低倍率视差；玩家向右移动时，山体向左慢速滑动
+- 远/中/近三层云雾常驻，只受时间慢流动和相机位置视差影响，不直接吃玩家加速度
+- 低速悬停时不显示风带，只保留慢速云雾
+- `Space` boost、高速巡航和稳定高速航道时显示风带，但风带不再作为唯一速度反馈
+- 风带表达“稳定航道的空气流形”，不表达转向轨迹；检测到急转、carve、方向切换或航向仍在变化时，所有风带停发并渐隐，避免旧航道风带和当前飞行方向冲突
+- 当前稳定航道还要求速度方向与身体航向、目标航向基本对齐；风带一旦开始发射，当前段不会再追着航向持续旋转，新的航道稳定后才会重新软启动
+- 航向稳定累计一小段时间后，风带才在新航道软启动；转向期间的速度感主要交给 2D 世界空间短白线和角色自身拖尾
+- 旧航道风带释放要快，避免转向后残留风带和新飞行方向冲突；当前会缩短第三方粒子 trail 生命周期、降低非激活段释放半衰期，并更早隐藏旧段
+- 运行时风带开关直接控制 `StrandParticles` / `VeilParticles`，不再在转向中调用第三方脚本的 `emitting` setter，避免重建粒子材质和 trail mesh 带来的卡顿
+- 速度感新增一层 2D 世界空间短白线，按真实速度、油门和 carve 生成；这层负责“画面掠过”的速度反馈，3D `wind_ribbon` 只负责低透明空气流形质感
+- 风带颜色和透明度在 `scripts/prototypes/yujian_sprite_sequence_prototype.gd` 顶部常量调节：`REFERENCE_WIND_STRAND_COLOR`、`REFERENCE_WIND_VEIL_COLOR`、`REFERENCE_WIND_STRAND_OPACITY`、`REFERENCE_WIND_VEIL_OPACITY`
+- 风带转向抑制和淡入/释放调节：`REFERENCE_WIND_TURN_SUPPRESS_PRESSURE`、`REFERENCE_WIND_STABLE_ANGLE`、`REFERENCE_WIND_REAPPEAR_STABLE_TIME`、`REFERENCE_WIND_START_PREPROCESS`、`REFERENCE_WIND_ACTIVE_HALF_LIFE`、`REFERENCE_WIND_RELEASE_HALF_LIFE`、`REFERENCE_WIND_RELEASE_HIDE_THRESHOLD`、`REFERENCE_WIND_RELEASE_MIN_SCALE`、`REFERENCE_WIND_STRAND_TRAIL_LIFETIME`、`REFERENCE_WIND_VEIL_TRAIL_LIFETIME`
+- 稳定航道判定调节：`REFERENCE_WIND_HEADING_SETTLE_ANGLE`、`REFERENCE_WIND_VELOCITY_ALIGN_ANGLE`、`REFERENCE_WIND_HEADING_RATE_LIMIT`
+- 速度线调节：`SCENE_SPEED_STREAK_MAX_COUNT`、`SCENE_SPEED_STREAK_MIN_ENERGY`、`SCENE_SPEED_STREAK_SPAWN_RATE`、`SCENE_SPEED_STREAK_LIFE`、`SCENE_SPEED_STREAK_MIN_LENGTH`、`SCENE_SPEED_STREAK_MAX_LENGTH`
 
 ## 6. Clip Graph
 

@@ -2,6 +2,9 @@ extends Node2D
 
 const HUMANOID_8WAY_SKELETON_VISUAL := preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
 const YUJIAN_INK_PART_VISUAL := preload("res://scripts/prototypes/yujian_ink_part_visual.gd")
+const WIND_RIBBON_EFFECT_SCRIPT := preload("res://third_party/ffttasd/wind_ribbon/scripts/wind_ribbon_effect.gd")
+const FOG_CARD_3D_SCRIPT := preload("res://third_party/ffttasd/godot_fog_card/scripts/fog_card_3d.gd")
+const FOG_CARD_SHADER := preload("res://third_party/ffttasd/godot_fog_card/reference_fog/shaders/fog-card.gdshader")
 
 const VIEW_SIZE := Vector2(1280.0, 720.0)
 const BASE_PLAY_ORIGIN := Vector2(92.0, 86.0)
@@ -19,6 +22,40 @@ const CAMERA_LOOK_AHEAD_HALF_LIFE := 0.075
 const CAMERA_HARD_TURN_LOOK_AHEAD_SCALE := 0.58
 const WORLD_GRID_STEP := 360.0
 const CYAN := Color(0.42, 0.96, 1.0, 1.0)
+const SCENE_FAR_MOUNTAIN_PARALLAX := 0.075
+const SCENE_MID_MOUNTAIN_PARALLAX := 0.18
+const SCENE_FAR_FOG_PARALLAX := 0.10
+const SCENE_MID_FOG_PARALLAX := 0.28
+const SCENE_NEAR_FOG_PARALLAX := 0.72
+const SCENE_FAR_MOUNTAIN_TILE := 760.0
+const SCENE_MID_MOUNTAIN_TILE := 620.0
+const SCENE_WIND_MIN_SPEED := 0.68
+const REFERENCE_VFX_VIEWPORT_SIZE := Vector2i(1280, 720)
+const REFERENCE_FOG_CARD_COUNT := 14
+const REFERENCE_WIND_SEGMENT_COUNT := 6
+const REFERENCE_WIND_TURN_SUPPRESS_PRESSURE := 0.18
+const REFERENCE_WIND_STABLE_ANGLE := 0.10
+const REFERENCE_WIND_HEADING_SETTLE_ANGLE := 0.08
+const REFERENCE_WIND_VELOCITY_ALIGN_ANGLE := 0.18
+const REFERENCE_WIND_HEADING_RATE_LIMIT := 0.75
+const REFERENCE_WIND_REAPPEAR_STABLE_TIME := 0.18
+const REFERENCE_WIND_STRAND_COLOR := Color(1.0, 1.0, 1.0, 1.0)
+const REFERENCE_WIND_VEIL_COLOR := Color(1.0, 1.0, 1.0, 1.0)
+const REFERENCE_WIND_STRAND_OPACITY := 0.20
+const REFERENCE_WIND_VEIL_OPACITY := 0.016
+const REFERENCE_WIND_START_PREPROCESS := 0.04
+const REFERENCE_WIND_ACTIVE_HALF_LIFE := 0.18
+const REFERENCE_WIND_RELEASE_HALF_LIFE := 0.055
+const REFERENCE_WIND_RELEASE_HIDE_THRESHOLD := 0.08
+const REFERENCE_WIND_RELEASE_MIN_SCALE := 0.28
+const REFERENCE_WIND_STRAND_TRAIL_LIFETIME := 0.42
+const REFERENCE_WIND_VEIL_TRAIL_LIFETIME := 0.48
+const SCENE_SPEED_STREAK_MAX_COUNT := 34
+const SCENE_SPEED_STREAK_MIN_ENERGY := 0.12
+const SCENE_SPEED_STREAK_SPAWN_RATE := 36.0
+const SCENE_SPEED_STREAK_LIFE := 0.38
+const SCENE_SPEED_STREAK_MIN_LENGTH := 82.0
+const SCENE_SPEED_STREAK_MAX_LENGTH := 220.0
 
 const FRAME_COLUMNS := 7
 const CELL_SIZE := Vector2(512.0, 512.0)
@@ -227,6 +264,22 @@ var sprite_root: Node2D
 var character_sprite: Sprite2D
 var skeleton_character: Node2D
 var ink_part_character: Node2D
+var reference_vfx_viewport: SubViewport
+var reference_vfx_sprite: Sprite2D
+var reference_vfx_camera: Camera3D
+var reference_wind_ribbon: Node3D
+var reference_wind_emitting := false
+var reference_wind_direction := Vector3.LEFT
+var reference_wind_rotation := 0.0
+var reference_wind_ribbons: Array[Node3D] = []
+var reference_wind_segment_energy: Array[float] = []
+var reference_wind_segment_rotations: Array[float] = []
+var reference_wind_segment_emitting: Array[bool] = []
+var reference_wind_current_index := 0
+var reference_wind_target_rotation := 0.0
+var reference_wind_stable_time := 0.0
+var reference_wind_initialized := false
+var reference_fog_cards: Array[MeshInstance3D] = []
 var key_shader: Shader
 var trail_halo: Line2D
 var trail_ribbon: Line2D
@@ -314,6 +367,9 @@ var adjustment_status_label: Label
 var trail_points: Array = []
 var afterimages: Array = []
 var direction_switch_fx: Array = []
+var scene_speed_streaks: Array = []
+var scene_speed_streak_spawn_accumulator := 0.0
+var scene_speed_streak_seed := 0
 
 
 func _ready() -> void:
@@ -338,6 +394,8 @@ func _process(delta: float) -> void:
 	_advance_clip(step, axis, boosting)
 	_update_camera(step)
 	_update_visual_state(step)
+	_update_reference_vfx(step)
+	_update_scene_speed_streaks(step)
 	_update_adjustment_panel_follow_state()
 	_update_direction_switch_fx(step)
 	_update_afterimages(step)
@@ -412,6 +470,7 @@ void fragment() {
 	trail_halo = _create_trail_line("TrailHalo", 0)
 	trail_ribbon = _create_trail_line("TrailRibbon", 1)
 	trail_core = _create_trail_line("TrailCore", 2)
+	_create_reference_vfx_viewport()
 
 	sprite_root = Node2D.new()
 	sprite_root.name = "SequenceCharacterRoot"
@@ -618,6 +677,167 @@ func _create_trail_line(line_name: String, z: int) -> Line2D:
 	line.antialiased = true
 	add_child(line)
 	return line
+
+
+func _create_reference_vfx_viewport() -> void:
+	reference_vfx_viewport = SubViewport.new()
+	reference_vfx_viewport.name = "ReferenceVfxViewport"
+	reference_vfx_viewport.size = REFERENCE_VFX_VIEWPORT_SIZE
+	reference_vfx_viewport.transparent_bg = true
+	reference_vfx_viewport.own_world_3d = true
+	reference_vfx_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(reference_vfx_viewport)
+
+	reference_vfx_sprite = Sprite2D.new()
+	reference_vfx_sprite.name = "ReferenceVfxComposite"
+	reference_vfx_sprite.centered = false
+	reference_vfx_sprite.texture = reference_vfx_viewport.get_texture()
+	reference_vfx_sprite.z_index = 3
+	add_child(reference_vfx_sprite)
+
+	var reference_root := Node3D.new()
+	reference_root.name = "ReferenceVfxRoot"
+	reference_vfx_viewport.add_child(reference_root)
+
+	reference_vfx_camera = Camera3D.new()
+	reference_vfx_camera.name = "ReferenceVfxCamera"
+	reference_vfx_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	reference_vfx_camera.size = 6.6
+	reference_vfx_camera.position = Vector3(0.0, 0.0, 8.0)
+	reference_vfx_camera.current = true
+	reference_root.add_child(reference_vfx_camera)
+
+	_create_reference_fog_cards(reference_root)
+	_create_reference_wind_ribbon(reference_root)
+
+
+func _create_reference_wind_ribbon(parent: Node3D) -> void:
+	reference_wind_ribbons.clear()
+	reference_wind_segment_energy.clear()
+	reference_wind_segment_rotations.clear()
+	reference_wind_segment_emitting.clear()
+	for i in range(REFERENCE_WIND_SEGMENT_COUNT):
+		var ribbon := _create_reference_wind_ribbon_node("ReferenceWindRibbon%02d" % i)
+		parent.add_child(ribbon)
+		reference_wind_ribbons.append(ribbon)
+		reference_wind_segment_energy.append(0.0)
+		reference_wind_segment_rotations.append(0.0)
+		reference_wind_segment_emitting.append(false)
+	reference_wind_ribbon = reference_wind_ribbons[0] if not reference_wind_ribbons.is_empty() else null
+
+
+func _create_reference_wind_ribbon_node(ribbon_name: String) -> Node3D:
+	var ribbon := Node3D.new()
+	ribbon.name = ribbon_name
+	ribbon.set_script(WIND_RIBBON_EFFECT_SCRIPT)
+	var strand_particles := GPUParticles3D.new()
+	strand_particles.name = "StrandParticles"
+	ribbon.add_child(strand_particles)
+
+	var veil_particles := GPUParticles3D.new()
+	veil_particles.name = "VeilParticles"
+	ribbon.add_child(veil_particles)
+
+	var spawn_preview := MeshInstance3D.new()
+	spawn_preview.name = "SpawnPreview"
+	spawn_preview.visible = false
+	ribbon.add_child(spawn_preview)
+
+	ribbon.set("show_spawn_preview", false)
+	ribbon.set("preview_in_game", false)
+	ribbon.set("emitting", false)
+	ribbon.set("world_space_wind", false)
+	ribbon.set("use_tube_trails", true)
+	ribbon.set("camera_facing", false)
+	ribbon.set("cross_section", true)
+	ribbon.set("spawn_extents", Vector3(4.9, 2.45, 0.55))
+	ribbon.set("wind_direction", reference_wind_direction)
+	ribbon.set("strand_amount", 32)
+	ribbon.set("strand_lifetime", 1.85)
+	ribbon.set("strand_trail_lifetime", REFERENCE_WIND_STRAND_TRAIL_LIFETIME)
+	ribbon.set("strand_width", 0.045)
+	ribbon.set("strand_speed_min", 3.8)
+	ribbon.set("strand_speed_max", 6.4)
+	ribbon.set("strand_opacity", REFERENCE_WIND_STRAND_OPACITY)
+	ribbon.set("strand_color", REFERENCE_WIND_STRAND_COLOR)
+	ribbon.set("veil_amount", 7)
+	ribbon.set("veil_lifetime", 2.1)
+	ribbon.set("veil_trail_lifetime", REFERENCE_WIND_VEIL_TRAIL_LIFETIME)
+	ribbon.set("veil_width", 0.075)
+	ribbon.set("veil_speed_min", 1.8)
+	ribbon.set("veil_speed_max", 3.1)
+	ribbon.set("veil_opacity", REFERENCE_WIND_VEIL_OPACITY)
+	ribbon.set("veil_color", REFERENCE_WIND_VEIL_COLOR)
+	ribbon.set("spread", 2.4)
+	ribbon.set("lift", 0.02)
+	ribbon.set("turbulence", 0.12)
+	ribbon.visible = false
+	return ribbon
+
+
+func _create_reference_fog_cards(parent: Node3D) -> void:
+	reference_fog_cards.clear()
+	for i in range(REFERENCE_FOG_CARD_COUNT):
+		var card := MeshInstance3D.new()
+		card.name = "ReferenceFogCard%02d" % i
+		var mesh := QuadMesh.new()
+		mesh.size = Vector2(2.27, 1.5)
+		card.mesh = mesh
+		card.material_override = _make_reference_fog_material(i)
+		card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		card.set_script(FOG_CARD_3D_SCRIPT)
+		card.set("plane_size", Vector2(2.27, 1.5))
+		card.set("card_scale_factor", lerpf(1.55, 2.65, _hash01(float(i) + 0.4)))
+		card.set("phase", 0.45)
+		card.set("random_offset", Vector2(_hash01(float(i) + 1.2), _hash01(float(i) + 2.8)))
+		card.set("billboard", true)
+		card.set("fog_tint", Color(0.88, 0.92, 0.88, 1.0))
+		card.set("fog_opacity", lerpf(0.42, 0.68, _hash01(float(i) + 3.5)))
+		card.set("noise_scale", 9.25)
+		card.set("noise_speed", Vector2(0.035 + 0.02 * _hash01(float(i) + 4.3), 0.0))
+		card.set("softness", 3.0)
+		card.set("fade_in", 0.1)
+		card.set("fade_out", 0.9)
+		card.set("near_fade", 0.1)
+		card.set("far_fade", 80.0)
+		parent.add_child(card)
+		reference_fog_cards.append(card)
+
+
+func _make_reference_fog_material(index: int) -> ShaderMaterial:
+	var noise := FastNoiseLite.new()
+	noise.seed = 9100 + index * 37
+	noise.frequency = 0.003
+
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	ramp.colors = PackedColorArray([Color.BLACK, Color(0.82, 0.82, 0.82, 1.0), Color.WHITE])
+
+	var noise_texture := NoiseTexture2D.new()
+	noise_texture.width = 256
+	noise_texture.height = 256
+	noise_texture.noise = noise
+	noise_texture.color_ramp = ramp
+	noise_texture.seamless = true
+	noise_texture.seamless_blend_skirt = 1.0
+
+	var material := ShaderMaterial.new()
+	material.resource_local_to_scene = true
+	material.shader = FOG_CARD_SHADER
+	material.set_shader_parameter("color", Color(0.88, 0.92, 0.88, 0.58))
+	material.set_shader_parameter("noise_texture", noise_texture)
+	material.set_shader_parameter("noise_scale", 9.25)
+	material.set_shader_parameter("noise_speed", Vector2(0.05, 0.0))
+	material.set_shader_parameter("softness", 3.0)
+	material.set_shader_parameter("fade_in", 0.1)
+	material.set_shader_parameter("fade_out", 0.9)
+	material.set_shader_parameter("near_fade", 0.1)
+	material.set_shader_parameter("far_fade", 80.0)
+	material.set_shader_parameter("phase", 0.45)
+	material.set_shader_parameter("scale_factor", 1.0)
+	material.set_shader_parameter("random_offset", Vector2(_hash01(float(index) + 1.2), _hash01(float(index) + 2.8)))
+	material.set_shader_parameter("billboard", true)
+	return material
 
 
 func _make_key_material() -> ShaderMaterial:
@@ -1944,7 +2164,9 @@ func _current_clip() -> Dictionary:
 
 
 func _update_camera(delta: float) -> void:
-	var zoom_target := lerpf(CAMERA_MIN_ZOOM, CAMERA_MAX_ZOOM, clampf((velocity.length() - CRUISE_SPEED * 0.55) / maxf(BOOST_SPEED - CRUISE_SPEED * 0.55, 1.0), 0.0, 1.0))
+	var speed_zoom_pressure := clampf((velocity.length() - CRUISE_SPEED * 0.55) / maxf(BOOST_SPEED - CRUISE_SPEED * 0.55, 1.0), 0.0, 1.0)
+	var boost_zoom_pressure := 0.55 if throttle_pressed else 0.0
+	var zoom_target := lerpf(CAMERA_MIN_ZOOM, CAMERA_MAX_ZOOM, maxf(speed_zoom_pressure, boost_zoom_pressure))
 	camera_zoom = _damp_float(camera_zoom, zoom_target, CAMERA_ZOOM_HALF_LIFE, delta)
 	var turn_pressure := clampf(maxf(maxf(absf(heading_angle_delta) / PI, carve_energy), direction_switch_energy), 0.0, 1.0)
 	var look_ahead_scale := lerpf(1.0, camera_hard_turn_look_ahead_scale, turn_pressure)
@@ -1956,6 +2178,240 @@ func _update_camera(delta: float) -> void:
 	else:
 		camera_look_ahead = _damp_vector2(camera_look_ahead, target_look_ahead, camera_look_ahead_half_life, delta)
 	camera_center = _clamp_camera_center(flight_pos + camera_look_ahead)
+
+
+func _update_reference_vfx(delta: float) -> void:
+	if reference_vfx_viewport == null:
+		return
+	var speed_pressure := clampf((velocity.length() - CRUISE_SPEED * SCENE_WIND_MIN_SPEED) / maxf(BOOST_SPEED - CRUISE_SPEED * SCENE_WIND_MIN_SPEED, 1.0), 0.0, 1.0)
+	var turn_pressure := clampf(maxf(carve_energy, maxf(direction_switch_energy * 0.82, absf(heading_angle_delta) / PI * clampf(velocity.length() / BOOST_SPEED, 0.0, 1.0))), 0.0, 1.0)
+	_update_reference_wind(speed_pressure, turn_pressure, delta)
+	_update_reference_fog_cards(speed_pressure, delta)
+
+
+func _update_reference_wind(speed_pressure: float, turn_pressure: float, delta: float) -> void:
+	if reference_wind_ribbons.is_empty():
+		return
+	var wind_energy := clampf(maxf(speed_pressure, throttle_energy * 0.68), 0.0, 1.0)
+	var travel_dir := _safe_velocity_dir()
+	var desired_wind_2d := Vector2(-travel_dir.x, travel_dir.y).normalized()
+	var target_rotation := wrapf(desired_wind_2d.angle() - PI, -PI, PI)
+	if not reference_wind_initialized:
+		reference_wind_initialized = true
+		reference_wind_rotation = target_rotation
+		reference_wind_target_rotation = target_rotation
+		for i in range(reference_wind_ribbons.size()):
+			reference_wind_segment_rotations[i] = target_rotation
+			reference_wind_ribbons[i].rotation.z = target_rotation
+
+	var should_emit := wind_energy > 0.06
+	var frame_rotation_delta := absf(wrapf(target_rotation - reference_wind_target_rotation, -PI, PI))
+	var active_course_delta := absf(wrapf(target_rotation - reference_wind_rotation, -PI, PI)) if reference_wind_emitting else 0.0
+	reference_wind_target_rotation = target_rotation
+	var body_dir := body_heading.normalized() if body_heading.length_squared() > 0.0001 else travel_dir
+	var target_dir := target_heading.normalized() if target_heading.length_squared() > 0.0001 else body_dir
+	var velocity_body_delta := absf(_signed_angle_between(travel_dir, body_dir))
+	var velocity_target_delta := absf(_signed_angle_between(travel_dir, target_dir))
+	var course_unstable := (
+		absf(heading_angle_delta) > REFERENCE_WIND_HEADING_SETTLE_ANGLE
+		or heading_turn_rate > REFERENCE_WIND_HEADING_RATE_LIMIT
+		or velocity_body_delta > REFERENCE_WIND_VELOCITY_ALIGN_ANGLE
+		or velocity_target_delta > REFERENCE_WIND_VELOCITY_ALIGN_ANGLE
+	)
+	var is_turning := (
+		turn_pressure > REFERENCE_WIND_TURN_SUPPRESS_PRESSURE
+		or frame_rotation_delta > REFERENCE_WIND_STABLE_ANGLE
+		or active_course_delta > REFERENCE_WIND_STABLE_ANGLE
+		or course_unstable
+	)
+	if not should_emit:
+		_stop_reference_wind_emission()
+		reference_wind_stable_time = 0.0
+		_fade_reference_wind_segments(-1, 0.0, delta)
+		return
+
+	if is_turning:
+		_stop_reference_wind_emission()
+		reference_wind_stable_time = 0.0
+		_fade_reference_wind_segments(-1, 0.0, delta)
+		return
+
+	reference_wind_stable_time += delta
+	if reference_wind_stable_time < REFERENCE_WIND_REAPPEAR_STABLE_TIME:
+		_stop_reference_wind_emission()
+		_fade_reference_wind_segments(-1, 0.0, delta)
+		return
+
+	if not reference_wind_emitting:
+		reference_wind_current_index = _find_reference_wind_reuse_index()
+		reference_wind_segment_energy[reference_wind_current_index] = 0.0
+		_activate_reference_wind_segment(reference_wind_current_index, target_rotation, true)
+		reference_wind_emitting = true
+	else:
+		reference_wind_segment_rotations[reference_wind_current_index] = reference_wind_rotation
+
+	_fade_reference_wind_segments(reference_wind_current_index, wind_energy, delta)
+
+
+func _stop_reference_wind_emission() -> void:
+	if not reference_wind_emitting:
+		return
+	for i in range(reference_wind_ribbons.size()):
+		_set_reference_wind_segment_emitting(i, false)
+	reference_wind_emitting = false
+
+
+func _activate_reference_wind_segment(index: int, rotation: float, restart_particles: bool) -> void:
+	if index < 0 or index >= reference_wind_ribbons.size():
+		return
+	reference_wind_rotation = rotation
+	reference_wind_segment_rotations[index] = rotation
+	var ribbon := reference_wind_ribbons[index]
+	ribbon.rotation.z = rotation
+	ribbon.visible = true
+	_set_reference_wind_segment_emitting(index, true, restart_particles)
+
+
+func _find_reference_wind_reuse_index() -> int:
+	var best_index := (reference_wind_current_index + 1) % maxi(reference_wind_ribbons.size(), 1)
+	var best_energy := 9999.0
+	for i in range(reference_wind_ribbons.size()):
+		if i == reference_wind_current_index:
+			continue
+		var energy := reference_wind_segment_energy[i]
+		if energy < best_energy:
+			best_energy = energy
+			best_index = i
+	return best_index
+
+
+func _set_reference_wind_segment_emitting(index: int, emitting: bool, restart_particles: bool = false) -> void:
+	if index < 0 or index >= reference_wind_ribbons.size():
+		return
+	reference_wind_segment_emitting[index] = emitting
+	var ribbon := reference_wind_ribbons[index]
+	var strand_particles := ribbon.get_node_or_null("StrandParticles") as GPUParticles3D
+	var veil_particles := ribbon.get_node_or_null("VeilParticles") as GPUParticles3D
+	_set_reference_wind_particles_emitting(strand_particles, emitting, restart_particles)
+	_set_reference_wind_particles_emitting(veil_particles, emitting, restart_particles)
+	if emitting:
+		ribbon.visible = true
+
+
+func _set_reference_wind_particles_emitting(particles: GPUParticles3D, emitting: bool, restart_particles: bool) -> void:
+	if particles == null:
+		return
+	particles.preprocess = REFERENCE_WIND_START_PREPROCESS
+	particles.emitting = emitting
+	if emitting and restart_particles:
+		particles.restart()
+
+
+func _set_reference_wind_segment_intensity(index: int, energy: float) -> void:
+	if index < 0 or index >= reference_wind_ribbons.size():
+		return
+	var ribbon := reference_wind_ribbons[index]
+	var ratio := clampf(energy, 0.0, 1.0)
+	var strand_particles := ribbon.get_node_or_null("StrandParticles") as GPUParticles3D
+	var veil_particles := ribbon.get_node_or_null("VeilParticles") as GPUParticles3D
+	if strand_particles != null:
+		strand_particles.amount_ratio = clampf(ratio, 0.0, 1.0)
+		strand_particles.speed_scale = lerpf(0.82, 1.06, ratio)
+	if veil_particles != null:
+		veil_particles.amount_ratio = clampf(0.62 * ratio, 0.0, 0.7)
+		veil_particles.speed_scale = lerpf(0.72, 0.96, ratio)
+
+
+func _fade_reference_wind_segments(active_index: int, active_energy: float, delta: float) -> void:
+	var offset := Vector3(
+		clampf(camera_look_ahead.x / maxf(camera_max_look_ahead.x, 1.0), -1.0, 1.0) * -0.35,
+		clampf(camera_look_ahead.y / maxf(camera_max_look_ahead.y, 1.0), -1.0, 1.0) * 0.20,
+		0.0
+	)
+	for i in range(reference_wind_ribbons.size()):
+		var ribbon := reference_wind_ribbons[i]
+		var target_energy := active_energy if i == active_index else 0.0
+		var half_life := REFERENCE_WIND_ACTIVE_HALF_LIFE if i == active_index else REFERENCE_WIND_RELEASE_HALF_LIFE
+		reference_wind_segment_energy[i] = _damp_float(reference_wind_segment_energy[i], target_energy, half_life, delta)
+		var energy := reference_wind_segment_energy[i]
+		ribbon.position = offset
+		ribbon.rotation.z = reference_wind_segment_rotations[i]
+		var min_scale := 0.70 if i == active_index else REFERENCE_WIND_RELEASE_MIN_SCALE
+		ribbon.scale = Vector3.ONE * lerpf(min_scale, 1.18, clampf(energy, 0.0, 1.0))
+		_set_reference_wind_segment_intensity(i, energy)
+		if i != active_index and energy < REFERENCE_WIND_RELEASE_HIDE_THRESHOLD:
+			ribbon.visible = false
+			_set_reference_wind_segment_emitting(i, false)
+
+
+func _update_scene_speed_streaks(delta: float) -> void:
+	for streak in scene_speed_streaks:
+		streak["age"] = float(streak["age"]) + delta
+		var drift_dir: Vector2 = streak.get("dir", Vector2.RIGHT)
+		var flow_speed := float(streak.get("flow_speed", 0.0))
+		streak["pos"] = Vector2(streak["pos"]) - drift_dir * flow_speed * delta
+	scene_speed_streaks = scene_speed_streaks.filter(func(streak: Dictionary) -> bool: return float(streak["age"]) <= float(streak.get("life", SCENE_SPEED_STREAK_LIFE)))
+
+	var speed_pressure := clampf((velocity.length() - CRUISE_SPEED * 0.52) / maxf(BOOST_SPEED - CRUISE_SPEED * 0.52, 1.0), 0.0, 1.0)
+	var streak_energy := clampf(maxf(speed_pressure, maxf(throttle_energy * 0.54, carve_energy * 0.36)), 0.0, 1.0)
+	if streak_energy < SCENE_SPEED_STREAK_MIN_ENERGY:
+		scene_speed_streak_spawn_accumulator = 0.0
+		return
+
+	var spawn_rate := lerpf(6.0, SCENE_SPEED_STREAK_SPAWN_RATE, streak_energy)
+	scene_speed_streak_spawn_accumulator += spawn_rate * delta
+	while scene_speed_streak_spawn_accumulator >= 1.0:
+		_spawn_scene_speed_streak(streak_energy)
+		scene_speed_streak_spawn_accumulator -= 1.0
+
+
+func _spawn_scene_speed_streak(streak_energy: float) -> void:
+	var dir := _safe_velocity_dir()
+	if dir.length_squared() <= 0.0001:
+		return
+	var side_dir := dir.rotated(PI * 0.5)
+	var seed := float(scene_speed_streak_seed)
+	scene_speed_streak_seed += 1
+	var forward_span := VIEW_SIZE.x * camera_zoom * 0.82
+	var side_span := VIEW_SIZE.y * camera_zoom * 0.76
+	var forward_offset := lerpf(-0.58, 0.64, _hash01(seed + time * 0.37)) * forward_span
+	var side_offset := lerpf(-0.62, 0.62, _hash01(seed + 17.3)) * side_span
+	var pos := camera_center + dir * forward_offset + side_dir * side_offset
+	var length := lerpf(SCENE_SPEED_STREAK_MIN_LENGTH, SCENE_SPEED_STREAK_MAX_LENGTH, streak_energy) * camera_zoom * lerpf(0.68, 1.22, _hash01(seed + 5.1))
+	var life := SCENE_SPEED_STREAK_LIFE * lerpf(0.74, 1.18, _hash01(seed + 9.8))
+	scene_speed_streaks.append({
+		"pos": pos,
+		"dir": dir,
+		"age": 0.0,
+		"life": life,
+		"length": length,
+		"width": lerpf(1.2, 3.4, streak_energy) * lerpf(0.72, 1.32, _hash01(seed + 2.4)),
+		"alpha": lerpf(0.035, 0.16, streak_energy) * lerpf(0.62, 1.08, _hash01(seed + 6.7)),
+		"flow_speed": velocity.length() * lerpf(0.10, 0.24, streak_energy),
+	})
+	while scene_speed_streaks.size() > SCENE_SPEED_STREAK_MAX_COUNT:
+		scene_speed_streaks.pop_front()
+
+
+func _update_reference_fog_cards(_speed_pressure: float, _delta: float) -> void:
+	if reference_fog_cards.is_empty():
+		return
+	var camera_factor := camera_center - FLIGHT_START_POS
+	for i in range(reference_fog_cards.size()):
+		var card := reference_fog_cards[i]
+		var layer := float(i % 3)
+		var parallax_values: Array[float] = [SCENE_FAR_FOG_PARALLAX, SCENE_MID_FOG_PARALLAX, SCENE_NEAR_FOG_PARALLAX]
+		var parallax: float = parallax_values[i % 3]
+		var width: float = 13.8
+		var spacing: float = width / maxf(float(REFERENCE_FOG_CARD_COUNT), 1.0)
+		var drift: float = time * lerpf(0.10, 0.34, layer / 2.0)
+		var x: float = fposmod(float(i) * spacing + _hash01(float(i) + 0.7) * 2.4 - camera_factor.x * parallax * 0.010 + drift, width) - width * 0.5
+		var y_base: float = lerpf(-2.1, 1.45, _hash01(float(i) + 5.9))
+		var y: float = y_base + camera_factor.y * parallax * 0.003 + sin(time * 0.18 + float(i) * 1.7) * 0.08
+		card.position = Vector3(x, y, lerpf(-0.9, 0.8, layer / 2.0))
+		card.rotation_degrees = Vector3(0.0, 0.0, lerpf(-4.0, 4.0, _hash01(float(i) + 8.2)))
+		card.set("phase", 0.45)
+		card.set("fog_opacity", lerpf(0.44, 0.72, _hash01(float(i) + 3.5)))
 
 
 func _clamp_camera_center(center: Vector2) -> Vector2:
@@ -2155,24 +2611,18 @@ func _catmull_rom(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float) 
 
 func _draw() -> void:
 	_draw_background()
+	_draw_scene_speed_streaks()
 	_draw_direction_switch_fx()
 	_draw_afterimages()
 	_draw_debug()
 
 
 func _draw_background() -> void:
-	draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.70, 0.75, 0.76, 1.0))
-	draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.05, 0.065, 0.07, 0.10))
-	_draw_mountain_band(0.25, 0.53, Color(0.13, 0.16, 0.16, 0.18), 0.0)
-	_draw_mountain_band(0.52, 0.82, Color(0.04, 0.055, 0.056, 0.30), 1.7)
+	draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.66, 0.76, 0.78, 1.0))
+	draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.91, 0.98, 0.96, 0.10))
+	_draw_parallax_mountain_band(0.19, 0.55, Color(0.16, 0.19, 0.18, 0.19), 0.0, SCENE_FAR_MOUNTAIN_PARALLAX, SCENE_FAR_MOUNTAIN_TILE, 70.0)
+	_draw_parallax_mountain_band(0.48, 0.84, Color(0.055, 0.075, 0.073, 0.30), 1.7, SCENE_MID_MOUNTAIN_PARALLAX, SCENE_MID_MOUNTAIN_TILE, 98.0)
 	_draw_world_guides()
-	for i in range(18):
-		var y_ratio := fmod(float(i) * 0.173 + 0.11, 1.0)
-		var world_y := PLAY_RECT.position.y + PLAY_RECT.size.y * y_ratio + sin(time * 0.12 + float(i)) * 18.0
-		var world_x := PLAY_RECT.position.x + fmod(time * (16.0 + float(i % 4) * 2.8) + float(i) * 431.0, PLAY_RECT.size.x + 420.0) - 210.0
-		var screen_pos := _world_to_screen(Vector2(world_x, world_y))
-		if Rect2(Vector2(-260.0, -80.0), VIEW_SIZE + Vector2(520.0, 160.0)).has_point(screen_pos):
-			_draw_cloud_wisp(screen_pos, (145.0 + float(i % 3) * 48.0) / maxf(camera_zoom, 0.001), Color(0.94, 0.98, 0.98, 0.16))
 
 
 func _draw_world_guides() -> void:
@@ -2207,16 +2657,22 @@ func _draw_world_guides() -> void:
 	draw_rect(rect_screen, Color(0.22, 0.64, 0.72, 0.32), false, 2.0)
 
 
-func _draw_mountain_band(top_ratio: float, bottom_ratio: float, color: Color, offset: float) -> void:
+func _draw_parallax_mountain_band(top_ratio: float, bottom_ratio: float, color: Color, offset: float, parallax: float, tile_width: float, ridge_height: float) -> void:
 	var top := VIEW_SIZE.y * top_ratio
 	var bottom := VIEW_SIZE.y * bottom_ratio
-	var points := PackedVector2Array([Vector2(0.0, bottom)])
-	for i in range(11):
-		var x := VIEW_SIZE.x * float(i) / 10.0
-		var ridge := top + 82.0 * absf(sin(float(i) * 1.13 + offset))
-		points.append(Vector2(x, clampf(ridge, top, bottom - 20.0)))
-	points.append(Vector2(VIEW_SIZE.x, bottom))
-	draw_colored_polygon(points, color)
+	var y_shift := -(camera_center.y - FLIGHT_START_POS.y) * parallax * 0.11 / maxf(camera_zoom, 0.001)
+	var x := -fposmod(camera_center.x * parallax + offset * 113.0, tile_width) - tile_width
+	while x < VIEW_SIZE.x + tile_width:
+		var points := PackedVector2Array([Vector2(x, bottom + y_shift)])
+		for i in range(9):
+			var t := float(i) / 8.0
+			var local_x := tile_width * t
+			var noise := absf(sin((float(i) * 1.41 + offset) * 1.27)) * 0.72 + absf(sin(float(i) * 0.73 + offset * 2.1)) * 0.28
+			var ridge := top + ridge_height * noise + y_shift
+			points.append(Vector2(x + local_x, clampf(ridge, top + y_shift, bottom + y_shift - 18.0)))
+		points.append(Vector2(x + tile_width, bottom + y_shift))
+		draw_colored_polygon(points, color)
+		x += tile_width
 
 
 func _draw_cloud_wisp(origin: Vector2, length: float, color: Color) -> void:
@@ -2225,6 +2681,32 @@ func _draw_cloud_wisp(origin: Vector2, length: float, color: Color) -> void:
 		var f := float(i) / 11.0
 		points.append(origin + Vector2(length * (f - 0.5), sin(f * TAU + time * 0.18) * 7.0))
 	draw_polyline(points, color, 5.0, true)
+
+
+func _hash01(value: float) -> float:
+	return fposmod(sin(value * 12.9898 + 78.233) * 43758.5453, 1.0)
+
+
+func _draw_scene_speed_streaks() -> void:
+	for streak in scene_speed_streaks:
+		var age := float(streak.get("age", 0.0))
+		var life := maxf(float(streak.get("life", SCENE_SPEED_STREAK_LIFE)), 0.001)
+		var progress := clampf(age / life, 0.0, 1.0)
+		var fade := sin(progress * PI) * pow(1.0 - progress, 0.22)
+		if fade <= 0.01:
+			continue
+		var pos: Vector2 = streak.get("pos", camera_center)
+		var dir: Vector2 = streak.get("dir", Vector2.RIGHT)
+		if dir.length_squared() <= 0.0001:
+			continue
+		dir = dir.normalized()
+		var length := float(streak.get("length", SCENE_SPEED_STREAK_MIN_LENGTH))
+		var half := dir * length * 0.5
+		var start := _world_to_screen(pos - half)
+		var end := _world_to_screen(pos + half)
+		var alpha := float(streak.get("alpha", 0.08)) * fade
+		var width := float(streak.get("width", 1.5)) / maxf(camera_zoom, 0.001)
+		draw_line(start, end, Color(1.0, 1.0, 1.0, alpha), width, true)
 
 
 func _draw_direction_switch_fx() -> void:
@@ -2361,6 +2843,11 @@ func _damp_float(current: float, target: float, half_life: float, delta: float) 
 		return target
 	var decay := pow(0.5, delta / half_life)
 	return target + (current - target) * decay
+
+
+func _damp_angle(current: float, target: float, half_life: float, delta: float) -> float:
+	var delta_angle := wrapf(target - current, -PI, PI)
+	return wrapf(_damp_float(0.0, delta_angle, half_life, delta) + current, -PI, PI)
 
 
 func _damp_vector2(current: Vector2, target: Vector2, half_life: float, delta: float) -> Vector2:

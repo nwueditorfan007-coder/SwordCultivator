@@ -15,7 +15,8 @@ metadata/__load_path__ = "res://resources/flight/rider/flight_rider_body_v13_1_t
 
 [node name="Main" type="Node2D" unique_id=2035086712]
 script = ExtResource("1_82ptl")
-use_flight_rider_body_rig_fx = true
+use_flight_rider_body_rig_fx = false
+use_flight_prototype_skeleton_visual = true
 sword_hover_preset = 3
 
 [node name="FlightAtmosphereFx" type="Node2D" parent="." unique_id=1128701203]

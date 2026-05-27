@@ -56,6 +56,12 @@ static func _is_flight_prototype_mode(main: Node2D) -> bool:
 	return main.has_method("_is_flight_prototype_mode") and main._is_flight_prototype_mode()
 
 
+static func _uses_flight_visuals(main: Node2D) -> bool:
+	if main.has_method("_uses_flight_visuals"):
+		return bool(main.call("_uses_flight_visuals"))
+	return _is_flight_prototype_mode(main)
+
+
 static func _should_hide_sword_array_ui(main: Node2D) -> bool:
 	return main.has_method("_should_hide_sword_array_ui") and main._should_hide_sword_array_ui()
 
@@ -66,6 +72,16 @@ static func _use_flight_rider_sprite_fx(main: Node2D) -> bool:
 
 static func _use_flight_rider_clean_vfx(main: Node2D) -> bool:
 	return main.has_method("_use_flight_rider_clean_vfx") and bool(main.call("_use_flight_rider_clean_vfx"))
+
+
+static func _use_flight_prototype_skeleton_visual(main: Node2D) -> bool:
+	return main.has_method("_use_flight_prototype_skeleton_visual") and bool(main.call("_use_flight_prototype_skeleton_visual"))
+
+
+static func _get_flight_scene_parallax_distance(main: Node2D) -> float:
+	if main.has_method("_get_flight_scene_parallax_distance"):
+		return float(main.call("_get_flight_scene_parallax_distance"))
+	return float(main.flight_scroll_distance)
 
 
 static func draw_game(main: Node2D) -> void:
@@ -268,15 +284,16 @@ static func draw_game(main: Node2D) -> void:
 
 	var player_pos: Vector2 = main._to_screen(main.player["pos"])
 	var hide_array_ui := _should_hide_sword_array_ui(main)
-	var is_flight_mode := _is_flight_prototype_mode(main)
-	var clean_flight_vfx := _use_flight_rider_clean_vfx(main)
+	var is_flight_mode := _uses_flight_visuals(main)
+	var prototype_skeleton := _use_flight_prototype_skeleton_visual(main)
+	var clean_flight_vfx := _use_flight_rider_clean_vfx(main) or prototype_skeleton
 	var distance_guide_strength: float = 0.0 if hide_array_ui or clean_flight_vfx else main._get_array_distance_guide_strength()
 	if distance_guide_strength > 0.01:
 		_draw_array_distance_guides(main, player_pos, distance_guide_strength)
 	if is_flight_mode:
 		if not clean_flight_vfx:
 			_draw_flight_full_energy_mandala(main, player_pos)
-		if not _use_flight_rider_sprite_fx(main):
+		if not prototype_skeleton and not _use_flight_rider_sprite_fx(main):
 			_draw_flight_riding_sword(main, player_pos)
 			_draw_flight_rider(main, player_pos)
 	else:
@@ -1158,15 +1175,15 @@ static func _draw_melee_focused_slash(
 
 static func _draw_art_background(main: Node2D) -> void:
 	var viewport_rect: Rect2 = main.get_viewport_rect()
+	var arena_rect: Rect2 = main.ARENA_RECT
+	if _uses_flight_visuals(main):
+		_draw_flight_background(main, viewport_rect, arena_rect)
+		return
 	if main._is_large_arena_test_enabled():
 		main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
 		main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.58), true)
 		return
-	var arena_rect: Rect2 = main.ARENA_RECT
 	var arena_center: Vector2 = arena_rect.get_center()
-	if _is_flight_prototype_mode(main):
-		_draw_flight_background(main, viewport_rect, arena_rect)
-		return
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), ART_BG_DEEP, true)
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(ART_BG, 0.82), true)
 	_draw_art_depth_wash(main, viewport_rect, arena_rect)
@@ -1186,7 +1203,7 @@ static func _draw_art_background(main: Node2D) -> void:
 
 
 static func _draw_flight_background(main: Node2D, viewport_rect: Rect2, arena_rect: Rect2) -> void:
-	var distance: float = float(main.flight_scroll_distance)
+	var distance: float = _get_flight_scene_parallax_distance(main)
 	var speed_ratio: float = clampf(float(main.flight_scroll_speed) / maxf(float(main.FLIGHT_BASE_SCROLL_SPEED), 1.0), 0.65, 1.45)
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), Color("02050a"), true)
 	main.draw_rect(Rect2(Vector2.ZERO, viewport_rect.size), _with_alpha(Color("07131a"), 0.86), true)
@@ -1875,7 +1892,7 @@ static func _draw_art_tactical_grid(main: Node2D) -> void:
 	if main._is_large_arena_test_enabled():
 		_draw_large_arena_tactical_grid(main)
 		return
-	if _is_flight_prototype_mode(main):
+	if _uses_flight_visuals(main):
 		_draw_flight_lane_guides(main)
 		return
 	var x: int = 0
@@ -4798,7 +4815,7 @@ static func draw_hud_bars(main: Node2D) -> void:
 	var energy_fill_color: Color = main.COLORS["energy"]
 	var momentum_heat_strength: float = main._get_sword_momentum_heat_strength()
 	var momentum_full_flash: float = main._get_sword_momentum_full_flash_strength()
-	var is_flight_mode := _is_flight_prototype_mode(main)
+	var is_flight_mode := _uses_flight_visuals(main)
 	if momentum_heat_strength > 0.01:
 		energy_fill_color = energy_fill_color.lerp(Color("ff6a2a"), 0.28 + 0.42 * momentum_heat_strength)
 	if is_flight_mode and float(main.player.get("energy", 0.0)) >= main.PLAYER_MAX_ENERGY - 0.01:

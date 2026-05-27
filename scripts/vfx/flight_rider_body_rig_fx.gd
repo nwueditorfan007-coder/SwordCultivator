@@ -533,7 +533,10 @@ func _draw() -> void:
 func _is_active() -> bool:
 	if not enabled or main == null:
 		return false
-	if not main.has_method("_is_flight_prototype_mode") or not main._is_flight_prototype_mode():
+	if main.has_method("_uses_flight_visuals"):
+		if not bool(main.call("_uses_flight_visuals")):
+			return false
+	elif not main.has_method("_is_flight_prototype_mode") or not main._is_flight_prototype_mode():
 		return false
 	if bool(main.get("is_start_menu_active")):
 		return false

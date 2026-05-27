@@ -1,0 +1,20 @@
+{
+	"format_version": 1,
+	"model_path": "res://resources/modle/000_男主角/000_Nanzhujue_LOD.FBX",
+	"editor_preview_mode": "edit_base",
+	"editor_base_pose": "calibrated_t_pose",
+	"poses": {
+		"yujian_low": {
+			"bones": {}
+		},
+		"yujian_boost": {
+			"bones": {}
+		},
+		"yujian_turn_left": {
+			"bones": {}
+		},
+		"yujian_turn_right": {
+			"bones": {}
+		}
+	}
+}
