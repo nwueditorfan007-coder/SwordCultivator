@@ -1,0 +1,80 @@
+{
+  "format_version": 1,
+  "asset_set": "v4_plus_ink_parts",
+  "direction": "right",
+  "pose": "fast",
+  "source_atlas": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/right_fast_parts_atlas.png",
+  "source_chromakey_atlas": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/right_fast_parts_atlas_chromakey.png",
+  "preview": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/right_fast_parts_preview.png",
+  "notes": [
+    "Generated as static ink-shape PNG patches for the V4 skeleton controller path.",
+    "Use the V4 skeleton for pose, heading, speed, boost, and carve. Use these assets only for silhouette, cloth, sword, and contact-glow shape.",
+    "Do not treat this as a Spine or frame-animation source. anchor_pixel is the source-image pixel that should land on the named V4 skeleton joint or computed point."
+  ],
+  "parts": [
+    {
+      "name": "robe_back_panel",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_robe_back_panel.png",
+      "layer": "behind_body",
+      "attach_to": "hip_center",
+      "anchor_pixel": [468, 80],
+      "size_px": [507, 335]
+    },
+    {
+      "name": "robe_front_panel",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_robe_front_panel.png",
+      "layer": "front_body_low",
+      "attach_to": "hip_center",
+      "anchor_pixel": [270, 82],
+      "size_px": [309, 272]
+    },
+    {
+      "name": "sleeve_near",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sleeve_near.png",
+      "layer": "front_arm",
+      "attach_to": "wrist_near",
+      "anchor_pixel": [402, 92],
+      "size_px": [440, 259]
+    },
+    {
+      "name": "sleeve_far",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sleeve_far.png",
+      "layer": "back_arm",
+      "attach_to": "wrist_far",
+      "anchor_pixel": [226, 80],
+      "size_px": [270, 183]
+    },
+    {
+      "name": "hair_back_main",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_hair_back_main.png",
+      "layer": "head_back",
+      "attach_to": "head_center",
+      "anchor_pixel": [350, 78],
+      "size_px": [451, 281]
+    },
+    {
+      "name": "sash_streamers",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sash_streamers.png",
+      "layer": "front_body_high",
+      "attach_to": "waist_center",
+      "anchor_pixel": [318, 90],
+      "size_px": [366, 179]
+    },
+    {
+      "name": "sword_body_glow",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sword_body_glow.png",
+      "layer": "sword",
+      "attach_to": "sword_center",
+      "anchor_pixel": [250, 48],
+      "size_px": [499, 96]
+    },
+    {
+      "name": "foot_qi_contact",
+      "path": "res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_foot_qi_contact.png",
+      "layer": "foot_contact",
+      "attach_to": "foot_center",
+      "anchor_pixel": [125, 61],
+      "size_px": [249, 109]
+    }
+  ]
+}

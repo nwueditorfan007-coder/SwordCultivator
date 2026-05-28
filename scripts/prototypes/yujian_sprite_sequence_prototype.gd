@@ -118,7 +118,7 @@ const GEMINI_EIGHT_WAY_VECTORS := [
 
 @export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig", "V5 ink parts") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
 @export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
-@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 0.3
+@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 2
 
 const CRUISE_SPEED := 390.0 * FLIGHT_SPEED_MULTIPLIER
 const BOOST_SPEED := 760.0 * FLIGHT_SPEED_MULTIPLIER

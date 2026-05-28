@@ -224,6 +224,39 @@
 				}
 			},
 			"global_scale": 1.0
+		},
+		"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v5_ink_parts": {
+			"directions": {
+				"01_right": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				},
+				"03_up": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				},
+				"05_left": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				},
+				"07_down": {
+					"offset": [
+						0.0,
+						0.0
+					],
+					"scale": 1.0
+				}
+			},
+			"global_scale": 1.0
 		}
 	}
 }
