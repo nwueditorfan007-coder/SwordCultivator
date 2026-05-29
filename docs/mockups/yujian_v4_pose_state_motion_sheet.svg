@@ -1,0 +1,312 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">御剑 V4 不同姿态 idle 动态表</title>
+  <desc id="desc">五个状态的 V4 主姿态微动态预览：悬停、巡航、高速、急转、回收。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071114"/>
+      <stop offset="0.45" stop-color="#12191b"/>
+      <stop offset="1" stop-color="#07161a"/>
+    </linearGradient>
+    <filter id="glow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="4.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .title { fill: #eefdfb; font: 700 31px "Microsoft YaHei", Arial, sans-serif; letter-spacing: 0; }
+      .intro { fill: rgba(229,247,244,0.72); font: 16px "Microsoft YaHei", Arial, sans-serif; letter-spacing: 0; }
+      .panel { fill: rgba(255,255,255,0.043); stroke: rgba(150,238,240,0.18); stroke-width: 1.1; }
+      .state { fill: #e9ffff; font: 700 21px "Microsoft YaHei", Arial, sans-serif; letter-spacing: 0; }
+      .intent { fill: rgba(233,250,247,0.64); font: 14px "Microsoft YaHei", Arial, sans-serif; letter-spacing: 0; }
+      .tag { fill: #ffd978; font: 700 13px "Microsoft YaHei", Arial, sans-serif; letter-spacing: 0; }
+      .ghost { fill: none; stroke: rgba(235,248,242,0.18); stroke-width: 7.2; stroke-linecap: round; stroke-linejoin: round; }
+      .bone { fill: none; stroke: #090f10; stroke-width: 8.5; stroke-linecap: round; stroke-linejoin: round; }
+      .bone-hi { fill: none; stroke: rgba(232,241,233,0.78); stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round; }
+      .torso { fill: rgba(11,15,16,0.96); stroke: rgba(231,241,232,0.67); stroke-width: 1.8; }
+      .head { fill: #101617; stroke: rgba(234,244,235,0.86); stroke-width: 1.85; }
+      .sword-glow { stroke: rgba(102,245,255,0.24); stroke-width: 26; stroke-linecap: round; filter: url(#glow); }
+      .sword-dark { stroke: #061214; stroke-width: 13; stroke-linecap: round; }
+      .sword { stroke: #e8ffff; stroke-width: 5.4; stroke-linecap: round; }
+      .foot { fill: #ffdc7a; stroke: rgba(255,255,255,0.78); stroke-width: 1; }
+      .cloth { fill: rgba(4,7,8,0.64); stroke: rgba(227,239,229,0.24); stroke-width: 1.3; }
+      .hair { fill: none; stroke: rgba(3,5,6,0.94); stroke-width: 6.6; stroke-linecap: round; filter: url(#glow); }
+      .hair-hi { fill: none; stroke: rgba(232,242,233,0.28); stroke-width: 1.55; stroke-linecap: round; }
+      .sash { fill: none; stroke: rgba(3,5,6,0.88); stroke-width: 7.2; stroke-linecap: round; filter: url(#glow); }
+      .sash-hi { fill: none; stroke: rgba(232,242,233,0.32); stroke-width: 1.5; stroke-linecap: round; }
+      .wind { fill: none; stroke: rgba(125,248,255,0.33); stroke-width: 2.8; stroke-linecap: round; stroke-dasharray: 30 110; filter: url(#glow); }
+      .arc { fill: none; stroke: rgba(255,216,120,0.55); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 28 80; filter: url(#glow); }
+      .dot { fill: rgba(120,255,255,0.35); stroke: rgba(255,255,255,0.58); stroke-width: 0.8; }
+      .floor { stroke: rgba(255,220,122,0.42); stroke-width: 1.6; stroke-dasharray: 7 7; }
+    </style>
+
+    <symbol id="baseGhost" viewBox="-140 -135 280 260">
+      <line class="floor" x1="-90" y1="92" x2="92" y2="92"/>
+      <path class="ghost" d="M-21,-12 C-28,20 -39,56 -48,92"/>
+      <path class="ghost" d="M27,-13 C43,18 54,56 57,92"/>
+      <path class="ghost" d="M-21,-12 L-17,-70 L18,-70 L27,-13 Z"/>
+      <path class="ghost" d="M18,-70 C42,-58 56,-43 72,-34"/>
+      <path class="ghost" d="M-17,-70 C-42,-62 -64,-49 -86,-42"/>
+      <ellipse class="head" cx="-1" cy="-101" rx="15" ry="18" opacity="0.22"/>
+    </symbol>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect x="38" y="26" width="1524" height="94" rx="10" fill="rgba(255,255,255,0.038)" stroke="rgba(150,238,240,0.15)"/>
+  <text class="title" x="66" y="66">V4 不同姿态动态图：主姿势保留，状态感靠微动态叠加</text>
+  <text class="intro" x="66" y="98">读法：灰色是原主姿态 ghost；黑色实体是微动态。脚底黄点保持锁剑，状态差异来自头肩髋/手腕/袍摆/剑光/风线的幅度和节奏。</text>
+
+  <g transform="translate(38 150)">
+    <rect class="panel" x="0" y="0" width="292" height="690" rx="9"/>
+    <text class="state" x="22" y="38">1 悬停待机</text>
+    <text class="intent" x="22" y="64">像在稳住飞剑，呼吸最明显</text>
+    <g transform="translate(146 350) scale(1.42)">
+      <use href="#baseGhost"/>
+      <line class="sword-glow" x1="-100" y1="92" x2="122" y2="92">
+        <animate attributeName="opacity" values="0.15;0.28;0.15" dur="2.8s" repeatCount="indefinite"/>
+      </line>
+      <line class="sword-dark" x1="-94" y1="92" x2="116" y2="92"/>
+      <line class="sword" x1="-84" y1="92" x2="108" y2="92"/>
+      <circle class="foot" cx="-48" cy="92" r="4.8"/>
+      <circle class="foot" cx="57" cy="92" r="4.8"/>
+      <path class="cloth" d="M-21,-12 C-43,24 -47,58 -36,94 C-8,105 24,101 43,92 C34,56 28,18 27,-13 Z">
+        <animate attributeName="d" dur="2.8s" repeatCount="indefinite"
+          values="M-21,-12 C-43,24 -47,58 -36,94 C-8,105 24,101 43,92 C34,56 28,18 27,-13 Z;M-21,-15 C-41,20 -45,57 -34,92 C-8,102 23,102 41,91 C32,55 27,16 27,-16 Z;M-21,-12 C-43,24 -47,58 -36,94 C-8,105 24,101 43,92 C34,56 28,18 27,-13 Z"/>
+      </path>
+      <path class="hair" d="M-7,-118 C-35,-122 -57,-104 -72,-80">
+        <animate attributeName="d" dur="2.7s" repeatCount="indefinite" values="M-7,-118 C-35,-122 -57,-104 -72,-80;M-7,-119 C-32,-126 -58,-108 -75,-82;M-7,-118 C-35,-122 -57,-104 -72,-80"/>
+      </path>
+      <path class="sash" d="M-20,-14 C-48,-17 -78,-7 -108,8">
+        <animate attributeName="d" dur="3.0s" repeatCount="indefinite" values="M-20,-14 C-48,-17 -78,-7 -108,8;M-20,-15 C-45,-9 -77,-12 -108,2;M-20,-14 C-48,-17 -78,-7 -108,8"/>
+      </path>
+      <path class="bone" d="M-21,-12 C-30,20 -40,56 -48,92">
+        <animate attributeName="d" dur="2.8s" repeatCount="indefinite" values="M-21,-12 C-30,20 -40,56 -48,92;M-21,-16 C-30,18 -40,56 -48,92;M-21,-12 C-30,20 -40,56 -48,92"/>
+      </path>
+      <path class="bone-hi" d="M-21,-12 C-30,20 -40,56 -48,92">
+        <animate attributeName="d" dur="2.8s" repeatCount="indefinite" values="M-21,-12 C-30,20 -40,56 -48,92;M-21,-16 C-30,18 -40,56 -48,92;M-21,-12 C-30,20 -40,56 -48,92"/>
+      </path>
+      <path class="bone" d="M27,-13 C43,18 54,56 57,92">
+        <animate attributeName="d" dur="2.8s" repeatCount="indefinite" values="M27,-13 C43,18 54,56 57,92;M27,-17 C43,16 54,56 57,92;M27,-13 C43,18 54,56 57,92"/>
+      </path>
+      <path class="bone-hi" d="M27,-13 C43,18 54,56 57,92">
+        <animate attributeName="d" dur="2.8s" repeatCount="indefinite" values="M27,-13 C43,18 54,56 57,92;M27,-17 C43,16 54,56 57,92;M27,-13 C43,18 54,56 57,92"/>
+      </path>
+      <polygon class="torso" points="-17,-70 18,-70 27,-13 -21,-12">
+        <animate attributeName="points" dur="2.8s" repeatCount="indefinite" values="-17,-70 18,-70 27,-13 -21,-12;-18,-74 17,-74 27,-17 -21,-16;-17,-70 18,-70 27,-13 -21,-12"/>
+      </polygon>
+      <path class="bone" d="M18,-70 C42,-58 56,-43 72,-34">
+        <animate attributeName="d" dur="2.1s" repeatCount="indefinite" values="M18,-70 C42,-58 56,-43 72,-34;M17,-74 C41,-61 55,-45 74,-35;M18,-70 C42,-58 56,-43 72,-34"/>
+      </path>
+      <path class="bone-hi" d="M18,-70 C42,-58 56,-43 72,-34">
+        <animate attributeName="d" dur="2.1s" repeatCount="indefinite" values="M18,-70 C42,-58 56,-43 72,-34;M17,-74 C41,-61 55,-45 74,-35;M18,-70 C42,-58 56,-43 72,-34"/>
+      </path>
+      <path class="bone" d="M-17,-70 C-42,-62 -64,-49 -86,-42">
+        <animate attributeName="d" dur="2.1s" repeatCount="indefinite" values="M-17,-70 C-42,-62 -64,-49 -86,-42;M-18,-74 C-43,-64 -66,-49 -89,-40;M-17,-70 C-42,-62 -64,-49 -86,-42"/>
+      </path>
+      <path class="bone-hi" d="M-17,-70 C-42,-62 -64,-49 -86,-42">
+        <animate attributeName="d" dur="2.1s" repeatCount="indefinite" values="M-17,-70 C-42,-62 -64,-49 -86,-42;M-18,-74 C-43,-64 -66,-49 -89,-40;M-17,-70 C-42,-62 -64,-49 -86,-42"/>
+      </path>
+      <ellipse class="head" cx="-1" cy="-101" rx="15" ry="18">
+        <animate attributeName="cy" values="-101;-105;-101" dur="2.8s" repeatCount="indefinite"/>
+      </ellipse>
+    </g>
+    <text class="tag" x="22" y="610">动：头肩髋慢呼吸</text>
+    <text class="intent" x="22" y="635">幅度 2-4px，节奏慢</text>
+  </g>
+
+  <g transform="translate(345 150)">
+    <rect class="panel" x="0" y="0" width="292" height="690" rx="9"/>
+    <text class="state" x="22" y="38">2 低速巡航</text>
+    <text class="intent" x="22" y="64">人在控方向，衣物有风</text>
+    <g transform="translate(146 350) scale(1.42)">
+      <use href="#baseGhost"/>
+      <line class="sword-glow" x1="-106" y1="92" x2="136" y2="92">
+        <animate attributeName="opacity" values="0.20;0.34;0.20" dur="1.7s" repeatCount="indefinite"/>
+      </line>
+      <line class="sword-dark" x1="-98" y1="92" x2="128" y2="92"/>
+      <line class="sword" x1="-88" y1="92" x2="120" y2="92"/>
+      <circle class="foot" cx="-48" cy="92" r="4.8"/>
+      <circle class="foot" cx="57" cy="92" r="4.8"/>
+      <path class="wind" d="M-150,-34 C-74,-48 10,-40 140,-60">
+        <animate attributeName="stroke-dashoffset" values="150;0" dur="1.2s" repeatCount="indefinite"/>
+      </path>
+      <path class="wind" d="M-160,50 C-74,32 12,38 150,20">
+        <animate attributeName="stroke-dashoffset" values="170;0" dur="1.35s" repeatCount="indefinite"/>
+      </path>
+      <path class="cloth" d="M-21,-12 C-50,12 -66,52 -72,94 C-43,108 8,106 43,92 C34,56 28,18 27,-13 Z">
+        <animate attributeName="d" dur="1.65s" repeatCount="indefinite" values="M-21,-12 C-50,12 -66,52 -72,94 C-43,108 8,106 43,92 C34,56 28,18 27,-13 Z;M-21,-16 C-56,18 -70,48 -68,96 C-38,106 8,103 40,90 C31,54 27,16 27,-17 Z;M-21,-12 C-50,12 -66,52 -72,94 C-43,108 8,106 43,92 C34,56 28,18 27,-13 Z"/>
+      </path>
+      <path class="hair" d="M-7,-118 C-42,-130 -84,-108 -118,-74">
+        <animate attributeName="d" dur="1.6s" repeatCount="indefinite" values="M-7,-118 C-42,-130 -84,-108 -118,-74;M-7,-119 C-46,-134 -86,-102 -122,-78;M-7,-118 C-42,-130 -84,-108 -118,-74"/>
+      </path>
+      <path class="sash" d="M-20,-14 C-62,-32 -116,-12 -158,12">
+        <animate attributeName="d" dur="1.28s" repeatCount="indefinite" values="M-20,-14 C-62,-32 -116,-12 -158,12;M-20,-15 C-64,-20 -112,-32 -162,3;M-20,-14 C-62,-32 -116,-12 -158,12"/>
+      </path>
+      <path class="bone" d="M-21,-12 C-31,20 -41,56 -48,92"/>
+      <path class="bone-hi" d="M-21,-12 C-31,20 -41,56 -48,92"/>
+      <path class="bone" d="M27,-13 C43,18 54,56 57,92"/>
+      <path class="bone-hi" d="M27,-13 C43,18 54,56 57,92"/>
+      <polygon class="torso" points="-17,-72 18,-72 29,-14 -20,-12">
+        <animate attributeName="points" dur="1.6s" repeatCount="indefinite" values="-17,-72 18,-72 29,-14 -20,-12;-18,-75 17,-75 30,-16 -19,-15;-17,-72 18,-72 29,-14 -20,-12"/>
+      </polygon>
+      <path class="bone" d="M18,-72 C43,-60 59,-44 77,-31">
+        <animate attributeName="d" dur="1.45s" repeatCount="indefinite" values="M18,-72 C43,-60 59,-44 77,-31;M17,-75 C42,-61 62,-40 82,-29;M18,-72 C43,-60 59,-44 77,-31"/>
+      </path>
+      <path class="bone-hi" d="M18,-72 C43,-60 59,-44 77,-31">
+        <animate attributeName="d" dur="1.45s" repeatCount="indefinite" values="M18,-72 C43,-60 59,-44 77,-31;M17,-75 C42,-61 62,-40 82,-29;M18,-72 C43,-60 59,-44 77,-31"/>
+      </path>
+      <path class="bone" d="M-17,-72 C-43,-63 -67,-48 -90,-38">
+        <animate attributeName="d" dur="1.45s" repeatCount="indefinite" values="M-17,-72 C-43,-63 -67,-48 -90,-38;M-18,-75 C-44,-65 -69,-47 -94,-35;M-17,-72 C-43,-63 -67,-48 -90,-38"/>
+      </path>
+      <path class="bone-hi" d="M-17,-72 C-43,-63 -67,-48 -90,-38">
+        <animate attributeName="d" dur="1.45s" repeatCount="indefinite" values="M-17,-72 C-43,-63 -67,-48 -90,-38;M-18,-75 C-44,-65 -69,-47 -94,-35;M-17,-72 C-43,-63 -67,-48 -90,-38"/>
+      </path>
+      <ellipse class="head" cx="-2" cy="-103" rx="15" ry="18">
+        <animate attributeName="cy" values="-103;-106;-103" dur="1.6s" repeatCount="indefinite"/>
+      </ellipse>
+    </g>
+    <text class="tag" x="22" y="610">动：手腕控剑 + 衣物流</text>
+    <text class="intent" x="22" y="635">幅度中等，方向感更清楚</text>
+  </g>
+
+  <g transform="translate(652 150)">
+    <rect class="panel" x="0" y="0" width="292" height="690" rx="9"/>
+    <text class="state" x="22" y="38">3 高速压身</text>
+    <text class="intent" x="22" y="64">身体更紧，呼吸变小变快</text>
+    <g transform="translate(146 350) scale(1.42)">
+      <use href="#baseGhost"/>
+      <line class="sword-glow" x1="-116" y1="92" x2="152" y2="92">
+        <animate attributeName="opacity" values="0.28;0.52;0.28" dur="0.74s" repeatCount="indefinite"/>
+      </line>
+      <line class="sword-dark" x1="-106" y1="92" x2="142" y2="92"/>
+      <line class="sword" x1="-94" y1="92" x2="132" y2="92"/>
+      <circle class="foot" cx="-48" cy="92" r="4.8"/>
+      <circle class="foot" cx="57" cy="92" r="4.8"/>
+      <path class="wind" d="M-178,-52 C-100,-70 0,-62 166,-88">
+        <animate attributeName="stroke-dashoffset" values="190;0" dur="0.58s" repeatCount="indefinite"/>
+      </path>
+      <path class="wind" d="M-188,42 C-92,22 18,22 174,0">
+        <animate attributeName="stroke-dashoffset" values="200;0" dur="0.66s" repeatCount="indefinite"/>
+      </path>
+      <path class="cloth" d="M-23,-12 C-64,8 -102,44 -126,86 C-92,112 -22,110 38,92 C31,54 26,18 27,-13 Z">
+        <animate attributeName="d" dur="0.82s" repeatCount="indefinite" values="M-23,-12 C-64,8 -102,44 -126,86 C-92,112 -22,110 38,92 C31,54 26,18 27,-13 Z;M-23,-14 C-72,14 -104,36 -122,92 C-84,108 -24,106 35,90 C29,52 25,17 27,-15 Z;M-23,-12 C-64,8 -102,44 -126,86 C-92,112 -22,110 38,92 C31,54 26,18 27,-13 Z"/>
+      </path>
+      <path class="hair" d="M-7,-118 C-56,-140 -110,-106 -154,-58">
+        <animate attributeName="d" dur="0.76s" repeatCount="indefinite" values="M-7,-118 C-56,-140 -110,-106 -154,-58;M-7,-119 C-62,-144 -114,-100 -158,-66;M-7,-118 C-56,-140 -110,-106 -154,-58"/>
+      </path>
+      <path class="sash" d="M-20,-14 C-80,-48 -148,-28 -202,12">
+        <animate attributeName="d" dur="0.68s" repeatCount="indefinite" values="M-20,-14 C-80,-48 -148,-28 -202,12;M-20,-15 C-84,-30 -146,-52 -208,0;M-20,-14 C-80,-48 -148,-28 -202,12"/>
+      </path>
+      <path class="bone" d="M-22,-12 C-32,20 -42,56 -48,92"/>
+      <path class="bone-hi" d="M-22,-12 C-32,20 -42,56 -48,92"/>
+      <path class="bone" d="M27,-13 C43,18 54,56 57,92"/>
+      <path class="bone-hi" d="M27,-13 C43,18 54,56 57,92"/>
+      <polygon class="torso" points="-20,-77 15,-77 31,-16 -22,-12">
+        <animate attributeName="points" dur="0.74s" repeatCount="indefinite" values="-20,-77 15,-77 31,-16 -22,-12;-21,-79 14,-79 32,-17 -22,-13;-20,-77 15,-77 31,-16 -22,-12"/>
+      </polygon>
+      <path class="bone" d="M15,-77 C44,-67 66,-51 94,-42"/>
+      <path class="bone-hi" d="M15,-77 C44,-67 66,-51 94,-42"/>
+      <path class="bone" d="M-20,-77 C-50,-72 -78,-62 -108,-56"/>
+      <path class="bone-hi" d="M-20,-77 C-50,-72 -78,-62 -108,-56"/>
+      <ellipse class="head" cx="-9" cy="-110" rx="14" ry="17">
+        <animate attributeName="cy" values="-110;-112;-110" dur="0.74s" repeatCount="indefinite"/>
+      </ellipse>
+    </g>
+    <text class="tag" x="22" y="610">动：小震动 + 强风带</text>
+    <text class="intent" x="22" y="635">身体绷住，不要悠闲呼吸</text>
+  </g>
+
+  <g transform="translate(959 150)">
+    <rect class="panel" x="0" y="0" width="292" height="690" rx="9"/>
+    <text class="state" x="22" y="38">4 急转压剑</text>
+    <text class="intent" x="22" y="64">重心压进弯，剑尾出弧</text>
+    <g transform="translate(146 350) scale(1.42)">
+      <use href="#baseGhost"/>
+      <path class="arc" d="M-96,100 C-34,160 84,142 150,58">
+        <animate attributeName="stroke-dashoffset" values="120;0" dur="0.9s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.18;0.74;0.18" dur="0.9s" repeatCount="indefinite"/>
+      </path>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="-3 0 92;4 0 92;-3 0 92" dur="0.95s" repeatCount="indefinite"/>
+        <line class="sword-glow" x1="-116" y1="92" x2="148" y2="92">
+          <animate attributeName="opacity" values="0.24;0.48;0.24" dur="0.95s" repeatCount="indefinite"/>
+        </line>
+        <line class="sword-dark" x1="-106" y1="92" x2="138" y2="92"/>
+        <line class="sword" x1="-94" y1="92" x2="130" y2="92"/>
+        <circle class="foot" cx="-48" cy="92" r="4.8"/>
+        <circle class="foot" cx="57" cy="92" r="4.8"/>
+      </g>
+      <path class="wind" d="M-174,-26 C-92,-72 20,-78 160,-122">
+        <animate attributeName="stroke-dashoffset" values="190;0" dur="0.78s" repeatCount="indefinite"/>
+      </path>
+      <path class="cloth" d="M-26,-12 C-70,22 -86,62 -94,102 C-58,116 2,106 44,92 C34,56 28,18 27,-13 Z">
+        <animate attributeName="d" dur="0.95s" repeatCount="indefinite" values="M-26,-12 C-70,22 -86,62 -94,102 C-58,116 2,106 44,92 C34,56 28,18 27,-13 Z;M-26,-14 C-80,10 -94,56 -88,108 C-50,112 2,102 40,88 C32,54 27,17 27,-15 Z;M-26,-12 C-70,22 -86,62 -94,102 C-58,116 2,106 44,92 C34,56 28,18 27,-13 Z"/>
+      </path>
+      <path class="hair" d="M-7,-118 C-54,-126 -98,-96 -136,-54">
+        <animate attributeName="d" dur="0.95s" repeatCount="indefinite" values="M-7,-118 C-54,-126 -98,-96 -136,-54;M-7,-119 C-62,-120 -104,-84 -138,-66;M-7,-118 C-54,-126 -98,-96 -136,-54"/>
+      </path>
+      <path class="sash" d="M-20,-14 C-88,-16 -132,18 -176,54">
+        <animate attributeName="d" dur="0.9s" repeatCount="indefinite" values="M-20,-14 C-88,-16 -132,18 -176,54;M-20,-15 C-88,-36 -142,4 -182,42;M-20,-14 C-88,-16 -132,18 -176,54"/>
+      </path>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="-4 0 92;3 0 92;-4 0 92" dur="0.95s" repeatCount="indefinite"/>
+        <path class="bone" d="M-27,-10 C-36,24 -44,58 -48,92"/>
+        <path class="bone-hi" d="M-27,-10 C-36,24 -44,58 -48,92"/>
+        <path class="bone" d="M22,-18 C40,16 52,56 57,92"/>
+        <path class="bone-hi" d="M22,-18 C40,16 52,56 57,92"/>
+        <polygon class="torso" points="-25,-76 12,-78 22,-18 -27,-10"/>
+        <path class="bone" d="M12,-78 C42,-64 62,-48 86,-35"/>
+        <path class="bone-hi" d="M12,-78 C42,-64 62,-48 86,-35"/>
+        <path class="bone" d="M-25,-76 C-50,-67 -76,-48 -104,-30"/>
+        <path class="bone-hi" d="M-25,-76 C-50,-67 -76,-48 -104,-30"/>
+        <ellipse class="head" cx="-10" cy="-111" rx="14" ry="17"/>
+      </g>
+    </g>
+    <text class="tag" x="22" y="610">动：整体压弯 + 回锋弧</text>
+    <text class="intent" x="22" y="635">解释转向，不改玩家控制</text>
+  </g>
+
+  <g transform="translate(1266 150)">
+    <rect class="panel" x="0" y="0" width="292" height="690" rx="9"/>
+    <text class="state" x="22" y="38">5 回收归稳</text>
+    <text class="intent" x="22" y="64">大动作后轻微回弹归位</text>
+    <g transform="translate(146 350) scale(1.42)">
+      <use href="#baseGhost"/>
+      <line class="sword-glow" x1="-108" y1="92" x2="134" y2="92">
+        <animate attributeName="opacity" values="0.36;0.18;0.26;0.18" dur="1.25s" repeatCount="indefinite"/>
+      </line>
+      <line class="sword-dark" x1="-100" y1="92" x2="126" y2="92"/>
+      <line class="sword" x1="-90" y1="92" x2="118" y2="92"/>
+      <circle class="foot" cx="-48" cy="92" r="4.8"/>
+      <circle class="foot" cx="57" cy="92" r="4.8"/>
+      <path class="arc" d="M-96,96 C-52,132 32,128 92,82">
+        <animate attributeName="opacity" values="0.50;0.08;0.20;0.08" dur="1.25s" repeatCount="indefinite"/>
+      </path>
+      <path class="cloth" d="M-21,-12 C-58,20 -70,58 -72,98 C-40,110 12,104 43,92 C34,56 28,18 27,-13 Z">
+        <animate attributeName="d" dur="1.25s" repeatCount="indefinite" values="M-21,-12 C-58,20 -70,58 -72,98 C-40,110 12,104 43,92 C34,56 28,18 27,-13 Z;M-21,-18 C-45,14 -56,52 -56,92 C-28,104 14,101 41,90 C32,54 27,16 27,-17 Z;M-21,-12 C-50,18 -62,56 -66,96 C-36,108 12,104 43,92 C34,56 28,18 27,-13 Z;M-21,-12 C-58,20 -70,58 -72,98 C-40,110 12,104 43,92 C34,56 28,18 27,-13 Z"/>
+      </path>
+      <path class="hair" d="M-7,-118 C-48,-132 -86,-104 -120,-66">
+        <animate attributeName="d" dur="1.25s" repeatCount="indefinite" values="M-7,-118 C-48,-132 -86,-104 -120,-66;M-7,-121 C-38,-124 -70,-106 -94,-78;M-7,-118 C-44,-128 -82,-103 -112,-70;M-7,-118 C-48,-132 -86,-104 -120,-66"/>
+      </path>
+      <path class="sash" d="M-20,-14 C-78,-34 -132,-10 -176,28">
+        <animate attributeName="d" dur="1.25s" repeatCount="indefinite" values="M-20,-14 C-78,-34 -132,-10 -176,28;M-20,-16 C-52,-18 -94,-16 -132,8;M-20,-14 C-70,-28 -122,-8 -164,22;M-20,-14 C-78,-34 -132,-10 -176,28"/>
+      </path>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="3 0 92;-1 0 92;0.8 0 92;0 0 92" dur="1.25s" repeatCount="indefinite"/>
+        <path class="bone" d="M-21,-12 C-31,20 -41,56 -48,92"/>
+        <path class="bone-hi" d="M-21,-12 C-31,20 -41,56 -48,92"/>
+        <path class="bone" d="M27,-13 C43,18 54,56 57,92"/>
+        <path class="bone-hi" d="M27,-13 C43,18 54,56 57,92"/>
+        <polygon class="torso" points="-17,-72 18,-72 27,-13 -21,-12"/>
+        <path class="bone" d="M18,-72 C42,-58 56,-43 72,-34"/>
+        <path class="bone-hi" d="M18,-72 C42,-58 56,-43 72,-34"/>
+        <path class="bone" d="M-17,-72 C-42,-62 -64,-49 -86,-42"/>
+        <path class="bone-hi" d="M-17,-72 C-42,-62 -64,-49 -86,-42"/>
+        <ellipse class="head" cx="-1" cy="-103" rx="15" ry="18"/>
+      </g>
+    </g>
+    <text class="tag" x="22" y="610">动：过冲后归零</text>
+    <text class="intent" x="22" y="635">避免急转/加速后瞬间僵住</text>
+  </g>
+</svg>

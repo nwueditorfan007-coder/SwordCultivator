@@ -1,0 +1,244 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="560" viewBox="0 0 1320 560" role="img" aria-labelledby="title desc">
+  <title id="title">Yujian V4 idle overlay motion preview</title>
+  <desc id="desc">Animated SVG preview showing secondary idle overlays on a locked V4 skeleton pose.</desc>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071013"/>
+      <stop offset="0.55" stop-color="#11171a"/>
+      <stop offset="1" stop-color="#07161a"/>
+    </linearGradient>
+    <radialGradient id="cyanAura" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#7dfcff" stop-opacity="0.18"/>
+      <stop offset="0.48" stop-color="#45d7e8" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#0b1114" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="hardGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.35 0 0 0 0 0.95 0 0 0 0 1 0 0 0 0.85 0" result="cyan"/>
+      <feMerge>
+        <feMergeNode in="cyan"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .panel { fill: rgba(255,255,255,0.035); stroke: rgba(146,237,243,0.16); stroke-width: 1; }
+      .label { fill: rgba(219,252,255,0.72); font: 600 16px Arial, sans-serif; letter-spacing: 0; }
+      .sub { fill: rgba(185,218,221,0.45); font: 12px Arial, sans-serif; letter-spacing: 0; }
+      .bone-back { fill: none; stroke: rgba(63,77,78,0.82); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+      .bone-core { fill: none; stroke: rgba(23,27,28,0.95); stroke-width: 5.8; stroke-linecap: round; stroke-linejoin: round; }
+      .bone-rim { fill: none; stroke: rgba(214,224,216,0.68); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+      .body-fill { fill: rgba(16,18,19,0.94); stroke: rgba(210,222,215,0.52); stroke-width: 1.4; }
+      .head { fill: rgba(15,17,18,0.96); stroke: rgba(223,234,226,0.78); stroke-width: 1.8; }
+      .joint { fill: rgba(122,255,255,0.26); stroke: rgba(224,255,255,0.42); stroke-width: 0.8; }
+      .locked-dot { opacity: 0.58; }
+      .sword-core { stroke: rgba(216,255,255,0.95); stroke-width: 5; stroke-linecap: round; }
+      .sword-shadow { stroke: rgba(4,18,21,0.86); stroke-width: 12; stroke-linecap: round; }
+      .sword-glow { stroke: rgba(103,246,255,0.24); stroke-width: 26; stroke-linecap: round; filter: url(#hardGlow); }
+      .cloth { fill: rgba(5,7,8,0.54); stroke: rgba(205,225,214,0.20); stroke-width: 1.2; }
+      .cloth-light { fill: rgba(42,49,48,0.30); stroke: rgba(223,238,226,0.28); stroke-width: 1.1; }
+      .sash { fill: none; stroke: rgba(19,23,24,0.82); stroke-width: 7.5; stroke-linecap: round; filter: url(#softGlow); }
+      .sash-rim { fill: none; stroke: rgba(220,246,236,0.38); stroke-width: 1.8; stroke-linecap: round; }
+      .hair { fill: none; stroke: rgba(7,9,10,0.90); stroke-width: 6.5; stroke-linecap: round; filter: url(#softGlow); }
+      .hair-rim { fill: none; stroke: rgba(213,232,222,0.26); stroke-width: 1.4; stroke-linecap: round; }
+      .wind { fill: none; stroke: rgba(146,250,255,0.30); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 28 120; filter: url(#softGlow); }
+      .wind-soft { fill: none; stroke: rgba(242,255,255,0.14); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 42 170; filter: url(#softGlow); }
+      .arc { fill: none; stroke: rgba(130,255,255,0.46); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 36 90; filter: url(#hardGlow); }
+      .aura { fill: url(#cyanAura); opacity: 0.45; }
+      .mote { fill: rgba(167,255,255,0.55); filter: url(#softGlow); }
+    </style>
+    <symbol id="lockedV4Base" viewBox="-150 -125 270 230">
+      <g id="swordLocked">
+        <line class="sword-glow" x1="-104" y1="68" x2="106" y2="68">
+          <animate attributeName="opacity" values="0.16;0.28;0.16" dur="2.4s" repeatCount="indefinite"/>
+        </line>
+        <line class="sword-shadow" x1="-96" y1="68" x2="102" y2="68"/>
+        <line class="sword-core" x1="-88" y1="68" x2="96" y2="68"/>
+        <line x1="76" y1="68" x2="114" y2="68" stroke="rgba(126,251,255,0.88)" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="-74" y1="56" x2="-74" y2="80" stroke="rgba(204,219,210,0.68)" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <g id="skeletonLocked">
+        <path class="bone-back" d="M0.1,-67.2 C17,-58 28,-50 24.9,-40.4 C33,-39.8 40,-39.8 46,-40.3"/>
+        <path class="bone-core" d="M0.1,-67.2 C17,-58 28,-50 24.9,-40.4 C33,-39.8 40,-39.8 46,-40.3"/>
+        <path class="bone-rim" d="M0.1,-67.2 C17,-58 28,-50 24.9,-40.4 C33,-39.8 40,-39.8 46,-40.3"/>
+        <path class="bone-back" d="M-1.4,-15.9 C7,0 11,13 7.1,24 C7,36 6.7,47 6.2,56.5"/>
+        <path class="bone-core" d="M-1.4,-15.9 C7,0 11,13 7.1,24 C7,36 6.7,47 6.2,56.5"/>
+        <path class="bone-rim" d="M-1.4,-15.9 C7,0 11,13 7.1,24 C7,36 6.7,47 6.2,56.5"/>
+        <polygon class="body-fill" points="0.1,-67.2 -25.3,-66.9 -25.2,-16.5 -1.4,-15.9"/>
+        <path class="bone-back" d="M-25.3,-66.9 C-42,-59 -56,-50 -51.8,-40.8 C-46,-33 -40,-28 -35.5,-27.3"/>
+        <path class="bone-core" d="M-25.3,-66.9 C-42,-59 -56,-50 -51.8,-40.8 C-46,-33 -40,-28 -35.5,-27.3"/>
+        <path class="bone-rim" d="M-25.3,-66.9 C-42,-59 -56,-50 -51.8,-40.8 C-46,-33 -40,-28 -35.5,-27.3"/>
+        <path class="bone-back" d="M-25.2,-16.5 C-27,-3 -28,12 -27,24.2 C-28,35 -29,47 -28.9,56.6"/>
+        <path class="bone-core" d="M-25.2,-16.5 C-27,-3 -28,12 -27,24.2 C-28,35 -29,47 -28.9,56.6"/>
+        <path class="bone-rim" d="M-25.2,-16.5 C-27,-3 -28,12 -27,24.2 C-28,35 -29,47 -28.9,56.6"/>
+        <ellipse class="head" cx="-13.1" cy="-90.6" rx="12.8" ry="14.2"/>
+        <path d="M-20,-98 C-30,-96 -33,-86 -28,-78 C-20,-76 -12,-78 -8,-84" fill="none" stroke="rgba(225,238,228,0.20)" stroke-width="1.5" stroke-linecap="round"/>
+        <g class="locked-dot">
+          <circle class="joint" cx="-13.1" cy="-90.6" r="2.2"/>
+          <circle class="joint" cx="-25.3" cy="-66.9" r="2.3"/>
+          <circle class="joint" cx="0.1" cy="-67.2" r="2.3"/>
+          <circle class="joint" cx="-25.2" cy="-16.5" r="2.3"/>
+          <circle class="joint" cx="-1.4" cy="-15.9" r="2.3"/>
+          <circle class="joint" cx="-28.9" cy="56.6" r="2.3"/>
+          <circle class="joint" cx="6.2" cy="56.5" r="2.3"/>
+        </g>
+      </g>
+    </symbol>
+  </defs>
+
+  <rect width="1320" height="560" fill="url(#bgGrad)"/>
+  <circle cx="660" cy="278" r="520" fill="rgba(76,217,229,0.035)"/>
+  <rect class="panel" x="34" y="34" width="392" height="492" rx="8"/>
+  <rect class="panel" x="464" y="34" width="392" height="492" rx="8"/>
+  <rect class="panel" x="894" y="34" width="392" height="492" rx="8"/>
+
+  <text class="label" x="60" y="72">HOVER IDLE</text>
+  <text class="sub" x="60" y="94">locked pose + breathing aura</text>
+  <text class="label" x="490" y="72">CRUISE IDLE</text>
+  <text class="sub" x="490" y="94">locked pose + cloth wind lag</text>
+  <text class="label" x="920" y="72">BOOST / RECOVER</text>
+  <text class="sub" x="920" y="94">locked pose + sword pressure</text>
+
+  <g transform="translate(230 305) scale(1.32)">
+    <ellipse class="aura" cx="-9" cy="-16" rx="82" ry="118">
+      <animate attributeName="rx" values="78;84;78" dur="2.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.30;0.50;0.30" dur="2.8s" repeatCount="indefinite"/>
+    </ellipse>
+    <path class="cloth" d="M-27,-18 C-40,12 -42,38 -36,68 C-23,77 -6,77 8,69 C4,38 1,8 -2,-17 Z">
+      <animate attributeName="d" dur="2.6s" repeatCount="indefinite"
+        values="M-27,-18 C-40,12 -42,38 -36,68 C-23,77 -6,77 8,69 C4,38 1,8 -2,-17 Z;
+                M-27,-18 C-38,14 -39,39 -33,66 C-20,75 -5,76 6,68 C1,39 -1,10 -2,-17 Z;
+                M-27,-18 C-40,12 -42,38 -36,68 C-23,77 -6,77 8,69 C4,38 1,8 -2,-17 Z"/>
+    </path>
+    <path class="hair" d="M-18,-98 C-38,-104 -49,-91 -50,-70">
+      <animate attributeName="d" dur="2.4s" repeatCount="indefinite"
+        values="M-18,-98 C-38,-104 -49,-91 -50,-70;M-18,-98 C-36,-106 -48,-94 -52,-72;M-18,-98 C-38,-104 -49,-91 -50,-70"/>
+    </path>
+    <path class="hair-rim" d="M-21,-95 C-35,-98 -43,-88 -45,-73">
+      <animate attributeName="d" dur="2.4s" repeatCount="indefinite"
+        values="M-21,-95 C-35,-98 -43,-88 -45,-73;M-21,-95 C-34,-100 -44,-90 -47,-74;M-21,-95 C-35,-98 -43,-88 -45,-73"/>
+    </path>
+    <path class="sash" d="M-18,-16 C-48,-12 -72,-5 -100,2">
+      <animate attributeName="d" dur="3.0s" repeatCount="indefinite"
+        values="M-18,-16 C-48,-12 -72,-5 -100,2;M-18,-16 C-45,-8 -72,-8 -99,-1;M-18,-16 C-48,-12 -72,-5 -100,2"/>
+    </path>
+    <path class="sash-rim" d="M-18,-18 C-46,-14 -71,-7 -96,0">
+      <animate attributeName="d" dur="3.0s" repeatCount="indefinite"
+        values="M-18,-18 C-46,-14 -71,-7 -96,0;M-18,-18 C-44,-10 -70,-10 -96,-3;M-18,-18 C-46,-14 -71,-7 -96,0"/>
+    </path>
+    <use href="#lockedV4Base"/>
+    <g>
+      <circle class="mote" cx="-56" cy="20" r="2.2">
+        <animateTransform attributeName="transform" type="translate" values="0,0;0,-20;0,0" dur="3.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.10;0.48;0.10" dur="3.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle class="mote" cx="62" cy="-12" r="1.6">
+        <animateTransform attributeName="transform" type="translate" values="0,0;0,-16;0,0" dur="2.7s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.08;0.36;0.08" dur="2.7s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <g transform="translate(660 305) scale(1.32)">
+    <ellipse class="aura" cx="-6" cy="-12" rx="96" ry="108">
+      <animate attributeName="opacity" values="0.22;0.34;0.22" dur="2.1s" repeatCount="indefinite"/>
+    </ellipse>
+    <g>
+      <path class="wind-soft" d="M-178,24 C-95,6 -16,12 126,0">
+        <animate attributeName="stroke-dashoffset" values="180;0" dur="1.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.10;0.24;0.10" dur="1.5s" repeatCount="indefinite"/>
+      </path>
+      <path class="wind" d="M-168,-26 C-78,-42 10,-36 148,-54">
+        <animate attributeName="stroke-dashoffset" values="150;0" dur="1.2s" repeatCount="indefinite"/>
+      </path>
+      <path class="wind" d="M-188,82 C-88,72 12,84 150,72">
+        <animate attributeName="stroke-dashoffset" values="150;0" dur="1.35s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <path class="cloth" d="M-27,-18 C-50,4 -61,36 -70,74 C-52,84 -25,82 -5,70 C-4,40 -3,8 -2,-17 Z">
+      <animate attributeName="d" dur="1.7s" repeatCount="indefinite"
+        values="M-27,-18 C-50,4 -61,36 -70,74 C-52,84 -25,82 -5,70 C-4,40 -3,8 -2,-17 Z;
+                M-27,-18 C-54,8 -64,32 -67,71 C-48,82 -25,85 -3,72 C-6,42 -4,9 -2,-17 Z;
+                M-27,-18 C-50,4 -61,36 -70,74 C-52,84 -25,82 -5,70 C-4,40 -3,8 -2,-17 Z"/>
+    </path>
+    <path class="cloth-light" d="M-14,-16 C-33,10 -44,35 -50,66 C-38,71 -25,71 -14,66 C-13,38 -10,6 -9,-16 Z">
+      <animate attributeName="d" dur="1.7s" repeatCount="indefinite"
+        values="M-14,-16 C-33,10 -44,35 -50,66 C-38,71 -25,71 -14,66 C-13,38 -10,6 -9,-16 Z;
+                M-14,-16 C-36,8 -48,35 -51,68 C-36,74 -24,72 -13,65 C-15,39 -10,8 -9,-16 Z;
+                M-14,-16 C-33,10 -44,35 -50,66 C-38,71 -25,71 -14,66 C-13,38 -10,6 -9,-16 Z"/>
+    </path>
+    <path class="hair" d="M-18,-98 C-46,-104 -74,-91 -98,-68">
+      <animate attributeName="d" dur="1.55s" repeatCount="indefinite"
+        values="M-18,-98 C-46,-104 -74,-91 -98,-68;M-18,-98 C-49,-108 -76,-88 -102,-72;M-18,-98 C-46,-104 -74,-91 -98,-68"/>
+    </path>
+    <path class="hair-rim" d="M-21,-95 C-46,-98 -70,-87 -93,-69">
+      <animate attributeName="d" dur="1.55s" repeatCount="indefinite"
+        values="M-21,-95 C-46,-98 -70,-87 -93,-69;M-21,-95 C-48,-102 -72,-85 -96,-73;M-21,-95 C-46,-98 -70,-87 -93,-69"/>
+    </path>
+    <path class="sash" d="M-18,-16 C-60,-26 -105,-8 -142,8">
+      <animate attributeName="d" dur="1.35s" repeatCount="indefinite"
+        values="M-18,-16 C-60,-26 -105,-8 -142,8;M-18,-16 C-58,-16 -103,-19 -146,2;M-18,-16 C-60,-26 -105,-8 -142,8"/>
+    </path>
+    <path class="sash-rim" d="M-18,-18 C-58,-28 -101,-10 -137,5">
+      <animate attributeName="d" dur="1.35s" repeatCount="indefinite"
+        values="M-18,-18 C-58,-28 -101,-10 -137,5;M-18,-18 C-56,-18 -99,-21 -141,-1;M-18,-18 C-58,-28 -101,-10 -137,5"/>
+    </path>
+    <use href="#lockedV4Base"/>
+  </g>
+
+  <g transform="translate(1090 305) scale(1.32)">
+    <ellipse class="aura" cx="14" cy="-6" rx="130" ry="102">
+      <animate attributeName="rx" values="124;142;124" dur="0.82s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.32;0.56;0.32" dur="0.82s" repeatCount="indefinite"/>
+    </ellipse>
+    <g>
+      <path class="wind-soft" d="M-218,-38 C-130,-58 -42,-50 176,-76">
+        <animate attributeName="stroke-dashoffset" values="230;0" dur="0.58s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.16;0.34;0.16" dur="0.58s" repeatCount="indefinite"/>
+      </path>
+      <path class="wind-soft" d="M-234,38 C-135,14 -28,18 184,4">
+        <animate attributeName="stroke-dashoffset" values="230;0" dur="0.66s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.12;0.30;0.12" dur="0.66s" repeatCount="indefinite"/>
+      </path>
+      <path class="wind" d="M-214,92 C-122,76 -40,91 182,58">
+        <animate attributeName="stroke-dashoffset" values="210;0" dur="0.72s" repeatCount="indefinite"/>
+      </path>
+      <path class="arc" d="M-88,78 C-40,128 60,112 126,52">
+        <animate attributeName="stroke-dashoffset" values="130;0" dur="0.88s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.12;0.52;0.12" dur="0.88s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <path class="cloth" d="M-27,-18 C-66,-4 -94,30 -116,66 C-90,84 -48,88 -10,70 C-6,39 -3,8 -2,-17 Z">
+      <animate attributeName="d" dur="0.92s" repeatCount="indefinite"
+        values="M-27,-18 C-66,-4 -94,30 -116,66 C-90,84 -48,88 -10,70 C-6,39 -3,8 -2,-17 Z;
+                M-27,-18 C-72,3 -98,25 -112,72 C-84,86 -47,82 -7,68 C-10,40 -4,9 -2,-17 Z;
+                M-27,-18 C-66,-4 -94,30 -116,66 C-90,84 -48,88 -10,70 C-6,39 -3,8 -2,-17 Z"/>
+    </path>
+    <path class="hair" d="M-18,-98 C-58,-116 -105,-95 -142,-56">
+      <animate attributeName="d" dur="0.88s" repeatCount="indefinite"
+        values="M-18,-98 C-58,-116 -105,-95 -142,-56;M-18,-98 C-64,-120 -108,-88 -146,-64;M-18,-98 C-58,-116 -105,-95 -142,-56"/>
+    </path>
+    <path class="hair-rim" d="M-21,-95 C-56,-108 -100,-90 -136,-58">
+      <animate attributeName="d" dur="0.88s" repeatCount="indefinite"
+        values="M-21,-95 C-56,-108 -100,-90 -136,-58;M-21,-95 C-62,-112 -104,-84 -139,-66;M-21,-95 C-56,-108 -100,-90 -136,-58"/>
+    </path>
+    <path class="sash" d="M-18,-16 C-70,-44 -134,-22 -184,10">
+      <animate attributeName="d" dur="0.78s" repeatCount="indefinite"
+        values="M-18,-16 C-70,-44 -134,-22 -184,10;M-18,-16 C-72,-28 -131,-45 -188,-2;M-18,-16 C-70,-44 -134,-22 -184,10"/>
+    </path>
+    <path class="sash-rim" d="M-18,-18 C-66,-45 -130,-25 -178,7">
+      <animate attributeName="d" dur="0.78s" repeatCount="indefinite"
+        values="M-18,-18 C-66,-45 -130,-25 -178,7;M-18,-18 C-68,-31 -127,-47 -182,-5;M-18,-18 C-66,-45 -130,-25 -178,7"/>
+    </path>
+    <use href="#lockedV4Base"/>
+    <line x1="-104" y1="68" x2="118" y2="68" stroke="rgba(158,255,255,0.46)" stroke-width="32" stroke-linecap="round" filter="url(#hardGlow)">
+      <animate attributeName="opacity" values="0.10;0.38;0.10" dur="0.62s" repeatCount="indefinite"/>
+    </line>
+  </g>
+</svg>

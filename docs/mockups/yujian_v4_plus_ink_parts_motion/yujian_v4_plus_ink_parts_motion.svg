@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <title>Yujian V4 plus ink parts motion mockup</title>
+  <defs>
+    <filter id="cyanGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.95  0 0 0 0 1  0 0 0 0.75 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="#020607" flood-opacity="0.48"/>
+    </filter>
+    <style>
+      .bg { fill: #171d1f; }
+      .floor { stroke: rgba(120, 245, 255, 0.28); stroke-width: 2; }
+      .skeleton { stroke: rgba(205, 232, 238, 0.56); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .skeletonThin { stroke: rgba(205, 232, 238, 0.30); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .joint { fill: #0b1317; stroke: rgba(208, 236, 240, 0.75); stroke-width: 4; }
+      .jointSmall { fill: #0b1317; stroke: rgba(208, 236, 240, 0.45); stroke-width: 3; }
+      .label { fill: rgba(215, 232, 235, 0.72); font-family: "Microsoft YaHei", Arial, sans-serif; font-size: 15px; }
+      .hint { fill: rgba(232, 242, 242, 0.90); font-family: "Microsoft YaHei", Arial, sans-serif; font-size: 18px; }
+      .subhint { fill: rgba(187, 208, 211, 0.72); font-family: "Microsoft YaHei", Arial, sans-serif; font-size: 14px; }
+      .wind { stroke: rgba(155, 245, 255, 0.30); stroke-width: 2; fill: none; stroke-linecap: round; stroke-dasharray: 18 18; }
+      .ghost { opacity: 0.18; }
+      #rider {
+        animation: riderPulse 1.15s ease-in-out infinite;
+        transform-origin: 640px 360px;
+      }
+      #hairPart {
+        animation: hairLag 1.15s ease-in-out infinite;
+        transform-origin: 582px 272px;
+      }
+      #robeBackPart {
+        animation: robeBackLag 1.15s ease-in-out infinite;
+        transform-origin: 608px 362px;
+      }
+      #robeFrontPart {
+        animation: robeFrontLag 1.15s ease-in-out infinite;
+        transform-origin: 608px 362px;
+      }
+      #sashPart {
+        animation: sashLag 1.15s ease-in-out infinite;
+        transform-origin: 608px 365px;
+      }
+      #nearSleevePart {
+        animation: nearSleeveLag 1.15s ease-in-out infinite;
+        transform-origin: 481px 369px;
+      }
+      #farSleevePart {
+        animation: farSleeveLag 1.15s ease-in-out infinite;
+        transform-origin: 713px 338px;
+      }
+      #swordPart {
+        animation: swordPulse 0.72s ease-in-out infinite;
+        transform-origin: 640px 486px;
+      }
+      #qiPart {
+        animation: qiPulse 0.72s ease-in-out infinite;
+        transform-origin: 640px 500px;
+      }
+      #windLines {
+        animation: windSlide 1.15s linear infinite;
+      }
+      @keyframes riderPulse {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        45% { transform: translate(8px, -4px) rotate(-1.2deg); }
+      }
+      @keyframes hairLag {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.84; }
+        45% { transform: translate(-16px, -2px) rotate(-4deg); opacity: 0.94; }
+      }
+      @keyframes robeBackLag {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.74; }
+        45% { transform: translate(-22px, 5px) rotate(-3deg); opacity: 0.88; }
+      }
+      @keyframes robeFrontLag {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.64; }
+        45% { transform: translate(-11px, 2px) rotate(-1.7deg); opacity: 0.76; }
+      }
+      @keyframes sashLag {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.76; }
+        45% { transform: translate(-26px, 8px) rotate(-5deg); opacity: 0.92; }
+      }
+      @keyframes nearSleeveLag {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.68; }
+        45% { transform: translate(-10px, 3px) rotate(-3deg); opacity: 0.78; }
+      }
+      @keyframes farSleeveLag {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.45; }
+        45% { transform: translate(-8px, 2px) rotate(-2deg); opacity: 0.58; }
+      }
+      @keyframes swordPulse {
+        0%, 100% { transform: scale(1); opacity: 0.88; }
+        45% { transform: scale(1.035, 1.10); opacity: 1; }
+      }
+      @keyframes qiPulse {
+        0%, 100% { transform: scale(1); opacity: 0.72; }
+        45% { transform: scale(1.12, 1.18); opacity: 0.96; }
+      }
+      @keyframes windSlide {
+        0% { transform: translate(0, 0); opacity: 0.18; }
+        45% { opacity: 0.40; }
+        100% { transform: translate(-80px, 0); opacity: 0.18; }
+      }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1280" height="720"/>
+  <rect x="0" y="0" width="1280" height="720" fill="url(#none)" opacity="0"/>
+  <path class="floor" d="M210 510 C 382 502, 560 498, 760 502 C 900 505, 1028 500, 1140 492"/>
+  <g id="windLines">
+    <path class="wind" d="M270 322 C 420 295, 535 302, 650 285"/>
+    <path class="wind" d="M188 394 C 360 372, 485 386, 610 360"/>
+    <path class="wind" d="M300 568 C 455 540, 590 552, 740 528"/>
+    <path class="wind" d="M690 255 C 820 232, 940 238, 1078 215"/>
+  </g>
+
+  <text x="40" y="46" class="hint">V4+ 目标效果：火柴人保持右向高速压身，素材只做“随风挂在骨架上的墨形拖影”</text>
+  <text x="40" y="72" class="subhint">不是把贴片拼成完整立绘；头发跟头、袖子跟腕、袍摆和飘带跟髋，剑光跟脚底剑线。</text>
+
+  <g id="rider" filter="url(#softShadow)">
+    <!-- Back layer: sword, qi, back robe, hair, far sleeve. Coordinates are pre-positioned from anchor pixels. -->
+    <g id="qiPart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_foot_qi_contact.png"
+             x="535" y="475" width="209" height="92" opacity="0.72" filter="url(#cyanGlow)"/>
+    </g>
+    <g id="swordPart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sword_body_glow.png"
+             x="443" y="442" width="469" height="90" opacity="0.90" filter="url(#cyanGlow)"/>
+    </g>
+    <g id="robeBackPart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_robe_back_panel.png"
+             x="205" y="328" width="196" height="130" opacity="0.78"/>
+    </g>
+    <g id="hairPart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_hair_back_main.png"
+             x="309" y="236" width="158" height="98" opacity="0.86"/>
+    </g>
+    <g id="farSleevePart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sleeve_far.png"
+             x="590" y="303" width="92" height="62" opacity="0.54"/>
+    </g>
+
+    <!-- Ghost silhouette: shows the previous frame lag target. -->
+    <g class="ghost">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_robe_back_panel.png"
+             x="184" y="338" width="196" height="130"/>
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_hair_back_main.png"
+             x="292" y="240" width="158" height="98"/>
+    </g>
+
+    <!-- V4 skeleton core, kept visible on purpose in this mock to show the actual pose. -->
+    <path class="skeletonThin" d="M575 288 L 655 288 L 732 366 L 690 478"/>
+    <path class="skeletonThin" d="M575 288 L 481 369"/>
+    <path class="skeletonThin" d="M655 288 L 713 338"/>
+    <path class="skeleton" d="M612 360 L 575 288 L 585 247"/>
+    <path class="skeleton" d="M612 360 L 486 485"/>
+    <path class="skeleton" d="M612 360 L 785 481"/>
+    <circle class="joint" cx="585" cy="247" r="25"/>
+    <circle class="jointSmall" cx="575" cy="288" r="7"/>
+    <circle class="jointSmall" cx="655" cy="288" r="7"/>
+    <circle class="jointSmall" cx="612" cy="360" r="8"/>
+    <circle class="jointSmall" cx="481" cy="369" r="7"/>
+    <circle class="jointSmall" cx="713" cy="338" r="7"/>
+    <circle class="jointSmall" cx="486" cy="485" r="7"/>
+    <circle class="jointSmall" cx="785" cy="481" r="7"/>
+
+    <!-- Front layer: front robe, near sleeve, sash. -->
+    <g id="robeFrontPart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_robe_front_panel.png"
+             x="494" y="326" width="101" height="89" opacity="0.74"/>
+    </g>
+    <g id="nearSleevePart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sleeve_near.png"
+             x="343" y="342" width="139" height="82" opacity="0.70"/>
+    </g>
+    <g id="sashPart">
+      <image href="../../../resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_sash_streamers.png"
+             x="470" y="344" width="116" height="57" opacity="0.80"/>
+    </g>
+  </g>
+
+  <g>
+    <line x1="585" y1="247" x2="467" y2="238" stroke="rgba(255,210,80,0.6)" stroke-width="1"/>
+    <text x="116" y="236" class="label">头发锚点贴 head_center，尾端向左滞后摆动</text>
+    <line x1="481" y1="369" x2="315" y2="418" stroke="rgba(255,210,80,0.6)" stroke-width="1"/>
+    <text x="82" y="426" class="label">近袖锚点贴 wrist_near，不再凭空飘到手外</text>
+    <line x1="612" y1="360" x2="292" y2="459" stroke="rgba(255,210,80,0.6)" stroke-width="1"/>
+    <text x="78" y="468" class="label">袍摆/飘带从髋部拖出，表达高速风压</text>
+    <line x1="640" y1="486" x2="870" y2="535" stroke="rgba(120,245,255,0.55)" stroke-width="1"/>
+    <text x="880" y="542" class="label">脚底剑线脉冲，强调“站在剑上”</text>
+  </g>
+</svg>
