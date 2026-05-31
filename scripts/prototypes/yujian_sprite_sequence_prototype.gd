@@ -194,9 +194,12 @@ const BACKGROUND_ISLAND_GROUPS := [
 @export_range(0.0, 1.0, 0.005) var 岛群山体透明度 := 0.34
 @export_range(0.0, 1.0, 0.005) var 岛群山脚雾透明度 := 0.18
 @export_range(0.0, 1.0, 0.005) var 地标建筑透明度 := 0.26
+@export_range(0.0, 120.0, 1.0) var 岛屿入水遮挡高度 := 42.0
+@export_range(0.0, 1.0, 0.005) var 岛屿入水遮挡透明度 := 0.34
+@export_range(0.0, 1.0, 0.005) var 岛屿接触阴影透明度 := 0.08
 
 @export_group("云海与水纹")
-@export_range(0.40, 0.82, 0.001) var 远云高度比例 := 0.61
+@export_range(0.40, 0.82, 0.001) var 远云高度比例 := 0.57
 @export_range(0.0, 1.0, 0.005) var 远云透明度 := 0.13
 @export_range(0.48, 0.90, 0.001) var 中景云高度比例 := 0.69
 @export_range(0.0, 1.0, 0.005) var 中景云透明度 := 0.13
@@ -294,6 +297,7 @@ const AIRWAKE_PARTICLE_VISIBILITY_RECT := Rect2(Vector2(-620.0, -360.0), Vector2
 @export_group("整体")
 @export_range(0.0, 2.0, 0.01) var 破空尾流强度 := 1.30
 @export_range(0.45, 1.8, 0.01) var 破空尾流长度 := 1.18
+@export_range(-80.0, 80.0, 1.0) var 尾流平面垂直校正 := 0.0
 
 @export_group("可读主线")
 @export_range(0.0, 2.0, 0.01) var 主线长度倍率 := 1.0
@@ -3514,8 +3518,26 @@ func _get_airwake_anchor(direction: Vector2) -> Vector2:
 	if carve_direction != 0.0:
 		carve_side = direction.rotated(carve_direction * PI * 0.5) * 10.0 * carve_energy
 	var back_distance := absf(offset.x) * 0.62 + 8.0 + 14.0 * boost_energy + 8.0 * turn_energy
-	var vertical_drop := offset.y * lerpf(0.42, 0.30, boost_energy)
-	return visual_pos - direction * back_distance + Vector2(0.0, vertical_drop) + carve_side
+	return _get_sword_plane_origin() - direction * back_distance + carve_side
+
+
+func _get_sword_plane_origin() -> Vector2:
+	var local_center := Vector2.ZERO
+	if _uses_skeleton_eight_way() and skeleton_character != null:
+		if skeleton_character.has_method("get_sword_center_local"):
+			local_center = skeleton_character.call("get_sword_center_local")
+		else:
+			local_center = Vector2(0.0, 68.0 + 4.0 * boost_energy)
+		local_center = skeleton_character.position + Vector2(local_center.x * skeleton_character.scale.x, local_center.y * skeleton_character.scale.y)
+	elif _uses_ink_part_eight_way() and ink_part_character != null:
+		local_center = ink_part_character.position + Vector2(0.0, 68.0) * ink_part_character.scale.y
+	elif _uses_google_part_eight_way() and google_part_character != null:
+		local_center = google_part_character.position + Vector2(0.0, 68.0) * google_part_character.scale.y
+	elif character_sprite != null and character_sprite.visible:
+		local_center = character_sprite.position + Vector2(0.0, 68.0) * character_sprite.scale.abs().y
+	else:
+		local_center = Vector2(0.0, 68.0)
+	return visual_pos + local_center + Vector2(0.0, 尾流平面垂直校正)
 
 
 func _update_airwake_transform(direction: Vector2) -> void:
@@ -3818,8 +3840,7 @@ func _get_trail_anchor() -> Vector2:
 	if carve_direction != 0.0:
 		carve_side = tail_dir.rotated(carve_direction * PI * 0.5) * 14.0 * carve_energy
 	var back_distance := absf(offset.x) + 10.0 + 16.0 * boost_energy + 12.0 * turn_energy + 10.0 * carve_energy
-	var vertical_drop := offset.y * lerpf(0.55, 0.35, boost_energy)
-	return visual_pos - tail_dir * back_distance + Vector2(0.0, vertical_drop) + carve_side
+	return _get_sword_plane_origin() - tail_dir * back_distance + carve_side
 
 
 func _update_trail_lines() -> void:
@@ -4021,7 +4042,7 @@ func _draw_parallax_texture_layer(texture: Texture2D, y_ratio: float, parallax: 
 	var y: float = VIEW_SIZE.y * y_ratio - draw_size.y * 0.5 + y_shift + y_sway
 	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
 	var phase := camera_center.x * parallax.x + time * 4.0 * parallax.x
-	_draw_mirrored_texture_tile_x(texture, y, phase, color, scale)
+	_draw_repeated_texture_tile_x(texture, y, phase, color, scale)
 
 
 func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float) -> void:
@@ -4033,10 +4054,11 @@ func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float
 		var depth := clampf(float(group.get("depth", 0.48)) * 岛群世界移动倍率, 0.08, 1.4)
 		var screen_x := VIEW_SIZE.x * 0.5 + (float(group.get("x", FLIGHT_START_POS.x)) - camera_center.x) * depth / maxf(camera_zoom, 0.001)
 		var unit_scale := float(group.get("scale", 0.76)) / maxf(camera_zoom, 0.001)
-		var cull_width := 1120.0 * maxf(unit_scale, 0.3)
+		var cull_width := 2800.0 * maxf(unit_scale, 0.45)
 		if screen_x < -cull_width or screen_x > VIEW_SIZE.x + cull_width:
 			continue
-		var group_alpha := clampf(base_fade * float(group.get("alpha", 1.0)), 0.0, 1.0)
+		var cull_fade := clampf(minf(screen_x + cull_width, VIEW_SIZE.x + cull_width - screen_x) / 420.0, 0.0, 1.0)
+		var group_alpha := clampf(base_fade * float(group.get("alpha", 1.0)) * cull_fade, 0.0, 1.0)
 		if group_alpha <= 0.001:
 			continue
 		var sea_y := horizon_y + 岛群贴海偏移 + float(group.get("sea_offset", 0.0)) * unit_scale
@@ -4044,7 +4066,7 @@ func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float
 		var is_far_mountain := String(group.get("mountain", "mid")) == "far"
 		var mountain_texture := mountain_far_ink_texture if is_far_mountain else mountain_mid_ink_texture
 		var mountain_alpha := 岛群山体透明度 * (0.72 if is_far_mountain else 1.0) * group_alpha
-		_draw_texture_anchored(
+		_draw_texture_anchored_tiled_x(
 			sea_horizon_wash_texture,
 			Vector2(screen_x, sea_y + 66.0 * unit_scale),
 			Vector2(0.5, 0.56),
@@ -4053,7 +4075,7 @@ func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float
 			海面水洗染色,
 			flip_x
 		)
-		_draw_texture_anchored(
+		_draw_texture_anchored_tiled_x(
 			mountain_texture,
 			Vector2(screen_x, sea_y - 12.0 * unit_scale),
 			Vector2(0.5, 0.88),
@@ -4071,7 +4093,7 @@ func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float
 			Color(0.45, 0.58, 0.62, 1.0),
 			flip_x
 		)
-		_draw_texture_anchored(
+		_draw_texture_anchored_tiled_x(
 			far_island_chain_texture,
 			Vector2(screen_x, sea_y + 18.0 * unit_scale),
 			Vector2(0.5, 0.58),
@@ -4080,16 +4102,18 @@ func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float
 			远岛染色,
 			flip_x
 		)
-		_draw_texture_anchored(
+		_draw_island_contact_shadow(screen_x, sea_y, unit_scale, group_alpha)
+		_draw_island_waterline_blend(screen_x, sea_y, unit_scale, group_alpha)
+		_draw_texture_anchored_tiled_x(
 			sea_mist_foot_texture,
 			Vector2(screen_x, sea_y + 30.0 * unit_scale),
 			Vector2(0.5, 0.60),
 			0.44 * unit_scale,
-			岛群山脚雾透明度 * group_alpha,
+			minf(岛群山脚雾透明度 + 岛屿入水遮挡透明度 * 0.34, 1.0) * group_alpha,
 			Color(0.88, 0.96, 1.0, 1.0),
 			flip_x
 		)
-		_draw_texture_anchored(
+		_draw_texture_anchored_tiled_x(
 			cloudsea_mid_texture,
 			Vector2(screen_x, sea_y + 82.0 * unit_scale),
 			Vector2(0.5, 0.52),
@@ -4114,6 +4138,70 @@ func _draw_texture_anchored(texture: Texture2D, anchor_pos: Vector2, anchor: Vec
 		_draw_texture_rect_region_flipped_x(texture, destination, source, color)
 	else:
 		draw_texture_rect_region(texture, destination, source, color)
+
+
+func _draw_texture_anchored_tiled_x(texture: Texture2D, anchor_pos: Vector2, anchor: Vector2, scale: float, alpha: float, tint: Color = Color(1.0, 1.0, 1.0, 1.0), flip_x: bool = false, tile_radius: int = 2) -> void:
+	if texture == null or alpha <= 0.001 or scale <= 0.001:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+	var draw_size := texture_size * scale
+	var base_position := anchor_pos - Vector2(draw_size.x * anchor.x, draw_size.y * anchor.y)
+	var source := Rect2(Vector2.ZERO, texture_size)
+	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
+	for tile_index in range(-tile_radius, tile_radius + 1):
+		var destination := Rect2(base_position + Vector2(float(tile_index) * draw_size.x, 0.0), draw_size)
+		if destination.end.x < -draw_size.x or destination.position.x > VIEW_SIZE.x + draw_size.x:
+			continue
+		if flip_x:
+			_draw_texture_rect_region_flipped_x(texture, destination, source, color)
+		else:
+			draw_texture_rect_region(texture, destination, source, color)
+
+
+func _draw_island_waterline_blend(screen_x: float, sea_y: float, unit_scale: float, group_alpha: float) -> void:
+	if 岛屿入水遮挡高度 <= 0.0 or 岛屿入水遮挡透明度 <= 0.001 or group_alpha <= 0.001:
+		return
+	var height := maxf(岛屿入水遮挡高度 * unit_scale, 1.0)
+	var width := maxf(980.0, 2200.0 * maxf(unit_scale, 0.38))
+	var top_y := sea_y + 4.0 * unit_scale
+	for band_index in range(7):
+		var t := float(band_index) / 6.0
+		var band_alpha := 岛屿入水遮挡透明度 * group_alpha * lerpf(0.78, 0.22, t)
+		var band_height := height / 5.4
+		var band_y := top_y + height * t * 0.82
+		draw_rect(
+			Rect2(Vector2(screen_x - width * 0.5, band_y), Vector2(width, band_height)),
+			Color(海面基础颜色.r, 海面基础颜色.g, 海面基础颜色.b, band_alpha)
+		)
+	_draw_texture_anchored_tiled_x(
+		sea_horizon_wash_texture,
+		Vector2(screen_x, sea_y + 42.0 * unit_scale),
+		Vector2(0.5, 0.46),
+		0.30 * unit_scale,
+		岛屿入水遮挡透明度 * 0.58 * group_alpha,
+		Color(海面水洗染色.r, 海面水洗染色.g, 海面水洗染色.b, 1.0),
+		false
+	)
+
+
+func _draw_island_contact_shadow(screen_x: float, sea_y: float, unit_scale: float, group_alpha: float) -> void:
+	if 岛屿接触阴影透明度 <= 0.001 or group_alpha <= 0.001:
+		return
+	var half_width := maxf(420.0, 920.0 * maxf(unit_scale, 0.38))
+	for line_index in range(3):
+		var t := float(line_index) / 2.0
+		var y := sea_y + lerpf(8.0, 26.0, t) * unit_scale
+		var width := lerpf(18.0, 42.0, t) * maxf(unit_scale, 0.50)
+		var alpha := 岛屿接触阴影透明度 * group_alpha * lerpf(0.18, 0.035, t)
+		draw_line(
+			Vector2(screen_x - half_width, y),
+			Vector2(screen_x + half_width, y),
+			Color(0.02, 0.18, 0.30, alpha),
+			width,
+			true
+		)
 
 
 func _draw_atlas_region_anchored(texture: Texture2D, cell_index: int, anchor_pos: Vector2, scale: float, alpha: float, tint: Color = Color(1.0, 1.0, 1.0, 1.0), flip_x: bool = false) -> void:
@@ -4146,7 +4234,7 @@ func _draw_sea_shimmer_from_atlas(speed_pressure: float, grounded_plane_fade: fl
 	var y := VIEW_SIZE.y * 水纹高度比例 - texture_size.y * scale * 0.5 + y_shift + sin(time * 0.16) * 1.5
 	var phase := camera_center.x * 0.30 + time * 1.8
 	var alpha := 水纹透明度 * grounded_plane_fade * lerpf(1.0, 水纹高速保留比例, speed_pressure)
-	_draw_mirrored_texture_tile_x(sea_shimmer_lines_atlas_texture, y, phase, Color(1.0, 1.0, 1.0, alpha), scale)
+	_draw_repeated_texture_tile_x(sea_shimmer_lines_atlas_texture, y, phase, Color(1.0, 1.0, 1.0, alpha), scale)
 
 
 func _draw_far_landmarks_from_atlas(speed_pressure: float) -> void:
@@ -4271,21 +4359,19 @@ func _draw_tiled_texture_x(texture: Texture2D, y: float, parallax_x: float, alph
 	if draw_size.x <= 0.0 or draw_size.y <= 0.0:
 		return
 	var color := Color(1.0, 1.0, 1.0, clampf(alpha, 0.0, 1.0))
-	_draw_mirrored_texture_tile_x(texture, y, camera_center.x * parallax_x, color, scale)
+	_draw_repeated_texture_tile_x(texture, y, camera_center.x * parallax_x, color, scale)
 
 
-func _draw_mirrored_texture_tile_x(texture: Texture2D, y: float, phase: float, color: Color, scale: float = 1.0) -> void:
+func _draw_repeated_texture_tile_x(texture: Texture2D, y: float, phase: float, color: Color, scale: float = 1.0) -> void:
 	var texture_size: Vector2 = texture.get_size()
 	var draw_size: Vector2 = texture_size * scale
 	if draw_size.x <= 0.0 or draw_size.y <= 0.0:
 		return
-	var tile_width := draw_size.x * 2.0
-	var x: float = -fposmod(phase, tile_width) - tile_width
+	var x: float = -fposmod(phase, draw_size.x) - draw_size.x
 	var source := Rect2(Vector2.ZERO, texture_size)
 	while x < VIEW_SIZE.x + draw_size.x:
 		draw_texture_rect_region(texture, Rect2(Vector2(x, y), draw_size), source, color)
-		_draw_texture_rect_region_flipped_x(texture, Rect2(Vector2(x + draw_size.x, y), draw_size), source, color)
-		x += tile_width
+		x += draw_size.x
 
 
 func _draw_texture_rect_region_flipped_x(texture: Texture2D, destination: Rect2, source: Rect2, color: Color) -> void:

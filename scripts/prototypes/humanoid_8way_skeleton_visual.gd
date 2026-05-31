@@ -1284,6 +1284,10 @@ func _sword_center() -> Vector2:
 	return Vector2(0.0, 68.0 + 4.0 * _boost)
 
 
+func get_sword_center_local() -> Vector2:
+	return _sword_center()
+
+
 func _v4_plus_right_fast_alpha(pose: Dictionary) -> float:
 	var h: Vector2 = pose["heading"]
 	if h.length_squared() <= 0.0001:

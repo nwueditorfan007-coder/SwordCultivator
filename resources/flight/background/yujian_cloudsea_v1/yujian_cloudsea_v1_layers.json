@@ -25,8 +25,13 @@
         "岛群贴海偏移",
         "岛群山体透明度",
         "岛群山脚雾透明度",
-        "地标建筑透明度"
-      ]
+        "地标建筑透明度",
+        "岛屿入水遮挡高度",
+        "岛屿入水遮挡透明度",
+        "岛屿接触阴影透明度"
+      ],
+      "edge_fix_note": "tileable mountain, island, sea mist, sea wash, and local cloud textures are drawn with same-orientation X repeats only around each sea anchor; the loop uses direct head-to-tail wrapping instead of mirrored copies and avoids filling the whole viewport per island group",
+      "grounding_note": "a very soft blue contact shadow is drawn below the island feet, then a blue sea foreground band and front sea mist cover the feet so the islands read as rising from the sea plane without black stripe artifacts"
     }
   ],
   "runtime_assets": [
@@ -383,7 +388,7 @@
       ],
       "alpha": 0.13,
       "repeat_x": true,
-      "y": 0.61,
+      "y": 0.57,
       "scale": 1.0,
       "inspector_export": "远云透明度 / 远云高度比例"
     },
