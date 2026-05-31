@@ -129,6 +129,27 @@ const GEMINI_EIGHT_WAY_VECTORS := [
 	Vector2(0.0, 1.0),
 ]
 const SKELETON_CARDINAL_DIRECTION_INDICES := [0, 2, 4, 6]
+const BACKGROUND_ISLAND_GROUPS := [
+	{"x": -12600.0, "depth": 0.34, "scale": 0.56, "sea_offset": -22.0, "alpha": 0.68, "landmark": 0, "landmark_scale": 0.42, "mountain": "far"},
+	{"x": -9000.0, "depth": 0.42, "scale": 0.72, "sea_offset": 8.0, "alpha": 0.86, "landmark": 3, "landmark_scale": 0.48, "mirror": true},
+	{"x": -5200.0, "depth": 0.52, "scale": 0.84, "sea_offset": 34.0, "alpha": 0.94, "landmark": 4, "landmark_scale": 0.58},
+	{"x": -1200.0, "depth": 0.38, "scale": 0.64, "sea_offset": -8.0, "alpha": 0.76, "landmark": 1, "landmark_scale": 0.44, "mountain": "far", "mirror": true},
+	{"x": 2900.0, "depth": 0.50, "scale": 0.82, "sea_offset": 24.0, "alpha": 0.92, "landmark": 5, "landmark_scale": 0.54},
+	{"x": 7200.0, "depth": 0.44, "scale": 0.70, "sea_offset": 2.0, "alpha": 0.82, "landmark": 2, "landmark_scale": 0.46, "mirror": true},
+	{"x": 11800.0, "depth": 0.56, "scale": 0.92, "sea_offset": 44.0, "alpha": 0.98, "landmark": 0, "landmark_scale": 0.60},
+	{"x": 16600.0, "depth": 0.40, "scale": 0.66, "sea_offset": -12.0, "alpha": 0.78, "landmark": 4, "landmark_scale": 0.44, "mountain": "far"},
+	{"x": 21300.0, "depth": 0.53, "scale": 0.86, "sea_offset": 28.0, "alpha": 0.95, "landmark": 3, "landmark_scale": 0.56, "mirror": true},
+	{"x": 26200.0, "depth": 0.46, "scale": 0.74, "sea_offset": 10.0, "alpha": 0.86, "landmark": 1, "landmark_scale": 0.48},
+	{"x": 31300.0, "depth": 0.58, "scale": 0.94, "sea_offset": 48.0, "alpha": 1.0, "landmark": 5, "landmark_scale": 0.62, "mirror": true},
+	{"x": 36500.0, "depth": 0.39, "scale": 0.62, "sea_offset": -18.0, "alpha": 0.74, "landmark": 2, "landmark_scale": 0.42, "mountain": "far"},
+	{"x": 41700.0, "depth": 0.51, "scale": 0.84, "sea_offset": 30.0, "alpha": 0.94, "landmark": 4, "landmark_scale": 0.56},
+	{"x": 46900.0, "depth": 0.45, "scale": 0.72, "sea_offset": 4.0, "alpha": 0.84, "landmark": 0, "landmark_scale": 0.48, "mirror": true},
+	{"x": 52100.0, "depth": 0.57, "scale": 0.92, "sea_offset": 42.0, "alpha": 0.98, "landmark": 3, "landmark_scale": 0.60},
+	{"x": 57300.0, "depth": 0.41, "scale": 0.68, "sea_offset": -4.0, "alpha": 0.80, "landmark": 1, "landmark_scale": 0.46, "mountain": "far", "mirror": true},
+	{"x": 62500.0, "depth": 0.52, "scale": 0.86, "sea_offset": 26.0, "alpha": 0.94, "landmark": 5, "landmark_scale": 0.56},
+	{"x": 67800.0, "depth": 0.47, "scale": 0.76, "sea_offset": 12.0, "alpha": 0.86, "landmark": 2, "landmark_scale": 0.50, "mirror": true},
+	{"x": 73100.0, "depth": 0.55, "scale": 0.90, "sea_offset": 38.0, "alpha": 0.96, "landmark": 4, "landmark_scale": 0.58},
+]
 
 @export_enum("V4 skeleton rig") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
 @export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
@@ -140,24 +161,27 @@ const SKELETON_CARDINAL_DIRECTION_INDICES := [0, 2, 4, 6]
 @export_range(0.10, 1.0, 0.01) var 海岛高速保留比例 := 0.70
 @export_range(0.10, 1.0, 0.01) var 海面高速保留比例 := 0.82
 @export_range(0.10, 1.0, 0.01) var 水纹高速保留比例 := 0.30
+@export_range(0.0, 1.0, 0.005) var 岛群整体透明度 := 0.88
+@export_range(0.20, 1.40, 0.01) var 岛群世界移动倍率 := 1.0
+@export_range(-120.0, 160.0, 1.0) var 岛群贴海偏移 := 12.0
 
 @export_group("天空")
-@export var 天空顶部颜色 := Color(0.60, 0.72, 0.77, 1.0)
-@export var 天空中部颜色 := Color(0.76, 0.86, 0.87, 1.0)
-@export var 天空底部颜色 := Color(0.88, 0.93, 0.87, 1.0)
+@export var 天空顶部颜色 := Color(0.68, 0.78, 0.84, 1.0)
+@export var 天空中部颜色 := Color(0.84, 0.91, 0.92, 1.0)
+@export var 天空底部颜色 := Color(0.96, 0.98, 0.95, 1.0)
 @export_range(0.0, 0.30, 0.005) var 天空中部雾光强度 := 0.08
 @export_range(0.0, 0.30, 0.005) var 天空低处青雾强度 := 0.025
 
 @export_group("海平面")
 @export_range(0.35, 0.72, 0.001) var 海平线高度比例 := 0.515
-@export var 海面基础颜色 := Color(0.32, 0.64, 0.67, 1.0)
-@export_range(0.0, 0.70, 0.005) var 海面基础透明度 := 0.29
-@export var 海平线柔光颜色 := Color(0.74, 0.96, 0.97, 1.0)
-@export_range(0.0, 0.30, 0.005) var 海平线柔光强度 := 0.085
+@export var 海面基础颜色 := Color(0.01, 0.28, 0.78, 1.0)
+@export_range(0.0, 0.90, 0.005) var 海面基础透明度 := 0.72
+@export var 海平线柔光颜色 := Color(0.36, 0.76, 1.0, 1.0)
+@export_range(0.0, 0.30, 0.005) var 海平线柔光强度 := 0.10
 @export_range(8.0, 180.0, 1.0) var 海平线柔光宽度 := 56.0
 @export_range(0.40, 0.78, 0.001) var 海面水洗高度比例 := 0.58
-@export_range(0.0, 1.0, 0.005) var 海面水洗透明度 := 0.22
-@export var 海面水洗染色 := Color(0.70, 0.94, 0.96, 1.0)
+@export_range(0.0, 1.0, 0.005) var 海面水洗透明度 := 0.28
+@export var 海面水洗染色 := Color(0.12, 0.58, 1.0, 1.0)
 
 @export_group("山与岛屿")
 @export_range(0.0, 1.0, 0.005) var 远山透明度 := 0.10
@@ -167,6 +191,9 @@ const SKELETON_CARDINAL_DIRECTION_INDICES := [0, 2, 4, 6]
 @export var 远岛染色 := Color(0.55, 0.69, 0.67, 1.0)
 @export_range(0.35, 0.76, 0.001) var 山脚海雾高度比例 := 0.55
 @export_range(0.0, 1.0, 0.005) var 山脚海雾透明度 := 0.055
+@export_range(0.0, 1.0, 0.005) var 岛群山体透明度 := 0.34
+@export_range(0.0, 1.0, 0.005) var 岛群山脚雾透明度 := 0.18
+@export_range(0.0, 1.0, 0.005) var 地标建筑透明度 := 0.26
 
 @export_group("云海与水纹")
 @export_range(0.40, 0.82, 0.001) var 远云高度比例 := 0.61
@@ -3425,6 +3452,7 @@ func _update_trail(delta: float) -> void:
 	for point in trail_points:
 		point["age"] = float(point["age"]) + delta
 	var max_life := 0.70 + 0.16 * clampf(boost_energy + turn_energy, 0.0, 1.0)
+	max_life = maxf(max_life, 0.54 + 0.31 * clampf(破空尾流长度, 0.45, 1.8))
 	trail_points = trail_points.filter(func(point: Dictionary) -> bool: return float(point["age"]) <= max_life)
 
 	var anchor := _get_trail_anchor()
@@ -3461,9 +3489,7 @@ func _update_airwake_particles(delta: float) -> void:
 		return
 
 	airwake_root.visible = true
-	airwake_root.position = _world_to_screen(_get_airwake_anchor(direction))
-	airwake_root.rotation = direction.angle()
-	airwake_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+	_update_airwake_transform(direction)
 
 	var rail_ratio := clampf((0.20 + base_energy * 0.48 + boost_pressure * 0.12) * 剑轨亮度, 0.0, 0.88)
 	var mist_ratio := clampf((0.08 + base_energy * 0.38 + carve_pressure * 0.14) * 云气开缝强度, 0.0, 0.36)
@@ -3477,8 +3503,8 @@ func _update_airwake_particles(delta: float) -> void:
 	_set_airwake_layer(wind_cut_particles, needle_ratio, lerpf(1.12, 1.78, speed_ratio) * length_scale * 风切粒子速度, Color(0.92, 1.0, 1.0, (0.18 + 0.10 * boost_pressure) * 风切粒子透明度), delta)
 	_set_airwake_layer(condensation_particles, mote_ratio, lerpf(1.00, 1.28, speed_ratio) * 冷凝粒子速度, Color(0.70, 0.96, 1.0, (0.040 + 0.018 * carve_pressure) * 冷凝粒子透明度), delta)
 	_set_airwake_layer(compression_particles, compression_ratio, lerpf(0.90, 1.24, boost_pressure) * length_scale * 压缩粒子速度, Color(0.60, 0.96, 1.0, (0.028 + 0.038 * boost_pressure) * 压缩粒子透明度), delta)
-	_update_airwake_readable_lines(rail_ratio, needle_ratio, speed_ratio, boost_pressure, length_scale)
-	_update_airwake_support_lines(mist_ratio, needle_ratio, mote_ratio, compression_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_readable_lines(direction, rail_ratio, needle_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_support_lines(direction, mist_ratio, needle_ratio, mote_ratio, compression_ratio, speed_ratio, boost_pressure, length_scale)
 
 
 func _get_airwake_anchor(direction: Vector2) -> Vector2:
@@ -3492,6 +3518,21 @@ func _get_airwake_anchor(direction: Vector2) -> Vector2:
 	return visual_pos - direction * back_distance + Vector2(0.0, vertical_drop) + carve_side
 
 
+func _update_airwake_transform(direction: Vector2) -> void:
+	airwake_root.position = Vector2.ZERO
+	airwake_root.rotation = 0.0
+	airwake_root.scale = Vector2.ONE
+
+	var emitter_position := _world_to_screen(_get_airwake_anchor(direction))
+	var emitter_scale := Vector2.ONE / maxf(camera_zoom, 0.001)
+	for particles in airwake_particle_layers:
+		if particles == null:
+			continue
+		particles.position = emitter_position
+		particles.rotation = direction.angle()
+		particles.scale = emitter_scale
+
+
 func _set_airwake_layer(particles: GPUParticles2D, target_ratio: float, speed_scale: float, color: Color, delta: float) -> void:
 	if particles == null:
 		return
@@ -3503,22 +3544,23 @@ func _set_airwake_layer(particles: GPUParticles2D, target_ratio: float, speed_sc
 	particles.emitting = ratio > 0.015
 
 
-func _update_airwake_readable_lines(rail_ratio: float, needle_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+func _update_airwake_readable_lines(direction: Vector2, rail_ratio: float, needle_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
 	var visibility := clampf(maxf(rail_ratio, needle_ratio * 0.72), 0.0, 1.0)
 	if visibility <= 0.015:
 		_set_airwake_line(airwake_halo_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
 		_set_airwake_line(airwake_core_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
 		return
 	var line_length := (72.0 + 88.0 * speed_ratio + 56.0 * boost_pressure) * length_scale * 主线长度倍率
-	var core_points := PackedVector2Array([
-		Vector2(14.0, 0.0),
-		Vector2(-line_length * 0.36, 0.0),
-		Vector2(-line_length, 0.0),
-	])
+	var core_points := _get_airwake_screen_path(direction, line_length)
+	if core_points.size() < 2:
+		_set_airwake_line(airwake_halo_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		_set_airwake_line(airwake_core_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
 	var halo_alpha := (0.050 + 0.038 * boost_pressure) * visibility * 主线光晕透明度
 	var core_alpha := (0.30 + 0.12 * boost_pressure) * visibility * 主线核心透明度
-	_set_airwake_line(airwake_halo_line, core_points, (4.8 + 1.8 * speed_ratio) * 主线光晕宽度, Color(0.58, 0.96, 1.0, halo_alpha))
-	_set_airwake_line(airwake_core_line, core_points, (1.35 + 0.85 * speed_ratio) * 主线核心宽度, Color(0.93, 1.0, 1.0, core_alpha))
+	_set_airwake_line(airwake_halo_line, core_points, (4.8 + 1.8 * speed_ratio) * 主线光晕宽度 * camera_scale, Color(0.58, 0.96, 1.0, halo_alpha))
+	_set_airwake_line(airwake_core_line, core_points, (1.35 + 0.85 * speed_ratio) * 主线核心宽度 * camera_scale, Color(0.93, 1.0, 1.0, core_alpha))
 
 
 func _set_airwake_line(line: Line2D, points: PackedVector2Array, width: float, color: Color) -> void:
@@ -3530,7 +3572,84 @@ func _set_airwake_line(line: Line2D, points: PackedVector2Array, width: float, c
 	line.visible = points.size() >= 2 and color.a > 0.01
 
 
+func _get_airwake_screen_path(direction: Vector2, target_length: float) -> PackedVector2Array:
+	var world_points := _collect_airwake_world_path(direction, maxf(target_length, 8.0))
+	var raw_points: Array = []
+	for point in world_points:
+		raw_points.append(_world_to_screen(Vector2(point)))
+	return _build_smooth_points(raw_points)
+
+
+func _collect_airwake_world_path(direction: Vector2, target_length: float) -> Array:
+	var anchor := _get_airwake_anchor(direction)
+	var reverse_points: Array = [anchor]
+	var collected_length := 0.0
+	var last := anchor
+	for index in range(trail_points.size() - 1, -1, -1):
+		var point := Vector2(trail_points[index]["pos"])
+		var segment_length := last.distance_to(point)
+		if segment_length <= 1.5:
+			continue
+		if collected_length + segment_length >= target_length:
+			var remaining := maxf(target_length - collected_length, 0.0)
+			reverse_points.append(last.lerp(point, remaining / segment_length))
+			collected_length = target_length
+			break
+		reverse_points.append(point)
+		collected_length += segment_length
+		last = point
+
+	if reverse_points.size() < 2:
+		reverse_points.append(anchor - direction * target_length)
+	reverse_points.reverse()
+	return reverse_points
+
+
+func _offset_airwake_path(points: PackedVector2Array, offset: float) -> PackedVector2Array:
+	var shifted := PackedVector2Array()
+	if points.size() < 2:
+		return shifted
+	for index in range(points.size()):
+		var previous: Vector2 = points[maxi(index - 1, 0)]
+		var next: Vector2 = points[mini(index + 1, points.size() - 1)]
+		var tangent := (next - previous).normalized()
+		if tangent.length_squared() <= 0.0001:
+			tangent = Vector2.RIGHT
+		var normal := Vector2(-tangent.y, tangent.x)
+		shifted.append(points[index] + normal * offset)
+	return shifted
+
+
+func _sample_airwake_path_from_end(points: PackedVector2Array, distance_from_end: float) -> Dictionary:
+	if points.size() < 2:
+		return {"pos": Vector2.ZERO, "tangent": Vector2.RIGHT}
+
+	var remaining := maxf(distance_from_end, 0.0)
+	for index in range(points.size() - 1, 0, -1):
+		var segment_start: Vector2 = points[index - 1]
+		var segment_end: Vector2 = points[index]
+		var segment := segment_end - segment_start
+		var segment_length := segment.length()
+		if segment_length <= 0.001:
+			continue
+		if remaining <= segment_length:
+			var ratio := remaining / segment_length
+			return {
+				"pos": segment_end.lerp(segment_start, ratio),
+				"tangent": segment / segment_length,
+			}
+		remaining -= segment_length
+
+	var first: Vector2 = points[0]
+	var second: Vector2 = points[1]
+	var fallback_tangent := (second - first).normalized()
+	if fallback_tangent.length_squared() <= 0.0001:
+		fallback_tangent = Vector2.RIGHT
+	return {"pos": first, "tangent": fallback_tangent}
+
+
 func _update_airwake_support_lines(
+	direction: Vector2,
 	mist_ratio: float,
 	needle_ratio: float,
 	mote_ratio: float,
@@ -3539,13 +3658,13 @@ func _update_airwake_support_lines(
 	boost_pressure: float,
 	length_scale: float
 ) -> void:
-	_update_airwake_cloud_lines(mist_ratio, speed_ratio, boost_pressure, length_scale)
-	_update_airwake_wind_lines(needle_ratio, speed_ratio, boost_pressure, length_scale)
-	_update_airwake_mote_lines(mote_ratio, speed_ratio, length_scale)
-	_update_airwake_compression_line(compression_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_cloud_lines(direction, mist_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_wind_lines(direction, needle_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_mote_lines(direction, mote_ratio, speed_ratio, length_scale)
+	_update_airwake_compression_line(direction, compression_ratio, speed_ratio, boost_pressure, length_scale)
 
 
-func _update_airwake_cloud_lines(mist_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+func _update_airwake_cloud_lines(direction: Vector2, mist_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
 	var visibility := clampf(mist_ratio * 云气粒子透明度, 0.0, 1.0)
 	if visibility <= 0.015:
 		for line in airwake_cloud_lines:
@@ -3553,19 +3672,21 @@ func _update_airwake_cloud_lines(mist_ratio: float, speed_ratio: float, boost_pr
 		return
 	var cloud_length := (76.0 + 88.0 * speed_ratio + 40.0 * boost_pressure) * length_scale * lerpf(0.82, 1.22, clampf(云气粒子速度 - 1.0, 0.0, 1.0))
 	var cloud_gap := 11.0 + 18.0 * speed_ratio + 8.0 * boost_pressure
+	var path_points := _get_airwake_screen_path(direction, cloud_length)
+	if path_points.size() < 2:
+		for line in airwake_cloud_lines:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
 	for index in range(airwake_cloud_lines.size()):
 		var side := -1.0 if index == 0 else 1.0
-		var points := PackedVector2Array([
-			Vector2(-10.0, side * cloud_gap * 0.36),
-			Vector2(-cloud_length * 0.42, side * cloud_gap),
-			Vector2(-cloud_length, side * cloud_gap * 1.32),
-		])
+		var points := _offset_airwake_path(path_points, side * cloud_gap * camera_scale)
 		var alpha := (0.070 + 0.038 * boost_pressure) * visibility
-		var width := (5.0 + 7.0 * speed_ratio) * clampf(云气粒子透明度, 0.0, 2.5)
+		var width := (5.0 + 7.0 * speed_ratio) * clampf(云气粒子透明度, 0.0, 2.5) * camera_scale
 		_set_airwake_line(airwake_cloud_lines[index], points, width, Color(0.50, 0.92, 1.0, alpha))
 
 
-func _update_airwake_wind_lines(needle_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+func _update_airwake_wind_lines(direction: Vector2, needle_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
 	var visibility := clampf(needle_ratio * 风切粒子透明度, 0.0, 1.0)
 	var active_count := clampi(ceili(float(airwake_wind_lines.size()) * clampf(风切粒子数量 / 128.0, 0.0, 1.0)), 0, airwake_wind_lines.size())
 	if visibility <= 0.015 or active_count <= 0:
@@ -3573,6 +3694,13 @@ func _update_airwake_wind_lines(needle_ratio: float, speed_ratio: float, boost_p
 			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
 		return
 	var base_length := (42.0 + 92.0 * speed_ratio + 36.0 * boost_pressure) * length_scale * clampf(风切粒子速度, 0.2, 2.5)
+	var path_points := _get_airwake_screen_path(direction, base_length + 116.0 * length_scale)
+	if path_points.size() < 2:
+		for line in airwake_wind_lines:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
+	var base_length_screen := base_length * camera_scale
 	for index in range(airwake_wind_lines.size()):
 		var line := airwake_wind_lines[index]
 		if index >= active_count:
@@ -3580,19 +3708,24 @@ func _update_airwake_wind_lines(needle_ratio: float, speed_ratio: float, boost_p
 			continue
 		var phase := fposmod(time * 5.0 * clampf(风切粒子速度, 0.2, 2.5) + float(index) * 0.31, 1.0)
 		var side := -1.0 if index % 2 == 0 else 1.0
-		var y := side * lerpf(9.0, 44.0, _hash01(float(index) * 7.17 + 0.4))
-		var start_x := -lerpf(20.0, 96.0, phase)
-		var length := base_length * lerpf(0.48, 1.0, _hash01(float(index) * 5.43 + 0.8))
+		var lateral := side * lerpf(9.0, 44.0, _hash01(float(index) * 7.17 + 0.4)) * camera_scale
+		var back_distance := lerpf(20.0, 96.0, phase) * length_scale * camera_scale
+		var sample := _sample_airwake_path_from_end(path_points, back_distance)
+		var tangent: Vector2 = sample["tangent"]
+		var normal := Vector2(-tangent.y, tangent.x)
+		var center: Vector2 = sample["pos"] + normal * lateral
+		var length := base_length_screen * lerpf(0.48, 1.0, _hash01(float(index) * 5.43 + 0.8))
+		var side_sway := side * lerpf(2.0, 9.0, speed_ratio) * camera_scale
 		var points := PackedVector2Array([
-			Vector2(start_x, y),
-			Vector2(start_x - length, y + side * lerpf(2.0, 9.0, speed_ratio)),
+			center + tangent * 4.0 * camera_scale,
+			center - tangent * length + normal * side_sway,
 		])
 		var alpha := (0.11 + 0.11 * boost_pressure) * visibility * lerpf(0.62, 1.0, phase)
-		var width := 0.85 + 1.45 * speed_ratio
+		var width := (0.85 + 1.45 * speed_ratio) * camera_scale
 		_set_airwake_line(line, points, width, Color(0.92, 1.0, 1.0, alpha))
 
 
-func _update_airwake_mote_lines(mote_ratio: float, speed_ratio: float, length_scale: float) -> void:
+func _update_airwake_mote_lines(direction: Vector2, mote_ratio: float, speed_ratio: float, length_scale: float) -> void:
 	var visibility := clampf(mote_ratio * 冷凝粒子透明度, 0.0, 1.0)
 	var active_count := clampi(ceili(float(airwake_mote_lines.size()) * clampf(冷凝粒子数量 / 64.0, 0.0, 1.0)), 0, airwake_mote_lines.size())
 	if visibility <= 0.01 or active_count <= 0:
@@ -3600,6 +3733,12 @@ func _update_airwake_mote_lines(mote_ratio: float, speed_ratio: float, length_sc
 			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
 		return
 	var scatter_length := (52.0 + 86.0 * speed_ratio) * length_scale * clampf(冷凝粒子速度, 0.2, 2.5)
+	var path_points := _get_airwake_screen_path(direction, scatter_length + 72.0 * length_scale)
+	if path_points.size() < 2:
+		for line in airwake_mote_lines:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
 	for index in range(airwake_mote_lines.size()):
 		var line := airwake_mote_lines[index]
 		if index >= active_count:
@@ -3607,27 +3746,31 @@ func _update_airwake_mote_lines(mote_ratio: float, speed_ratio: float, length_sc
 			continue
 		var seed := float(index) * 11.73
 		var phase := fposmod(time * 2.6 * clampf(冷凝粒子速度, 0.2, 2.5) + _hash01(seed), 1.0)
-		var x := -scatter_length * lerpf(0.16, 1.0, phase)
-		var y := lerpf(-38.0, 38.0, _hash01(seed + 3.1))
-		var mote_size := lerpf(2.0, 5.0, _hash01(seed + 4.9))
-		var points := PackedVector2Array([Vector2(x, y), Vector2(x - mote_size, y)])
+		var back_distance := scatter_length * lerpf(0.16, 1.0, phase) * camera_scale
+		var sample := _sample_airwake_path_from_end(path_points, back_distance)
+		var tangent: Vector2 = sample["tangent"]
+		var normal := Vector2(-tangent.y, tangent.x)
+		var lateral := lerpf(-38.0, 38.0, _hash01(seed + 3.1)) * camera_scale
+		var mote_size := lerpf(2.0, 5.0, _hash01(seed + 4.9)) * camera_scale
+		var center: Vector2 = sample["pos"] + normal * lateral
+		var points := PackedVector2Array([center, center - tangent * mote_size])
 		var alpha := (0.10 + 0.08 * speed_ratio) * visibility * (1.0 - phase * 0.45)
 		_set_airwake_line(line, points, mote_size, Color(0.72, 0.96, 1.0, alpha))
 
 
-func _update_airwake_compression_line(compression_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+func _update_airwake_compression_line(direction: Vector2, compression_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
 	var visibility := clampf(compression_ratio * 压缩粒子透明度, 0.0, 1.0)
 	if visibility <= 0.015:
 		_set_airwake_line(airwake_compression_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
 		return
 	var line_length := (54.0 + 88.0 * speed_ratio + 70.0 * boost_pressure) * length_scale * clampf(压缩粒子速度, 0.2, 2.5)
-	var points := PackedVector2Array([
-		Vector2(8.0, 0.0),
-		Vector2(-line_length * 0.34, 0.0),
-		Vector2(-line_length, 0.0),
-	])
+	var points := _get_airwake_screen_path(direction, line_length)
+	if points.size() < 2:
+		_set_airwake_line(airwake_compression_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
 	var alpha := (0.040 + 0.082 * boost_pressure) * visibility
-	var width := (10.0 + 22.0 * boost_pressure + 6.0 * speed_ratio) * visibility
+	var width := (10.0 + 22.0 * boost_pressure + 6.0 * speed_ratio) * visibility * camera_scale
 	_set_airwake_line(airwake_compression_line, points, width, Color(0.58, 0.94, 1.0, alpha))
 
 
@@ -3773,13 +3916,9 @@ func _draw_background() -> void:
 	_draw_sea_plane_wash(speed_pressure, readability_fade)
 	_draw_parallax_texture_layer(mountain_far_ink_texture, 0.34, Vector2(0.035, 0.010), 远山透明度 * readability_fade)
 	_draw_parallax_texture_layer(sea_horizon_wash_texture, 海面水洗高度比例, Vector2(0.065, 0.014), 海面水洗透明度 * grounded_plane_fade, 1.0, 0.0, 海面水洗染色)
-	_draw_far_landmarks_from_atlas(speed_pressure)
-	_draw_parallax_texture_layer(mountain_mid_ink_texture, 0.43, Vector2(0.150, 0.028), 中景山透明度 * readability_fade)
 	_draw_parallax_texture_layer(cloudsea_far_texture, 远云高度比例, Vector2(0.090, 0.018), 远云透明度 * readability_fade)
-	_draw_parallax_texture_layer(far_island_chain_texture, 远岛高度比例, Vector2(0.120, 0.026), 远岛透明度 * grounded_plane_fade, 1.0, 0.0, 远岛染色)
-	_draw_parallax_texture_layer(sea_mist_foot_texture, 山脚海雾高度比例, Vector2(0.170, 0.034), 山脚海雾透明度 * grounded_plane_fade)
+	_draw_world_island_groups(speed_pressure, grounded_plane_fade)
 	_draw_sea_shimmer_from_atlas(speed_pressure, grounded_plane_fade)
-	_draw_parallax_texture_layer(cloudsea_mid_texture, 中景云高度比例, Vector2(0.240, 0.045), 中景云透明度 * readability_fade)
 	_draw_near_cloud_wisps_from_atlas(speed_pressure)
 	_draw_battlefield_boundary_layers()
 	if show_debug_guides:
@@ -3793,7 +3932,7 @@ func _draw_sky_wash() -> void:
 
 
 func _draw_sea_plane_wash(speed_pressure: float, readability_fade: float) -> void:
-	var horizon_y := VIEW_SIZE.y * 海平线高度比例 - (camera_center.y - FLIGHT_START_POS.y) * 0.012 / maxf(camera_zoom, 0.001)
+	var horizon_y := _get_sea_horizon_y()
 	var bottom_y := VIEW_SIZE.y + 2.0
 	var height := maxf(bottom_y - horizon_y, 1.0)
 	var alpha_scale := readability_fade * lerpf(1.0, 海面高速保留比例, speed_pressure)
@@ -3807,6 +3946,10 @@ func _draw_sea_plane_wash(speed_pressure: float, readability_fade: float) -> voi
 		)
 	)
 	_draw_soft_horizon_glow(horizon_y, alpha_scale)
+
+
+func _get_sea_horizon_y() -> float:
+	return VIEW_SIZE.y * 海平线高度比例 - (camera_center.y - FLIGHT_START_POS.y) * 0.012 / maxf(camera_zoom, 0.001)
 
 
 func _draw_soft_horizon_glow(horizon_y: float, alpha_scale: float) -> void:
@@ -3879,6 +4022,117 @@ func _draw_parallax_texture_layer(texture: Texture2D, y_ratio: float, parallax: 
 	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
 	var phase := camera_center.x * parallax.x + time * 4.0 * parallax.x
 	_draw_mirrored_texture_tile_x(texture, y, phase, color, scale)
+
+
+func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float) -> void:
+	if 岛群整体透明度 <= 0.001 or grounded_plane_fade <= 0.001:
+		return
+	var horizon_y := _get_sea_horizon_y()
+	var base_fade := 岛群整体透明度 * grounded_plane_fade * lerpf(1.0, 0.88, speed_pressure)
+	for group in BACKGROUND_ISLAND_GROUPS:
+		var depth := clampf(float(group.get("depth", 0.48)) * 岛群世界移动倍率, 0.08, 1.4)
+		var screen_x := VIEW_SIZE.x * 0.5 + (float(group.get("x", FLIGHT_START_POS.x)) - camera_center.x) * depth / maxf(camera_zoom, 0.001)
+		var unit_scale := float(group.get("scale", 0.76)) / maxf(camera_zoom, 0.001)
+		var cull_width := 1120.0 * maxf(unit_scale, 0.3)
+		if screen_x < -cull_width or screen_x > VIEW_SIZE.x + cull_width:
+			continue
+		var group_alpha := clampf(base_fade * float(group.get("alpha", 1.0)), 0.0, 1.0)
+		if group_alpha <= 0.001:
+			continue
+		var sea_y := horizon_y + 岛群贴海偏移 + float(group.get("sea_offset", 0.0)) * unit_scale
+		var flip_x := bool(group.get("mirror", false))
+		var is_far_mountain := String(group.get("mountain", "mid")) == "far"
+		var mountain_texture := mountain_far_ink_texture if is_far_mountain else mountain_mid_ink_texture
+		var mountain_alpha := 岛群山体透明度 * (0.72 if is_far_mountain else 1.0) * group_alpha
+		_draw_texture_anchored(
+			sea_horizon_wash_texture,
+			Vector2(screen_x, sea_y + 66.0 * unit_scale),
+			Vector2(0.5, 0.56),
+			0.40 * unit_scale,
+			海面水洗透明度 * 0.62 * group_alpha,
+			海面水洗染色,
+			flip_x
+		)
+		_draw_texture_anchored(
+			mountain_texture,
+			Vector2(screen_x, sea_y - 12.0 * unit_scale),
+			Vector2(0.5, 0.88),
+			0.40 * unit_scale,
+			mountain_alpha,
+			Color(0.58, 0.70, 0.72, 1.0),
+			flip_x
+		)
+		_draw_atlas_region_anchored(
+			landmark_silhouettes_atlas_texture,
+			int(group.get("landmark", 0)),
+			Vector2(screen_x + 92.0 * unit_scale * (-1.0 if flip_x else 1.0), sea_y - 28.0 * unit_scale),
+			float(group.get("landmark_scale", 0.50)) * unit_scale,
+			地标建筑透明度 * group_alpha,
+			Color(0.45, 0.58, 0.62, 1.0),
+			flip_x
+		)
+		_draw_texture_anchored(
+			far_island_chain_texture,
+			Vector2(screen_x, sea_y + 18.0 * unit_scale),
+			Vector2(0.5, 0.58),
+			0.42 * unit_scale,
+			远岛透明度 * group_alpha,
+			远岛染色,
+			flip_x
+		)
+		_draw_texture_anchored(
+			sea_mist_foot_texture,
+			Vector2(screen_x, sea_y + 30.0 * unit_scale),
+			Vector2(0.5, 0.60),
+			0.44 * unit_scale,
+			岛群山脚雾透明度 * group_alpha,
+			Color(0.88, 0.96, 1.0, 1.0),
+			flip_x
+		)
+		_draw_texture_anchored(
+			cloudsea_mid_texture,
+			Vector2(screen_x, sea_y + 82.0 * unit_scale),
+			Vector2(0.5, 0.52),
+			0.40 * unit_scale,
+			中景云透明度 * 0.74 * group_alpha,
+			Color(0.86, 0.94, 0.98, 1.0),
+			flip_x
+		)
+
+
+func _draw_texture_anchored(texture: Texture2D, anchor_pos: Vector2, anchor: Vector2, scale: float, alpha: float, tint: Color = Color(1.0, 1.0, 1.0, 1.0), flip_x: bool = false) -> void:
+	if texture == null or alpha <= 0.001 or scale <= 0.001:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+	var draw_size := texture_size * scale
+	var destination := Rect2(anchor_pos - Vector2(draw_size.x * anchor.x, draw_size.y * anchor.y), draw_size)
+	var source := Rect2(Vector2.ZERO, texture_size)
+	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
+	if flip_x:
+		_draw_texture_rect_region_flipped_x(texture, destination, source, color)
+	else:
+		draw_texture_rect_region(texture, destination, source, color)
+
+
+func _draw_atlas_region_anchored(texture: Texture2D, cell_index: int, anchor_pos: Vector2, scale: float, alpha: float, tint: Color = Color(1.0, 1.0, 1.0, 1.0), flip_x: bool = false) -> void:
+	if texture == null or alpha <= 0.001 or scale <= 0.001:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+	var cell_size := Vector2(texture_size.x * 0.5, texture_size.y / 3.0)
+	var safe_index := posmod(cell_index, 6)
+	var row := floori(float(safe_index) / 2.0)
+	var source := Rect2(Vector2(float(safe_index % 2) * cell_size.x, float(row) * cell_size.y), cell_size)
+	var draw_size := cell_size * scale
+	var destination := Rect2(anchor_pos - Vector2(draw_size.x * 0.5, draw_size.y * 0.86), draw_size)
+	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
+	if flip_x:
+		_draw_texture_rect_region_flipped_x(texture, destination, source, color)
+	else:
+		draw_texture_rect_region(texture, destination, source, color)
 
 
 func _draw_sea_shimmer_from_atlas(speed_pressure: float, grounded_plane_fade: float) -> void:

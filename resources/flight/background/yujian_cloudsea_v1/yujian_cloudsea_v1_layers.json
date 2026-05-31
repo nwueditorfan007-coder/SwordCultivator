@@ -7,13 +7,26 @@
       "purpose": "make the lower half read as a sea plane by separating it from the sky color before transparent sea, island, mist, and cloud assets are drawn",
       "horizon_y_ratio": 0.515,
       "base_color": [
-        0.32,
-        0.64,
-        0.67,
-        0.29
+        0.01,
+        0.28,
+        0.78,
+        0.72
       ],
       "depth_bands": [],
-      "runtime_note": "drawn in code immediately after the sky wash; defaults are exposed in the prototype inspector with Chinese names: 海平线高度比例, 海面基础颜色, 海面基础透明度, 海面高速保留比例, 海平线柔光颜色, 海平线柔光强度, 海平线柔光宽度"
+      "runtime_note": "drawn in code immediately after the sky wash; the default sea is intentionally blue and higher opacity so it separates from the pale sky. Defaults are exposed in the prototype inspector with Chinese names: 海平线高度比例, 海面基础颜色, 海面基础透明度, 海面高速保留比例, 海平线柔光颜色, 海平线柔光强度, 海平线柔光宽度"
+    },
+    {
+      "name": "world_anchor_island_groups",
+      "purpose": "keep mid-ground islands, mountain bases, landmarks, and foot mist locked to the same sea-surface anchor instead of moving as independent parallax layers",
+      "runtime_note": "drawn from BACKGROUND_ISLAND_GROUPS in yujian_sprite_sequence_prototype.gd; island, mountain, landmark, sea mist, and local cloud layers share one screen anchor per group",
+      "inspector_exports": [
+        "岛群整体透明度",
+        "岛群世界移动倍率",
+        "岛群贴海偏移",
+        "岛群山体透明度",
+        "岛群山脚雾透明度",
+        "地标建筑透明度"
+      ]
     }
   ],
   "runtime_assets": [
