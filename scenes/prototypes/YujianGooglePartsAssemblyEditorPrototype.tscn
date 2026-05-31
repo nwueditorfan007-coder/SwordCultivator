@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://dhvrwy38khfuy"]
 
 [ext_resource type="Script" path="res://scripts/prototypes/yujian_google_parts_assembly_editor_prototype.gd" id="1_editor"]
 
-[node name="YujianGooglePartsAssemblyEditorPrototype" type="Node2D"]
+[node name="YujianGooglePartsAssemblyEditorPrototype" type="Node2D" unique_id=1714327191]
 script = ExtResource("1_editor")

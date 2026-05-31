@@ -1,0 +1,1273 @@
+{
+	"part_set_root": "res://resources/flight/rider/google_parts_v2",
+	"poses": {
+		"fast": {
+			"down": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			},
+			"left": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						45.5814208984375,
+						-22.635669708252
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						16.4340991973877,
+						-0.62015974521637
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						22.3255844116211,
+						9.9224967956543
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			},
+			"right": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-6.20154857635498,
+						8.99222373962402
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.30231106327362,
+					"scale_y": 1.16738028940933,
+					"texture_key": "calf_side"
+				},
+				"calf_near": {
+					"flip_x": true,
+					"flip_y": false,
+					"offset": [
+						13.0232543945313,
+						-0.310072660446167
+					],
+					"rotation_deg": -6.0,
+					"scale": 1.0,
+					"scale_x": 1.27380220483303,
+					"scale_y": 1.04926711389703,
+					"texture_key": "calf_side"
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-3.10077047348022,
+						-1.86046504974365
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.81926144460835,
+					"scale_y": 0.78436764023178,
+					"texture_key": "forearm_side"
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						9.92247772216797,
+						-5.58139514923096
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.39587792111627,
+					"scale_y": 0.669226636122201,
+					"texture_key": "forearm_side"
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": true,
+					"offset": [
+						-4.03100299835205,
+						0.0
+					],
+					"rotation_deg": 24.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": "hand_front"
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						13.6434116363525,
+						-5.58139514923096
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": "hand_back"
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-5.5813946723938,
+						6.20154094696045
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						11.4728622436523,
+						-6.82171440124512
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-1.86046516895294,
+						-4.65115547180176
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 0.797390501934864,
+					"scale_y": 0.715252667427491,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-0.62015974521637,
+						1.86046504974365
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-0.930232524871826,
+						1.55038511753082
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			},
+			"up": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-34.418586730957,
+						-12.7131652832031
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						41.5503921508789,
+						-22.0154895782471
+					],
+					"rotation_deg": -32.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 0.944457769140738,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-38.139533996582,
+						-7.44187545776367
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						17.6744155883789,
+						-20.1549835205078
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": true,
+					"offset": [
+						-32.868236541748,
+						-2.48062419891357
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.59103954135402,
+					"scale_y": 1.15822225856915,
+					"texture_key": ""
+				},
+				"hand_near": {
+					"flip_x": true,
+					"flip_y": true,
+					"offset": [
+						19.5348834991455,
+						-22.3255805969238
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.930246353149414,
+						-8.06201362609863
+					],
+					"rotation_deg": 24.0,
+					"scale": 1.0,
+					"scale_x": 0.781305201880743,
+					"scale_y": 0.772728990309792,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-22.0155029296875,
+						-17.6744213104248
+					],
+					"rotation_deg": 48.0,
+					"scale": 1.0,
+					"scale_x": 0.719659789251036,
+					"scale_y": 0.756726170459728,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						25.1162643432617,
+						-28.5271396636963
+					],
+					"rotation_deg": -43.0,
+					"scale": 1.0,
+					"scale_x": 0.802309483750506,
+					"scale_y": 0.719311171721979,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						3.41085720062256,
+						-18.6046447753906
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 0.731531711999076,
+					"scale_y": 0.565191063473134,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-25.4263648986816,
+						-2.48062419891357
+					],
+					"rotation_deg": 53.0,
+					"scale": 1.0,
+					"scale_x": 1.12685349971686,
+					"scale_y": 1.04901681163351,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						4.34109115600586,
+						-12.7131805419922
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			}
+		},
+		"low": {
+			"down": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			},
+			"left": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			},
+			"right": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-7.44186735153198,
+						0.310072898864746
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						5.58139610290527,
+						0.620145797729492
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.14499105327375,
+					"scale_y": 0.943429834213854,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-10.5426225662231,
+						-7.44187831878662
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.77075704137628,
+					"scale_y": 1.07458828344476,
+					"texture_key": "forearm_side"
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						9.92246055603027,
+						2.17053604125977
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 2.0155174596863,
+					"scale_y": 0.93315218625269,
+					"texture_key": "forearm_side"
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": true,
+					"offset": [
+						-4.34107685089111,
+						-8.68217277526855
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": "hand_front"
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						16.4341106414795,
+						4.34108734130859
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": "hand_back"
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-6.82170009613037,
+						1.86045074462891
+					],
+					"rotation_deg": -9.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						4.03100633621216,
+						-2.48060989379883
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-1.86046504974365,
+						-10.852710723877
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 0.918731477326032,
+					"scale_y": 0.782605844928792,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-1.24030685424805,
+						-1.55039405822754
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						3.10077381134033,
+						1.93022489547729
+					],
+					"rotation_deg": -24.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				}
+			},
+			"up": {
+				"calf_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-10.5426445007324,
+						3.7209300994873
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"calf_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						8.37209224700928,
+						4.65116262435913
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-21.3953609466553,
+						-5.58139419555664
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"forearm_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						45.8914794921875,
+						4.65116930007935
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_far": {
+					"flip_x": false,
+					"flip_y": true,
+					"offset": [
+						-15.8139524459839,
+						-5.89148187637329
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"hand_near": {
+					"flip_x": false,
+					"flip_y": true,
+					"offset": [
+						40.3100700378418,
+						3.10078454017639
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"head": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-9.61239814758301,
+						0.62015974521637
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"thigh_near": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						9.30232524871826,
+						5.58139514923096
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"torso": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						0.0,
+						0.0
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_far": {
+					"flip_x": false,
+					"flip_y": false,
+					"offset": [
+						-11.4728631973267,
+						2.48062467575073
+					],
+					"rotation_deg": 0.0,
+					"scale": 1.0,
+					"scale_x": 1.0,
+					"scale_y": 1.0,
+					"texture_key": ""
+				},
+				"upper_arm_near": {
+					"flip_x": true,
+					"flip_y": false,
+					"offset": [
+						23.8759860992432,
+						11.1627979278564
+					],
+					"rotation_deg": -33.0,
+					"scale": 1.0,
+					"scale_x": 1.92849534886721,
+					"scale_y": 1.01393604487536,
+					"texture_key": "upper_arm_side"
+				}
+			}
+		}
+	}
+}

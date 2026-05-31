@@ -82,6 +82,45 @@ const V4_PLUS_ANCHOR_SASH := Vector2(318.0, 90.0)
 const V4_PLUS_ANCHOR_SWORD := Vector2(250.0, 48.0)
 const V4_PLUS_ANCHOR_FOOT_QI := Vector2(125.0, 61.0)
 
+const VISUAL_STYLE_CLEAN_CAPSULE := 0
+const VISUAL_STYLE_VIDEO_STICKMAN := 1
+const SWORD_STYLE_WHITE_RAINBOW := 0
+const SWORD_STYLE_INK_BONE := 1
+const SWORD_STYLE_FROST_VEIN := 2
+const SWORD_STYLE_STAR_BREAK := 3
+const SWORD_STYLE_RUNE_EDGE := 4
+const SWORD_STYLE_BLOOD_THREAD := 5
+const SWORD_STYLE_COUNT := 6
+const SWORD_STYLE_LABELS := [
+	"云岚载人剑",
+	"墨骨残锋",
+	"青霜灵脉",
+	"断星飞剑",
+	"符刃法剑",
+	"血线破妄",
+]
+const STICKMAN_LINE := Color(0.010, 0.012, 0.014, 0.98)
+const STICKMAN_SHADOW := Color(0.0, 0.0, 0.0, 0.48)
+const STICKMAN_RIM := Color(0.82, 0.94, 0.92, 0.34)
+const STICKMAN_HIGHLIGHT := Color(0.92, 1.0, 0.96, 0.28)
+const STICKMAN_HEAD_FILL := Color(0.018, 0.021, 0.024, 0.82)
+const POSE_DRIVER_IN_HALF_LIFE := 0.055
+const POSE_DRIVER_OUT_HALF_LIFE := 0.115
+const POSE_SPEED_IN_HALF_LIFE := 0.050
+const POSE_SPEED_OUT_HALF_LIFE := 0.220
+const BOOST_FOLLOW_THROUGH_IN_HALF_LIFE := 0.040
+const BOOST_FOLLOW_THROUGH_OUT_HALF_LIFE := 0.340
+const POSE_NEAR_SIDE_SWITCH_X := 0.22
+
+@export_group("Visual Style")
+@export_enum("Clean capsule", "Video stickman") var visual_style := VISUAL_STYLE_VIDEO_STICKMAN
+@export_range(0.5, 1.6, 0.01) var stickman_width_scale := 1.0
+@export_range(0.75, 2.2, 0.01) var stickman_head_scale := 1.45
+@export_range(0.40, 1.0, 0.01) var stickman_far_limb_alpha := 0.72
+
+@export_group("Sword Style")
+@export_enum("Cloud Rider", "Ink Bone", "Frost Vein", "Star Break", "Rune Edge", "Blood Thread") var sword_style := SWORD_STYLE_WHITE_RAINBOW
+
 @export_group("Hair FX")
 @export var hair_fx_enabled := true
 @export var hair_fx_back_strands := 15
@@ -106,6 +145,7 @@ const V4_PLUS_ANCHOR_FOOT_QI := Vector2(125.0, 61.0)
 @export var idle_pose_fx_enabled := true
 @export_range(0.0, 2.0, 0.01) var idle_pose_breath_strength := 1.0
 @export_range(0.0, 2.0, 0.01) var idle_pose_control_strength := 1.0
+@export_range(0.0, 2.0, 0.01) var idle_pose_tension_strength := 1.0
 
 const EDIT_JOINT_KEYS := [
 	"head_center",
@@ -166,6 +206,14 @@ var _boost := 0.0
 var _turn := 0.0
 var _carve := 0.0
 var _throttle := 0.0
+var _pose_speed := 0.0
+var _pose_boost := 0.0
+var _pose_turn := 0.0
+var _pose_carve := 0.0
+var _pose_throttle := 0.0
+var _pose_driver_initialized := false
+var _pose_near_side_sign := 1.0
+var _boost_follow_through_energy := 0.0
 var _time := 0.0
 var _switch_flash := 0.0
 var _cloth_wind := 0.0
@@ -175,7 +223,7 @@ var _hair_turn_lag := 0.0
 var _hair_layer_lag := 0.0
 var _hair_groom_chains := {}
 var _idle_recover_energy := 0.0
-var _idle_previous_action_pressure := 0.0
+var _idle_previous_turn_pressure := 0.0
 var _pose_overrides := {"low": {}, "fast": {}}
 var _bone_lengths := {}
 var _editor_active := false
@@ -239,6 +287,11 @@ var _hair_fx_material_depth_slider: HSlider
 var _hair_fx_material_depth_spin: SpinBox
 var _hair_fx_status_label: Label
 var _hair_fx_updating_controls := false
+var _external_hair_fx_hotkey_owner := false
+
+
+func _uses_video_stickman_visual() -> bool:
+	return visual_style == VISUAL_STYLE_VIDEO_STICKMAN
 
 
 func _ready() -> void:
@@ -253,12 +306,30 @@ func is_pose_editor_active() -> bool:
 	return _editor_active
 
 
+func toggle_hair_fx_panel() -> void:
+	_toggle_hair_fx_panel()
+
+
+func set_external_hair_fx_hotkey_owner(enabled: bool) -> void:
+	_external_hair_fx_hotkey_owner = enabled
+
+
+func cycle_sword_style() -> void:
+	sword_style = int((sword_style + 1) % SWORD_STYLE_COUNT)
+	queue_redraw()
+
+
+func get_sword_style_label() -> String:
+	var index := clampi(sword_style, 0, SWORD_STYLE_LABELS.size() - 1)
+	return String(SWORD_STYLE_LABELS[index])
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F4:
 		_toggle_editor()
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
+	if not _external_hair_fx_hotkey_owner and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 		_toggle_hair_fx_panel()
 		get_viewport().set_input_as_handled()
 		return
@@ -318,6 +389,47 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _update_pose_drivers(delta: float) -> void:
+	var raw_speed := _velocity.length()
+	if not _pose_driver_initialized:
+		_pose_speed = raw_speed
+		_pose_boost = _boost
+		_pose_turn = _turn
+		_pose_carve = _carve
+		_pose_throttle = _throttle
+		_boost_follow_through_energy = clampf(maxf(raw_speed / FLIGHT_SPEED_POSE_REFERENCE, maxf(_boost, _throttle * 0.85)), 0.0, 1.0)
+		_pose_driver_initialized = true
+		return
+	var safe_delta := maxf(delta, 0.0)
+	_pose_speed = _damp_float(_pose_speed, raw_speed, _driver_half_life(_pose_speed, raw_speed, POSE_SPEED_IN_HALF_LIFE, POSE_SPEED_OUT_HALF_LIFE), safe_delta)
+	_pose_boost = _damp_float(_pose_boost, _boost, _driver_half_life(_pose_boost, _boost, POSE_DRIVER_IN_HALF_LIFE, POSE_DRIVER_OUT_HALF_LIFE), safe_delta)
+	_pose_turn = _damp_float(_pose_turn, _turn, _driver_half_life(_pose_turn, _turn, POSE_DRIVER_IN_HALF_LIFE, POSE_DRIVER_OUT_HALF_LIFE), safe_delta)
+	_pose_carve = _damp_float(_pose_carve, _carve, _driver_half_life(_pose_carve, _carve, POSE_DRIVER_IN_HALF_LIFE, POSE_DRIVER_OUT_HALF_LIFE), safe_delta)
+	_pose_throttle = _damp_float(_pose_throttle, _throttle, _driver_half_life(_pose_throttle, _throttle, POSE_DRIVER_IN_HALF_LIFE, POSE_DRIVER_OUT_HALF_LIFE), safe_delta)
+	var boost_follow_target := clampf(maxf(_pose_speed / FLIGHT_SPEED_POSE_REFERENCE, maxf(_pose_boost, _pose_throttle * 0.85)), 0.0, 1.0)
+	var boost_follow_half_life := _driver_half_life(_boost_follow_through_energy, boost_follow_target, BOOST_FOLLOW_THROUGH_IN_HALF_LIFE, BOOST_FOLLOW_THROUGH_OUT_HALF_LIFE)
+	_boost_follow_through_energy = _damp_float(_boost_follow_through_energy, boost_follow_target, boost_follow_half_life, safe_delta)
+
+
+func _driver_half_life(current: float, target: float, in_half_life: float, out_half_life: float) -> float:
+	return in_half_life if target > current else out_half_life
+
+
+func _update_pose_near_side_sign(heading: Vector2) -> void:
+	if _editor_active:
+		return
+	if absf(heading.x) < POSE_NEAR_SIDE_SWITCH_X:
+		return
+	_pose_near_side_sign = 1.0 if heading.x >= 0.0 else -1.0
+
+
+func _output_near_side_sign_for_heading(heading: Vector2) -> float:
+	if _editor_active:
+		var sign_value := signf(heading.x)
+		return 1.0 if sign_value == 0.0 else sign_value
+	return _pose_near_side_sign
+
+
 func set_flight_pose(
 		p_direction_index: int,
 		p_heading: Vector2,
@@ -338,11 +450,13 @@ func set_flight_pose(
 	else:
 		_switch_flash = maxf(_switch_flash - safe_delta / 0.12, 0.0)
 	_heading = next_heading
+	_update_pose_near_side_sign(next_heading)
 	_velocity = p_velocity
 	_boost = clampf(p_boost, 0.0, 1.0)
 	_turn = clampf(p_turn, 0.0, 1.0)
 	_carve = clampf(p_carve, 0.0, 1.0)
 	_throttle = clampf(p_throttle, 0.0, 1.0)
+	_update_pose_drivers(safe_delta)
 	var signed_heading_change := clampf(previous_heading.cross(next_heading) * 7.5, -1.0, 1.0)
 	var signed_turn_target := signed_heading_change * (0.35 + maxf(_turn, _carve * 0.70) * 0.80)
 	_hair_turn_lag = _damp_float(_hair_turn_lag, signed_turn_target, 0.10, safe_delta)
@@ -353,8 +467,9 @@ func set_flight_pose(
 	_update_idle_recover_energy(safe_delta)
 	_update_cloth_motion_state(safe_delta)
 	_time += safe_delta
-	if hair_fx_enabled:
-		_update_hair_groom_physics(_build_flight_pose(), safe_delta)
+	var runtime_pose := _build_flight_pose()
+	if hair_fx_enabled and not _uses_video_stickman_visual():
+		_update_hair_groom_physics(runtime_pose, safe_delta)
 	else:
 		_hair_groom_chains.clear()
 	queue_redraw()
@@ -367,38 +482,45 @@ func _draw() -> void:
 	var v4_plus_alpha := _v4_plus_right_fast_alpha(pose)
 	var image_parts_alpha := v4_plus_alpha if V4_PLUS_DRAW_IMAGE_PARTS else 0.0
 	_draw_sword(h, speed_ratio, image_parts_alpha)
-	if V4_PLUS_DRAW_IMAGE_PARTS:
+	if V4_PLUS_DRAW_IMAGE_PARTS and not _uses_video_stickman_visual():
 		_draw_v4_plus_right_fast_back_parts(pose)
-	_draw_v4_hair_fx_back(pose)
-	_draw_clean_skeleton(pose)
-	_draw_v4_hair_fx_body_front(pose)
-	_draw_v4_hair_fx_head_mount(pose)
-	_draw_v4_hair_fx_front(pose)
-	if V4_PLUS_DRAW_IMAGE_PARTS:
+	if _uses_video_stickman_visual():
+		_draw_video_stickman_skeleton(pose)
+	else:
+		_draw_v4_hair_fx_back(pose)
+		_draw_clean_skeleton(pose)
+		_draw_v4_hair_fx_body_front(pose)
+		_draw_v4_hair_fx_head_mount(pose)
+		_draw_v4_hair_fx_front(pose)
+	if V4_PLUS_DRAW_IMAGE_PARTS and not _uses_video_stickman_visual():
 		_draw_v4_plus_right_fast_front_parts(pose)
 	_draw_joints(pose)
 	_draw_hair_groom_debug_overlay(pose)
 
 
 func _build_flight_pose(apply_overrides := true) -> Dictionary:
-	var pose_boost := _boost
-	var pose_throttle := _throttle
-	var speed_ratio := clampf(_velocity.length() / FLIGHT_SPEED_POSE_REFERENCE, 0.0, 1.0)
+	var pose_boost := _pose_boost
+	var pose_throttle := _pose_throttle
+	var pose_carve := _pose_carve
+	var speed_ratio := clampf(_pose_speed / FLIGHT_SPEED_POSE_REFERENCE, 0.0, 1.0)
 	if _editor_active:
 		if _editor_pose == "fast":
 			pose_boost = 1.0
 			pose_throttle = 1.0
+			pose_carve = 0.0
 			speed_ratio = 1.0
 		else:
 			pose_boost = 0.0
 			pose_throttle = 0.0
+			pose_carve = 0.0
 			speed_ratio = 0.0
-	var fast_weight := smoothstep(0.28, 0.82, maxf(speed_ratio, pose_boost * 0.92 + pose_throttle * 0.18))
+	var fast_pose_input := maxf(speed_ratio, maxf(pose_boost * 0.92 + pose_throttle * 0.18, _boost_follow_through_energy * 0.72))
+	var fast_weight := smoothstep(0.28, 0.82, fast_pose_input)
 	if _editor_active:
 		fast_weight = 1.0 if _editor_pose == "fast" else 0.0
-	elif fast_weight > 0.975:
+	elif fast_weight > 0.995:
 		fast_weight = 1.0
-	var wind := clampf(speed_ratio + pose_boost * 0.65 + _carve * 0.5, 0.0, 1.6)
+	var wind := clampf(speed_ratio + pose_boost * 0.65 + pose_carve * 0.5, 0.0, 1.6)
 	if _editor_active:
 		return _build_direction_flight_pose(_editor_direction_index, fast_weight, speed_ratio, wind, apply_overrides)
 
@@ -407,12 +529,13 @@ func _build_flight_pose(apply_overrides := true) -> Dictionary:
 	var second_index := int(blend_info["to_index"])
 	var blend_weight := float(blend_info["weight"])
 	var first_pose := _build_direction_flight_pose(first_index, fast_weight, speed_ratio, wind, apply_overrides)
+	var output_near_side_sign := _output_near_side_sign_for_heading(_heading)
 	var pose: Dictionary
 	if first_index == second_index or blend_weight <= 0.001:
-		pose = first_pose
+		pose = _pose_for_output_side(first_pose, output_near_side_sign)
 	else:
 		var second_pose := _build_direction_flight_pose(second_index, fast_weight, speed_ratio, wind, apply_overrides)
-		pose = _blend_flight_poses(first_pose, second_pose, blend_weight)
+		pose = _blend_flight_poses(first_pose, second_pose, blend_weight, output_near_side_sign)
 	if apply_overrides:
 		_apply_runtime_idle_pose_motion(pose)
 	return pose
@@ -569,50 +692,62 @@ func _apply_runtime_idle_pose_motion(pose: Dictionary) -> void:
 	var normal := h.rotated(PI * 0.5)
 	if normal.y < 0.0:
 		normal = -normal
-	var speed_ratio := clampf(_velocity.length() / FLIGHT_SPEED_POSE_REFERENCE, 0.0, 1.35)
+	var speed_ratio := clampf(_pose_speed / FLIGHT_SPEED_POSE_REFERENCE, 0.0, 1.35)
 	var speed_unit := clampf(speed_ratio, 0.0, 1.0)
-	var hover_weight := clampf((1.0 - smoothstep(0.06, 0.32, speed_unit)) * (1.0 - _throttle * 0.65), 0.0, 1.0)
-	var boost_weight := clampf(smoothstep(0.42, 0.86, maxf(speed_unit, maxf(_boost, _throttle * 0.74))), 0.0, 1.0)
-	var turn_weight := clampf(maxf(_turn, _carve), 0.0, 1.0)
+	var hover_weight := clampf((1.0 - smoothstep(0.06, 0.32, speed_unit)) * (1.0 - _pose_throttle * 0.65), 0.0, 1.0)
+	var boost_weight := clampf(smoothstep(0.42, 0.86, maxf(speed_unit, maxf(_pose_boost, _pose_throttle * 0.74))), 0.0, 1.0)
+	var high_speed_weight := clampf(smoothstep(0.46, 0.94, maxf(speed_unit, maxf(_pose_boost * 0.86, maxf(_pose_throttle * 0.58, _boost_follow_through_energy * 0.70)))), 0.0, 1.0)
+	var turn_weight := clampf(maxf(_pose_turn, _pose_carve), 0.0, 1.0)
 	var recover_weight := clampf(_idle_recover_energy, 0.0, 1.0)
 	var cruise_weight := clampf(smoothstep(0.10, 0.56, speed_unit) * (1.0 - boost_weight * 0.55) * (1.0 - turn_weight * 0.35), 0.0, 1.0)
+	var tension_weight := clampf((hover_weight * 0.78 + cruise_weight * 0.46 + high_speed_weight * 0.92 + recover_weight * 0.34) * (1.0 - turn_weight * 0.22), 0.0, 1.0)
 
-	var breath_rate := lerpf(2.05, 4.90, clampf(boost_weight + turn_weight * 0.45, 0.0, 1.0))
+	var breath_rate := lerpf(2.20, 3.55, clampf(high_speed_weight + turn_weight * 0.35, 0.0, 1.0))
 	var breath_amplitude := idle_pose_breath_strength * (
-		3.15 * hover_weight
-		+ 1.45 * cruise_weight
-		+ 0.45 * (1.0 - hover_weight) * (1.0 - boost_weight)
+		4.75 * hover_weight
+		+ 1.70 * cruise_weight
+		+ 2.65 * high_speed_weight
+		+ 0.40 * (1.0 - hover_weight) * (1.0 - high_speed_weight)
 	)
-	breath_amplitude *= 1.0 - boost_weight * 0.70
-	breath_amplitude *= 1.0 - turn_weight * 0.30
+	breath_amplitude *= 1.0 - turn_weight * 0.26
 	var breath := sin(_time * breath_rate) * breath_amplitude
-	var high_speed_tremor := sin(_time * 12.0 + 0.7) * boost_weight * 0.62 * idle_pose_breath_strength
+	var wind_pulse := sin(_time * 2.85 + 0.7) * high_speed_weight * 1.35 * idle_pose_breath_strength
+	var high_speed_tremor := sin(_time * 12.0 + 0.7) * high_speed_weight * 0.16 * idle_pose_breath_strength
 	var recover_bounce := sin(_time * 10.5 + 1.2) * recover_weight * 2.15 * idle_pose_breath_strength
 
-	var lift := Vector2.UP * (breath + high_speed_tremor + recover_bounce * 0.55)
-	var boost_pressure := h * boost_weight * (2.40 + _throttle * 1.20)
+	var lift := Vector2.UP * (breath * (1.0 - high_speed_weight * 0.46) + high_speed_tremor + recover_bounce * 0.55)
+	var boost_pressure := h * boost_weight * (2.40 + _pose_throttle * 1.20)
+	var wind_breath := (-h * breath * 0.72 + normal * wind_pulse * 0.40) * high_speed_weight
+	var brace_pressure := -h * high_speed_weight * (2.65 + _pose_throttle * 1.55) + normal * wind_pulse * 0.22
 	var turn_pressure := normal * _hair_turn_lag * (3.10 + turn_weight * 2.40)
 	var recover_pressure := h * recover_bounce * 0.80 - normal * recover_weight * _hair_turn_lag * 1.80
+	var coil_wave := sin(_time * 1.35 + 0.35)
+	var coil_hold := 0.45 + 0.55 * sin(_time * 0.72 - 0.60)
+	var coil_strength := idle_pose_tension_strength * tension_weight
+	var torso_coil := h * (coil_wave * 1.80 + coil_hold * 0.70 + high_speed_weight * 1.10) * coil_strength
+	var shoulder_coil := -torso_coil * 0.82 + normal * coil_wave * 0.58 * coil_strength
+	var hip_coil := torso_coil * 0.45 - normal * coil_wave * 0.24 * coil_strength
 
-	_offset_pose_joint(pose, "hip_near", lift * 0.34 + turn_pressure * 0.18 + recover_pressure * 0.18)
-	_offset_pose_joint(pose, "hip_far", lift * 0.30 + turn_pressure * 0.14 + recover_pressure * 0.14)
-	_offset_pose_joint(pose, "shoulder_near", lift * 1.00 + boost_pressure + turn_pressure * 0.82 + recover_pressure * 0.72)
-	_offset_pose_joint(pose, "shoulder_far", lift * 0.92 + boost_pressure * 0.86 + turn_pressure * 0.64 + recover_pressure * 0.58)
-	_offset_pose_joint(pose, "head_center", lift * 1.28 + boost_pressure * 1.12 + turn_pressure * 1.06 + recover_pressure)
+	_offset_pose_joint(pose, "hip_near", lift * 0.34 + hip_coil + wind_breath * 0.28 + turn_pressure * 0.18 + recover_pressure * 0.18)
+	_offset_pose_joint(pose, "hip_far", lift * 0.30 + hip_coil * 0.82 + wind_breath * 0.22 + turn_pressure * 0.14 + recover_pressure * 0.14)
+	_offset_pose_joint(pose, "shoulder_near", lift * 1.00 + shoulder_coil + boost_pressure + brace_pressure + wind_breath + turn_pressure * 0.82 + recover_pressure * 0.72)
+	_offset_pose_joint(pose, "shoulder_far", lift * 0.92 + shoulder_coil * 0.72 + boost_pressure * 0.86 + brace_pressure * 0.82 + wind_breath * 0.82 + turn_pressure * 0.64 + recover_pressure * 0.58)
+	_offset_pose_joint(pose, "head_center", lift * 1.34 + shoulder_coil * 0.58 + boost_pressure * 1.04 + brace_pressure * 1.15 + wind_breath * 1.10 + turn_pressure * 1.06 + recover_pressure)
 
 	var control_rate := lerpf(2.45, 6.60, clampf(boost_weight + turn_weight * 0.70, 0.0, 1.0))
 	var control_wave := sin(_time * control_rate + 1.1)
 	var control_side := cos(_time * (control_rate * 0.76) + 0.4)
 	var control_amplitude := idle_pose_control_strength * (
-		1.25 * hover_weight
+		1.85 * hover_weight
 		+ 2.15 * cruise_weight
-		+ 1.35 * boost_weight
+		+ 2.70 * high_speed_weight
 		+ 3.35 * turn_weight
 		+ 2.20 * recover_weight
 	)
-	var near_hand := h * control_wave * control_amplitude + normal * control_side * control_amplitude * 0.42
-	var far_hand := -h * control_wave * control_amplitude * 0.42 + normal * control_side * control_amplitude * 0.26
-	var steer_push := turn_pressure * 0.62 + recover_pressure * 0.45 + boost_pressure * 0.32
+	var hand_tension := h * coil_strength * (2.25 + coil_hold * 1.15 + high_speed_weight * 1.85) + normal * coil_wave * coil_strength * (0.64 + high_speed_weight * 0.32)
+	var near_hand := h * control_wave * control_amplitude + normal * control_side * control_amplitude * 0.42 + hand_tension
+	var far_hand := -h * control_wave * control_amplitude * 0.42 + normal * control_side * control_amplitude * 0.26 - hand_tension * 0.34
+	var steer_push := turn_pressure * 0.62 + recover_pressure * 0.45 + boost_pressure * 0.26 + brace_pressure * 0.36
 	_offset_pose_joint(pose, "elbow_near", near_hand * 0.38 + steer_push * 0.36)
 	_offset_pose_joint(pose, "wrist_near", near_hand + steer_push)
 	_offset_pose_joint(pose, "elbow_far", far_hand * 0.35 + steer_push * 0.24)
@@ -640,7 +775,7 @@ func _recompute_runtime_pose_centers(pose: Dictionary) -> void:
 	pose["hip_center"] = (hip_near + hip_far) * 0.5
 
 
-func _blend_flight_poses(first_pose: Dictionary, second_pose: Dictionary, weight: float) -> Dictionary:
+func _blend_flight_poses(first_pose: Dictionary, second_pose: Dictionary, weight: float, output_near_side_sign: float) -> Dictionary:
 	var t := clampf(weight, 0.0, 1.0)
 	var first_heading: Vector2 = first_pose["heading"]
 	var second_heading: Vector2 = second_pose["heading"]
@@ -649,18 +784,13 @@ func _blend_flight_poses(first_pose: Dictionary, second_pose: Dictionary, weight
 		heading = _heading if _heading.length_squared() > 0.0001 else Vector2.RIGHT
 	heading = heading.normalized()
 	var side := Vector2(1.0, 0.0)
-	var near_sign := signf(heading.x)
-	if near_sign == 0.0:
-		near_sign = 1.0
+	var near_sign := 1.0 if output_near_side_sign >= 0.0 else -1.0
 	var near := side * near_sign
 	var far := -near
-	var output_near_side_sign := near_sign
 	var first_foot_center: Vector2 = first_pose["foot_center"]
 	var second_foot_center: Vector2 = second_pose["foot_center"]
-	var chosen_front_pose: Dictionary = second_pose if t >= 0.5 else first_pose
-	var chosen_draw_order := _draw_order_for_output_side(chosen_front_pose, output_near_side_sign)
-	var chosen_source_near_side_sign := float(chosen_front_pose.get("near_side_sign", near_sign))
-	var chosen_front_side_sign := float(chosen_front_pose.get("front_side_sign", chosen_source_near_side_sign))
+	var chosen_draw_order := EDIT_DRAW_LAYER_KEYS if _uses_video_stickman_visual() else _draw_order_for_output_side(first_pose, output_near_side_sign)
+	var chosen_front_side_sign := _front_side_for_output_side(first_pose, output_near_side_sign)
 	var pose := {
 		"heading": heading,
 		"side": side,
@@ -690,6 +820,49 @@ func _blend_flight_poses(first_pose: Dictionary, second_pose: Dictionary, weight
 	pose["shoulder_center"] = (shoulder_near + shoulder_far) * 0.5
 	pose["hip_center"] = (hip_near + hip_far) * 0.5
 	return pose
+
+
+func _pose_for_output_side(source_pose: Dictionary, output_near_side_sign: float) -> Dictionary:
+	var source_near_side_sign := 1.0 if float(source_pose.get("near_side_sign", 1.0)) >= 0.0 else -1.0
+	if is_equal_approx(source_near_side_sign, output_near_side_sign) and not _uses_video_stickman_visual():
+		return source_pose
+	var h: Vector2 = source_pose["heading"]
+	var side := Vector2(1.0, 0.0)
+	var near := side * output_near_side_sign
+	var far := -near
+	var pose := {
+		"heading": h,
+		"side": side,
+		"near": near,
+		"far": far,
+		"near_side_sign": output_near_side_sign,
+		"front_side_sign": _front_side_for_output_side(source_pose, output_near_side_sign),
+		"speed_ratio": float(source_pose.get("speed_ratio", 0.0)),
+		"fast_pose": float(source_pose.get("fast_pose", 0.0)),
+		"wind": float(source_pose.get("wind", 0.0)),
+		"frontness": float(source_pose.get("frontness", h.y)),
+		"foot_center": source_pose["foot_center"],
+		"torso_width": float(source_pose.get("torso_width", 0.0)),
+		"hip_width": float(source_pose.get("hip_width", 0.0)),
+		"head_scale": float(source_pose.get("head_scale", 1.0)),
+		"draw_order": EDIT_DRAW_LAYER_KEYS if _uses_video_stickman_visual() else _draw_order_for_output_side(source_pose, output_near_side_sign),
+	}
+	for key in EDIT_JOINT_KEYS:
+		pose[key] = _pose_joint_for_output_side(source_pose, String(key), output_near_side_sign)
+	var shoulder_near: Vector2 = pose["shoulder_near"]
+	var shoulder_far: Vector2 = pose["shoulder_far"]
+	var hip_near: Vector2 = pose["hip_near"]
+	var hip_far: Vector2 = pose["hip_far"]
+	pose["shoulder_center"] = (shoulder_near + shoulder_far) * 0.5
+	pose["hip_center"] = (hip_near + hip_far) * 0.5
+	return pose
+
+
+func _front_side_for_output_side(source_pose: Dictionary, output_near_side_sign: float) -> float:
+	var source_near_side_sign := 1.0 if float(source_pose.get("near_side_sign", 1.0)) >= 0.0 else -1.0
+	var source_front_side_sign := 1.0 if float(source_pose.get("front_side_sign", source_near_side_sign)) >= 0.0 else -1.0
+	var source_near_is_front := is_equal_approx(source_front_side_sign, source_near_side_sign)
+	return output_near_side_sign if source_near_is_front else -output_near_side_sign
 
 
 func _align_blended_feet_to_sword_line(pose: Dictionary) -> void:
@@ -755,23 +928,356 @@ func _draw_order_for_output_side(source_pose: Dictionary, output_near_side_sign:
 
 
 func _draw_sword(h: Vector2, speed_ratio: float, v4_plus_alpha := 0.0) -> void:
-	var legacy_alpha := 1.0 - clampf(v4_plus_alpha * 0.86, 0.0, 0.86)
-	var back := -h * (78.0 + 14.0 * _boost)
-	var front := h * (74.0 + 12.0 * _boost)
+	var forward := h.normalized() if h.length_squared() > 0.0001 else Vector2.RIGHT
+	var style_alpha := 1.0 - clampf(v4_plus_alpha * 0.86, 0.0, 0.86)
+	match clampi(sword_style, 0, SWORD_STYLE_COUNT - 1):
+		SWORD_STYLE_INK_BONE:
+			_draw_sword_ink_bone(forward, speed_ratio, style_alpha)
+		SWORD_STYLE_FROST_VEIN:
+			_draw_sword_frost_vein(forward, speed_ratio, style_alpha)
+		SWORD_STYLE_STAR_BREAK:
+			_draw_sword_star_break(forward, speed_ratio, style_alpha)
+		SWORD_STYLE_RUNE_EDGE:
+			_draw_sword_rune_edge(forward, speed_ratio, style_alpha)
+		SWORD_STYLE_BLOOD_THREAD:
+			_draw_sword_blood_thread(forward, speed_ratio, style_alpha)
+		_:
+			_draw_sword_white_rainbow(forward, speed_ratio, style_alpha)
+
+
+func _draw_sword_white_rainbow(h: Vector2, speed_ratio: float, alpha: float) -> void:
+	var p := _sword_points(h, 92.0 + 12.0 * _boost, 88.0 + 20.0 * _boost)
+	var side: Vector2 = p["side"]
+	var back: Vector2 = p["back"]
+	var front: Vector2 = p["front"]
+	var width := 6.2 + 2.5 * _boost
+	_draw_sword_blade(back, front, width, Color(0.58, 0.90, 0.98, 0.80), Color(0.96, 1.0, 0.98, 0.96), Color(0.46, 0.92, 1.0, 0.13 + 0.08 * _boost + 0.05 * speed_ratio), alpha, 22.0 + 10.0 * _boost)
+	_draw_sword_tip(front, h, side, 34.0 + 8.0 * speed_ratio, width * 0.78, Color(0.94, 1.0, 0.98, 0.96), Color(0.58, 0.96, 1.0, 0.58), alpha)
+	_draw_sword_tapered_aura(back - h * (26.0 + speed_ratio * 18.0), front + h * 18.0, h, side, Color(0.72, 1.0, 1.0, 0.10), alpha, 15.0 + 7.0 * _boost)
+	draw_line(back + side * 4.5, front - h * 10.0 + side * 1.2, _sword_alpha(Color(1.0, 1.0, 0.92, 0.38), alpha), 1.0, true)
+	draw_line(back - side * 3.7, front - h * 14.0 - side * 1.4, _sword_alpha(Color(0.72, 1.0, 1.0, 0.32), alpha), 0.9, true)
+	_draw_sword_hilt(back, h, side, Color(0.025, 0.032, 0.040, 0.88), Color(0.74, 0.84, 0.78, 0.74), alpha, 1.05)
+	_draw_sword_tail_particles(back, h, side, 4, Color(0.72, 1.0, 1.0, 0.22), alpha * (0.52 + speed_ratio * 0.30), speed_ratio, 0.15)
+
+
+func _draw_sword_ink_bone(h: Vector2, speed_ratio: float, alpha: float) -> void:
+	var p := _sword_points(h, 88.0 + 8.0 * _boost, 70.0 + 10.0 * _boost)
+	var side: Vector2 = p["side"]
+	var back: Vector2 = p["back"]
+	var front: Vector2 = p["front"]
+	var width := 5.4 + 1.8 * _boost
+	_draw_sword_blade(back, front, width, Color(0.006, 0.008, 0.010, 0.96), Color(0.82, 0.90, 0.86, 0.34), Color(0.0, 0.0, 0.0, 0.22 + 0.12 * _boost), alpha, 22.0 + 5.0 * _boost)
+	_draw_sword_tip(front, h, side, 20.0 + 3.0 * speed_ratio, width * 0.86, Color(0.016, 0.018, 0.020, 0.88), Color(0.76, 0.86, 0.82, 0.30), alpha)
+	for i in range(7):
+		var t := 0.14 + float(i) * 0.105
+		var chip_center := back.lerp(front, t)
+		var side_sign := -1.0 if i % 2 == 0 else 1.0
+		var chip := chip_center + side * side_sign * (3.5 + sin(_time * 0.8 + float(i)) * 0.8)
+		draw_line(chip - h * (3.8 + float(i % 3)), chip + h * (5.0 + float((i + 1) % 3)), _sword_alpha(Color(0.82, 0.88, 0.82, 0.40), alpha), 1.0, true)
+	for i in range(6):
+		var t := 0.10 + float(i) * 0.13
+		var notch := back.lerp(front, t) - side * (4.8 + float(i % 2) * 1.4)
+		draw_line(notch - h * 2.4, notch + h * 3.0, _sword_alpha(Color(0.0, 0.0, 0.0, 0.36), alpha), 2.2, true)
+	_draw_sword_hilt(back, h, side, Color(0.0, 0.0, 0.0, 0.90), Color(0.72, 0.78, 0.70, 0.42), alpha, 1.05)
+	_draw_sword_tail_particles(back, h, side, 9, Color(0.05, 0.06, 0.06, 0.42), alpha * (0.82 + _carve * 0.24), speed_ratio, 2.7)
+
+
+func _draw_sword_frost_vein(h: Vector2, speed_ratio: float, alpha: float) -> void:
+	var p := _sword_points(h, 80.0 + 9.0 * _boost, 76.0 + 13.0 * _boost)
+	var side: Vector2 = p["side"]
+	var back: Vector2 = p["back"]
+	var front: Vector2 = p["front"]
+	var width := 5.0 + 2.2 * _boost
+	var pulse := 0.72 + 0.28 * sin(_time * 3.4)
+	_draw_sword_blade(back, front, width, Color(0.44, 0.88, 0.92, 0.72), Color(0.96, 1.0, 0.98, 0.92), Color(0.28, 0.96, 1.0, 0.13 + 0.07 * pulse + 0.06 * _boost), alpha, 21.0 + 8.0 * _boost)
+	_draw_sword_tip(front, h, side, 25.0 + 5.0 * speed_ratio, width * 0.74, Color(0.88, 1.0, 0.98, 0.90), Color(0.30, 1.0, 0.92, 0.44), alpha)
+	for i in range(5):
+		var t0 := 0.18 + float(i) * 0.12
+		var t1 := t0 + 0.08
+		var wave0 := sin(_time * 2.0 + float(i) * 1.9) * 1.8
+		var wave1 := sin(_time * 2.0 + float(i) * 1.9 + 0.9) * 1.8
+		draw_line(back.lerp(front, t0) + side * wave0, back.lerp(front, t1) + side * wave1, _sword_alpha(Color(0.20, 1.0, 0.84, 0.62), alpha * pulse), 1.2, true)
+	for i in range(8):
+		var t := float(i) / 7.0
+		var phase := float(i) * 2.31 + 1.4
+		var frost := back.lerp(front, 0.10 + t * 0.78) + side * sin(_time * 1.7 + phase) * (8.0 + t * 4.0)
+		var r := 0.8 + 0.7 * (0.5 + 0.5 * sin(_time * 3.1 + phase))
+		draw_circle(frost, r, _sword_alpha(Color(0.66, 1.0, 0.94, 0.24), alpha * (0.74 + speed_ratio * 0.35)))
+	_draw_sword_hilt(back, h, side, Color(0.03, 0.07, 0.08, 0.70), Color(0.54, 1.0, 0.86, 0.62), alpha, 0.82)
+	_draw_sword_tail_particles(back, h, side, 5, Color(0.48, 1.0, 0.90, 0.26), alpha * 0.74, speed_ratio, 4.2)
+
+
+func _draw_sword_star_break(h: Vector2, speed_ratio: float, alpha: float) -> void:
+	var p := _sword_points(h, 74.0 + 8.0 * _boost, 88.0 + 18.0 * _boost)
+	var side: Vector2 = p["side"]
+	var back: Vector2 = p["back"]
+	var front: Vector2 = p["front"]
+	var width := 4.8 + 2.0 * _boost
+	var action := clampf(maxf(speed_ratio, maxf(_boost, _carve * 0.72)), 0.0, 1.0)
+	_draw_sword_blade(back, front, width, Color(0.48, 0.60, 0.95, 0.66), Color(0.98, 0.98, 1.0, 0.95), Color(0.42, 0.56, 1.0, 0.14 + 0.14 * action), alpha, 22.0 + 14.0 * action)
+	_draw_sword_tip(front, h, side, 32.0 + 12.0 * action, width * 0.62, Color(1.0, 0.98, 0.88, 0.96), Color(0.70, 0.78, 1.0, 0.60), alpha)
+	_draw_sword_tapered_aura(back - h * (28.0 + action * 34.0), front + h * (24.0 + action * 18.0), h, side, Color(0.54, 0.64, 1.0, 0.11 + action * 0.08), alpha, 15.0 + action * 12.0)
+	for i in range(6):
+		var phase := float(i) * 2.17 + 0.7
+		var shard_center := front + h * (14.0 + float(i) * (4.5 + action * 2.0)) + side * sin(_time * 2.7 + phase) * (5.0 + float(i % 3) * 2.2)
+		var shard_len := 3.5 + action * 5.0 + float(i % 2) * 2.0
+		draw_line(shard_center - h * shard_len, shard_center + h * shard_len * 0.55, _sword_alpha(Color(0.98, 0.90, 0.58, 0.34 + action * 0.22), alpha), 1.0 + action * 0.7, true)
+		if i % 2 == 0:
+			_draw_sword_star(shard_center + side * 1.4, h, side, 2.2 + action * 2.0, Color(0.96, 0.92, 0.64, 0.60), alpha)
+	_draw_sword_hilt(back, h, side, Color(0.04, 0.045, 0.07, 0.72), Color(0.90, 0.78, 0.46, 0.70), alpha, 0.86)
+	_draw_sword_tail_particles(back, h, side, 7, Color(0.56, 0.62, 1.0, 0.28), alpha * (0.72 + action * 0.36), speed_ratio, 5.9)
+
+
+func _draw_sword_rune_edge(h: Vector2, speed_ratio: float, alpha: float) -> void:
+	var p := _sword_points(h, 84.0 + 10.0 * _boost, 74.0 + 12.0 * _boost)
+	var side: Vector2 = p["side"]
+	var back: Vector2 = p["back"]
+	var front: Vector2 = p["front"]
+	var width := 5.2 + 2.0 * _boost
+	var action := clampf(maxf(_turn, maxf(_carve, _boost * 0.75)), 0.0, 1.0)
+	_draw_sword_blade(back, front, width, Color(0.40, 0.78, 0.72, 0.64), Color(0.98, 0.96, 0.80, 0.88), Color(0.72, 0.88, 0.42, 0.10 + 0.11 * action), alpha, 20.0 + 9.0 * action)
+	_draw_sword_tip(front, h, side, 24.0 + 4.0 * speed_ratio, width * 0.70, Color(1.0, 0.96, 0.72, 0.90), Color(0.52, 1.0, 0.78, 0.46), alpha)
+	for i in range(8):
+		var t := 0.16 + float(i) * 0.085
+		var side_sign := -1.0 if i % 2 == 0 else 1.0
+		var center := back.lerp(front, t) + side * side_sign * (7.0 + 1.6 * sin(_time * 1.8 + float(i)))
+		var rune_alpha := alpha * (0.48 + 0.30 * sin(_time * 3.0 + float(i) * 1.6))
+		draw_line(center - h * 2.8, center + h * 3.2, _sword_alpha(Color(0.95, 0.88, 0.36, 0.72), rune_alpha), 1.0, true)
+		draw_line(center - side * side_sign * 2.2, center + side * side_sign * 2.2, _sword_alpha(Color(0.42, 1.0, 0.74, 0.42), rune_alpha), 0.8, true)
+	for i in range(5):
+		var t := float(i) / 5.0
+		var phase := _time * (1.3 + action * 2.0) + float(i) * 1.7
+		var orbit := back.lerp(front, 0.20 + t * 0.66) + side * sin(phase) * (12.0 + action * 6.0) - h * cos(phase) * (2.0 + action * 4.0)
+		draw_line(orbit - h * 3.0, orbit + h * 3.0, _sword_alpha(Color(0.90, 0.82, 0.38, 0.30 + action * 0.20), alpha), 0.9 + action * 0.5, true)
+	_draw_sword_hilt(back, h, side, Color(0.04, 0.06, 0.05, 0.74), Color(0.92, 0.78, 0.36, 0.74), alpha, 0.90)
+	_draw_sword_tail_particles(back, h, side, 6, Color(0.92, 0.82, 0.38, 0.24), alpha * (0.64 + action * 0.46), speed_ratio, 8.4)
+
+
+func _draw_sword_blood_thread(h: Vector2, speed_ratio: float, alpha: float) -> void:
+	var p := _sword_points(h, 82.0 + 8.0 * _boost, 80.0 + 12.0 * _boost)
+	var side: Vector2 = p["side"]
+	var back: Vector2 = p["back"]
+	var front: Vector2 = p["front"]
+	var width := 5.0 + 1.8 * _boost
+	var blood := clampf(maxf(_boost, maxf(_turn, _carve)) * 0.72 + speed_ratio * 0.22, 0.0, 1.0)
+	_draw_sword_blade(back, front, width, Color(0.018, 0.020, 0.022, 0.90), Color(0.94, 0.98, 0.94, 0.54), Color(0.72, 0.04, 0.03, 0.05 + 0.11 * blood), alpha, 18.0 + 9.0 * blood)
+	_draw_sword_tip(front, h, side, 26.0 + 5.0 * blood, width * 0.66, Color(0.98, 0.98, 0.92, 0.78), Color(0.88, 0.04, 0.03, 0.44 + 0.18 * blood), alpha)
+	draw_line(back + h * 6.0, front + h * (18.0 + 8.0 * blood), _sword_alpha(Color(0.92, 0.03, 0.025, 0.34 + 0.34 * blood), alpha), 1.15 + blood * 0.7, true)
+	draw_line(back + h * 15.0 - side * 2.5, front - h * 8.0 - side * 1.0, _sword_alpha(Color(0.96, 0.98, 0.90, 0.24), alpha), 0.9, true)
+	for i in range(5):
+		var t := 0.18 + float(i) * 0.15
+		var phase := float(i) * 2.6 + _time * (2.4 + blood)
+		var a := back.lerp(front, t) + side * sin(phase) * (4.0 + blood * 4.0)
+		var b := a - h * (8.0 + blood * 12.0) + side * sin(phase + 1.2) * 5.0
+		draw_line(a, b, _sword_alpha(Color(0.86, 0.025, 0.018, 0.18 + blood * 0.24), alpha), 0.75 + blood * 0.55, true)
+	_draw_sword_hilt(back, h, side, Color(0.0, 0.0, 0.0, 0.86), Color(0.86, 0.03, 0.025, 0.68), alpha, 0.92)
+	_draw_sword_tail_particles(back, h, side, 5, Color(0.76, 0.02, 0.018, 0.28 + blood * 0.18), alpha * (0.62 + blood * 0.45), speed_ratio, 10.8)
+
+
+func _sword_points(h: Vector2, back_length: float, front_length: float) -> Dictionary:
+	var side := h.rotated(PI * 0.5)
 	var drop := _sword_center()
-	var width := 5.0 + 3.0 * _boost
-	draw_line(back + drop, front + drop, Color(0.08, 0.18, 0.20, 0.84 * legacy_alpha), width + 5.0, true)
-	draw_line(back + drop, front + drop, Color(SWORD.r, SWORD.g, SWORD.b, SWORD.a * legacy_alpha), width, true)
-	draw_line(front + drop, front + h * 22.0 + drop, Color(SWORD_CORE.r, SWORD_CORE.g, SWORD_CORE.b, SWORD_CORE.a * legacy_alpha), 2.0 + speed_ratio * 2.0, true)
-	var guard_axis := h.rotated(PI * 0.5)
-	var guard_center := back + h * 20.0 + drop
-	draw_line(guard_center - guard_axis * 8.0, guard_center + guard_axis * 8.0, Color(OUTLINE.r, OUTLINE.g, OUTLINE.b, OUTLINE.a * legacy_alpha), 3.0, true)
-	draw_line(guard_center - guard_axis * 6.0, guard_center + guard_axis * 6.0, Color(ROBE_TRIM.r, ROBE_TRIM.g, ROBE_TRIM.b, ROBE_TRIM.a * legacy_alpha), 1.7, true)
-	draw_circle(back + h * 9.0 + drop, 3.0, Color(OUTLINE.r, OUTLINE.g, OUTLINE.b, OUTLINE.a * legacy_alpha))
-	draw_circle(back + h * 9.0 + drop, 2.0, Color(JADE.r, JADE.g, JADE.b, JADE.a * legacy_alpha))
-	var glow := Color(0.58, 0.95, 1.0, (0.10 + 0.10 * _boost + 0.08 * _switch_flash) * (1.0 - clampf(v4_plus_alpha * 0.96, 0.0, 0.96)))
-	if glow.a > 0.002:
-		draw_line(back - h * 28.0 + drop, front + h * 12.0 + drop, glow, 18.0 + 10.0 * _boost, true)
+	return {
+		"back": drop - h * back_length,
+		"front": drop + h * front_length,
+		"side": side,
+	}
+
+
+func _draw_sword_blade(back: Vector2, front: Vector2, width: float, body: Color, core: Color, glow: Color, alpha: float, glow_width: float) -> void:
+	var blade_axis := front - back
+	if blade_axis.length_squared() <= 0.0001:
+		return
+	var h := blade_axis.normalized()
+	var side := h.rotated(PI * 0.5)
+	var guard_root := back + h * 27.0
+	var blade_neck := guard_root + h * 5.0
+	var blade_start := blade_neck + h * 7.0
+	var shoulder := blade_start + h * 15.0
+	var tip_root := front - h * 3.5
+	var blade_half := maxf(width * 1.45, 7.2)
+	var neck_half := maxf(blade_half * 0.36, 3.1)
+	var start_half := blade_half * 0.70
+	var shoulder_half := blade_half * 0.96
+	var tip_half := maxf(width * 0.42, 2.45)
+	var tip_point := front + h * 7.0
+	if glow.a * alpha > 0.002:
+		_draw_sword_tapered_aura(back - h * 18.0, front + h * 22.0, h, side, glow, alpha, glow_width)
+		_draw_sword_tapered_aura(blade_start, front + h * 8.0, h, side, Color(0.88, 1.0, 1.0, glow.a * 0.48), alpha, maxf(blade_half * 0.72, 4.0))
+	var outline := PackedVector2Array([
+		blade_neck - h * 1.6 - side * (neck_half + 1.3),
+		blade_start - side * (start_half + 1.6),
+		shoulder - side * (shoulder_half + 2.0),
+		tip_root - side * (tip_half + 1.2),
+		tip_point,
+		tip_root + side * (tip_half + 1.2),
+		shoulder + side * (shoulder_half + 2.0),
+		blade_start + side * (start_half + 1.6),
+		blade_neck - h * 1.6 + side * (neck_half + 1.3),
+		blade_neck - h * 4.0,
+	])
+	draw_colored_polygon(outline, _sword_alpha(Color(0.0, 0.0, 0.0, 0.58), alpha))
+	var blade_shell := PackedVector2Array([
+		blade_neck - side * neck_half,
+		blade_start - side * start_half,
+		shoulder - side * shoulder_half,
+		tip_root - side * tip_half,
+		tip_point,
+		tip_root + side * tip_half,
+		shoulder + side * shoulder_half,
+		blade_start + side * start_half,
+		blade_neck + side * neck_half,
+		blade_neck - h * 2.0,
+	])
+	draw_colored_polygon(blade_shell, _sword_alpha(body, alpha))
+	var left_face := PackedVector2Array([
+		blade_neck,
+		blade_neck - side * neck_half,
+		blade_start - side * start_half,
+		shoulder - side * shoulder_half,
+		tip_root - side * tip_half,
+		tip_point,
+	])
+	var right_face := PackedVector2Array([
+		blade_neck,
+		tip_point,
+		tip_root + side * tip_half,
+		shoulder + side * shoulder_half,
+		blade_start + side * start_half,
+		blade_neck + side * neck_half,
+	])
+	draw_colored_polygon(left_face, _sword_tint(body, core, 0.36, alpha * 0.82))
+	draw_colored_polygon(right_face, _sword_tint(body, Color(0.0, 0.0, 0.0, body.a), 0.22, alpha * 0.84))
+	draw_line(blade_neck - h * 1.2, tip_point, _sword_alpha(core, alpha * 0.70), maxf(width * 0.22, 0.95), true)
+	draw_line(blade_start - side * start_half, tip_root - side * tip_half, _sword_alpha(core, alpha * 0.42), maxf(width * 0.15, 0.75), true)
+	draw_line(blade_start + side * start_half, tip_root + side * tip_half, _sword_alpha(core, alpha * 0.30), maxf(width * 0.13, 0.65), true)
+	draw_line(blade_start + side * (start_half * 0.35), tip_root + side * (tip_half * 0.35), _sword_alpha(Color(0.0, 0.0, 0.0, 0.22), alpha), maxf(width * 0.18, 0.7), true)
+	for i in range(3):
+		var t := 0.16 + float(i) * 0.085
+		var mark_center := blade_start.lerp(front, t)
+		var mark_half := blade_half * (0.42 - float(i) * 0.045)
+		draw_line(mark_center - side * mark_half - h * 1.5, mark_center + side * mark_half + h * 1.5, _sword_alpha(core, alpha * (0.20 - float(i) * 0.03)), 0.8, true)
+
+
+func _draw_sword_tip(front: Vector2, h: Vector2, side: Vector2, length: float, half_width: float, core: Color, rim: Color, alpha: float) -> void:
+	var base_half := maxf(half_width * 1.35, 5.2)
+	var root := front - h * 3.0
+	var tip := front + h * length
+	draw_colored_polygon(PackedVector2Array([root - side * (base_half + 1.2), tip + h * 1.6, root + side * (base_half + 1.2)]), _sword_alpha(Color(0.0, 0.0, 0.0, 0.52), alpha))
+	draw_colored_polygon(PackedVector2Array([root - side * base_half, tip, root + side * base_half]), _sword_alpha(rim, alpha))
+	draw_colored_polygon(PackedVector2Array([root, tip, root + side * base_half]), _sword_tint(rim, Color(0.0, 0.0, 0.0, rim.a), 0.22, alpha * 0.76))
+	draw_line(root, tip, _sword_alpha(core, alpha * 0.92), maxf(half_width * 0.46, 1.0), true)
+	draw_line(root - side * base_half, tip, _sword_alpha(core, alpha * 0.28), 0.75, true)
+
+
+func _draw_sword_hilt(back: Vector2, h: Vector2, side: Vector2, base_color: Color, accent_color: Color, alpha: float, scale: float) -> void:
+	var s := maxf(scale, 0.65)
+	var guard_center := back + h * (27.0 * s)
+	var grip_start := back - h * (12.0 * s)
+	var grip_end := guard_center - h * (7.0 * s)
+	var pommel := back - h * (18.0 * s)
+	draw_line(grip_start, grip_end, _sword_alpha(Color(0.0, 0.0, 0.0, 0.80), alpha), 9.0 * s, true)
+	draw_line(grip_start, grip_end, _sword_alpha(base_color, alpha), 5.6 * s, true)
+	for i in range(3):
+		var t := 0.22 + float(i) * 0.26
+		var band := grip_start.lerp(grip_end, t)
+		draw_line(band - side * (4.4 * s), band + side * (4.4 * s), _sword_alpha(accent_color, alpha * 0.82), 1.0 * s, true)
+	var guard := PackedVector2Array([
+		guard_center - side * (17.0 * s),
+		guard_center + h * (4.8 * s) - side * (9.2 * s),
+		guard_center + h * (6.2 * s),
+		guard_center + h * (4.8 * s) + side * (9.2 * s),
+		guard_center + side * (17.0 * s),
+		guard_center - h * (3.8 * s) + side * (8.5 * s),
+		guard_center - h * (5.0 * s),
+		guard_center - h * (3.8 * s) - side * (8.5 * s),
+	])
+	draw_colored_polygon(guard, _sword_alpha(Color(0.0, 0.0, 0.0, 0.58), alpha))
+	var guard_inner := PackedVector2Array([
+		guard_center - side * (13.8 * s),
+		guard_center + h * (3.1 * s) - side * (7.5 * s),
+		guard_center + h * (3.8 * s),
+		guard_center + h * (3.1 * s) + side * (7.5 * s),
+		guard_center + side * (13.8 * s),
+		guard_center - h * (2.3 * s) + side * (7.2 * s),
+		guard_center - h * (3.2 * s),
+		guard_center - h * (2.3 * s) - side * (7.2 * s),
+	])
+	draw_colored_polygon(guard_inner, _sword_alpha(accent_color, alpha * 0.76))
+	draw_line(guard_center - side * (14.0 * s), guard_center + side * (14.0 * s), _sword_alpha(base_color, alpha * 0.54), 0.9 * s, true)
+	draw_colored_polygon(PackedVector2Array([
+		pommel,
+		back - h * (10.0 * s) - side * (4.0 * s),
+		back - h * (2.0 * s),
+		back - h * (10.0 * s) + side * (4.0 * s),
+	]), _sword_alpha(base_color, alpha * 0.96))
+	draw_circle(guard_center, 3.0 * s, _sword_alpha(base_color, alpha))
+	draw_circle(guard_center, 1.65 * s, _sword_alpha(accent_color, alpha))
+
+
+func _draw_sword_tapered_aura(start: Vector2, end: Vector2, h: Vector2, side: Vector2, color: Color, alpha: float, width: float) -> void:
+	var aura_alpha := color.a * alpha
+	if aura_alpha <= 0.002 or width <= 0.1:
+		return
+	var safe_h := h.normalized() if h.length_squared() > 0.0001 else (end - start).normalized()
+	var safe_side := side.normalized() if side.length_squared() > 0.0001 else safe_h.rotated(PI * 0.5)
+	var safe_width := maxf(width, 0.1)
+	var outer := PackedVector2Array([
+		start,
+		start.lerp(end, 0.16) - safe_side * safe_width * 0.36,
+		start.lerp(end, 0.50) - safe_side * safe_width * 0.54,
+		start.lerp(end, 0.84) - safe_side * safe_width * 0.30,
+		end,
+		start.lerp(end, 0.84) + safe_side * safe_width * 0.30,
+		start.lerp(end, 0.50) + safe_side * safe_width * 0.54,
+		start.lerp(end, 0.16) + safe_side * safe_width * 0.36,
+	])
+	draw_colored_polygon(outer, _sword_alpha(color, alpha))
+	var inner := PackedVector2Array([
+		start.lerp(end, 0.08),
+		start.lerp(end, 0.25) - safe_side * safe_width * 0.16,
+		start.lerp(end, 0.56) - safe_side * safe_width * 0.23,
+		start.lerp(end, 0.88) - safe_side * safe_width * 0.12,
+		end.lerp(start, 0.04),
+		start.lerp(end, 0.88) + safe_side * safe_width * 0.12,
+		start.lerp(end, 0.56) + safe_side * safe_width * 0.23,
+		start.lerp(end, 0.25) + safe_side * safe_width * 0.16,
+	])
+	draw_colored_polygon(inner, _sword_alpha(Color(color.r, color.g, color.b, color.a * 0.42), alpha))
+
+
+func _draw_sword_tail_particles(back: Vector2, h: Vector2, side: Vector2, count: int, color: Color, alpha: float, speed_ratio: float, salt: float) -> void:
+	for i in range(count):
+		var u := (float(i) + 0.5) / float(maxi(count, 1))
+		var phase := salt + float(i) * 1.913
+		var flicker := 0.45 + 0.55 * sin(_time * (2.1 + u * 2.4) + phase)
+		var lane := sin(phase + _time * (0.8 + _boost * 0.7)) * (4.0 + u * 11.0)
+		var pos := back - h * (10.0 + u * (42.0 + speed_ratio * 34.0 + _boost * 24.0)) + side * lane
+		var radius := 0.75 + u * 1.15 + flicker * 0.35
+		var particle_alpha := alpha * (0.18 + 0.34 * flicker) * (1.0 - u * 0.22)
+		if particle_alpha > 0.01:
+			draw_circle(pos, radius, _sword_alpha(color, particle_alpha))
+			draw_line(pos - h * (6.0 + u * 12.0), pos + h * 1.5, _sword_alpha(color, particle_alpha * 0.72), maxf(radius * 0.66, 0.6), true)
+
+
+func _draw_sword_star(center: Vector2, h: Vector2, side: Vector2, size: float, color: Color, alpha: float) -> void:
+	draw_line(center - h * size, center + h * size, _sword_alpha(color, alpha), 0.85, true)
+	draw_line(center - side * size * 0.72, center + side * size * 0.72, _sword_alpha(color, alpha * 0.82), 0.75, true)
+	draw_circle(center, maxf(size * 0.18, 0.7), _sword_alpha(color, alpha * 0.70))
+
+
+func _sword_alpha(color: Color, alpha_scale: float) -> Color:
+	return Color(color.r, color.g, color.b, color.a * clampf(alpha_scale, 0.0, 1.8))
+
+
+func _sword_tint(color: Color, tint: Color, amount: float, alpha_scale: float) -> Color:
+	var t := clampf(amount, 0.0, 1.0)
+	return Color(
+		lerpf(color.r, tint.r, t),
+		lerpf(color.g, tint.g, t),
+		lerpf(color.b, tint.b, t),
+		color.a * clampf(alpha_scale, 0.0, 1.8)
+	)
 
 
 func _sword_center() -> Vector2:
@@ -2802,6 +3308,202 @@ func _draw_clean_skeleton(pose: Dictionary) -> void:
 		draw_arc(shoulder_center.lerp(hip_center, 0.46), 42.0 + _switch_flash * 12.0, -PI * 0.15, PI * 1.15, 36, flash_color, 1.6, true)
 
 
+func _draw_video_stickman_skeleton(pose: Dictionary) -> void:
+	var speed_ratio: float = clampf(float(pose.get("speed_ratio", 0.0)), 0.0, 1.0)
+	var width_scale := stickman_width_scale * (1.0 + speed_ratio * 0.10 + _boost * 0.08)
+	var arm_width := 4.5 * width_scale
+	var leg_width := 5.0 * width_scale
+	var spine_width := 5.7 * width_scale
+	var head_radius := _video_stickman_head_radius(pose)
+	var body_points := _video_stickman_body_points(pose, head_radius)
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var draw_order := _front_side_adjusted_draw_order(EDIT_DRAW_LAYER_KEYS, pose)
+	for layer_key_variant in draw_order:
+		_draw_video_stickman_layer(String(layer_key_variant), pose, body_points, arm_width, leg_width, spine_width, width_scale)
+
+	if _editor_active or SHOW_JOINTS_IN_GAME:
+		for key in EDIT_JOINT_KEYS:
+			var point: Vector2 = pose[key]
+			var radius := 2.0 * width_scale
+			if key == "head_center":
+				radius = 1.45 * width_scale
+			_draw_clean_joint(point, radius)
+
+	if _switch_flash > 0.0:
+		var flash_color := Color(0.86, 1.0, 1.0, 0.14 * _switch_flash)
+		draw_arc(shoulder_center.lerp(hip_center, 0.48), 38.0 + _switch_flash * 10.0, -PI * 0.15, PI * 1.15, 36, flash_color, 1.4, true)
+
+
+func _draw_video_stickman_layer(
+		layer_key: String,
+		pose: Dictionary,
+		body_points: Dictionary,
+		arm_width: float,
+		leg_width: float,
+		spine_width: float,
+		width_scale: float
+) -> void:
+	match layer_key:
+		"far_arm":
+			var far_arm_front := _is_front_body_layer(layer_key, pose)
+			_draw_video_stickman_limb(
+				body_points["shoulder_far"],
+				pose["elbow_far"],
+				pose["wrist_far"],
+				arm_width * (1.04 if far_arm_front else 0.88),
+				1.0 if far_arm_front else stickman_far_limb_alpha,
+				1.0 if far_arm_front else -0.55,
+				true
+			)
+		"far_leg":
+			var far_leg_front := _is_front_body_layer(layer_key, pose)
+			_draw_video_stickman_limb(
+				body_points["pelvis"],
+				pose["knee_far"],
+				pose["ankle_far"],
+				leg_width * (1.04 if far_leg_front else 0.90),
+				0.96 if far_leg_front else stickman_far_limb_alpha,
+				0.9 if far_leg_front else -0.55,
+				false
+			)
+		"torso":
+			_draw_video_stickman_torso(pose, body_points, spine_width, width_scale)
+		"head":
+			_draw_video_stickman_head(pose, width_scale)
+		"near_leg":
+			var near_leg_front := _is_front_body_layer(layer_key, pose)
+			_draw_video_stickman_limb(
+				body_points["pelvis"],
+				pose["knee_near"],
+				pose["ankle_near"],
+				leg_width * (1.04 if near_leg_front else 0.90),
+				0.96 if near_leg_front else stickman_far_limb_alpha,
+				0.9 if near_leg_front else -0.55,
+				false
+			)
+		"near_arm":
+			var near_arm_front := _is_front_body_layer(layer_key, pose)
+			_draw_video_stickman_limb(
+				body_points["shoulder_near"],
+				pose["elbow_near"],
+				pose["wrist_near"],
+				arm_width * (1.04 if near_arm_front else 0.88),
+				1.0 if near_arm_front else stickman_far_limb_alpha,
+				1.0 if near_arm_front else -0.55,
+				true
+			)
+
+
+func _video_stickman_head_radius(pose: Dictionary) -> float:
+	return _clean_head_radius(pose) * stickman_head_scale
+
+
+func _video_stickman_body_points(pose: Dictionary, head_radius: float) -> Dictionary:
+	var head_center: Vector2 = pose["head_center"]
+	var shoulder_center: Vector2 = pose["shoulder_center"]
+	var hip_center: Vector2 = pose["hip_center"]
+	var spine_axis := hip_center - head_center
+	if spine_axis.length_squared() <= 0.0001:
+		spine_axis = Vector2.DOWN
+	spine_axis = spine_axis.normalized()
+	var neck := head_center + spine_axis * head_radius * 0.78
+	var pelvis := hip_center
+	var shoulder_hinge := neck.lerp(pelvis, 0.18)
+	var shoulder_span: Vector2 = pose["shoulder_near"] - pose["shoulder_far"]
+	var near_root := shoulder_hinge + shoulder_span * 0.08
+	var far_root := shoulder_hinge - shoulder_span * 0.08
+	return {
+		"neck": neck,
+		"shoulder_hinge": shoulder_hinge,
+		"shoulder_near": near_root,
+		"shoulder_far": far_root,
+		"pelvis": pelvis,
+	}
+
+
+func _draw_video_stickman_torso(pose: Dictionary, body_points: Dictionary, spine_width: float, width_scale: float) -> void:
+	var neck: Vector2 = body_points["neck"]
+	var pelvis: Vector2 = body_points["pelvis"]
+	_draw_video_stickman_capsule(neck, pelvis, spine_width, 0.98, 0.55)
+	if width_scale > 0.001:
+		var h: Vector2 = pose["heading"]
+		var side: Vector2 = pose["side"]
+		var trim_alpha := 0.22 + clampf(float(pose.get("speed_ratio", 0.0)), 0.0, 1.0) * 0.08
+		draw_line(neck.lerp(pelvis, 0.25) - side * 1.2 + h * 0.7, pelvis - side * 1.0 - h * 0.4, _stickman_alpha(STICKMAN_HIGHLIGHT, trim_alpha), maxf(spine_width * 0.18, 0.7), true)
+
+
+func _draw_video_stickman_limb(a: Vector2, b: Vector2, c: Vector2, width: float, alpha: float, depth := 1.0, is_arm := false) -> void:
+	_draw_video_stickman_capsule(a, b, width, alpha, depth)
+	_draw_video_stickman_capsule(b, c, width * 0.88, alpha * 0.98, depth)
+	_draw_video_stickman_end_cap(b, c, width * (0.66 if is_arm else 0.78), alpha, depth)
+
+
+func _draw_video_stickman_head(pose: Dictionary, width_scale: float) -> void:
+	var head_center: Vector2 = pose["head_center"]
+	var h: Vector2 = pose["heading"]
+	var side: Vector2 = pose["side"]
+	var head_radius := _video_stickman_head_radius(pose)
+	var shadow_offset := side * 0.8 * width_scale + Vector2(0.0, 0.85) * width_scale
+	draw_circle(head_center + shadow_offset, head_radius + 1.5 * width_scale, _stickman_alpha(STICKMAN_SHADOW, 0.82))
+	draw_circle(head_center, head_radius + 1.6 * width_scale, _stickman_alpha(STICKMAN_RIM, 0.92))
+	draw_circle(head_center, head_radius, STICKMAN_HEAD_FILL)
+	draw_arc(head_center, head_radius + 0.25 * width_scale, 0.0, TAU, 32, _stickman_alpha(STICKMAN_LINE, 1.0), maxf(2.0 * width_scale, 1.0), true)
+	var glint_center := head_center - h * head_radius * 0.12 - side * head_radius * 0.22 + Vector2.UP * head_radius * 0.16
+	draw_circle(glint_center, maxf(head_radius * 0.14, 0.9), _stickman_alpha(STICKMAN_HIGHLIGHT, 0.72))
+	if _switch_flash > 0.0:
+		draw_arc(head_center, head_radius + 7.0 + _switch_flash * 6.0, 0.0, TAU, 32, Color(0.72, 1.0, 1.0, 0.14 * _switch_flash), 1.7, true)
+
+
+func _draw_video_stickman_capsule(a: Vector2, b: Vector2, width: float, alpha: float, depth := 1.0) -> void:
+	if alpha <= 0.001 or width <= 0.001 or a.distance_squared_to(b) <= 0.001:
+		return
+	var dir := b - a
+	var normal := dir.normalized().rotated(PI * 0.5)
+	var depth_sign := -1.0 if depth < 0.0 else 1.0
+	var depth_strength := clampf(absf(depth), 0.0, 1.0)
+	var depth_offset := normal * clampf(width * 0.20, 0.45, 1.25) * depth_sign + Vector2(0.0, 0.42)
+	var shadow_width := width + 2.4
+	var shadow := _stickman_alpha(STICKMAN_SHADOW, alpha * (0.62 + depth_strength * 0.18))
+	draw_line(a + depth_offset, b + depth_offset, shadow, shadow_width, true)
+	draw_circle(a + depth_offset, shadow_width * 0.5, shadow)
+	draw_circle(b + depth_offset, shadow_width * 0.5, shadow)
+	var rim_width := width + 1.55
+	var rim := _stickman_alpha(STICKMAN_RIM, alpha * (0.70 + depth_strength * 0.12))
+	draw_line(a, b, rim, rim_width, true)
+	draw_circle(a, rim_width * 0.5, rim)
+	draw_circle(b, rim_width * 0.5, rim)
+	var line := _stickman_alpha(STICKMAN_LINE, alpha)
+	draw_line(a, b, line, width, true)
+	draw_circle(a, width * 0.5, line)
+	draw_circle(b, width * 0.5, line)
+	var highlight := _stickman_alpha(STICKMAN_HIGHLIGHT, alpha * (0.58 + depth_strength * 0.14))
+	var highlight_offset := -depth_offset * 0.36 + Vector2(-0.10, -0.28)
+	draw_line(a + highlight_offset, b + highlight_offset, highlight, maxf(width * 0.24, 0.75), true)
+	draw_circle(a + highlight_offset, maxf(width * 0.10, 0.45), highlight)
+
+
+func _draw_video_stickman_end_cap(previous: Vector2, point: Vector2, width: float, alpha: float, depth := 1.0) -> void:
+	if alpha <= 0.001 or width <= 0.001:
+		return
+	var dir := point - previous
+	if dir.length_squared() <= 0.001:
+		dir = Vector2.DOWN
+	dir = dir.normalized()
+	var depth_sign := -1.0 if depth < 0.0 else 1.0
+	var normal := dir.rotated(PI * 0.5)
+	var offset := normal * clampf(width * 0.16, 0.25, 0.75) * depth_sign + Vector2(0.0, 0.22)
+	var shadow := _stickman_alpha(STICKMAN_SHADOW, alpha * 0.42)
+	draw_line(point - dir * width * 0.16 + offset, point + dir * width * 0.48 + offset, shadow, width * 1.35, true)
+	var line := _stickman_alpha(STICKMAN_LINE, alpha)
+	draw_line(point - dir * width * 0.12, point + dir * width * 0.42, line, width * 1.05, true)
+	draw_circle(point + dir * width * 0.35, width * 0.48, line)
+
+
+func _stickman_alpha(color: Color, alpha_scale: float) -> Color:
+	return Color(color.r, color.g, color.b, color.a * clampf(alpha_scale, 0.0, 1.8))
+
+
 func _draw_clean_skeleton_layer(layer_key: String, pose: Dictionary, arm_width: float, leg_width: float, spine_width: float, width_scale: float) -> void:
 	match layer_key:
 		"far_arm":
@@ -3529,12 +4231,12 @@ func _update_cloth_motion_state(delta: float) -> void:
 
 func _update_idle_recover_energy(delta: float) -> void:
 	var safe_delta := maxf(delta, 0.0)
-	var action_pressure := clampf(maxf(maxf(_boost, _turn), maxf(_carve, _throttle * 0.72)), 0.0, 1.0)
-	var release_pressure := _idle_previous_action_pressure - action_pressure
-	if release_pressure > 0.10:
-		_idle_recover_energy = maxf(_idle_recover_energy, clampf(release_pressure * 1.25, 0.0, 1.0))
-	_idle_previous_action_pressure = _damp_float(_idle_previous_action_pressure, action_pressure, 0.07, safe_delta)
-	_idle_recover_energy = _damp_float(_idle_recover_energy, 0.0, 0.24, safe_delta)
+	var turn_pressure := clampf(maxf(_pose_turn, _pose_carve), 0.0, 1.0)
+	var turn_release_pressure := _idle_previous_turn_pressure - turn_pressure
+	if turn_release_pressure > 0.10:
+		_idle_recover_energy = maxf(_idle_recover_energy, clampf(turn_release_pressure * 0.95, 0.0, 0.72))
+	_idle_previous_turn_pressure = _damp_float(_idle_previous_turn_pressure, turn_pressure, 0.07, safe_delta)
+	_idle_recover_energy = _damp_float(_idle_recover_energy, 0.0, 0.18, safe_delta)
 
 
 func _target_cloth_flow_direction(heading: Vector2, velocity: Vector2, wind_power: float) -> Vector2:

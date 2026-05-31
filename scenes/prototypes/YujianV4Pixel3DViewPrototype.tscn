@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/prototypes/yujian_v4_pixel_3d_view_prototype.gd" id="1_pixel3d"]
+
+[node name="YujianV4Pixel3DViewPrototype" type="Node2D"]
+script = ExtResource("1_pixel3d")

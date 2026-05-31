@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ysmwe3x44480"]
 
 [ext_resource type="Script" path="res://scripts/prototypes/yujian_vector_bone_rig_prototype.gd" id="1_vectorrig"]
 
-[node name="YujianVectorBoneRigPrototype" type="Node2D"]
+[node name="YujianVectorBoneRigPrototype" type="Node2D" unique_id=1534312568]
 script = ExtResource("1_vectorrig")

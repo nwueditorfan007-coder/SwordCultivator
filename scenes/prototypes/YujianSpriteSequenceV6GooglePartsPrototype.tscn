@@ -1,7 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ukpipdm00sg5"]
 
-[ext_resource type="Script" path="res://scripts/prototypes/yujian_sprite_sequence_prototype.gd" id="1_sequence"]
+[ext_resource type="Script" uid="uid://cuabmouwyyrw8" path="res://scripts/prototypes/yujian_sprite_sequence_prototype.gd" id="1_sequence"]
 
-[node name="YujianSpriteSequenceV6GooglePartsPrototype" type="Node2D"]
+[node name="YujianSpriteSequenceV6GooglePartsPrototype" type="Node2D" unique_id=1557349899]
 script = ExtResource("1_sequence")
 eight_way_character_set = 5

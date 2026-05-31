@@ -1,0 +1,3 @@
+display_name: Godot VFX HiGodot MCP
+short_description: Build SwordCultivator visual effects through HiGodot MCP and native Godot effect systems.
+default_prompt: Use HiGodot MCP to inspect the current Godot scene and create or tune an engine-native particle/material effect.

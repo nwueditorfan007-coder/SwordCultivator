@@ -1,0 +1,415 @@
+{
+  "theme": "CloudSeaDawn",
+  "generated_from": "C:\\Users\\A\\Downloads\\背景素材",
+  "code_drawn_layers": [
+    {
+      "name": "sea_plane_wash",
+      "purpose": "make the lower half read as a sea plane by separating it from the sky color before transparent sea, island, mist, and cloud assets are drawn",
+      "horizon_y_ratio": 0.515,
+      "base_color": [
+        0.32,
+        0.64,
+        0.67,
+        0.29
+      ],
+      "depth_bands": [],
+      "runtime_note": "drawn in code immediately after the sky wash; defaults are exposed in the prototype inspector with Chinese names: 海平线高度比例, 海面基础颜色, 海面基础透明度, 海面高速保留比例, 海平线柔光颜色, 海平线柔光强度, 海平线柔光宽度"
+    }
+  ],
+  "runtime_assets": [
+    {
+      "source": "cloudsea_far_band_02.png",
+      "output": "cloudsea_far_band_01.png",
+      "size": [
+        2048,
+        256
+      ],
+      "source_size": [
+        5856,
+        704
+      ],
+      "crop_size": [
+        5632,
+        704
+      ],
+      "alpha_bbox": [
+        0,
+        28,
+        2048,
+        237
+      ],
+      "alpha_coverage": 0.4703
+    },
+    {
+      "source": "cloudsea_mid_band_02.png",
+      "output": "cloudsea_mid_band_01.png",
+      "size": [
+        2048,
+        320
+      ],
+      "source_size": [
+        5248,
+        800
+      ],
+      "crop_size": [
+        5120,
+        800
+      ],
+      "alpha_bbox": [
+        0,
+        58,
+        2048,
+        283
+      ],
+      "alpha_coverage": 0.4445
+    },
+    {
+      "source": "boundary_cloud_wall_01.png",
+      "output": "boundary_cloud_wall_01.png",
+      "size": [
+        2048,
+        256
+      ],
+      "source_size": [
+        5856,
+        704
+      ],
+      "crop_size": [
+        5632,
+        704
+      ],
+      "alpha_bbox": [
+        0,
+        43,
+        2048,
+        228
+      ],
+      "alpha_coverage": 0.5374
+    },
+    {
+      "source": "mountain_far_ink_01.png",
+      "output": "mountain_far_ink_01.png",
+      "size": [
+        2048,
+        220
+      ],
+      "source_size": [
+        2816,
+        1536
+      ],
+      "crop_size": [
+        2816,
+        302
+      ],
+      "alpha_bbox": [
+        0,
+        25,
+        2048,
+        200
+      ],
+      "alpha_coverage": 0.5905,
+      "key_adjustment": "stricter gray matte cleanup plus vertical alpha feather after visual inspection"
+    },
+    {
+      "source": "mountain_mid_ink_02.png",
+      "output": "mountain_mid_ink_01.png",
+      "size": [
+        2048,
+        260
+      ],
+      "source_size": [
+        2816,
+        1536
+      ],
+      "crop_size": [
+        2816,
+        358
+      ],
+      "alpha_bbox": [
+        0,
+        28,
+        2048,
+        235
+      ],
+      "alpha_coverage": 0.3287
+    },
+    {
+      "source": "sea_horizon_wash_01 (3).png",
+      "output": "sea_horizon_wash_01.png",
+      "size": [
+        2048,
+        320
+      ],
+      "source_size": [
+        5248,
+        800
+      ],
+      "crop_size": [
+        5120,
+        800
+      ],
+      "alpha_bbox": [
+        2,
+        128,
+        2046,
+        280
+      ],
+      "alpha_coverage": 0.3699,
+      "key_adjustment": "neutral gray matte cleanup plus edge feather; selected as broad low-contrast sea plane under the mountain base"
+    },
+    {
+      "source": "far_island_chain_01 (3).png",
+      "output": "far_island_chain_01.png",
+      "size": [
+        2048,
+        220
+      ],
+      "source_size": [
+        2816,
+        1536
+      ],
+      "crop_size": [
+        2816,
+        303
+      ],
+      "alpha_bbox": [
+        0,
+        44,
+        2046,
+        208
+      ],
+      "alpha_coverage": 0.1831,
+      "key_adjustment": "re-matted as a cool gray-green distant island silhouette layer so the islands remain visible without carrying the full fog panorama"
+    },
+    {
+      "source": "sea_mist_foot_01 (2).png",
+      "output": "sea_mist_foot_01.png",
+      "size": [
+        2048,
+        180
+      ],
+      "source_size": [
+        2816,
+        1536
+      ],
+      "crop_size": [
+        2816,
+        248
+      ],
+      "alpha_bbox": [
+        0,
+        4,
+        2046,
+        178
+      ],
+      "alpha_coverage": 0.7519,
+      "key_adjustment": "cropped as a thin mountain-foot blending veil and vertically feathered; runtime alpha kept low"
+    },
+    {
+      "source": "sea_shimmer_lines_atlas_01 (2).png",
+      "output": "sea_shimmer_lines_atlas_01.png",
+      "size": [
+        1024,
+        256
+      ],
+      "source_size": [
+        4128,
+        1024
+      ],
+      "crop_size": [
+        4096,
+        1024
+      ],
+      "alpha_bbox": [
+        34,
+        20,
+        986,
+        236
+      ],
+      "alpha_coverage": 0.0334,
+      "key_adjustment": "sparse shimmer atlas; runtime fades out strongly under boost speed"
+    },
+    {
+      "source": "near_cloud_wisps_atlas_02.png",
+      "output": "near_cloud_wisps_atlas_01.png",
+      "size": [
+        1024,
+        512
+      ],
+      "source_size": [
+        2912,
+        1440
+      ],
+      "crop_size": [
+        2880,
+        1440
+      ],
+      "alpha_bbox": [
+        48,
+        24,
+        980,
+        492
+      ],
+      "alpha_coverage": 0.1952
+    },
+    {
+      "source": "boundary_rune_strip_02.png",
+      "output": "boundary_rune_strip_01.png",
+      "size": [
+        2048,
+        128
+      ],
+      "source_size": [
+        2816,
+        1536
+      ],
+      "crop_size": [
+        2816,
+        176
+      ],
+      "alpha_bbox": [
+        659,
+        2,
+        1389,
+        125
+      ],
+      "alpha_coverage": 0.0661,
+      "key_adjustment": "stricter gray matte cleanup after visual inspection"
+    },
+    {
+      "source": "landmark_silhouettes_atlas_04.png",
+      "output": "landmark_silhouettes_atlas_01.png",
+      "size": [
+        1024,
+        512
+      ],
+      "source_size": [
+        2912,
+        1440
+      ],
+      "crop_size": [
+        2880,
+        1440
+      ],
+      "alpha_bbox": [
+        81,
+        88,
+        911,
+        438
+      ],
+      "alpha_coverage": 0.0326
+    }
+  ],
+  "layers": [
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/mountain_far_ink_01.png",
+      "parallax": [
+        0.035,
+        0.01
+      ],
+      "alpha": 0.1,
+      "repeat_x": true,
+      "y": 0.34,
+      "scale": 1.0,
+      "inspector_export": "远山透明度"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/sea_horizon_wash_01.png",
+      "parallax": [
+        0.065,
+        0.014
+      ],
+      "alpha": 0.22,
+      "repeat_x": true,
+      "y": 0.58,
+      "scale": 1.0,
+      "tint": [
+        0.7,
+        0.94,
+        0.96,
+        1.0
+      ],
+      "inspector_export": "海面水洗透明度 / 海面水洗高度比例 / 海面水洗染色"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/far_island_chain_01.png",
+      "parallax": [
+        0.12,
+        0.026
+      ],
+      "alpha": 0.46,
+      "repeat_x": true,
+      "y": 0.525,
+      "scale": 1.0,
+      "tint": [
+        0.55,
+        0.69,
+        0.67,
+        1.0
+      ],
+      "runtime_note": "tinted slightly cooler and darker so islands remain readable through sea mist and cloud layers",
+      "inspector_export": "远岛透明度 / 远岛高度比例 / 远岛染色"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/sea_mist_foot_01.png",
+      "parallax": [
+        0.17,
+        0.034
+      ],
+      "alpha": 0.055,
+      "repeat_x": true,
+      "y": 0.55,
+      "scale": 1.0,
+      "inspector_export": "山脚海雾透明度 / 山脚海雾高度比例"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/cloudsea_far_band_01.png",
+      "parallax": [
+        0.09,
+        0.018
+      ],
+      "alpha": 0.13,
+      "repeat_x": true,
+      "y": 0.61,
+      "scale": 1.0,
+      "inspector_export": "远云透明度 / 远云高度比例"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/mountain_mid_ink_01.png",
+      "parallax": [
+        0.15,
+        0.028
+      ],
+      "alpha": 0.12,
+      "repeat_x": true,
+      "y": 0.43,
+      "scale": 1.0,
+      "inspector_export": "中景山透明度"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/sea_shimmer_lines_atlas_01.png",
+      "parallax": [
+        0.3,
+        0.034
+      ],
+      "alpha": 0.045,
+      "repeat_x": true,
+      "y": 0.72,
+      "scale": 1.0,
+      "runtime_note": "fades down to the inspector value 水纹高速保留比例 as background speed pressure reaches boost",
+      "inspector_export": "水纹透明度 / 水纹高度比例 / 水纹高速保留比例"
+    },
+    {
+      "path": "res://resources/flight/background/yujian_cloudsea_v1/cloudsea_mid_band_01.png",
+      "parallax": [
+        0.24,
+        0.045
+      ],
+      "alpha": 0.13,
+      "repeat_x": true,
+      "y": 0.69,
+      "scale": 1.0,
+      "inspector_export": "中景云透明度 / 中景云高度比例"
+    }
+  ]
+}

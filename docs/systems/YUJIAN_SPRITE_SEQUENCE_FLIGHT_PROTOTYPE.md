@@ -76,43 +76,40 @@
 
 ## 4. 动画与表现语义
 
-当前视觉层有多条资源路径，用于对比“左右序列帧”“四向静帧”和“程序骨骼 rig”的飞行读法：
+当前视觉层只保留 V4 程序化骨骼飞行 rig 作为主线：
 
-- V1：`res://resources/flight/yujian_8way_cruise_generated_v1/prototype/`
-- V2：`res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v2/`
-- V3：`res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face/`
-- V4：程序化骨骼飞行 rig，脚本 `res://scripts/prototypes/humanoid_8way_skeleton_visual.gd`
-- V5：水墨部件飞行竖切，脚本 `res://scripts/prototypes/yujian_ink_part_visual.gd`
+- 入口：`res://scenes/prototypes/YujianSpriteSequencePrototype.tscn`
+- 人物表现脚本：`res://scripts/prototypes/humanoid_8way_skeleton_visual.gd`
+- V4 像素化 3D 场景入口：`res://scenes/prototypes/YujianV4Pixel3DViewPrototype.tscn`
+- V4 像素化 3D 场景脚本：`res://scripts/prototypes/yujian_v4_pixel_3d_view_prototype.gd`
 
-原型脚本通过 `eight_way_character_set` 导出选项选择 V1/V2/V3/V4/V5；当前默认使用 V4，运行时按 `V` 可以直接切换。V5 也有专用入口 `res://scenes/prototypes/YujianSpriteSequenceV5Prototype.tscn`，用于直接打开第一阶段成品竖切。V1 当前是混合模式：右/左使用 `res://resources/flight/generated/` 中的左右序列帧 sheet，上/下保留 `res://resources/flight/yujian_8way_cruise_generated_v1/prototype/` 中已经接入的方向角色图。V2/V3 继续只选用同资源集里的右、上、左、下四张图，斜向飞行交给本地旋转、压身和剑尾轨迹表达。V2 来自 `accepted/` 目录，统一为 `768x768` 透明画布，并按头部宽度约 `86px` 做了一轮人物大小规格化。V3 同样来自 `accepted/` 目录，但改用脸部可见区域作为标准；背向方向使用后脑/发髻核心作为同级替代，所有方向只做等比缩放，不做横纵分开拉伸。
+V1/V2/V3/V5/V6/V7、3D 模型试验、Google parts 试验、八向生图候选和对应捕获工具没有删除，已统一移动到：
 
-V4 不是传统地面角色八向站姿，也不是趴伏飞行姿态。它继续读取 `visual_heading`，但骨骼姿态只人工维护四个主方向：右、上、左、下。右上、左上、左下、右下不再单独调骨骼点，而是由程序按实际航向在相邻两个主方向之间插值生成；插值前会按屏幕侧重映射 `near/far` 肢体，避免左上、左下把不同身体侧的手脚硬插到一起。四个主方向仍用于外层飞行读法和 V1-V3 贴图选择；V4 的斜向读法则交给骨骼程序过渡。每个主方向都保持“人站在飞剑上”的御剑姿态：飞剑按航向前进，脚和骨盆锁在剑上方，躯干短窄、腿部更长，运行时用胶囊体骨段、躯干体积面和头部椭圆高光表达立体角色，而不是纯火柴人线架。因此 V4 骨骼版验证的是飞行读感：爬升、下潜、斜飞、回锋压身，而不是角色站在地面看上下左右。
+`archive/flight_visual_non_v4_20260530/`
+
+后续查询废弃方案时先看这个归档目录，不要从空白重新做同类试验。主线脚本的 `eight_way_character_set` 现在只暴露 `V4 skeleton rig`，运行时不再通过 `V` 键切换旧版本。
+
+V4 不是传统地面角色八向站姿，也不是趴伏飞行姿态。它继续读取 `visual_heading`，但骨骼姿态只人工维护四个主方向：右、上、左、下。右上、左上、左下、右下不再单独调骨骼点，而是由程序按实际航向在相邻两个主方向之间插值生成；插值前会按屏幕侧重映射 `near/far` 肢体，避免左上、左下把不同身体侧的手脚硬插到一起。每个主方向都保持“人站在飞剑上”的御剑姿态：飞剑按航向前进，脚和骨盆锁在剑上方，躯干短窄、腿部更长。当前默认外观是 `Video stickman`：沿用 V4 骨骼点，但绘制时重建成视频式连续火柴人结构，大圆头压在脊柱顶端，躯干是一条从头下缘到单一骨盆点的胶囊线，两条腿从同一个骨盆点连续分叉，双臂从上躯干小分叉接出，手脚只保留圆端/短端帽；旧的体积化 `Clean capsule` 外观仍可通过 `visual_style` 导出参数切回。因此 V4 骨骼版验证的是飞行读感：爬升、下潜、斜飞、回锋压身，而不是角色站在地面看上下左右。
 
 V4 速度姿态参考 `C:/Users/Han_112/Downloads/加速&减速/matted_frames/`：低速参考 `matte_00001.png` 的直立控剑手势，高速参考 `matte_00025.png` 的前压冲刺手势。程序骨骼按真实速度、油门和 boost 能量在两套姿态间插值，不直接使用这两张图作为运行时贴图。
 
-V4 外形目前由程序绘制，不是单独贴图资源。小人参考 `resources/flight/Gemini_Generated_Image_193qyk193qyk193q.png` 的黑灰水墨剪影：束髻长发、飘发、发带、宽袖、长袍下摆、腰间飘带、暗色靴子和少量灰白描边来强化修仙角色读法；这些外观只包裹骨骼点，不会改变 F4 面板中保存的关节坐标。头发、袖口、袍摆和腰间飘带有轻量二级运动：悬停时按重力自然下垂，飞行时按真实速度、boost、carve 和 throttle 反向拖拽，速度越高拖拽和摆幅越明显。参考 `jimeng-2026-05-22-1171` 和 `jimeng-2026-05-22-5464` 的序列帧读法后，飘带不再是细直线，而是根部稳定、末端滞后的宽带 S 曲线；袍摆拆成多片宽面板，靠分段相位差产生更自然的飞行摆动。侧视左/右飞行时，S 曲线按风向法线做上下起伏，避免波形和水平拖拽方向重叠。
+V4 外形目前由程序绘制，不是单独贴图资源。默认火柴人外观只替换绘制壳，不改 F4 面板中保存的关节坐标、骨段长度、四向姿态和运行时姿态 FX。`Clean capsule` 旧外观仍保留黑灰水墨剪影、束髻长发、飘发、发带、宽袖、长袍下摆、腰间飘带、暗色靴子和少量灰白描边；这些外观只包裹骨骼点，不改变姿态数据。头发、袖口、袍摆和腰间飘带的二级运动只在旧外观中绘制，火柴人模式会跳过这些服饰层，避免线架读法被黑灰布片遮住。
+
+飞剑同样走程序绘制路线，不使用贴图贴片。默认 `云岚载人剑` 参考 B 站 `BV1hbLM6JEQ6` 里“人站在真实长剑上”的读法：先用多边形画出宽扁剑身、三角剑尖、中央剑脊、分面剑刃、深色剑柄、护手和尾端装饰，再把蓝白灵光压在剑刃与脚下作为辅助，不再用单根发光线冒充剑。剑身根部避免平直矩形端面，采用窄剑根、展宽剑肩、收束剑尖的连续轮廓；护手也用梭形轮廓，避免在所有飞剑底部出现方块感。`HumanoidEightWaySkeletonVisual.sword_style` 当前提供 6 款可选外观：`云岚载人剑`、`墨骨残锋`、`青霜灵脉`、`断星飞剑`、`符刃法剑`、`血线破妄`。这些版本共用同一个脚底锁剑点和航向，只改变剑身线条、剑尖、护手、光晕、断裂刻痕、符文碎片、星屑或血线等轻量特效，因此不会破坏已经调好的 V4 骨骼姿态。运行时按 `F6` 可循环切换，调试文字会显示当前飞剑名，方便实机挑选。
 
 V4 服饰二级运动在场景风带修正后只负责“角色衣物受风”，不再承担速度条职责；运行时会降低长发、发带、袍摆和腰间飘带的拖拽距离、透明度和转向跟随速度，避免黑灰贴身条被误读成另一层风带。
 
-V2 的缩放和位置可以手调：
-
-- 调整文件：`res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v2_adjustments.json`
-- 重建命令：`py tools\build_yujian_8way_cruise_v2.py`
-- `target_head_width`：全局头部基准，数值越大整体越大
-- `global_scale`：全局倍率，`0.95` 会整体缩小 5%，`1.05` 会整体放大 5%
-- 每个方向的 `scale`：单方向倍率，例如 `07_down` 设为 `0.92` 就只缩小下方向
-- 每个方向的 `offset`：单方向位置偏移，`[12, -8]` 表示向右 12px、向上 8px
-
 骨骼角色基础大小也有单独参数：
 
-- `skeleton_size_scale`：`YujianSpriteSequencePrototype` 脚本导出参数，当前默认 `0.3`；数值越小，V4/V5 程序角色越小
+- `skeleton_size_scale`：`YujianSpriteSequencePrototype` 脚本导出参数，当前默认 `0.3`；数值越小，V4 程序角色越小
 - F2 面板里的 `全局缩放` 和 `方向缩放` 仍会叠加在 `skeleton_size_scale` 之上，用于运行时微调
 
 运行时也有调参面板：
 
 - `F2`：显示/隐藏人物资源调参面板
-- 面板内可切换 V1/V2/V3/V4/V5 资源集，也可以跟随当前飞行方向自动选中对应方向
-- `全局缩放`：当前资源集整体倍率
+- `F6`：循环切换 V4 程序飞剑外观，用于在 6 款飞剑设计之间快速比较
+- 面板内只保留 V4 资源集，也可以跟随当前飞行方向自动选中对应方向
+- `全局缩放`：V4 整体倍率
 - `方向缩放`：当前方向单独倍率
 - `X/Y 偏移`：当前方向运行时位置微调
 - `预判时间 / 预判X / 预判Y / 预判平滑 / 急转预判`：镜头抗眩晕参数；`急转预判` 越低，急转时镜头越贴身，但太低会更容易出现回弹
@@ -142,32 +139,13 @@ V4 程序骨骼还有独立姿态编辑面板：
 
 V4 的 F4 基准姿态仍然不被运行时写回或改动；运行时只在最终姿态上叠加一层可关闭的 `V4 Idle Pose FX`。这层会按真实速度、boost、turn、carve、throttle 和动作释放后的回收压力，对头、肩、髋、肘、腕、膝做小幅 additive 微动：悬停偏慢呼吸，巡航偏控剑手腕，高速偏压身小震动，急转偏压剑，急转/加速释放后有短回收。脚踝不参与这层偏移，继续保持脚底锁剑。真实速度仍决定 `low` 到 `fast` 的插值，但当高速权重接近完成时会吸附到完整 `fast` 姿态，避免右向高速飞行时偏离编辑面板里摆好的骨骼。
 
-V5 是成品化美术路线的第一阶段竖切。它暂时不使用最终 PNG 部件，而是在 `YujianInkPartVisual` 中用程序化水墨部件模拟最终拆层：飞剑、脚底气光、后袍摆、长发束、宽袖、前后腿、腰带飘带、头部和前景风线都按独立层绘制。V5 继续接收真实 `visual_heading`、速度、boost、turn、carve 和 throttle，不改飞行输入、不改镜头、不改移动模型；头发、袍摆和飘带会根据速度和急转做轻量二级动态。它的目的不是替代最终美术资源，而是先验证“骨骼/挂点控制器 + 水墨部件 + 御剑 VFX”的游戏内尺寸观感是否值得继续投入。
+当前原型人物基础缩放已减半：V4 程序角色额外叠加 `skeleton_size_scale = 0.3`。
 
-当前原型人物基础缩放已减半：四向 Gemini 图使用 `GEMINI_EIGHT_WAY_SCALE = 0.17`，V1 序列帧/旧 sheet 回退使用 `SPRITE_SCALE = 0.235`，V4/V5 程序角色额外叠加 `skeleton_size_scale = 0.3`。
-
-V1 混合模式当前接入：
-
-- `yujian_v2_cruise_idle.png`：低速/悬停 idle
-- `yujian_v2_boost_enter.png`：低速进入高速
-- `yujian_v2_boost_idle.png`：高速 idle
-- `yujian_v2_boost_exit.png`：高速退出到低速
-- `03_up.png` / `07_down.png`：继续保留 V1 原有上/下方向角色图
-
-V1-V3 当前四向顺序：
-
-- `01_right.png`
-- `03_up.png`
-- `05_left.png`
-- `07_down.png`
-
-这些图来自同目录下的 `Gemini_Generated_Image_*.png` 原图，已做浅背景抠像和 `768x768` 统一画布处理。当前是“四向静态巡航模拟”，不是最终序列帧成品。
-
-旧动作资源仍保留在：
+旧动作 sheet 仍保留在：
 
 `res://resources/flight/generated/`
 
-使用的 flight-only sheet 继续负责 clip graph 的节奏/状态语义，并作为后续回退资源：
+这些 flight-only sheet 不再作为人物版本切换入口，只继续服务 clip graph 的节奏/状态语义，并作为 V4 主线的低风险回退资源：
 
 - `yujian_v2_cruise_idle.png`：低速/悬停巡航读法
 - `yujian_v2_cruise_turn.png`：低速完整转身
@@ -183,21 +161,18 @@ V1-V3 当前四向顺序：
 - clip 不再驱动移动速度，不再在转身 clip 里把水平速度硬推到 `0`
 - `speed_mode` 仍由真实速度阈值决定，用于选择高速/低速动画语义
 - `hard_turn_core` 由高速大角度回锋请求触发，只服务表现，不阻塞输入
-- `USE_GEMINI_8WAY_CRUISE = true` 时，`visual_heading` 被量化成右、上、左、下四个主方向；V1-V3 选图，V4 驱动程序化骨骼姿态并在主方向之间插值生成斜向读法
-- V1 右/左方向不走四向静帧选图，而是按 `cruise_idle / boost_enter / boost_idle / boost_exit` 播放左右朝向 sheet；V1 上/下方向继续显示静帧方向角色
-- 四向图/V4 模式下不再用 `sprite_root.rotation` 整张旋转，也不再用 `render_sign` 镜像左右
+- `USE_GEMINI_8WAY_CRUISE = true` 时，V4 驱动程序化骨骼姿态并在主方向之间插值生成斜向读法
+- V4 模式下不再用 `sprite_root.rotation` 整张旋转，也不再用 `render_sign` 镜像左右
 - `character_sprite.rotation`、缩放和偏移只保留很小的姿态层：转向压身、回锋拉伸
 - 四向 index 切换时会触发程序方向切换特效：旧方向短残影、新方向前缘亮边、剑尾弯月形回锋弧线、轻微压身回弹
 - 方向切换特效只解释视觉过程，不改写 `target_heading/body_heading/velocity`，也不阻塞玩家继续转向
-- 关闭四向图/V4 模式后，旧 sheet 仍可回到 root rotation + clip graph 的表现方式
 - 拖尾锚点、残影旋转、相机缩放都跟随当前航向和速度
 
 资源边界：
 
-- Gemini 四向图只覆盖巡航姿态读法，暂不表达完整转身序列帧、急转关键帧和高速变形
-- `cruise_turn`、`hard_turn_core`、`hard_turn_to_boost`、`hard_turn_to_cruise` 的播放状态仍存在，但四向模式下视觉会继续按当前 `body_heading` 选图
-- V1 generated 序列帧暂不自动接入 `cruise_turn`、`hard_turn_core`、`hard_turn_to_boost`、`hard_turn_to_cruise`；左右变向先直接换朝向，高速/低速切换只走 `boost_enter/boost_exit`，上/下方向仍由静帧方向角色承担读法
-- 如果后续美术要补资源，优先把这套四向巡航扩成“巡航循环 + 高速上扬/下潜 + 大角度压剑回锋”三类，不要直接回到整图旋转方案
+- V4 外观仍由程序骨骼与轻量服饰二级运动表达，不依赖已归档的 Gemini 四向静帧候选
+- `cruise_turn`、`hard_turn_core`、`hard_turn_to_boost`、`hard_turn_to_cruise` 的播放状态仍存在，但人物读法由 V4 骨骼姿态承接
+- 如果后续美术要补资源，优先沿 V4 的“程序骨骼/挂点/小尺寸御剑读法”推进，不要直接回到整图旋转或静态贴图换向方案
 - 朝向符号切换时会清理方向性拖尾/残影，避免旧剑尾锚点从另一侧穿身
 
 ## 5. 大战场与镜头

@@ -1,11 +1,21 @@
 extends Node2D
 
 const HUMANOID_8WAY_SKELETON_VISUAL := preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
-const YUJIAN_INK_PART_VISUAL := preload("res://scripts/prototypes/yujian_ink_part_visual.gd")
-const GOOGLE_PARTS_SKELETON_VISUAL := preload("res://scripts/prototypes/google_parts_skeleton_visual.gd")
 const WIND_RIBBON_EFFECT_SCRIPT := preload("res://third_party/ffttasd/wind_ribbon/scripts/wind_ribbon_effect.gd")
 const FOG_CARD_3D_SCRIPT := preload("res://third_party/ffttasd/godot_fog_card/scripts/fog_card_3d.gd")
 const FOG_CARD_SHADER := preload("res://third_party/ffttasd/godot_fog_card/reference_fog/shaders/fog-card.gdshader")
+const CLOUDSEA_FAR_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/cloudsea_far_band_01.png"
+const CLOUDSEA_MID_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/cloudsea_mid_band_01.png"
+const MOUNTAIN_FAR_INK_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/mountain_far_ink_01.png"
+const MOUNTAIN_MID_INK_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/mountain_mid_ink_01.png"
+const SEA_HORIZON_WASH_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/sea_horizon_wash_01.png"
+const FAR_ISLAND_CHAIN_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/far_island_chain_01.png"
+const SEA_MIST_FOOT_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/sea_mist_foot_01.png"
+const SEA_SHIMMER_LINES_ATLAS_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/sea_shimmer_lines_atlas_01.png"
+const BOUNDARY_CLOUD_WALL_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/boundary_cloud_wall_01.png"
+const BOUNDARY_RUNE_STRIP_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/boundary_rune_strip_01.png"
+const NEAR_CLOUD_WISPS_ATLAS_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/near_cloud_wisps_atlas_01.png"
+const LANDMARK_SILHOUETTES_ATLAS_TEXTURE_PATH := "res://resources/flight/background/yujian_cloudsea_v1/landmark_silhouettes_atlas_01.png"
 
 const VIEW_SIZE := Vector2(1280.0, 720.0)
 const BASE_PLAY_ORIGIN := Vector2(92.0, 86.0)
@@ -31,6 +41,10 @@ const SCENE_NEAR_FOG_PARALLAX := 0.72
 const SCENE_FAR_MOUNTAIN_TILE := 760.0
 const SCENE_MID_MOUNTAIN_TILE := 620.0
 const SCENE_WIND_MIN_SPEED := 0.68
+const SCENE_BACKGROUND_SPEED_MIN := 0.36
+const SCENE_BACKGROUND_BOUNDARY_SCREEN_RANGE := 260.0
+const SCENE_BACKGROUND_BOUNDARY_ALPHA := 0.30
+const SCENE_BACKGROUND_RUNE_ALPHA := 0.18
 const REFERENCE_VFX_VIEWPORT_SIZE := Vector2i(1280, 720)
 const REFERENCE_FOG_CARD_COUNT := 14
 const REFERENCE_WIND_SEGMENT_COUNT := 6
@@ -64,13 +78,13 @@ const SPRITE_SCALE := 0.235
 const SHEET_FACE_SIGN := 1.0
 const POSE_OFFSET := Vector2(-10.0, -6.0)
 const USE_GEMINI_8WAY_CRUISE := true
-const EIGHT_WAY_SET_V1 := 0
-const EIGHT_WAY_SET_V2 := 1
-const EIGHT_WAY_SET_V3_FACE := 2
-const EIGHT_WAY_SET_V4_SKELETON := 3
-const EIGHT_WAY_SET_V5_INK_PARTS := 4
-const EIGHT_WAY_SET_V6_GOOGLE_PARTS := 5
-const EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2 := 6
+const EIGHT_WAY_SET_V1 := -1
+const EIGHT_WAY_SET_V2 := -2
+const EIGHT_WAY_SET_V3_FACE := -3
+const EIGHT_WAY_SET_V4_SKELETON := 0
+const EIGHT_WAY_SET_V5_INK_PARTS := -4
+const EIGHT_WAY_SET_V6_GOOGLE_PARTS := -5
+const EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2 := -6
 const GEMINI_EIGHT_WAY_SCALE := 0.17
 const INK_PART_EIGHT_WAY_SCALE := 1.22
 const GOOGLE_PARTS_EIGHT_WAY_SCALE := 1.12
@@ -82,6 +96,9 @@ const VISUAL_HEADING_HARD_TURN_RATE := 12.0
 const VISUAL_HEADING_HOVER_TURN_RATE := 13.5
 const EIGHT_WAY_SWITCH_HYSTERESIS := 0.14
 const EIGHT_WAY_LOCAL_ROTATION_LIMIT := 0.66
+const V3_TWO_WAY_LOCAL_ROTATION_LIMIT := PI * 0.5
+const V3_TWO_WAY_VERTICAL_X_THRESHOLD := 0.32
+const V3_TWO_WAY_VERTICAL_Y_THRESHOLD := 0.58
 const EIGHT_WAY_ADJUSTMENT_HALF_LIFE := 0.045
 const EIGHT_WAY_SWITCH_GHOST_LIFE := 0.12
 const DIRECTION_SWITCH_FX_LIFE := 0.24
@@ -93,22 +110,10 @@ const DIRECTION_SWITCH_MAX_ARCS := 8
 const CONTROL_MODE_DIRECT_INTENT := 0
 const CONTROL_MODE_STEER_THROTTLE := 1
 const GEMINI_EIGHT_WAY_SET_LABELS := [
-	"V1 prototype",
-	"V2 accepted",
-	"V3 face",
 	"V4 skeleton rig",
-	"V5 ink parts",
-	"V6 google parts",
-	"V7 google parts v2",
 ]
 const GEMINI_EIGHT_WAY_BASE_PATHS := [
-	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype",
-	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v2",
-	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face",
 	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton",
-	"res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v5_ink_parts",
-	"res://resources/flight/rider/google_parts_v1",
-	"res://resources/flight/rider/google_parts_v2",
 ]
 const EIGHT_WAY_RUNTIME_ADJUSTMENTS_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_runtime_adjustments.json"
 const GEMINI_EIGHT_WAY_NAMES := [
@@ -123,10 +128,53 @@ const GEMINI_EIGHT_WAY_VECTORS := [
 	Vector2(-1.0, 0.0),
 	Vector2(0.0, 1.0),
 ]
+const SKELETON_CARDINAL_DIRECTION_INDICES := [0, 2, 4, 6]
 
-@export_enum("V1 prototype", "V2 accepted", "V3 face", "V4 skeleton rig", "V5 ink parts", "V6 google parts", "V7 google parts v2") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
+@export_enum("V4 skeleton rig") var eight_way_character_set := EIGHT_WAY_SET_V4_SKELETON
 @export_enum("Direct intent", "Steer throttle") var control_mode := CONTROL_MODE_DIRECT_INTENT
-@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 2
+@export_range(0.25, 1.25, 0.01) var skeleton_size_scale := 0.3
+
+@export_category("大战场背景")
+@export_group("整体响应")
+@export_range(0.10, 1.0, 0.01) var 急转背景保留比例 := 0.72
+@export_range(0.10, 1.0, 0.01) var 海岛高速保留比例 := 0.70
+@export_range(0.10, 1.0, 0.01) var 海面高速保留比例 := 0.82
+@export_range(0.10, 1.0, 0.01) var 水纹高速保留比例 := 0.30
+
+@export_group("天空")
+@export var 天空顶部颜色 := Color(0.60, 0.72, 0.77, 1.0)
+@export var 天空中部颜色 := Color(0.76, 0.86, 0.87, 1.0)
+@export var 天空底部颜色 := Color(0.88, 0.93, 0.87, 1.0)
+@export_range(0.0, 0.30, 0.005) var 天空中部雾光强度 := 0.08
+@export_range(0.0, 0.30, 0.005) var 天空低处青雾强度 := 0.025
+
+@export_group("海平面")
+@export_range(0.35, 0.72, 0.001) var 海平线高度比例 := 0.515
+@export var 海面基础颜色 := Color(0.32, 0.64, 0.67, 1.0)
+@export_range(0.0, 0.70, 0.005) var 海面基础透明度 := 0.29
+@export var 海平线柔光颜色 := Color(0.74, 0.96, 0.97, 1.0)
+@export_range(0.0, 0.30, 0.005) var 海平线柔光强度 := 0.085
+@export_range(8.0, 180.0, 1.0) var 海平线柔光宽度 := 56.0
+@export_range(0.40, 0.78, 0.001) var 海面水洗高度比例 := 0.58
+@export_range(0.0, 1.0, 0.005) var 海面水洗透明度 := 0.22
+@export var 海面水洗染色 := Color(0.70, 0.94, 0.96, 1.0)
+
+@export_group("山与岛屿")
+@export_range(0.0, 1.0, 0.005) var 远山透明度 := 0.10
+@export_range(0.0, 1.0, 0.005) var 中景山透明度 := 0.12
+@export_range(0.35, 0.72, 0.001) var 远岛高度比例 := 0.525
+@export_range(0.0, 1.0, 0.005) var 远岛透明度 := 0.46
+@export var 远岛染色 := Color(0.55, 0.69, 0.67, 1.0)
+@export_range(0.35, 0.76, 0.001) var 山脚海雾高度比例 := 0.55
+@export_range(0.0, 1.0, 0.005) var 山脚海雾透明度 := 0.055
+
+@export_group("云海与水纹")
+@export_range(0.40, 0.82, 0.001) var 远云高度比例 := 0.61
+@export_range(0.0, 1.0, 0.005) var 远云透明度 := 0.13
+@export_range(0.48, 0.90, 0.001) var 中景云高度比例 := 0.69
+@export_range(0.0, 1.0, 0.005) var 中景云透明度 := 0.13
+@export_range(0.48, 0.92, 0.001) var 水纹高度比例 := 0.72
+@export_range(0.0, 0.50, 0.005) var 水纹透明度 := 0.045
 
 const CRUISE_SPEED := 390.0 * FLIGHT_SPEED_MULTIPLIER
 const BOOST_SPEED := 760.0 * FLIGHT_SPEED_MULTIPLIER
@@ -158,6 +206,112 @@ const CAMERA_ZOOM_HALF_LIFE := 0.18
 const BOOST_ENTER_SPEED := 520.0 * FLIGHT_SPEED_MULTIPLIER
 const BOOST_EXIT_SPEED := 455.0 * FLIGHT_SPEED_MULTIPLIER
 const BOOST_IDLE_HARD_TURN_ENTRY_FRAME := 4
+const BOOST_BURST_DURATION := 0.11
+const BOOST_BURST_EXTRA_DISTANCE := 168.0
+const BOOST_SHOCKWAVE_LIFE := 0.30
+const BOOST_SHOCKWAVE_FRONT_OFFSET := 132.0
+const BOOST_SHOCKWAVE_MAX_COUNT := 5
+const BOOST_SHOCKWAVE_FRONT_FOLLOW_POWER := 2.25
+const BOOST_SHOCKWAVE_DRIFT_FACTOR := 0.08
+const BOOST_SHOCKWAVE_RING_TEXTURE_PATH := "res://resources/vfx/yujian_boost/boost_shockwave_video_ring.png"
+const BOOST_SHOCKWAVE_MIST_TEXTURE_PATH := "res://resources/vfx/yujian_boost/boost_shockwave_video_mist.png"
+const BOOST_SHOCKWAVE_NEEDLE_TEXTURE_PATH := "res://resources/vfx/yujian_boost/boost_shockwave_video_sketch_lines.png"
+const BOOST_SHOCKWAVE_SHARD_TEXTURE_PATH := "res://resources/vfx/yujian_boost/boost_shockwave_video_smear.png"
+const BOOST_SHOCKWAVE_PARTICLE_ROOT_PATH := "BoostShockwaveVfxRoot"
+const BOOST_SHOCKWAVE_PARTICLE_VISIBILITY_RECT := Rect2(Vector2(-820.0, -520.0), Vector2(1640.0, 1040.0))
+const AIRWAKE_PARTICLE_VISIBILITY_RECT := Rect2(Vector2(-620.0, -360.0), Vector2(1240.0, 720.0))
+
+@export_category("加速冲击波")
+@export_group("前冲")
+@export_range(0.04, 0.30, 0.005) var 前冲时长 := BOOST_BURST_DURATION
+@export_range(0.0, 280.0, 1.0) var 前冲距离 := BOOST_BURST_EXTRA_DISTANCE
+@export_group("位置")
+@export_range(40.0, 260.0, 1.0) var 前置距离 := BOOST_SHOCKWAVE_FRONT_OFFSET
+@export_range(0.08, 0.70, 0.01) var 冲击波寿命 := BOOST_SHOCKWAVE_LIFE
+@export_range(1, 8, 1) var 最大残留数量 := BOOST_SHOCKWAVE_MAX_COUNT
+@export_range(0.2, 4.0, 0.05) var 前方跟随力度 := BOOST_SHOCKWAVE_FRONT_FOLLOW_POWER
+@export_range(0.0, 120.0, 1.0) var 向前漂移距离 := 42.0
+@export_range(0.0, 0.20, 0.005) var 速度拖拽系数 := BOOST_SHOCKWAVE_DRIFT_FACTOR
+@export_group("椭圆环")
+@export var 椭圆环颜色 := Color(1.0, 1.0, 0.96, 1.0)
+@export_range(0.0, 2.0, 0.01) var 椭圆环透明度 := 1.24
+@export_range(0.10, 1.20, 0.01) var 椭圆环起始缩放 := 0.46
+@export_range(0.10, 1.60, 0.01) var 椭圆环结束缩放 := 0.72
+@export_range(4.0, 80.0, 1.0) var 前后半径起始 := 10.0
+@export_range(8.0, 120.0, 1.0) var 前后半径结束 := 36.0
+@export_range(20.0, 260.0, 1.0) var 上下半径起始 := 46.0
+@export_range(40.0, 360.0, 1.0) var 上下半径结束 := 152.0
+@export_range(0.2, 2.0, 0.01) var 整体形状缩放 := 1.0
+@export_group("手绘线")
+@export var 外圈颜色 := Color(0.96, 0.96, 0.90, 1.0)
+@export var 线带颜色 := Color(0.98, 0.98, 0.94, 1.0)
+@export var 核心线颜色 := Color(1.0, 1.0, 0.96, 1.0)
+@export var 速度线颜色 := Color(0.96, 0.96, 0.90, 1.0)
+@export var 暗速度线颜色 := Color(0.86, 0.86, 0.80, 1.0)
+@export_range(0.0, 2.5, 0.01) var 线条透明度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 速度线透明度 := 1.0
+@export_group("粒子")
+@export_range(1, 64, 1) var 雾粒子数量 := 14
+@export_range(1, 48, 1) var 线稿粒子数量 := 10
+@export_range(1, 32, 1) var 拖影粒子数量 := 4
+@export_range(0.05, 0.80, 0.01) var 雾粒子寿命 := 0.34
+@export_range(0.05, 0.60, 0.01) var 线稿粒子寿命 := 0.20
+@export_range(0.05, 0.60, 0.01) var 拖影粒子寿命 := 0.24
+@export var 雾粒子颜色 := Color(0.98, 0.98, 0.92, 1.0)
+@export var 线稿粒子颜色 := Color(0.98, 0.98, 0.92, 1.0)
+@export var 拖影粒子颜色 := Color(0.90, 0.90, 0.84, 1.0)
+@export_range(0.0, 2.5, 0.01) var 粒子透明度 := 1.0
+@export_range(0.2, 2.0, 0.01) var 粒子速度 := 1.0
+
+@export_category("破空尾流")
+@export_group("整体")
+@export_range(0.0, 2.0, 0.01) var 破空尾流强度 := 1.30
+@export_range(0.45, 1.8, 0.01) var 破空尾流长度 := 1.18
+
+@export_group("可读主线")
+@export_range(0.0, 2.0, 0.01) var 主线长度倍率 := 1.0
+@export_range(0.0, 2.5, 0.01) var 主线核心透明度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 主线光晕透明度 := 1.0
+@export_range(0.25, 3.0, 0.01) var 主线核心宽度 := 1.0
+@export_range(0.25, 3.0, 0.01) var 主线光晕宽度 := 1.0
+
+@export_group("历史尾迹辅助")
+@export_range(0.0, 2.0, 0.01) var 辅助尾迹透明度 := 1.0
+@export_range(0.25, 2.5, 0.01) var 辅助尾迹宽度 := 1.0
+
+@export_group("剑轨粒子")
+@export_range(0.0, 2.0, 0.01) var 剑轨亮度 := 1.08
+@export_range(1, 96, 1) var 剑轨粒子数量 := 30
+@export_range(0.06, 0.80, 0.01) var 剑轨粒子寿命 := 0.32
+@export_range(0.2, 2.5, 0.01) var 剑轨粒子速度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 剑轨粒子透明度 := 1.0
+
+@export_group("云气开缝")
+@export_range(0.0, 2.0, 0.01) var 云气开缝强度 := 0.38
+@export_range(1, 96, 1) var 云气粒子数量 := 24
+@export_range(0.06, 0.80, 0.01) var 云气粒子寿命 := 0.26
+@export_range(0.2, 2.5, 0.01) var 云气粒子速度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 云气粒子透明度 := 1.0
+
+@export_group("风切针线")
+@export_range(0.0, 2.0, 0.01) var 风切粒子强度 := 0.92
+@export_range(1, 128, 1) var 风切粒子数量 := 32
+@export_range(0.06, 0.80, 0.01) var 风切粒子寿命 := 0.26
+@export_range(0.2, 2.5, 0.01) var 风切粒子速度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 风切粒子透明度 := 1.0
+
+@export_group("冷凝散点")
+@export_range(1, 64, 1) var 冷凝粒子数量 := 10
+@export_range(0.06, 0.80, 0.01) var 冷凝粒子寿命 := 0.22
+@export_range(0.2, 2.5, 0.01) var 冷凝粒子速度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 冷凝粒子透明度 := 1.0
+
+@export_group("压缩尾迹")
+@export_range(0.0, 2.0, 0.01) var 压缩尾迹强度 := 0.18
+@export_range(1, 48, 1) var 压缩粒子数量 := 5
+@export_range(0.06, 0.80, 0.01) var 压缩粒子寿命 := 0.15
+@export_range(0.2, 2.5, 0.01) var 压缩粒子速度 := 1.0
+@export_range(0.0, 2.5, 0.01) var 压缩粒子透明度 := 1.0
 
 const KEY_MODE_NONE := 0
 const KEY_MODE_GREEN := 2
@@ -170,6 +324,7 @@ const CLIP_BOOST_EXIT := 4
 const CLIP_HARD_TURN_CORE := 5
 const CLIP_HARD_TURN_TO_BOOST := 6
 const CLIP_HARD_TURN_TO_CRUISE := 7
+const CLIP_V3_TOP_TURN := 8
 const SPEED_MODE_CRUISE := 0
 const SPEED_MODE_BOOST := 1
 
@@ -266,6 +421,20 @@ const CLIPS := [
 		"trail_weight": 1.28,
 		"smear_weight": 0.38,
 	},
+	{
+		"name": "v3_top_turn_1378",
+		"path": "res://archive/flight_visual_non_v4_20260530/resources/flight/yujian_8way_cruise_generated_v1/prototype_v3_face/top_turn_1378_4f_512_strip.png",
+		"frames": 6,
+		"columns": 4,
+		"source_frames": [0, 1, 1, 2, 2, 3],
+		"fps": 9.0,
+		"loop": false,
+		"kind": "v3_top_turn",
+		"self_turn": true,
+		"trail_anchor": Vector2(-58.0, 92.0),
+		"trail_weight": 1.18,
+		"smear_weight": 0.42,
+	},
 ]
 
 var sprite_root: Node2D
@@ -293,6 +462,31 @@ var key_shader: Shader
 var trail_halo: Line2D
 var trail_ribbon: Line2D
 var trail_core: Line2D
+var airwake_root: Node2D
+var qi_rail_particles: GPUParticles2D
+var cloud_split_particles: GPUParticles2D
+var wind_cut_particles: GPUParticles2D
+var condensation_particles: GPUParticles2D
+var compression_particles: GPUParticles2D
+var airwake_halo_line: Line2D
+var airwake_core_line: Line2D
+var airwake_cloud_lines: Array[Line2D] = []
+var airwake_wind_lines: Array[Line2D] = []
+var airwake_mote_lines: Array[Line2D] = []
+var airwake_compression_line: Line2D
+var airwake_particle_layers: Array[GPUParticles2D] = []
+var cloudsea_far_texture: Texture2D
+var cloudsea_mid_texture: Texture2D
+var mountain_far_ink_texture: Texture2D
+var mountain_mid_ink_texture: Texture2D
+var sea_horizon_wash_texture: Texture2D
+var far_island_chain_texture: Texture2D
+var sea_mist_foot_texture: Texture2D
+var sea_shimmer_lines_atlas_texture: Texture2D
+var boundary_cloud_wall_texture: Texture2D
+var boundary_rune_strip_texture: Texture2D
+var near_cloud_wisps_atlas_texture: Texture2D
+var landmark_silhouettes_atlas_texture: Texture2D
 
 var texture_cache: Dictionary = {}
 var eight_way_textures: Array = []
@@ -305,6 +499,9 @@ var render_sign := 1.0
 var facing_sign := 1.0
 var turn_from_sign := 1.0
 var turn_to_sign := 1.0
+var v3_top_turn_reverse := false
+var v3_top_turn_is_bottom := false
+var v3_top_turn_target_sign := 0.0
 var speed_mode := SPEED_MODE_CRUISE
 
 var flight_pos := FLIGHT_START_POS
@@ -334,6 +531,8 @@ var heading_angle_delta := 0.0
 var heading_turn_rate := 0.0
 var boundary_energy := 0.0
 var boost_energy := 0.0
+var boost_burst_timer := 0.0
+var boost_burst_direction := Vector2.RIGHT
 var turn_energy := 0.0
 var direction_switch_energy := 0.0
 var direction_switch_direction := 0.0
@@ -345,6 +544,7 @@ var eight_way_texture_initialized := false
 var time := 0.0
 var background_key_enabled := true
 var auto_demo := false
+var show_debug_guides := false
 var eight_way_adjustments: Dictionary = {}
 var adjustment_selected_direction := 0
 var adjustment_follow_current := true
@@ -376,12 +576,20 @@ var adjustment_status_label: Label
 var trail_points: Array = []
 var afterimages: Array = []
 var direction_switch_fx: Array = []
+var boost_shockwaves: Array = []
+var boost_shockwave_seed := 0
+var boost_shockwave_vfx_root: Node2D
+var boost_shockwave_ring_sprite: Sprite2D
+var boost_shockwave_particle_layers: Array[GPUParticles2D] = []
+var boost_shockwave_textures: Dictionary = {}
 var scene_speed_streaks: Array = []
 var scene_speed_streak_spawn_accumulator := 0.0
 var scene_speed_streak_seed := 0
+var hair_fx_panel_hotkey_down := false
 
 
 func _ready() -> void:
+	_load_background_textures()
 	_create_nodes()
 	if USE_GEMINI_8WAY_CRUISE:
 		_load_eight_way_adjustments()
@@ -389,12 +597,29 @@ func _ready() -> void:
 		_create_adjustment_panel()
 	_start_clip(CLIP_CRUISE_IDLE, facing_sign)
 	set_process(true)
+	set_process_input(true)
 	queue_redraw()
+
+
+func _load_background_textures() -> void:
+	cloudsea_far_texture = _load_png_texture(CLOUDSEA_FAR_TEXTURE_PATH)
+	cloudsea_mid_texture = _load_png_texture(CLOUDSEA_MID_TEXTURE_PATH)
+	mountain_far_ink_texture = _load_png_texture(MOUNTAIN_FAR_INK_TEXTURE_PATH)
+	mountain_mid_ink_texture = _load_png_texture(MOUNTAIN_MID_INK_TEXTURE_PATH)
+	sea_horizon_wash_texture = _load_png_texture(SEA_HORIZON_WASH_TEXTURE_PATH)
+	far_island_chain_texture = _load_png_texture(FAR_ISLAND_CHAIN_TEXTURE_PATH)
+	sea_mist_foot_texture = _load_png_texture(SEA_MIST_FOOT_TEXTURE_PATH)
+	sea_shimmer_lines_atlas_texture = _load_png_texture(SEA_SHIMMER_LINES_ATLAS_TEXTURE_PATH)
+	boundary_cloud_wall_texture = _load_png_texture(BOUNDARY_CLOUD_WALL_TEXTURE_PATH)
+	boundary_rune_strip_texture = _load_png_texture(BOUNDARY_RUNE_STRIP_TEXTURE_PATH)
+	near_cloud_wisps_atlas_texture = _load_png_texture(NEAR_CLOUD_WISPS_ATLAS_TEXTURE_PATH)
+	landmark_silhouettes_atlas_texture = _load_png_texture(LANDMARK_SILHOUETTES_ATLAS_TEXTURE_PATH)
 
 
 func _process(delta: float) -> void:
 	var step := minf(delta, 1.0 / 30.0)
 	time += step
+	_update_hair_fx_panel_hotkey()
 	var axis := _get_move_axis()
 	var boosting := _is_boost_pressed()
 	_update_motion(axis, boosting, step)
@@ -407,9 +632,37 @@ func _process(delta: float) -> void:
 	_update_scene_speed_streaks(step)
 	_update_adjustment_panel_follow_state()
 	_update_direction_switch_fx(step)
+	_update_boost_shockwaves(step)
+	_update_boost_shockwave_particle_root()
 	_update_afterimages(step)
 	_update_trail(step)
+	_update_airwake_particles(step)
 	queue_redraw()
+
+
+func _input(event: InputEvent) -> void:
+	var key_event := event as InputEventKey
+	if key_event != null and _is_hair_fx_panel_hotkey(event):
+		hair_fx_panel_hotkey_down = key_event.pressed
+		if key_event.pressed and not key_event.echo:
+			_toggle_skeleton_hair_fx_panel()
+			get_viewport().set_input_as_handled()
+
+
+func _is_hair_fx_panel_hotkey(event: InputEvent) -> bool:
+	var key_event := event as InputEventKey
+	if key_event == null:
+		return false
+	return key_event.keycode == KEY_F5
+
+
+func _update_hair_fx_panel_hotkey() -> void:
+	var pressed := Input.is_key_pressed(KEY_F5)
+	if pressed and not hair_fx_panel_hotkey_down:
+		hair_fx_panel_hotkey_down = true
+		_toggle_skeleton_hair_fx_panel()
+	elif not pressed and hair_fx_panel_hotkey_down:
+		hair_fx_panel_hotkey_down = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -430,12 +683,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				_update_key_material()
 			KEY_T:
 				auto_demo = not auto_demo
-			KEY_V:
-				_set_eight_way_character_set((eight_way_character_set + 1) % _eight_way_set_count())
 			KEY_F2:
 				_toggle_adjustment_panel()
 			KEY_F3:
 				_toggle_control_mode()
+			KEY_F6:
+				_cycle_skeleton_sword_style()
+			KEY_F9:
+				show_debug_guides = not show_debug_guides
 			KEY_R:
 				_start_clip(clip_index, render_sign)
 
@@ -479,6 +734,7 @@ void fragment() {
 	trail_halo = _create_trail_line("TrailHalo", 0)
 	trail_ribbon = _create_trail_line("TrailRibbon", 1)
 	trail_core = _create_trail_line("TrailCore", 2)
+	_setup_airwake_particles()
 	_create_reference_vfx_viewport()
 
 	sprite_root = Node2D.new()
@@ -497,20 +753,11 @@ void fragment() {
 
 	skeleton_character = HUMANOID_8WAY_SKELETON_VISUAL.new()
 	skeleton_character.name = "SkeletonEightWayCharacter"
+	if skeleton_character.has_method("set_external_hair_fx_hotkey_owner"):
+		skeleton_character.call("set_external_hair_fx_hotkey_owner", true)
 	skeleton_character.visible = _uses_skeleton_eight_way()
 	sprite_root.add_child(skeleton_character)
-
-	ink_part_character = YUJIAN_INK_PART_VISUAL.new()
-	ink_part_character.name = "InkPartEightWayCharacter"
-	ink_part_character.visible = _uses_ink_part_eight_way()
-	sprite_root.add_child(ink_part_character)
-
-	google_part_character = GOOGLE_PARTS_SKELETON_VISUAL.new()
-	google_part_character.name = "GooglePartsEightWayCharacter"
-	if google_part_character.has_method("set_part_set_root"):
-		google_part_character.call("set_part_set_root", _google_part_root_path())
-	google_part_character.visible = _uses_google_part_eight_way()
-	sprite_root.add_child(google_part_character)
+	_setup_boost_shockwave_particles()
 
 
 func _create_adjustment_panel() -> void:
@@ -693,6 +940,227 @@ func _create_trail_line(line_name: String, z: int) -> Line2D:
 	line.antialiased = true
 	add_child(line)
 	return line
+
+
+func _setup_airwake_particles() -> void:
+	airwake_root = Node2D.new()
+	airwake_root.name = "YujianAirwakeParticles"
+	airwake_root.z_index = 4
+	add_child(airwake_root)
+
+	var additive_material := _make_airwake_canvas_material(CanvasItemMaterial.BLEND_MODE_ADD)
+	var soft_material := _make_airwake_canvas_material(CanvasItemMaterial.BLEND_MODE_MIX)
+	airwake_halo_line = _create_airwake_local_line("AirwakeReadableHalo", 0, additive_material)
+	airwake_core_line = _create_airwake_local_line("AirwakeReadableCore", 3, additive_material)
+	airwake_cloud_lines = [
+		_create_airwake_local_line("AirwakeCloudSplitUpper", 1, soft_material),
+		_create_airwake_local_line("AirwakeCloudSplitLower", 1, soft_material),
+	]
+	airwake_wind_lines.clear()
+	for index in range(5):
+		airwake_wind_lines.append(_create_airwake_local_line("AirwakeWindCutLine%02d" % index, 4, additive_material))
+	airwake_mote_lines.clear()
+	for index in range(8):
+		airwake_mote_lines.append(_create_airwake_local_line("AirwakeCondensationMote%02d" % index, 2, soft_material))
+	airwake_compression_line = _create_airwake_local_line("AirwakeCompressionBand", 0, soft_material)
+	qi_rail_particles = _create_airwake_layer(
+		"QiRailCoreParticles",
+		_make_airwake_needle_texture(120, 12, 0.72),
+		_make_airwake_process_material(Vector3(-1.0, 0.0, 0.0), 8.0, Vector3(2.0, 6.0, 1.0), 150.0, 330.0, 8.0, 26.0, 0.060, 0.16, Color(0.88, 1.0, 1.0, 0.36)),
+		additive_material,
+		剑轨粒子数量,
+		剑轨粒子寿命,
+		2,
+		false,
+		0.0
+	)
+	cloud_split_particles = _create_airwake_layer(
+		"CloudSplitMistParticles",
+		_make_airwake_soft_texture(22, 5.8, 2.85),
+		_make_airwake_process_material(Vector3(-1.0, 0.0, 0.0), 48.0, Vector3(3.0, 40.0, 1.0), 120.0, 280.0, 2.0, 12.0, 0.055, 0.17, Color(0.58, 0.95, 1.0, 0.050), true),
+		soft_material,
+		云气粒子数量,
+		云气粒子寿命,
+		1,
+		false,
+		0.0
+	)
+	wind_cut_particles = _create_airwake_layer(
+		"WindCutNeedlesParticles",
+		_make_airwake_needle_texture(112, 5, 0.90),
+		_make_airwake_process_material(Vector3(-1.0, 0.0, 0.0), 14.0, Vector3(2.0, 44.0, 1.0), 220.0, 540.0, 5.0, 20.0, 0.065, 0.16, Color(0.94, 1.0, 1.0, 0.25)),
+		additive_material,
+		风切粒子数量,
+		风切粒子寿命,
+		3,
+		false,
+		0.0
+	)
+	condensation_particles = _create_airwake_layer(
+		"WakeDissolveMotes",
+		_make_airwake_soft_texture(12, 1.4, 2.9),
+		_make_airwake_process_material(Vector3(-1.0, 0.0, 0.0), 66.0, Vector3(3.0, 34.0, 1.0), 76.0, 180.0, 4.0, 15.0, 0.040, 0.12, Color(0.78, 0.98, 1.0, 0.048), true),
+		soft_material,
+		冷凝粒子数量,
+		冷凝粒子寿命,
+		1,
+		false,
+		0.0
+	)
+	compression_particles = _create_airwake_layer(
+		"CompressionConeParticles",
+		_make_airwake_cone_texture(104, 34),
+		_make_airwake_process_material(Vector3(-1.0, 0.0, 0.0), 9.0, Vector3(3.0, 10.0, 1.0), 92.0, 210.0, 10.0, 32.0, 0.14, 0.34, Color(0.72, 0.98, 1.0, 0.040)),
+		soft_material,
+		压缩粒子数量,
+		压缩粒子寿命,
+		0,
+		false,
+		0.0
+	)
+
+
+func _make_airwake_canvas_material(blend_mode: CanvasItemMaterial.BlendMode) -> CanvasItemMaterial:
+	var material := CanvasItemMaterial.new()
+	material.blend_mode = blend_mode
+	return material
+
+
+func _create_airwake_local_line(line_name: String, z: int, canvas_material: CanvasItemMaterial) -> Line2D:
+	var line := Line2D.new()
+	line.name = line_name
+	line.z_index = z
+	line.material = canvas_material
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	line.antialiased = true
+	line.visible = false
+	airwake_root.add_child(line)
+	return line
+
+
+func _create_airwake_layer(
+	layer_name: String,
+	texture: Texture2D,
+	process_material: ParticleProcessMaterial,
+	canvas_material: CanvasItemMaterial,
+	amount: int,
+	lifetime: float,
+	z: int,
+	use_trail: bool,
+	trail_lifetime: float
+) -> GPUParticles2D:
+	var particles := GPUParticles2D.new()
+	particles.name = layer_name
+	particles.z_index = z
+	particles.material = canvas_material
+	particles.texture = texture
+	particles.process_material = process_material
+	particles.amount = amount
+	particles.lifetime = lifetime
+	particles.one_shot = false
+	particles.preprocess = lifetime * 0.65
+	particles.randomness = 0.46
+	particles.fixed_fps = 60
+	particles.local_coords = false
+	particles.draw_order = GPUParticles2D.DRAW_ORDER_LIFETIME
+	particles.visibility_rect = AIRWAKE_PARTICLE_VISIBILITY_RECT
+	particles.trail_enabled = use_trail
+	if use_trail:
+		particles.trail_lifetime = trail_lifetime
+		particles.trail_sections = 6
+		particles.trail_section_subdivisions = 3
+	particles.amount_ratio = 0.0
+	particles.emitting = false
+	airwake_root.add_child(particles)
+	airwake_particle_layers.append(particles)
+	return particles
+
+
+func _make_airwake_process_material(
+	direction: Vector3,
+	spread: float,
+	box_extents: Vector3,
+	velocity_min: float,
+	velocity_max: float,
+	damping_min: float,
+	damping_max: float,
+	scale_min: float,
+	scale_max: float,
+	color: Color,
+	use_turbulence := false
+) -> ParticleProcessMaterial:
+	var material := ParticleProcessMaterial.new()
+	material.particle_flag_disable_z = true
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	material.emission_box_extents = box_extents
+	material.direction = direction
+	material.spread = spread
+	material.gravity = Vector3.ZERO
+	material.initial_velocity_min = velocity_min
+	material.initial_velocity_max = velocity_max
+	material.damping_min = damping_min
+	material.damping_max = damping_max
+	material.scale_min = scale_min
+	material.scale_max = scale_max
+	material.color = color
+	material.angle_min = -5.0
+	material.angle_max = 5.0
+	material.angular_velocity_min = -18.0
+	material.angular_velocity_max = 18.0
+	if use_turbulence:
+		material.turbulence_enabled = true
+		material.turbulence_noise_strength = 0.16
+		material.turbulence_noise_scale = 8.0
+		material.turbulence_influence_min = 0.02
+		material.turbulence_influence_max = 0.12
+	return material
+
+
+func _make_airwake_soft_texture(size: int, stretch: float, falloff: float) -> ImageTexture:
+	var width: int = maxi(int(round(float(size) * stretch)), 4)
+	var height: int = maxi(size, 4)
+	var image := Image.create(width, height, false, Image.FORMAT_RGBA8)
+	var center := Vector2((float(width) - 1.0) * 0.5, (float(height) - 1.0) * 0.5)
+	var inv_width := 1.0 / maxf(center.x, 1.0)
+	var inv_height := 1.0 / maxf(center.y, 1.0)
+	for y in range(height):
+		for x in range(width):
+			var offset := Vector2((float(x) - center.x) * inv_width, (float(y) - center.y) * inv_height)
+			var alpha := pow(maxf(1.0 - offset.length(), 0.0), falloff)
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
+
+
+func _make_airwake_needle_texture(width: int, height: int, head_bias: float) -> ImageTexture:
+	var image := Image.create(maxi(width, 4), maxi(height, 4), false, Image.FORMAT_RGBA8)
+	var center_y := (float(height) - 1.0) * 0.5
+	var inv_y := 1.0 / maxf(center_y, 1.0)
+	for y in range(height):
+		for x in range(width):
+			var nx := float(x) / maxf(float(width - 1), 1.0)
+			var ny := absf((float(y) - center_y) * inv_y)
+			var body := pow(maxf(1.0 - ny, 0.0), 3.8)
+			var tail_fade := smoothstep(0.0, 0.22, nx)
+			var head_fade := 1.0 - smoothstep(head_bias, 1.0, nx)
+			var alpha := body * tail_fade * head_fade
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
+
+
+func _make_airwake_cone_texture(width: int, height: int) -> ImageTexture:
+	var image := Image.create(maxi(width, 4), maxi(height, 4), false, Image.FORMAT_RGBA8)
+	var center_y := (float(height) - 1.0) * 0.5
+	for y in range(height):
+		for x in range(width):
+			var nx := float(x) / maxf(float(width - 1), 1.0)
+			var local_half_height := lerpf(0.12, 1.0, 1.0 - nx) * center_y
+			var y_pressure := 1.0 - clampf(absf(float(y) - center_y) / maxf(local_half_height, 1.0), 0.0, 1.0)
+			var length_fade := smoothstep(0.04, 0.24, nx) * (1.0 - smoothstep(0.76, 1.0, nx))
+			var alpha := pow(maxf(y_pressure, 0.0), 2.0) * length_fade * 0.72
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
 
 
 func _create_reference_vfx_viewport() -> void:
@@ -1031,6 +1499,9 @@ func _load_eight_way_textures() -> void:
 	if _uses_procedural_eight_way():
 		return
 	for index in range(GEMINI_EIGHT_WAY_NAMES.size()):
+		if _uses_v3_face_eight_way() and not _is_v3_two_way_direction_index(index):
+			eight_way_textures.append(null)
+			continue
 		var path := _get_eight_way_path(index)
 		var texture := _load_sequence_texture(path)
 		if texture == null:
@@ -1038,8 +1509,8 @@ func _load_eight_way_textures() -> void:
 		eight_way_textures.append(texture)
 
 
-func _set_eight_way_character_set(next_set: int) -> void:
-	eight_way_character_set = clampi(next_set, 0, _eight_way_set_count() - 1)
+func _set_eight_way_character_set(_next_set: int) -> void:
+	eight_way_character_set = EIGHT_WAY_SET_V4_SKELETON
 	if not USE_GEMINI_8WAY_CRUISE:
 		return
 	eight_way_texture_initialized = false
@@ -1048,12 +1519,6 @@ func _set_eight_way_character_set(next_set: int) -> void:
 		character_sprite.visible = not _uses_procedural_eight_way()
 	if skeleton_character != null:
 		skeleton_character.visible = _uses_skeleton_eight_way()
-	if ink_part_character != null:
-		ink_part_character.visible = _uses_ink_part_eight_way()
-	if google_part_character != null:
-		if google_part_character.has_method("set_part_set_root"):
-			google_part_character.call("set_part_set_root", _google_part_root_path())
-		google_part_character.visible = _uses_google_part_eight_way()
 	_load_eight_way_textures()
 	if _use_v1_sequence_visual():
 		if sheet_texture == null:
@@ -1075,22 +1540,24 @@ func _uses_skeleton_eight_way() -> bool:
 	return eight_way_character_set == EIGHT_WAY_SET_V4_SKELETON
 
 
+func _uses_v3_face_eight_way() -> bool:
+	return false
+
+
 func _uses_ink_part_eight_way() -> bool:
-	return eight_way_character_set == EIGHT_WAY_SET_V5_INK_PARTS
+	return false
 
 
 func _uses_google_part_eight_way() -> bool:
-	return eight_way_character_set == EIGHT_WAY_SET_V6_GOOGLE_PARTS or eight_way_character_set == EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2
+	return false
 
 
 func _google_part_root_path() -> String:
-	if eight_way_character_set == EIGHT_WAY_SET_V7_GOOGLE_PARTS_V2:
-		return "res://resources/flight/rider/google_parts_v2"
-	return "res://resources/flight/rider/google_parts_v1"
+	return ""
 
 
 func _uses_procedural_eight_way() -> bool:
-	return _uses_skeleton_eight_way() or _uses_ink_part_eight_way() or _uses_google_part_eight_way()
+	return _uses_skeleton_eight_way()
 
 
 func _get_eight_way_path(index: int) -> String:
@@ -1106,6 +1573,24 @@ func _toggle_adjustment_panel() -> void:
 	if adjustment_panel == null:
 		return
 	adjustment_panel.visible = not adjustment_panel.visible
+
+
+func _toggle_skeleton_hair_fx_panel() -> void:
+	if skeleton_character == null or not skeleton_character.has_method("toggle_hair_fx_panel"):
+		return
+	skeleton_character.call("toggle_hair_fx_panel")
+
+
+func _cycle_skeleton_sword_style() -> void:
+	if skeleton_character == null or not skeleton_character.has_method("cycle_sword_style"):
+		return
+	skeleton_character.call("cycle_sword_style")
+
+
+func _current_skeleton_sword_style_label() -> String:
+	if skeleton_character == null or not skeleton_character.has_method("get_sword_style_label"):
+		return "-"
+	return String(skeleton_character.call("get_sword_style_label"))
 
 
 func _update_adjustment_panel_follow_state() -> void:
@@ -1407,6 +1892,22 @@ func _start_hard_turn(from_sign: float, to_sign: float) -> void:
 	_capture_afterimage(flight_pos - Vector2(turn_from_sign * 72.0, -8.0), 0.72)
 
 
+func _start_v3_top_turn(from_sign: float, to_sign: float, is_bottom_turn := false) -> void:
+	if not _uses_v3_face_eight_way():
+		return
+	turn_from_sign = signf(from_sign) if from_sign != 0.0 else facing_sign
+	turn_to_sign = signf(to_sign) if to_sign != 0.0 else -turn_from_sign
+	if turn_to_sign == turn_from_sign:
+		return
+	v3_top_turn_is_bottom = is_bottom_turn
+	v3_top_turn_reverse = (turn_from_sign < 0.0 and turn_to_sign > 0.0) != v3_top_turn_is_bottom
+	v3_top_turn_target_sign = turn_to_sign
+	eight_way_index = _v3_two_way_index_from_sign(turn_from_sign)
+	eight_way_local_rotation = _get_eight_way_local_rotation(visual_heading, eight_way_index)
+	_start_clip(CLIP_V3_TOP_TURN, turn_from_sign)
+	_capture_afterimage(flight_pos - Vector2(turn_from_sign * 32.0, -12.0), 0.82)
+
+
 func _start_hard_follow(next_clip: int) -> void:
 	_start_clip(next_clip, turn_from_sign)
 
@@ -1433,6 +1934,15 @@ func _advance_clip(delta: float, axis: Vector2, boosting: bool) -> void:
 
 func _finish_clip(_axis: Vector2, _boosting: bool) -> void:
 	match clip_index:
+		CLIP_V3_TOP_TURN:
+			facing_sign = turn_to_sign
+			_set_render_sign(facing_sign)
+			eight_way_index = 0 if facing_sign > 0.0 else 2
+			eight_way_local_rotation = 0.0
+			eight_way_texture_initialized = true
+			v3_top_turn_is_bottom = false
+			v3_top_turn_target_sign = 0.0
+			_start_clip(CLIP_CRUISE_IDLE, facing_sign)
 		CLIP_CRUISE_TURN:
 			facing_sign = turn_to_sign
 			_set_render_sign(facing_sign)
@@ -1477,6 +1987,12 @@ func _finish_clip(_axis: Vector2, _boosting: bool) -> void:
 
 func _update_clip_requests(_axis: Vector2, _boosting: bool) -> void:
 	var desired_sign := _heading_render_sign(body_heading, render_sign)
+	if _is_v3_top_turn_clip():
+		return
+	var v3_turn_request := _v3_vertical_turn_request_from_heading()
+	if not v3_turn_request.is_empty():
+		_start_v3_top_turn(facing_sign, float(v3_turn_request["target_sign"]), bool(v3_turn_request["bottom"]))
+		return
 	var using_v1_sequence := _use_v1_sequence_visual()
 	if using_v1_sequence:
 		hard_turn_request_timer = 0.0
@@ -1531,6 +2047,20 @@ func _update_clip_requests(_axis: Vector2, _boosting: bool) -> void:
 			_start_clip(CLIP_BOOST_EXIT, facing_sign)
 
 
+func _v3_vertical_turn_request_from_heading() -> Dictionary:
+	if not _uses_v3_face_eight_way():
+		return {}
+	if absf(body_heading.x) > V3_TWO_WAY_VERTICAL_X_THRESHOLD or absf(body_heading.y) < V3_TWO_WAY_VERTICAL_Y_THRESHOLD:
+		return {}
+	var target_sign := _heading_render_sign(target_heading, facing_sign)
+	if target_sign == facing_sign:
+		return {}
+	return {
+		"target_sign": target_sign,
+		"bottom": body_heading.y > 0.0,
+	}
+
+
 func _update_motion(axis: Vector2, boosting: bool, delta: float) -> void:
 	if control_mode == CONTROL_MODE_STEER_THROTTLE:
 		_update_steer_throttle_motion(axis, boosting, delta)
@@ -1548,6 +2078,7 @@ func _update_steer_throttle_motion(axis: Vector2, boosting: bool, delta: float) 
 
 	var previous_throttle := throttle_pressed
 	throttle_pressed = boosting
+	var boost_just_pressed := throttle_pressed and not previous_throttle
 	if previous_throttle and not throttle_pressed and velocity.length() > HOVER_STOP_SPEED:
 		slip_timer = SLIP_DURATION
 
@@ -1566,6 +2097,9 @@ func _update_steer_throttle_motion(axis: Vector2, boosting: bool, delta: float) 
 	body_heading = body_heading.rotated(angle_step).normalized()
 	heading_turn_rate = absf(angle_step) / maxf(delta, 0.001)
 	heading_angle_delta = _signed_angle_between(body_heading, target_heading)
+
+	if boost_just_pressed:
+		_start_boost_burst()
 
 	if throttle_pressed and absf(turn_delta) >= HARD_TURN_MIN_ANGLE and velocity.length() >= HARD_TURN_MIN_SPEED and carve_timer <= 0.0:
 		_begin_carve(signf(turn_delta))
@@ -1594,6 +2128,7 @@ func _update_steer_throttle_motion(axis: Vector2, boosting: bool, delta: float) 
 		velocity = velocity.move_toward(inward * return_speed, BOUNDARY_RETURN_ACCEL * boundary_energy * delta)
 
 	flight_pos += velocity * delta
+	_apply_boost_burst_delta(delta)
 	_apply_boundary_failsafe()
 
 
@@ -1609,6 +2144,7 @@ func _update_direct_intent_motion(axis: Vector2, boosting: bool, delta: float) -
 
 	var previous_throttle := throttle_pressed
 	throttle_pressed = boosting
+	var boost_just_pressed := throttle_pressed and not previous_throttle
 	if (previous_input_active and not input_active) or (previous_throttle and not throttle_pressed):
 		if velocity.length() > HOVER_STOP_SPEED and not input_active and not throttle_pressed:
 			slip_timer = SLIP_DURATION
@@ -1645,6 +2181,9 @@ func _update_direct_intent_motion(axis: Vector2, boosting: bool, delta: float) -
 	heading_turn_rate = absf(angle_step) / maxf(delta, 0.001)
 	heading_angle_delta = _signed_angle_between(body_heading, target_heading)
 
+	if boost_just_pressed:
+		_start_boost_burst()
+
 	if input_active and velocity.length() >= HARD_TURN_MIN_SPEED and carve_timer <= 0.0:
 		var velocity_turn_delta := _signed_angle_between(_safe_velocity_dir(), target_heading)
 		if absf(velocity_turn_delta) >= HARD_TURN_MIN_ANGLE:
@@ -1676,7 +2215,45 @@ func _update_direct_intent_motion(axis: Vector2, boosting: bool, delta: float) -
 		velocity = velocity.move_toward(inward * return_speed, BOUNDARY_RETURN_ACCEL * boundary_energy * delta)
 
 	flight_pos += velocity * delta
+	_apply_boost_burst_delta(delta)
 	_apply_boundary_failsafe()
+
+
+func _start_boost_burst() -> void:
+	var burst_dir := _get_boost_burst_direction()
+	if burst_dir.length_squared() <= 0.0001:
+		return
+	boost_burst_direction = burst_dir.normalized()
+	boost_burst_timer = maxf(前冲时长, 0.001)
+	velocity = boost_burst_direction * maxf(velocity.length(), BOOST_SPEED)
+	boost_energy = maxf(boost_energy, 0.95)
+	throttle_energy = maxf(throttle_energy, 0.82)
+	_spawn_boost_shockwave(boost_burst_direction)
+	_spawn_boost_burst_streaks(boost_burst_direction)
+	_capture_afterimage(flight_pos - boost_burst_direction * 34.0, 1.0)
+	_capture_afterimage(flight_pos - boost_burst_direction * 84.0, 0.72)
+
+
+func _get_boost_burst_direction() -> Vector2:
+	if velocity.length() < CRUISE_SPEED * 0.25 and heading_input_active and heading_input.length_squared() > 0.0001:
+		return heading_input.normalized()
+	if body_heading.length_squared() > 0.0001:
+		return body_heading.normalized()
+	if target_heading.length_squared() > 0.0001:
+		return target_heading.normalized()
+	return _safe_velocity_dir()
+
+
+func _apply_boost_burst_delta(delta: float) -> void:
+	if boost_burst_timer <= 0.0 or boost_burst_direction.length_squared() <= 0.0001:
+		return
+	var previous_timer := boost_burst_timer
+	boost_burst_timer = maxf(boost_burst_timer - delta, 0.0)
+	var safe_duration := maxf(前冲时长, 0.001)
+	var before := clampf(1.0 - previous_timer / safe_duration, 0.0, 1.0)
+	var after := clampf(1.0 - boost_burst_timer / safe_duration, 0.0, 1.0)
+	var distance_delta := 前冲距离 * (_ease_out_cubic(after) - _ease_out_cubic(before))
+	flight_pos += boost_burst_direction.normalized() * distance_delta
 
 
 func _update_target_heading_from_input(axis: Vector2, delta: float) -> void:
@@ -1750,7 +2327,11 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 		return
 	var use_static_direction_pose := false
 	if USE_GEMINI_8WAY_CRUISE:
-		if _use_v1_sequence_visual():
+		if _is_v3_top_turn_clip():
+			eight_way_index = _v3_two_way_index_from_sign(turn_from_sign)
+			eight_way_local_rotation = _get_eight_way_local_rotation(visual_heading, eight_way_index)
+			use_static_direction_pose = true
+		elif _use_v1_sequence_visual():
 			use_static_direction_pose = _apply_v1_hybrid_texture(visual_heading)
 		else:
 			_apply_eight_way_texture(visual_heading)
@@ -1820,7 +2401,7 @@ func _apply_skeleton_eight_way_transform(delta: float, turn_lean: float) -> void
 	if skeleton_character.has_method("set_flight_pose"):
 		skeleton_character.call(
 			"set_flight_pose",
-			eight_way_index,
+			_get_skeleton_direction_index(eight_way_index),
 			visual_heading,
 			velocity,
 			boost_energy,
@@ -1921,7 +2502,7 @@ func _apply_eight_way_texture(heading: Vector2) -> void:
 		return
 	if eight_way_textures.is_empty():
 		return
-	var next_index := _get_eight_way_index_with_hysteresis(heading)
+	var next_index := _get_v3_two_way_index() if _uses_v3_face_eight_way() else _get_eight_way_index_with_hysteresis(heading)
 	var direction_changed := eight_way_texture_initialized and next_index != eight_way_index
 	if direction_changed:
 		_trigger_eight_way_direction_switch(eight_way_index, next_index)
@@ -2062,6 +2643,21 @@ func _get_eight_way_index_with_hysteresis(heading: Vector2) -> int:
 	return nearest_index
 
 
+func _get_skeleton_direction_index(direction_index: int) -> int:
+	if SKELETON_CARDINAL_DIRECTION_INDICES.is_empty():
+		return direction_index
+	var safe_index := clampi(direction_index, 0, SKELETON_CARDINAL_DIRECTION_INDICES.size() - 1)
+	return int(SKELETON_CARDINAL_DIRECTION_INDICES[safe_index])
+
+
+func _get_v3_two_way_index() -> int:
+	return _v3_two_way_index_from_sign(facing_sign)
+
+
+func _v3_two_way_index_from_sign(source_sign: float) -> int:
+	return 0 if source_sign >= 0.0 else 2
+
+
 func _get_eight_way_local_rotation(heading: Vector2, index: int) -> float:
 	if index < 0 or index >= GEMINI_EIGHT_WAY_VECTORS.size():
 		return 0.0
@@ -2070,7 +2666,8 @@ func _get_eight_way_local_rotation(heading: Vector2, index: int) -> float:
 		return 0.0
 	safe_heading = safe_heading.normalized()
 	var base_direction: Vector2 = GEMINI_EIGHT_WAY_VECTORS[index].normalized()
-	return clampf(_signed_angle_between(base_direction, safe_heading), -EIGHT_WAY_LOCAL_ROTATION_LIMIT, EIGHT_WAY_LOCAL_ROTATION_LIMIT)
+	var rotation_limit := V3_TWO_WAY_LOCAL_ROTATION_LIMIT if _uses_v3_face_eight_way() else EIGHT_WAY_LOCAL_ROTATION_LIMIT
+	return clampf(_signed_angle_between(base_direction, safe_heading), -rotation_limit, rotation_limit)
 
 
 func _current_eight_way_name() -> String:
@@ -2093,6 +2690,10 @@ func _is_v1_sequence_sheet_index(index: int) -> bool:
 	return index == 0 or index == 2
 
 
+func _is_v3_two_way_direction_index(index: int) -> bool:
+	return index == 0 or index == 2
+
+
 func _use_v1_static_direction_visual() -> bool:
 	return _use_v1_sequence_visual() and not _is_v1_sequence_sheet_index(eight_way_index)
 
@@ -2100,15 +2701,31 @@ func _use_v1_static_direction_visual() -> bool:
 func _apply_frame() -> void:
 	if character_sprite == null:
 		return
-	if USE_GEMINI_8WAY_CRUISE and (not _use_v1_sequence_visual() or _use_v1_static_direction_visual()):
+	if USE_GEMINI_8WAY_CRUISE and not _is_v3_top_turn_clip() and (not _use_v1_sequence_visual() or _use_v1_static_direction_visual()):
 		return
 	character_sprite.region_enabled = true
-	character_sprite.region_rect = _get_frame_rect(frame_index)
+	character_sprite.region_rect = _get_current_frame_rect()
 
 
-func _get_frame_rect(index: int) -> Rect2:
-	var column := index % FRAME_COLUMNS
-	var row := int(floor(float(index) / float(FRAME_COLUMNS)))
+func _get_current_frame_rect() -> Rect2:
+	var clip := _current_clip()
+	var source_frame := frame_index
+	var source_frames: Array = clip.get("source_frames", [])
+	if not source_frames.is_empty():
+		var order_index := clampi(frame_index, 0, source_frames.size() - 1)
+		if _is_v3_top_turn_clip() and v3_top_turn_reverse:
+			order_index = source_frames.size() - 1 - order_index
+		source_frame = int(source_frames[order_index])
+	elif _is_v3_top_turn_clip() and v3_top_turn_reverse:
+		source_frame = int(clip["frames"]) - 1 - frame_index
+	var columns := int(clip.get("columns", FRAME_COLUMNS))
+	return _get_frame_rect(source_frame, columns)
+
+
+func _get_frame_rect(index: int, columns: int = FRAME_COLUMNS) -> Rect2:
+	var safe_columns := maxi(columns, 1)
+	var column := index % safe_columns
+	var row := int(floor(float(index) / float(safe_columns)))
 	return Rect2(Vector2(column, row) * CELL_SIZE, CELL_SIZE)
 
 
@@ -2224,11 +2841,15 @@ func _is_clip_looping() -> bool:
 
 
 func _is_turn_clip() -> bool:
-	return clip_index == CLIP_CRUISE_TURN or _is_hard_turn_clip()
+	return clip_index == CLIP_CRUISE_TURN or _is_v3_top_turn_clip() or _is_hard_turn_clip()
 
 
 func _is_hard_turn_clip() -> bool:
 	return clip_index == CLIP_HARD_TURN_CORE or clip_index == CLIP_HARD_TURN_TO_BOOST or clip_index == CLIP_HARD_TURN_TO_CRUISE
+
+
+func _is_v3_top_turn_clip() -> bool:
+	return clip_index == CLIP_V3_TOP_TURN and _uses_v3_face_eight_way()
 
 
 func _current_clip() -> Dictionary:
@@ -2531,6 +3152,236 @@ func _update_direction_switch_fx(delta: float) -> void:
 	direction_switch_fx = direction_switch_fx.filter(func(fx: Dictionary) -> bool: return float(fx["age"]) <= float(fx.get("life", DIRECTION_SWITCH_FX_LIFE)))
 
 
+func _update_boost_shockwaves(delta: float) -> void:
+	for fx in boost_shockwaves:
+		fx["age"] = float(fx["age"]) + delta
+	boost_shockwaves = boost_shockwaves.filter(func(fx: Dictionary) -> bool: return float(fx["age"]) <= float(fx.get("life", 冲击波寿命)))
+
+
+func _setup_boost_shockwave_particles() -> void:
+	boost_shockwave_vfx_root = get_node_or_null(BOOST_SHOCKWAVE_PARTICLE_ROOT_PATH) as Node2D
+	boost_shockwave_particle_layers.clear()
+	if boost_shockwave_vfx_root == null:
+		return
+	_load_boost_shockwave_textures()
+	boost_shockwave_vfx_root.visible = true
+	_setup_boost_shockwave_ring_sprite()
+	for child in boost_shockwave_vfx_root.get_children():
+		var particles := child as GPUParticles2D
+		if particles == null:
+			continue
+		particles.emitting = false
+		particles.one_shot = true
+		particles.local_coords = true
+		particles.visibility_rect = BOOST_SHOCKWAVE_PARTICLE_VISIBILITY_RECT
+		_apply_boost_shockwave_particle_runtime_settings(particles)
+		_apply_boost_shockwave_particle_texture(particles)
+		boost_shockwave_particle_layers.append(particles)
+
+
+func _load_boost_shockwave_textures() -> void:
+	boost_shockwave_textures.clear()
+	boost_shockwave_textures["ring"] = _load_png_texture(BOOST_SHOCKWAVE_RING_TEXTURE_PATH)
+	boost_shockwave_textures["mist"] = _load_png_texture(BOOST_SHOCKWAVE_MIST_TEXTURE_PATH)
+	boost_shockwave_textures["needle"] = _load_png_texture(BOOST_SHOCKWAVE_NEEDLE_TEXTURE_PATH)
+	boost_shockwave_textures["shard"] = _load_png_texture(BOOST_SHOCKWAVE_SHARD_TEXTURE_PATH)
+
+
+func _load_png_texture(path: String) -> Texture2D:
+	var file_bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+	if not file_bytes.is_empty():
+		var image := Image.new()
+		var error := image.load_png_from_buffer(file_bytes)
+		if error == OK:
+			return ImageTexture.create_from_image(image)
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+
+func _setup_boost_shockwave_ring_sprite() -> void:
+	if boost_shockwave_vfx_root == null:
+		return
+	boost_shockwave_ring_sprite = boost_shockwave_vfx_root.get_node_or_null("ShockwaveRingSprite") as Sprite2D
+	if boost_shockwave_ring_sprite == null:
+		boost_shockwave_ring_sprite = Sprite2D.new()
+		boost_shockwave_ring_sprite.name = "ShockwaveRingSprite"
+		boost_shockwave_vfx_root.add_child(boost_shockwave_ring_sprite)
+	var texture := boost_shockwave_textures.get("ring", null) as Texture2D
+	if texture != null:
+		boost_shockwave_ring_sprite.texture = texture
+	boost_shockwave_ring_sprite.centered = true
+	boost_shockwave_ring_sprite.position = Vector2.ZERO
+	boost_shockwave_ring_sprite.z_index = 2
+	boost_shockwave_ring_sprite.visible = false
+	boost_shockwave_ring_sprite.modulate = _color_with_scaled_alpha(椭圆环颜色, 0.0)
+
+
+func _apply_boost_shockwave_particle_texture(particles: GPUParticles2D) -> void:
+	var texture_key := ""
+	match particles.name:
+		"ShockwaveMistParticles":
+			texture_key = "mist"
+		"ShockwaveNeedleParticles":
+			texture_key = "needle"
+		"ShockwaveShardParticles":
+			texture_key = "shard"
+	if texture_key.is_empty():
+		return
+	var texture := boost_shockwave_textures.get(texture_key, null) as Texture2D
+	if texture != null:
+		particles.texture = texture
+
+
+func _color_with_scaled_alpha(color: Color, alpha_scale: float) -> Color:
+	return Color(color.r, color.g, color.b, clampf(color.a * alpha_scale, 0.0, 1.0))
+
+
+func _apply_boost_shockwave_particle_runtime_settings(particles: GPUParticles2D) -> void:
+	match particles.name:
+		"ShockwaveMistParticles":
+			particles.amount = maxi(1, 雾粒子数量)
+			particles.lifetime = maxf(雾粒子寿命, 0.01)
+		"ShockwaveNeedleParticles":
+			particles.amount = maxi(1, 线稿粒子数量)
+			particles.lifetime = maxf(线稿粒子寿命, 0.01)
+		"ShockwaveShardParticles":
+			particles.amount = maxi(1, 拖影粒子数量)
+			particles.lifetime = maxf(拖影粒子寿命, 0.01)
+
+
+func _update_boost_shockwave_particle_root() -> void:
+	if boost_shockwave_vfx_root == null:
+		return
+	if boost_shockwaves.is_empty():
+		if boost_shockwave_ring_sprite != null:
+			boost_shockwave_ring_sprite.visible = false
+		return
+	var fx: Dictionary = boost_shockwaves[-1]
+	var dir: Vector2 = fx.get("dir", Vector2.RIGHT)
+	if dir.length_squared() <= 0.0001:
+		dir = Vector2.RIGHT
+	else:
+		dir = dir.normalized()
+	var progress := _get_boost_shockwave_progress(fx)
+	_place_boost_shockwave_particle_root(_get_boost_shockwave_center(fx, dir, progress), dir)
+	_update_boost_shockwave_ring_sprite(fx, progress, clampf(float(fx.get("strength", 1.0)), 0.0, 1.0))
+
+
+func _trigger_boost_shockwave_particles(center: Vector2, direction: Vector2, strength: float) -> void:
+	if boost_shockwave_vfx_root == null or boost_shockwave_particle_layers.is_empty() or direction.length_squared() <= 0.0001:
+		return
+	var dir := direction.normalized()
+	var clamped_strength := clampf(strength, 0.0, 1.0)
+	_place_boost_shockwave_particle_root(center, dir)
+	for particles in boost_shockwave_particle_layers:
+		if particles == null:
+			continue
+		_apply_boost_shockwave_particle_runtime_settings(particles)
+		match particles.name:
+			"ShockwaveMistParticles":
+				particles.speed_scale = lerpf(0.86, 1.0, clamped_strength) * 粒子速度
+				particles.modulate = _color_with_scaled_alpha(雾粒子颜色, lerpf(0.52, 0.70, clamped_strength) * 粒子透明度)
+			"ShockwaveNeedleParticles":
+				particles.speed_scale = lerpf(0.92, 1.06, clamped_strength) * 粒子速度
+				particles.modulate = _color_with_scaled_alpha(线稿粒子颜色, lerpf(0.50, 0.68, clamped_strength) * 粒子透明度)
+			"ShockwaveShardParticles":
+				particles.speed_scale = lerpf(0.88, 1.0, clamped_strength) * 粒子速度
+				particles.modulate = _color_with_scaled_alpha(拖影粒子颜色, lerpf(0.30, 0.46, clamped_strength) * 粒子透明度)
+		particles.restart()
+		particles.emitting = true
+
+
+func _place_boost_shockwave_particle_root(center: Vector2, direction: Vector2) -> void:
+	if boost_shockwave_vfx_root == null:
+		return
+	var dir := direction.normalized()
+	boost_shockwave_vfx_root.position = _world_to_screen(center)
+	boost_shockwave_vfx_root.rotation = dir.angle()
+	boost_shockwave_vfx_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+
+
+func _update_boost_shockwave_ring_sprite(fx: Dictionary, progress: float, strength: float) -> void:
+	if boost_shockwave_ring_sprite == null:
+		return
+	var fade := pow(1.0 - progress, 1.25)
+	if fade <= 0.01:
+		boost_shockwave_ring_sprite.visible = false
+		return
+	var seed := float(fx.get("seed", 0.0))
+	var eased := _ease_out_cubic(progress)
+	boost_shockwave_ring_sprite.visible = true
+	boost_shockwave_ring_sprite.position = Vector2.ZERO
+	boost_shockwave_ring_sprite.rotation = sin(seed * 1.9 + progress * 8.0) * 0.025
+	var ring_scale := lerpf(椭圆环起始缩放, 椭圆环结束缩放, eased) * 整体形状缩放 * lerpf(0.92, 1.08, clampf(strength, 0.0, 1.0))
+	boost_shockwave_ring_sprite.scale = Vector2.ONE * ring_scale
+	boost_shockwave_ring_sprite.modulate = _color_with_scaled_alpha(椭圆环颜色, fade * 椭圆环透明度 * clampf(strength, 0.0, 1.0))
+
+
+func _get_boost_shockwave_progress(fx: Dictionary) -> float:
+	var age := float(fx.get("age", 0.0))
+	var life := maxf(float(fx.get("life", 冲击波寿命)), 0.001)
+	return clampf(age / life, 0.0, 1.0)
+
+
+func _get_boost_shockwave_center(fx: Dictionary, direction: Vector2, progress: float) -> Vector2:
+	var dir := direction.normalized()
+	var age := float(fx.get("age", 0.0))
+	var velocity_drift: Vector2 = fx.get("velocity", Vector2.ZERO)
+	var center: Vector2 = fx.get("center", visual_pos)
+	var current_front := visual_pos + dir * 前置距离
+	var follow_weight := pow(1.0 - progress, 前方跟随力度)
+	center = center.lerp(current_front, follow_weight)
+	return center + dir * lerpf(0.0, 向前漂移距离, progress) + velocity_drift * age * 速度拖拽系数
+
+
+func _spawn_boost_shockwave(direction: Vector2) -> void:
+	if direction.length_squared() <= 0.0001:
+		return
+	var dir := direction.normalized()
+	var speed_pressure := clampf(velocity.length() / BOOST_SPEED, 0.0, 1.2)
+	var strength := clampf(0.82 + speed_pressure * 0.18, 0.82, 1.0)
+	var center := flight_pos + dir * 前置距离
+	boost_shockwaves.append({
+		"center": center,
+		"dir": dir,
+		"age": 0.0,
+		"life": 冲击波寿命,
+		"strength": strength,
+		"velocity": dir * maxf(velocity.length(), BOOST_SPEED),
+		"seed": float(boost_shockwave_seed),
+	})
+	_trigger_boost_shockwave_particles(center, dir, strength)
+	_update_boost_shockwave_ring_sprite(boost_shockwaves[-1], 0.0, strength)
+	boost_shockwave_seed += 1
+	while boost_shockwaves.size() > 最大残留数量:
+		boost_shockwaves.pop_front()
+
+
+func _spawn_boost_burst_streaks(direction: Vector2) -> void:
+	if direction.length_squared() <= 0.0001:
+		return
+	var dir := direction.normalized()
+	var side_dir := dir.rotated(PI * 0.5)
+	for i in range(9):
+		var seed := float(scene_speed_streak_seed)
+		scene_speed_streak_seed += 1
+		var side_offset := lerpf(-168.0, 168.0, _hash01(seed + 3.1))
+		var back_offset := lerpf(22.0, 210.0, _hash01(seed + 7.4))
+		scene_speed_streaks.append({
+			"pos": flight_pos - dir * back_offset + side_dir * side_offset,
+			"dir": dir,
+			"age": 0.0,
+			"life": lerpf(0.18, 0.32, _hash01(seed + 9.6)),
+			"length": lerpf(180.0, 420.0, _hash01(seed + 12.2)) * camera_zoom,
+			"width": lerpf(2.2, 5.4, _hash01(seed + 2.4)),
+			"alpha": lerpf(0.13, 0.26, _hash01(seed + 6.7)),
+			"flow_speed": BOOST_SPEED * lerpf(0.22, 0.42, _hash01(seed + 8.8)),
+		})
+	while scene_speed_streaks.size() > SCENE_SPEED_STREAK_MAX_COUNT:
+		scene_speed_streaks.pop_front()
+
+
 func _capture_afterimage(pos: Vector2, intensity: float) -> void:
 	if _uses_procedural_eight_way():
 		return
@@ -2557,7 +3408,7 @@ func _capture_afterimage(pos: Vector2, intensity: float) -> void:
 		return
 	afterimages.append({
 		"texture": sheet_texture,
-		"source": _get_frame_rect(frame_index),
+		"source": _get_current_frame_rect(),
 		"pos": pos,
 		"screen_offset": character_sprite.position,
 		"scale": character_sprite.scale.abs(),
@@ -2590,6 +3441,230 @@ func _update_trail(delta: float) -> void:
 			"turn": turn_energy,
 		})
 	_update_trail_lines()
+
+
+func _update_airwake_particles(delta: float) -> void:
+	if airwake_root == null:
+		return
+	var direction := _safe_velocity_dir()
+	if direction.length_squared() <= 0.0001:
+		_clear_airwake_particles()
+		return
+
+	var speed_ratio := clampf((velocity.length() - CRUISE_SPEED * 0.28) / maxf(BOOST_SPEED - CRUISE_SPEED * 0.28, 1.0), 0.0, 1.0)
+	var boost_pressure := clampf(maxf(boost_energy, throttle_energy * 0.68), 0.0, 1.0)
+	var carve_pressure := clampf(maxf(carve_energy, turn_energy * 0.82), 0.0, 1.0)
+	var base_energy := clampf(maxf(speed_ratio, boost_pressure * 0.82) + carve_pressure * 0.18, 0.0, 1.0) * 破空尾流强度
+	_sync_airwake_particle_budget()
+	if base_energy <= 0.015:
+		_clear_airwake_particles()
+		return
+
+	airwake_root.visible = true
+	airwake_root.position = _world_to_screen(_get_airwake_anchor(direction))
+	airwake_root.rotation = direction.angle()
+	airwake_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+
+	var rail_ratio := clampf((0.20 + base_energy * 0.48 + boost_pressure * 0.12) * 剑轨亮度, 0.0, 0.88)
+	var mist_ratio := clampf((0.08 + base_energy * 0.38 + carve_pressure * 0.14) * 云气开缝强度, 0.0, 0.36)
+	var needle_ratio := clampf((0.10 + base_energy * 0.44 + boost_pressure * 0.36 + carve_pressure * 0.20) * 风切粒子强度, 0.0, 1.0)
+	var mote_ratio := clampf((base_energy * 0.10 + carve_pressure * 0.12) * 云气开缝强度, 0.0, 0.18)
+	var compression_ratio := clampf((boost_pressure * 0.34 + carve_pressure * 0.12) * 压缩尾迹强度, 0.0, 0.24)
+	var length_scale := 破空尾流长度 * lerpf(0.82, 1.26, boost_pressure)
+
+	_set_airwake_layer(qi_rail_particles, rail_ratio, lerpf(1.04, 1.52, speed_ratio) * length_scale * 剑轨粒子速度, Color(0.82, 1.0, 1.0, (0.30 + 0.12 * boost_pressure) * 剑轨粒子透明度), delta)
+	_set_airwake_layer(cloud_split_particles, mist_ratio, lerpf(1.02, 1.42, speed_ratio) * length_scale * 云气粒子速度, Color(0.48, 0.92, 1.0, (0.045 + 0.020 * base_energy) * 云气粒子透明度), delta)
+	_set_airwake_layer(wind_cut_particles, needle_ratio, lerpf(1.12, 1.78, speed_ratio) * length_scale * 风切粒子速度, Color(0.92, 1.0, 1.0, (0.18 + 0.10 * boost_pressure) * 风切粒子透明度), delta)
+	_set_airwake_layer(condensation_particles, mote_ratio, lerpf(1.00, 1.28, speed_ratio) * 冷凝粒子速度, Color(0.70, 0.96, 1.0, (0.040 + 0.018 * carve_pressure) * 冷凝粒子透明度), delta)
+	_set_airwake_layer(compression_particles, compression_ratio, lerpf(0.90, 1.24, boost_pressure) * length_scale * 压缩粒子速度, Color(0.60, 0.96, 1.0, (0.028 + 0.038 * boost_pressure) * 压缩粒子透明度), delta)
+	_update_airwake_readable_lines(rail_ratio, needle_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_support_lines(mist_ratio, needle_ratio, mote_ratio, compression_ratio, speed_ratio, boost_pressure, length_scale)
+
+
+func _get_airwake_anchor(direction: Vector2) -> Vector2:
+	var clip := _current_clip()
+	var offset: Vector2 = clip.get("trail_anchor", Vector2(-42.0, 90.0))
+	var carve_side := Vector2.ZERO
+	if carve_direction != 0.0:
+		carve_side = direction.rotated(carve_direction * PI * 0.5) * 10.0 * carve_energy
+	var back_distance := absf(offset.x) * 0.62 + 8.0 + 14.0 * boost_energy + 8.0 * turn_energy
+	var vertical_drop := offset.y * lerpf(0.42, 0.30, boost_energy)
+	return visual_pos - direction * back_distance + Vector2(0.0, vertical_drop) + carve_side
+
+
+func _set_airwake_layer(particles: GPUParticles2D, target_ratio: float, speed_scale: float, color: Color, delta: float) -> void:
+	if particles == null:
+		return
+	var ratio := _damp_float(particles.amount_ratio, clampf(target_ratio, 0.0, 1.0), 0.055, delta)
+	particles.amount_ratio = ratio
+	particles.speed_scale = speed_scale
+	particles.modulate = color
+	particles.visible = ratio > 0.01
+	particles.emitting = ratio > 0.015
+
+
+func _update_airwake_readable_lines(rail_ratio: float, needle_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+	var visibility := clampf(maxf(rail_ratio, needle_ratio * 0.72), 0.0, 1.0)
+	if visibility <= 0.015:
+		_set_airwake_line(airwake_halo_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		_set_airwake_line(airwake_core_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var line_length := (72.0 + 88.0 * speed_ratio + 56.0 * boost_pressure) * length_scale * 主线长度倍率
+	var core_points := PackedVector2Array([
+		Vector2(14.0, 0.0),
+		Vector2(-line_length * 0.36, 0.0),
+		Vector2(-line_length, 0.0),
+	])
+	var halo_alpha := (0.050 + 0.038 * boost_pressure) * visibility * 主线光晕透明度
+	var core_alpha := (0.30 + 0.12 * boost_pressure) * visibility * 主线核心透明度
+	_set_airwake_line(airwake_halo_line, core_points, (4.8 + 1.8 * speed_ratio) * 主线光晕宽度, Color(0.58, 0.96, 1.0, halo_alpha))
+	_set_airwake_line(airwake_core_line, core_points, (1.35 + 0.85 * speed_ratio) * 主线核心宽度, Color(0.93, 1.0, 1.0, core_alpha))
+
+
+func _set_airwake_line(line: Line2D, points: PackedVector2Array, width: float, color: Color) -> void:
+	if line == null:
+		return
+	line.points = points
+	line.width = width
+	line.default_color = color
+	line.visible = points.size() >= 2 and color.a > 0.01
+
+
+func _update_airwake_support_lines(
+	mist_ratio: float,
+	needle_ratio: float,
+	mote_ratio: float,
+	compression_ratio: float,
+	speed_ratio: float,
+	boost_pressure: float,
+	length_scale: float
+) -> void:
+	_update_airwake_cloud_lines(mist_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_wind_lines(needle_ratio, speed_ratio, boost_pressure, length_scale)
+	_update_airwake_mote_lines(mote_ratio, speed_ratio, length_scale)
+	_update_airwake_compression_line(compression_ratio, speed_ratio, boost_pressure, length_scale)
+
+
+func _update_airwake_cloud_lines(mist_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+	var visibility := clampf(mist_ratio * 云气粒子透明度, 0.0, 1.0)
+	if visibility <= 0.015:
+		for line in airwake_cloud_lines:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var cloud_length := (76.0 + 88.0 * speed_ratio + 40.0 * boost_pressure) * length_scale * lerpf(0.82, 1.22, clampf(云气粒子速度 - 1.0, 0.0, 1.0))
+	var cloud_gap := 11.0 + 18.0 * speed_ratio + 8.0 * boost_pressure
+	for index in range(airwake_cloud_lines.size()):
+		var side := -1.0 if index == 0 else 1.0
+		var points := PackedVector2Array([
+			Vector2(-10.0, side * cloud_gap * 0.36),
+			Vector2(-cloud_length * 0.42, side * cloud_gap),
+			Vector2(-cloud_length, side * cloud_gap * 1.32),
+		])
+		var alpha := (0.070 + 0.038 * boost_pressure) * visibility
+		var width := (5.0 + 7.0 * speed_ratio) * clampf(云气粒子透明度, 0.0, 2.5)
+		_set_airwake_line(airwake_cloud_lines[index], points, width, Color(0.50, 0.92, 1.0, alpha))
+
+
+func _update_airwake_wind_lines(needle_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+	var visibility := clampf(needle_ratio * 风切粒子透明度, 0.0, 1.0)
+	var active_count := clampi(ceili(float(airwake_wind_lines.size()) * clampf(风切粒子数量 / 128.0, 0.0, 1.0)), 0, airwake_wind_lines.size())
+	if visibility <= 0.015 or active_count <= 0:
+		for line in airwake_wind_lines:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var base_length := (42.0 + 92.0 * speed_ratio + 36.0 * boost_pressure) * length_scale * clampf(风切粒子速度, 0.2, 2.5)
+	for index in range(airwake_wind_lines.size()):
+		var line := airwake_wind_lines[index]
+		if index >= active_count:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+			continue
+		var phase := fposmod(time * 5.0 * clampf(风切粒子速度, 0.2, 2.5) + float(index) * 0.31, 1.0)
+		var side := -1.0 if index % 2 == 0 else 1.0
+		var y := side * lerpf(9.0, 44.0, _hash01(float(index) * 7.17 + 0.4))
+		var start_x := -lerpf(20.0, 96.0, phase)
+		var length := base_length * lerpf(0.48, 1.0, _hash01(float(index) * 5.43 + 0.8))
+		var points := PackedVector2Array([
+			Vector2(start_x, y),
+			Vector2(start_x - length, y + side * lerpf(2.0, 9.0, speed_ratio)),
+		])
+		var alpha := (0.11 + 0.11 * boost_pressure) * visibility * lerpf(0.62, 1.0, phase)
+		var width := 0.85 + 1.45 * speed_ratio
+		_set_airwake_line(line, points, width, Color(0.92, 1.0, 1.0, alpha))
+
+
+func _update_airwake_mote_lines(mote_ratio: float, speed_ratio: float, length_scale: float) -> void:
+	var visibility := clampf(mote_ratio * 冷凝粒子透明度, 0.0, 1.0)
+	var active_count := clampi(ceili(float(airwake_mote_lines.size()) * clampf(冷凝粒子数量 / 64.0, 0.0, 1.0)), 0, airwake_mote_lines.size())
+	if visibility <= 0.01 or active_count <= 0:
+		for line in airwake_mote_lines:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var scatter_length := (52.0 + 86.0 * speed_ratio) * length_scale * clampf(冷凝粒子速度, 0.2, 2.5)
+	for index in range(airwake_mote_lines.size()):
+		var line := airwake_mote_lines[index]
+		if index >= active_count:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+			continue
+		var seed := float(index) * 11.73
+		var phase := fposmod(time * 2.6 * clampf(冷凝粒子速度, 0.2, 2.5) + _hash01(seed), 1.0)
+		var x := -scatter_length * lerpf(0.16, 1.0, phase)
+		var y := lerpf(-38.0, 38.0, _hash01(seed + 3.1))
+		var mote_size := lerpf(2.0, 5.0, _hash01(seed + 4.9))
+		var points := PackedVector2Array([Vector2(x, y), Vector2(x - mote_size, y)])
+		var alpha := (0.10 + 0.08 * speed_ratio) * visibility * (1.0 - phase * 0.45)
+		_set_airwake_line(line, points, mote_size, Color(0.72, 0.96, 1.0, alpha))
+
+
+func _update_airwake_compression_line(compression_ratio: float, speed_ratio: float, boost_pressure: float, length_scale: float) -> void:
+	var visibility := clampf(compression_ratio * 压缩粒子透明度, 0.0, 1.0)
+	if visibility <= 0.015:
+		_set_airwake_line(airwake_compression_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var line_length := (54.0 + 88.0 * speed_ratio + 70.0 * boost_pressure) * length_scale * clampf(压缩粒子速度, 0.2, 2.5)
+	var points := PackedVector2Array([
+		Vector2(8.0, 0.0),
+		Vector2(-line_length * 0.34, 0.0),
+		Vector2(-line_length, 0.0),
+	])
+	var alpha := (0.040 + 0.082 * boost_pressure) * visibility
+	var width := (10.0 + 22.0 * boost_pressure + 6.0 * speed_ratio) * visibility
+	_set_airwake_line(airwake_compression_line, points, width, Color(0.58, 0.94, 1.0, alpha))
+
+
+func _sync_airwake_particle_budget() -> void:
+	_set_airwake_particle_budget(qi_rail_particles, 剑轨粒子数量, 剑轨粒子寿命)
+	_set_airwake_particle_budget(cloud_split_particles, 云气粒子数量, 云气粒子寿命)
+	_set_airwake_particle_budget(wind_cut_particles, 风切粒子数量, 风切粒子寿命)
+	_set_airwake_particle_budget(condensation_particles, 冷凝粒子数量, 冷凝粒子寿命)
+	_set_airwake_particle_budget(compression_particles, 压缩粒子数量, 压缩粒子寿命)
+
+
+func _set_airwake_particle_budget(particles: GPUParticles2D, amount: int, lifetime: float) -> void:
+	if particles == null:
+		return
+	particles.amount = maxi(amount, 1)
+	particles.lifetime = maxf(lifetime, 0.01)
+	particles.preprocess = particles.lifetime * 0.65
+
+
+func _clear_airwake_particles() -> void:
+	if airwake_root != null:
+		airwake_root.visible = false
+	_set_airwake_line(airwake_halo_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+	_set_airwake_line(airwake_core_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+	for line in airwake_cloud_lines:
+		_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+	for line in airwake_wind_lines:
+		_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+	for line in airwake_mote_lines:
+		_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+	_set_airwake_line(airwake_compression_line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+	for particles in airwake_particle_layers:
+		if particles == null:
+			continue
+		particles.amount_ratio = _damp_float(particles.amount_ratio, 0.0, 0.045, 1.0 / 30.0)
+		particles.emitting = particles.amount_ratio > 0.01
+		particles.visible = particles.amount_ratio > 0.01
 
 
 func _get_trail_anchor() -> Vector2:
@@ -2635,12 +3710,12 @@ func _update_trail_lines() -> void:
 	var alpha_scale := clampf(0.45 + speed_ratio * 0.36 + avg_boost * 0.24 + avg_turn * 0.22, 0.16, 1.0)
 	var smooth_points := _build_smooth_points(raw_points)
 	var halo := CYAN
-	halo.a = 0.11 * alpha_scale
-	var ribbon := Color(0.72, 1.0, 0.98, 0.22 * alpha_scale)
-	var core := Color(0.96, 1.0, 0.98, 0.42 * alpha_scale)
-	_apply_line(trail_halo, smooth_points, width * 2.8, halo)
-	_apply_line(trail_ribbon, smooth_points, width * 0.72, ribbon)
-	_apply_line(trail_core, smooth_points, maxf(width * 0.16, 2.0), core)
+	halo.a = 0.055 * alpha_scale * 辅助尾迹透明度
+	var ribbon := Color(0.72, 1.0, 0.98, 0.115 * alpha_scale * 辅助尾迹透明度)
+	var core := Color(0.96, 1.0, 0.98, 0.56 * alpha_scale * 辅助尾迹透明度)
+	_apply_line(trail_halo, smooth_points, width * 0.92 * 辅助尾迹宽度, halo)
+	_apply_line(trail_ribbon, smooth_points, width * 0.34 * 辅助尾迹宽度, ribbon)
+	_apply_line(trail_core, smooth_points, maxf(width * 0.11 * 辅助尾迹宽度, 1.65), core)
 
 
 func _apply_line(line: Line2D, points: PackedVector2Array, width: float, color: Color) -> void:
@@ -2684,17 +3759,285 @@ func _catmull_rom(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float) 
 func _draw() -> void:
 	_draw_background()
 	_draw_scene_speed_streaks()
+	_draw_boost_shockwaves()
 	_draw_direction_switch_fx()
 	_draw_afterimages()
 	_draw_debug()
 
 
 func _draw_background() -> void:
-	draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.66, 0.76, 0.78, 1.0))
-	draw_rect(Rect2(Vector2.ZERO, VIEW_SIZE), Color(0.91, 0.98, 0.96, 0.10))
-	_draw_parallax_mountain_band(0.19, 0.55, Color(0.16, 0.19, 0.18, 0.19), 0.0, SCENE_FAR_MOUNTAIN_PARALLAX, SCENE_FAR_MOUNTAIN_TILE, 70.0)
-	_draw_parallax_mountain_band(0.48, 0.84, Color(0.055, 0.075, 0.073, 0.30), 1.7, SCENE_MID_MOUNTAIN_PARALLAX, SCENE_MID_MOUNTAIN_TILE, 98.0)
-	_draw_world_guides()
+	_draw_sky_wash()
+	var speed_pressure := _background_speed_pressure()
+	var readability_fade := lerpf(1.0, 急转背景保留比例, clampf(maxf(carve_energy, direction_switch_energy), 0.0, 1.0))
+	var grounded_plane_fade := readability_fade * lerpf(1.0, 海岛高速保留比例, speed_pressure)
+	_draw_sea_plane_wash(speed_pressure, readability_fade)
+	_draw_parallax_texture_layer(mountain_far_ink_texture, 0.34, Vector2(0.035, 0.010), 远山透明度 * readability_fade)
+	_draw_parallax_texture_layer(sea_horizon_wash_texture, 海面水洗高度比例, Vector2(0.065, 0.014), 海面水洗透明度 * grounded_plane_fade, 1.0, 0.0, 海面水洗染色)
+	_draw_far_landmarks_from_atlas(speed_pressure)
+	_draw_parallax_texture_layer(mountain_mid_ink_texture, 0.43, Vector2(0.150, 0.028), 中景山透明度 * readability_fade)
+	_draw_parallax_texture_layer(cloudsea_far_texture, 远云高度比例, Vector2(0.090, 0.018), 远云透明度 * readability_fade)
+	_draw_parallax_texture_layer(far_island_chain_texture, 远岛高度比例, Vector2(0.120, 0.026), 远岛透明度 * grounded_plane_fade, 1.0, 0.0, 远岛染色)
+	_draw_parallax_texture_layer(sea_mist_foot_texture, 山脚海雾高度比例, Vector2(0.170, 0.034), 山脚海雾透明度 * grounded_plane_fade)
+	_draw_sea_shimmer_from_atlas(speed_pressure, grounded_plane_fade)
+	_draw_parallax_texture_layer(cloudsea_mid_texture, 中景云高度比例, Vector2(0.240, 0.045), 中景云透明度 * readability_fade)
+	_draw_near_cloud_wisps_from_atlas(speed_pressure)
+	_draw_battlefield_boundary_layers()
+	if show_debug_guides:
+		_draw_world_guides()
+
+
+func _draw_sky_wash() -> void:
+	_draw_smooth_sky_gradient(天空顶部颜色, 天空中部颜色, 天空底部颜色)
+	_draw_soft_sky_haze(0.47, 0.20, Color(0.96, 0.98, 0.94, 天空中部雾光强度))
+	_draw_soft_sky_haze(0.72, 0.24, Color(0.74, 0.90, 0.94, 天空低处青雾强度))
+
+
+func _draw_sea_plane_wash(speed_pressure: float, readability_fade: float) -> void:
+	var horizon_y := VIEW_SIZE.y * 海平线高度比例 - (camera_center.y - FLIGHT_START_POS.y) * 0.012 / maxf(camera_zoom, 0.001)
+	var bottom_y := VIEW_SIZE.y + 2.0
+	var height := maxf(bottom_y - horizon_y, 1.0)
+	var alpha_scale := readability_fade * lerpf(1.0, 海面高速保留比例, speed_pressure)
+	draw_rect(
+		Rect2(Vector2(0.0, horizon_y), Vector2(VIEW_SIZE.x, height)),
+		Color(
+			海面基础颜色.r,
+			海面基础颜色.g,
+			海面基础颜色.b,
+			海面基础透明度 * alpha_scale * 海面基础颜色.a
+		)
+	)
+	_draw_soft_horizon_glow(horizon_y, alpha_scale)
+
+
+func _draw_soft_horizon_glow(horizon_y: float, alpha_scale: float) -> void:
+	var band_height := 海平线柔光宽度
+	var top_y := horizon_y - band_height * 0.45
+	var step_count := 72
+	var previous_y := top_y
+	for index in range(step_count):
+		var t := (float(index) + 0.5) / float(step_count)
+		var center_distance := absf(t * 2.0 - 1.0)
+		var alpha := 海平线柔光强度 * alpha_scale * 海平线柔光颜色.a * pow(maxf(1.0 - center_distance, 0.0), 1.8)
+		var next_y := top_y + band_height * float(index + 1) / float(step_count)
+		draw_rect(
+			Rect2(Vector2(0.0, previous_y), Vector2(VIEW_SIZE.x, next_y - previous_y)),
+			Color(海平线柔光颜色.r, 海平线柔光颜色.g, 海平线柔光颜色.b, alpha)
+		)
+		previous_y = next_y
+
+
+func _draw_smooth_sky_gradient(top_color: Color, middle_color: Color, bottom_color: Color) -> void:
+	var step_count := 180
+	var previous_y := 0.0
+	for index in range(step_count):
+		var t := (float(index) + 0.5) / float(step_count)
+		var color := _sample_sky_gradient(top_color, middle_color, bottom_color, t)
+		var next_y := VIEW_SIZE.y * float(index + 1) / float(step_count)
+		draw_rect(Rect2(Vector2(0.0, previous_y), Vector2(VIEW_SIZE.x, next_y - previous_y + 0.5)), color)
+		previous_y = next_y
+
+
+func _sample_sky_gradient(top_color: Color, middle_color: Color, bottom_color: Color, t: float) -> Color:
+	var smooth_t := t * t * (3.0 - 2.0 * t)
+	if smooth_t < 0.58:
+		return top_color.lerp(middle_color, smooth_t / 0.58)
+	return middle_color.lerp(bottom_color, (smooth_t - 0.58) / 0.42)
+
+
+func _draw_soft_sky_haze(center_ratio: float, half_height_ratio: float, color: Color) -> void:
+	var half_height := VIEW_SIZE.y * half_height_ratio
+	var center_y := VIEW_SIZE.y * center_ratio
+	var top_y := center_y - half_height
+	var step_count := 96
+	var previous_y := top_y
+	for index in range(step_count):
+		var t := (float(index) + 0.5) / float(step_count)
+		var distance_from_center := absf(t * 2.0 - 1.0)
+		var alpha := color.a * pow(maxf(1.0 - distance_from_center, 0.0), 1.65)
+		var next_y := top_y + half_height * 2.0 * float(index + 1) / float(step_count)
+		draw_rect(
+			Rect2(Vector2(0.0, previous_y), Vector2(VIEW_SIZE.x, next_y - previous_y + 0.5)),
+			Color(color.r, color.g, color.b, alpha)
+		)
+		previous_y = next_y
+
+
+func _background_speed_pressure() -> float:
+	var min_speed := CRUISE_SPEED * SCENE_BACKGROUND_SPEED_MIN
+	return clampf((velocity.length() - min_speed) / maxf(BOOST_SPEED - min_speed, 1.0), 0.0, 1.0)
+
+
+func _draw_parallax_texture_layer(texture: Texture2D, y_ratio: float, parallax: Vector2, alpha: float, scale: float = 1.0, y_sway: float = 0.0, tint: Color = Color(1.0, 1.0, 1.0, 1.0)) -> void:
+	if texture == null or alpha <= 0.001:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+	var draw_size: Vector2 = texture_size * scale
+	var y_shift: float = -(camera_center.y - FLIGHT_START_POS.y) * parallax.y / maxf(camera_zoom, 0.001)
+	var y: float = VIEW_SIZE.y * y_ratio - draw_size.y * 0.5 + y_shift + y_sway
+	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
+	var phase := camera_center.x * parallax.x + time * 4.0 * parallax.x
+	_draw_mirrored_texture_tile_x(texture, y, phase, color, scale)
+
+
+func _draw_sea_shimmer_from_atlas(speed_pressure: float, grounded_plane_fade: float) -> void:
+	if sea_shimmer_lines_atlas_texture == null or grounded_plane_fade <= 0.001:
+		return
+	var texture_size: Vector2 = sea_shimmer_lines_atlas_texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return
+	var scale := 1.0
+	var y_shift: float = -(camera_center.y - FLIGHT_START_POS.y) * 0.034 / maxf(camera_zoom, 0.001)
+	var y := VIEW_SIZE.y * 水纹高度比例 - texture_size.y * scale * 0.5 + y_shift + sin(time * 0.16) * 1.5
+	var phase := camera_center.x * 0.30 + time * 1.8
+	var alpha := 水纹透明度 * grounded_plane_fade * lerpf(1.0, 水纹高速保留比例, speed_pressure)
+	_draw_mirrored_texture_tile_x(sea_shimmer_lines_atlas_texture, y, phase, Color(1.0, 1.0, 1.0, alpha), scale)
+
+
+func _draw_far_landmarks_from_atlas(speed_pressure: float) -> void:
+	var texture: Texture2D = landmark_silhouettes_atlas_texture
+	if texture == null:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	var cell_size := Vector2(texture_size.x * 0.5, texture_size.y / 3.0)
+	var spacing_world := 5200.0
+	var visible_rect := _get_visible_world_rect()
+	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 2
+	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 2
+	var base_alpha := 0.045 * lerpf(1.0, 0.55, speed_pressure)
+	for index in range(start_index, end_index + 1):
+		var seed := float(index) * 17.37
+		var world_x := float(index) * spacing_world + lerpf(-900.0, 900.0, _hash01(seed + 1.0))
+		var screen_x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * 0.052 / maxf(camera_zoom, 0.001)
+		if screen_x < -cell_size.x or screen_x > VIEW_SIZE.x + cell_size.x:
+			continue
+		var row := int(floorf(_hash01(seed + 2.0) * 3.0)) % 3
+		var col := int(floorf(_hash01(seed + 3.0) * 2.0)) % 2
+		var source := Rect2(Vector2(float(col) * cell_size.x, float(row) * cell_size.y), cell_size)
+		var draw_scale := lerpf(0.35, 0.58, _hash01(seed + 4.0))
+		var screen_y := VIEW_SIZE.y * lerpf(0.32, 0.50, _hash01(seed + 5.0))
+		_draw_atlas_region(texture, source, Vector2(screen_x, screen_y), draw_scale, base_alpha)
+
+
+func _draw_near_cloud_wisps_from_atlas(speed_pressure: float) -> void:
+	var active_pressure := clampf(maxf(speed_pressure, throttle_energy * 0.32) - 0.05, 0.0, 1.0)
+	if active_pressure <= 0.001:
+		return
+	var texture: Texture2D = near_cloud_wisps_atlas_texture
+	if texture == null:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	var cell_size := Vector2(texture_size.x * 0.5, texture_size.y * 0.25)
+	var visible_rect := _get_visible_world_rect()
+	var spacing_world := 1250.0
+	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 3
+	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 3
+	for index in range(start_index, end_index + 1):
+		var seed := float(index) * 31.11
+		var world_x := float(index) * spacing_world + lerpf(-280.0, 280.0, _hash01(seed + 1.0))
+		var world_y := visible_rect.position.y + visible_rect.size.y * lerpf(0.16, 0.84, _hash01(seed + 2.0))
+		var screen_pos := Vector2(
+			VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * 0.62 / maxf(camera_zoom, 0.001),
+			VIEW_SIZE.y * 0.5 + (world_y - camera_center.y) * 0.40 / maxf(camera_zoom, 0.001)
+		)
+		if screen_pos.x < -cell_size.x or screen_pos.x > VIEW_SIZE.x + cell_size.x:
+			continue
+		if screen_pos.y < -cell_size.y or screen_pos.y > VIEW_SIZE.y + cell_size.y:
+			continue
+		var col := int(floorf(_hash01(seed + 3.0) * 2.0)) % 2
+		var row := int(floorf(_hash01(seed + 4.0) * 4.0)) % 4
+		var source := Rect2(Vector2(float(col) * cell_size.x, float(row) * cell_size.y), cell_size)
+		var draw_scale := lerpf(0.42, 0.78, _hash01(seed + 5.0))
+		var alpha := lerpf(0.018, 0.058, active_pressure) * lerpf(0.62, 1.0, _hash01(seed + 6.0))
+		_draw_atlas_region(texture, source, screen_pos, draw_scale, alpha)
+
+
+func _draw_atlas_region(texture: Texture2D, source: Rect2, center: Vector2, scale: float, alpha: float) -> void:
+	if texture == null or alpha <= 0.001:
+		return
+	var destination_size := source.size * scale
+	if destination_size.x <= 0.0 or destination_size.y <= 0.0:
+		return
+	var destination := Rect2(center - destination_size * 0.5, destination_size)
+	draw_texture_rect_region(texture, destination, source, Color(1.0, 1.0, 1.0, clampf(alpha, 0.0, 1.0)))
+
+
+func _draw_battlefield_boundary_layers() -> void:
+	var top_y := _world_to_screen(Vector2(camera_center.x, PLAY_RECT.position.y)).y
+	var bottom_y := _world_to_screen(Vector2(camera_center.x, PLAY_RECT.end.y)).y
+	var left_x := _world_to_screen(Vector2(PLAY_RECT.position.x, camera_center.y)).x
+	var right_x := _world_to_screen(Vector2(PLAY_RECT.end.x, camera_center.y)).x
+	_draw_horizontal_boundary_layer(top_y, true, _boundary_screen_pressure(top_y, 0.0))
+	_draw_horizontal_boundary_layer(bottom_y, false, _boundary_screen_pressure(bottom_y, VIEW_SIZE.y))
+	_draw_vertical_boundary_layer(left_x, true, _boundary_screen_pressure(left_x, 0.0))
+	_draw_vertical_boundary_layer(right_x, false, _boundary_screen_pressure(right_x, VIEW_SIZE.x))
+
+
+func _boundary_screen_pressure(screen_value: float, edge_value: float) -> float:
+	return clampf(1.0 - absf(screen_value - edge_value) / SCENE_BACKGROUND_BOUNDARY_SCREEN_RANGE, 0.0, 1.0)
+
+
+func _draw_horizontal_boundary_layer(screen_y: float, is_top: bool, pressure: float) -> void:
+	if pressure <= 0.001:
+		return
+	if boundary_cloud_wall_texture == null or boundary_rune_strip_texture == null:
+		return
+	var cloud_size: Vector2 = boundary_cloud_wall_texture.get_size()
+	var cloud_y: float = screen_y - cloud_size.y * 0.24 if is_top else screen_y - cloud_size.y * 0.76
+	var cloud_alpha := SCENE_BACKGROUND_BOUNDARY_ALPHA * pressure
+	_draw_tiled_texture_x(boundary_cloud_wall_texture, cloud_y, 0.42, cloud_alpha)
+	var rune_size: Vector2 = boundary_rune_strip_texture.get_size()
+	var rune_y: float = screen_y + 58.0 if is_top else screen_y - rune_size.y - 58.0
+	_draw_tiled_texture_x(boundary_rune_strip_texture, rune_y, 0.55, SCENE_BACKGROUND_RUNE_ALPHA * pressure)
+
+
+func _draw_vertical_boundary_layer(screen_x: float, is_left: bool, pressure: float) -> void:
+	if pressure <= 0.001:
+		return
+	if boundary_cloud_wall_texture == null or boundary_rune_strip_texture == null:
+		return
+	var cloud_width := 240.0
+	var cloud_x := screen_x - cloud_width * 0.34 if is_left else screen_x - cloud_width * 0.66
+	var cloud_rect := Rect2(Vector2(cloud_x, -20.0), Vector2(cloud_width, VIEW_SIZE.y + 40.0))
+	var cloud_source := Rect2(Vector2.ZERO, boundary_cloud_wall_texture.get_size())
+	draw_texture_rect_region(boundary_cloud_wall_texture, cloud_rect, cloud_source, Color(1.0, 1.0, 1.0, SCENE_BACKGROUND_BOUNDARY_ALPHA * 0.72 * pressure))
+	var rune_width := 92.0
+	var rune_x := screen_x + 52.0 if is_left else screen_x - rune_width - 52.0
+	var rune_rect := Rect2(Vector2(rune_x, 0.0), Vector2(rune_width, VIEW_SIZE.y))
+	var rune_source := Rect2(Vector2.ZERO, boundary_rune_strip_texture.get_size())
+	draw_texture_rect_region(boundary_rune_strip_texture, rune_rect, rune_source, Color(1.0, 1.0, 1.0, SCENE_BACKGROUND_RUNE_ALPHA * 0.48 * pressure))
+
+
+func _draw_tiled_texture_x(texture: Texture2D, y: float, parallax_x: float, alpha: float, scale: float = 1.0) -> void:
+	if texture == null or alpha <= 0.001:
+		return
+	var texture_size: Vector2 = texture.get_size()
+	var draw_size: Vector2 = texture_size * scale
+	if draw_size.x <= 0.0 or draw_size.y <= 0.0:
+		return
+	var color := Color(1.0, 1.0, 1.0, clampf(alpha, 0.0, 1.0))
+	_draw_mirrored_texture_tile_x(texture, y, camera_center.x * parallax_x, color, scale)
+
+
+func _draw_mirrored_texture_tile_x(texture: Texture2D, y: float, phase: float, color: Color, scale: float = 1.0) -> void:
+	var texture_size: Vector2 = texture.get_size()
+	var draw_size: Vector2 = texture_size * scale
+	if draw_size.x <= 0.0 or draw_size.y <= 0.0:
+		return
+	var tile_width := draw_size.x * 2.0
+	var x: float = -fposmod(phase, tile_width) - tile_width
+	var source := Rect2(Vector2.ZERO, texture_size)
+	while x < VIEW_SIZE.x + draw_size.x:
+		draw_texture_rect_region(texture, Rect2(Vector2(x, y), draw_size), source, color)
+		_draw_texture_rect_region_flipped_x(texture, Rect2(Vector2(x + draw_size.x, y), draw_size), source, color)
+		x += tile_width
+
+
+func _draw_texture_rect_region_flipped_x(texture: Texture2D, destination: Rect2, source: Rect2, color: Color) -> void:
+	draw_set_transform(destination.position + Vector2(destination.size.x, 0.0), 0.0, Vector2(-1.0, 1.0))
+	draw_texture_rect_region(texture, Rect2(Vector2.ZERO, destination.size), source, color)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_world_guides() -> void:
@@ -2779,6 +4122,83 @@ func _draw_scene_speed_streaks() -> void:
 		var alpha := float(streak.get("alpha", 0.08)) * fade
 		var width := float(streak.get("width", 1.5)) / maxf(camera_zoom, 0.001)
 		draw_line(start, end, Color(1.0, 1.0, 1.0, alpha), width, true)
+
+
+func _draw_boost_shockwaves() -> void:
+	for fx in boost_shockwaves:
+		var progress := _get_boost_shockwave_progress(fx)
+		var fade := pow(1.0 - progress, 1.18)
+		if fade <= 0.01:
+			continue
+		var dir: Vector2 = fx.get("dir", Vector2.RIGHT)
+		if dir.length_squared() <= 0.0001:
+			dir = Vector2.RIGHT
+		else:
+			dir = dir.normalized()
+		var strength := clampf(float(fx.get("strength", 1.0)), 0.0, 1.0)
+		var center := _get_boost_shockwave_center(fx, dir, progress)
+		var eased := _ease_out_cubic(progress)
+		var shape_pressure := 整体形状缩放 * lerpf(0.88, 1.08, strength)
+		var forward_radius := lerpf(前后半径起始, 前后半径结束, eased) * shape_pressure
+		var side_radius := lerpf(上下半径起始, 上下半径结束, eased) * shape_pressure
+		var line_alpha := fade * strength * 线条透明度
+		var halo := _color_with_scaled_alpha(外圈颜色, 0.06 * line_alpha)
+		var ribbon := _color_with_scaled_alpha(线带颜色, 0.19 * line_alpha)
+		var core := _color_with_scaled_alpha(核心线颜色, 0.30 * line_alpha)
+		var halo_points := _build_boost_shockwave_arc_points(center, dir, forward_radius * 1.12, side_radius * 1.08, 0.0, TAU, 58, fx)
+		var front_points := _build_boost_shockwave_arc_points(center, dir, forward_radius, side_radius, -1.18, 1.18, 24, fx)
+		var rear_points := _build_boost_shockwave_arc_points(center, dir, forward_radius * 0.82, side_radius * 0.95, PI - 0.92, PI + 0.92, 18, fx)
+		var inner_points := _build_boost_shockwave_arc_points(center - dir * 9.0, dir, forward_radius * 0.46, side_radius * 0.70, -1.38, 1.38, 22, fx)
+		var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
+		draw_polyline(halo_points, halo, maxf(5.0 * fade * camera_scale, 0.8), true)
+		draw_polyline(front_points, ribbon, maxf(2.4 * fade * camera_scale, 0.8), true)
+		draw_polyline(front_points, core, maxf(0.9 * camera_scale, 0.55), true)
+		draw_polyline(rear_points, _color_with_scaled_alpha(外圈颜色, 0.08 * fade * 线条透明度), maxf(1.2 * fade * camera_scale, 0.55), true)
+		draw_polyline(inner_points, _color_with_scaled_alpha(线带颜色, 0.11 * fade * 线条透明度), maxf(0.8 * camera_scale, 0.45), true)
+		_draw_boost_shockwave_fragments(center, dir, side_radius, progress, fade, fx)
+
+
+func _build_boost_shockwave_arc_points(
+	center: Vector2,
+	dir: Vector2,
+	forward_radius: float,
+	side_radius: float,
+	start_angle: float,
+	end_angle: float,
+	point_count: int,
+	fx: Dictionary
+) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_count := maxi(point_count, 2)
+	var side_dir := dir.rotated(PI * 0.5)
+	var seed := float(fx.get("seed", 0.0))
+	var age := float(fx.get("age", 0.0))
+	for index in range(safe_count):
+		var t := float(index) / float(safe_count - 1)
+		var angle := lerpf(start_angle, end_angle, t)
+		var hand_offset := sin(angle * 3.0 + seed * 1.7 + age * 18.0) * 2.6
+		var world_point := center + dir * cos(angle) * forward_radius + side_dir * sin(angle) * (side_radius + hand_offset)
+		points.append(_world_to_screen(world_point))
+	return points
+
+
+func _draw_boost_shockwave_fragments(center: Vector2, dir: Vector2, side_radius: float, progress: float, fade: float, fx: Dictionary) -> void:
+	var side_dir := dir.rotated(PI * 0.5)
+	var seed := float(fx.get("seed", 0.0)) * 19.31
+	var camera_scale := 1.0 / maxf(camera_zoom, 0.001)
+	for i in range(5):
+		var lane := lerpf(-side_radius * 0.82, side_radius * 0.82, _hash01(seed + float(i) * 3.7))
+		var back_offset := lerpf(12.0, 110.0, _hash01(seed + float(i) * 5.1))
+		var length := lerpf(34.0, 118.0, _hash01(seed + float(i) * 7.3)) * lerpf(1.0, 0.42, progress)
+		var side_sway := lerpf(-18.0, 18.0, _hash01(seed + float(i) * 11.2))
+		var start := _world_to_screen(center - dir * back_offset + side_dir * lane)
+		var end := _world_to_screen(center - dir * (back_offset + length) + side_dir * (lane + side_sway))
+		var alpha := lerpf(0.025, 0.085, _hash01(seed + float(i) * 13.6)) * fade
+		var width := lerpf(0.8, 2.2, _hash01(seed + float(i) * 17.4)) * camera_scale
+		var color := _color_with_scaled_alpha(速度线颜色, alpha * 1.30 * 速度线透明度)
+		if i % 3 == 0:
+			color = _color_with_scaled_alpha(暗速度线颜色, alpha * 0.9 * 速度线透明度)
+		draw_line(start, end, color, width, true)
 
 
 func _draw_direction_switch_fx() -> void:
@@ -2887,10 +4307,11 @@ func _draw_debug() -> void:
 	var material_label := "green key" if background_key_enabled else "raw bg"
 	var speed_label := "boost" if speed_mode == SPEED_MODE_BOOST else "cruise"
 	var control_label := "direct intent" if control_mode == CONTROL_MODE_DIRECT_INTENT else "steer throttle"
+	var sword_label := _current_skeleton_sword_style_label()
 	var visual_label := "sheet"
 	if USE_GEMINI_8WAY_CRUISE:
 		if _uses_skeleton_eight_way():
-			visual_label = "V4 skeleton %s" % _current_eight_way_name()
+			visual_label = "V4 skeleton %s sword:%s" % [_current_eight_way_name(), sword_label]
 		elif _uses_ink_part_eight_way():
 			visual_label = "V5 ink parts %s" % _current_eight_way_name()
 		elif _uses_google_part_eight_way():
@@ -2900,9 +4321,11 @@ func _draw_debug() -> void:
 				visual_label = "V1 static %s" % _current_eight_way_name()
 			else:
 				visual_label = "V1 sequence %s" % String(clip["name"])
+		elif _uses_v3_face_eight_way():
+			visual_label = "Gemini 2way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
 		else:
 			visual_label = "Gemini 4way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight v2  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  V set  F2 panel  F4 pose  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight V4  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  F2 panel  F4 pose  F5 hair  F6 sword:%s  F9 guides:%s  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE, sword_label, "on" if show_debug_guides else "off"], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
 	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "control: %s  clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg visual %.0fdeg local %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [control_label, String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(visual_heading.angle()), rad_to_deg(eight_way_local_rotation), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
 
 
@@ -2917,6 +4340,11 @@ func _damp_float(current: float, target: float, half_life: float, delta: float) 
 		return target
 	var decay := pow(0.5, delta / half_life)
 	return target + (current - target) * decay
+
+
+func _ease_out_cubic(value: float) -> float:
+	var t := clampf(value, 0.0, 1.0)
+	return 1.0 - pow(1.0 - t, 3.0)
 
 
 func _damp_angle(current: float, target: float, half_life: float, delta: float) -> float:

@@ -5,8 +5,8 @@
 - 状态：动画表现方向已确认，后续素材生产和序列帧接入应以本文为准
 - 关联文档：
   - `docs/systems/YUJIAN_SPRITE_SEQUENCE_FLIGHT_PROTOTYPE.md`
-  - `docs/systems/YUJIAN_8WAY_CRUISE_IMAGEGEN_NOTES.md`
-  - `resources/flight/yujian_8way_cruise_generated_v1/accepted/prompts_diagonals.md`
+  - `archive/flight_visual_non_v4_20260530/docs/systems/YUJIAN_8WAY_CRUISE_IMAGEGEN_NOTES.md`
+  - `archive/flight_visual_non_v4_20260530/resources/flight/yujian_8way_cruise_generated_v1/accepted/prompts_diagonals.md`
   - `docs/mockups/nanzhujue_8way_reference_from_model/`
 
 ## 1. 问题本质
@@ -186,13 +186,13 @@ Spine 适合省帧、换装和骨骼微调，但这里的关键难点是 2.5D �
    - `preserve asymmetrical details on true physical side`
 5. 先生成候选图，用户确认后再进入 `accepted/`。
 
-八方向成图目前落在：
+八方向成图历史候选已归档在：
 
-`resources/flight/yujian_8way_cruise_generated_v1/`
+`archive/flight_visual_non_v4_20260530/resources/flight/yujian_8way_cruise_generated_v1/`
 
 已通过图和提示词记录在：
 
-`resources/flight/yujian_8way_cruise_generated_v1/accepted/`
+`archive/flight_visual_non_v4_20260530/resources/flight/yujian_8way_cruise_generated_v1/accepted/`
 
 ## 8. 运行时表现原则
 

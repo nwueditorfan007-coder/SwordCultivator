@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://dm2n8783oggpb"]
 
 [ext_resource type="Script" path="res://scripts/prototypes/yujian_stacked_sprite_character_prototype.gd" id="1_stackproto"]
 
-[node name="YujianStackedSpriteCharacterPrototype" type="Node2D"]
+[node name="YujianStackedSpriteCharacterPrototype" type="Node2D" unique_id=1206014188]
 script = ExtResource("1_stackproto")
