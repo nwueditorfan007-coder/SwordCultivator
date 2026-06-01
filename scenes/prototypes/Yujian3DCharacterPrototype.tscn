@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://vnt05cqa6bjp"]
+
+[ext_resource type="Script" path="res://scripts/prototypes/yujian_3d_character_prototype.gd" id="1_3dproto"]
+
+[node name="Yujian3DCharacterPrototype" type="Node2D" unique_id=872630964]
+script = ExtResource("1_3dproto")

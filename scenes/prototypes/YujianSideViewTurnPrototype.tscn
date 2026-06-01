@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bkabciovamakd"]
+
+[ext_resource type="Script" path="res://scripts/prototypes/yujian_side_view_turn_prototype.gd" id="1_sideview"]
+
+[node name="YujianSideViewTurnPrototype" type="Node2D" unique_id=1042912802]
+script = ExtResource("1_sideview")

@@ -63,6 +63,10 @@ const FACE_DARK := Color(0.06, 0.07, 0.08, 0.92)
 const FLIGHT_SPEED_POSE_REFERENCE := 1950.0
 const POSE_OVERRIDE_PATH := "res://resources/flight/yujian_8way_cruise_generated_v1/prototype_v4_skeleton_pose_overrides.json"
 const HAIR_FX_TUNING_PATH := "user://yujian_v4_hair_fx_tuning.json"
+const HAIR_FX_LOCK_CURVE_SUBDIVISIONS := 4
+const HAIR_FX_DETAIL_CURVE_SUBDIVISIONS := 3
+const HAIR_FX_CLOSED_CURVE_SUBDIVISIONS := 3
+const HAIR_FX_USE_MESH_GROOM_V2 := true
 const V4_PLUS_DRAW_IMAGE_PARTS := false
 const V4_PLUS_RIGHT_FAST_PART_SCALE := 0.43
 const V4_PLUS_RIGHT_FAST_TEX_ROBE_BACK := preload("res://resources/flight/yujian_8way_cruise_generated_v1/v4_plus_ink_parts/parts/right_fast_robe_back_panel.png")
@@ -222,6 +226,9 @@ var _cloth_flow_dir := Vector2.DOWN
 var _hair_turn_lag := 0.0
 var _hair_layer_lag := 0.0
 var _hair_groom_chains := {}
+var _hair_v2_back_layer: Node2D
+var _hair_v2_front_layer: Node2D
+var _hair_v2_polygons := {}
 var _idle_recover_energy := 0.0
 var _idle_previous_turn_pressure := 0.0
 var _pose_overrides := {"low": {}, "fast": {}}
@@ -251,6 +258,7 @@ var _editor_bone_length_spin: SpinBox
 var _editor_lock_bone_checkbox: CheckBox
 var _editor_status_label: Label
 var _hair_fx_panel: PanelContainer
+var _hair_fx_scroll: ScrollContainer
 var _hair_fx_enabled_check: CheckBox
 var _hair_fx_debug_check: CheckBox
 var _hair_fx_back_strands_slider: HSlider
@@ -297,6 +305,7 @@ func _uses_video_stickman_visual() -> bool:
 func _ready() -> void:
 	_load_pose_overrides()
 	_load_hair_fx_tuning()
+	_create_hair_mesh_groom_v2()
 	_create_editor_panel()
 	_create_hair_fx_panel()
 	set_process_input(true)
@@ -470,8 +479,10 @@ func set_flight_pose(
 	var runtime_pose := _build_flight_pose()
 	if hair_fx_enabled and not _uses_video_stickman_visual():
 		_update_hair_groom_physics(runtime_pose, safe_delta)
+		_update_hair_mesh_groom_v2(runtime_pose)
 	else:
 		_hair_groom_chains.clear()
+		_set_hair_mesh_groom_v2_visible(false)
 	queue_redraw()
 
 
@@ -487,11 +498,13 @@ func _draw() -> void:
 	if _uses_video_stickman_visual():
 		_draw_video_stickman_skeleton(pose)
 	else:
-		_draw_v4_hair_fx_back(pose)
+		if not HAIR_FX_USE_MESH_GROOM_V2:
+			_draw_v4_hair_fx_back(pose)
 		_draw_clean_skeleton(pose)
-		_draw_v4_hair_fx_body_front(pose)
-		_draw_v4_hair_fx_head_mount(pose)
-		_draw_v4_hair_fx_front(pose)
+		if not HAIR_FX_USE_MESH_GROOM_V2:
+			_draw_v4_hair_fx_body_front(pose)
+			_draw_v4_hair_fx_head_mount(pose)
+			_draw_v4_hair_fx_front(pose)
 	if V4_PLUS_DRAW_IMAGE_PARTS and not _uses_video_stickman_visual():
 		_draw_v4_plus_right_fast_front_parts(pose)
 	_draw_joints(pose)
@@ -1401,6 +1414,451 @@ func _draw_v4_plus_part(texture: Texture2D, anchor: Vector2, anchor_pixel: Vecto
 	draw_set_transform(anchor, rotation, Vector2.ONE)
 	draw_texture_rect(texture, Rect2(offset, texture_size), false, Color(1.0, 1.0, 1.0, clampf(alpha, 0.0, 1.0)), false)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _create_hair_mesh_groom_v2() -> void:
+	if not HAIR_FX_USE_MESH_GROOM_V2:
+		return
+	_hair_v2_back_layer = Node2D.new()
+	_hair_v2_back_layer.name = "V4HairMeshGroomBack"
+	_hair_v2_back_layer.z_as_relative = false
+	_hair_v2_back_layer.z_index = -40
+	_hair_v2_back_layer.show_behind_parent = true
+	add_child(_hair_v2_back_layer)
+
+	_hair_v2_front_layer = Node2D.new()
+	_hair_v2_front_layer.name = "V4HairMeshGroomFront"
+	_hair_v2_front_layer.z_as_relative = false
+	_hair_v2_front_layer.z_index = 40
+	add_child(_hair_v2_front_layer)
+	_set_hair_mesh_groom_v2_visible(false)
+
+
+func _set_hair_mesh_groom_v2_visible(visible: bool) -> void:
+	if _hair_v2_back_layer != null:
+		_hair_v2_back_layer.visible = visible
+	if _hair_v2_front_layer != null:
+		_hair_v2_front_layer.visible = visible
+
+
+func _hair_v2_hide_all_polygons() -> void:
+	for polygon_variant in _hair_v2_polygons.values():
+		var polygon := polygon_variant as Polygon2D
+		if polygon != null:
+			polygon.visible = false
+
+
+func _hair_v2_get_polygon(part_id: String, layer: String, z_index_value: int) -> Polygon2D:
+	var key := "%s:%s" % [layer, part_id]
+	if _hair_v2_polygons.has(key):
+		return _hair_v2_polygons[key]
+	var parent := _hair_v2_front_layer if layer == "front" else _hair_v2_back_layer
+	if parent == null:
+		return null
+	var polygon := Polygon2D.new()
+	polygon.name = "HairV2_%s_%s" % [layer, part_id]
+	polygon.z_index = z_index_value
+	polygon.color = Color.WHITE
+	parent.add_child(polygon)
+	_hair_v2_polygons[key] = polygon
+	return polygon
+
+
+func _hair_v2_apply_polygon(part_id: String, layer: String, points: PackedVector2Array, color: Color, z_index_value := 0) -> void:
+	var polygon := _hair_v2_get_polygon(part_id, layer, z_index_value)
+	if polygon == null:
+		return
+	polygon.visible = points.size() >= 3 and color.a > 0.001
+	if not polygon.visible:
+		polygon.polygon = PackedVector2Array()
+		return
+	polygon.z_index = z_index_value
+	polygon.polygon = points
+	polygon.color = color
+
+
+func _update_hair_mesh_groom_v2(pose: Dictionary) -> void:
+	if not HAIR_FX_USE_MESH_GROOM_V2:
+		return
+	if not hair_fx_enabled or _hair_v2_back_layer == null or _hair_v2_front_layer == null:
+		_set_hair_mesh_groom_v2_visible(false)
+		return
+	var state := _hair_fx_state(pose)
+	var alpha := float(state["alpha"])
+	if alpha <= 0.001:
+		_set_hair_mesh_groom_v2_visible(false)
+		return
+	_set_hair_mesh_groom_v2_visible(true)
+	_hair_v2_hide_all_polygons()
+
+	var layers := _hair_direction_layers(pose, state)
+	var volume := maxf(hair_fx_volume, 0.0)
+	var root_ink := maxf(hair_fx_root_ink, 0.0)
+	var highlight_power := maxf(hair_fx_highlight, 0.0)
+	var back_alpha := _hair_layer_alpha(alpha, float(layers["back_alpha"]))
+	var scalp_alpha := _hair_layer_alpha(alpha, float(layers["root_overlay_alpha"]))
+	var crown_alpha := _hair_layer_alpha(alpha, 0.64 + float(layers["crown_overlay_alpha"]) * 0.36)
+	var side_alpha := _hair_layer_alpha(alpha, 0.52 + float(layers["side_overlay_alpha"]) * 0.36)
+	var body_alpha := _hair_layer_alpha(alpha, float(layers["body_front_alpha"]))
+	var bun_alpha := _hair_layer_alpha(alpha, 0.72 + float(layers["bun_front_alpha"]) * 0.42)
+	var hair_fill := Color(0.003, 0.004, 0.005, clampf(back_alpha * (0.44 + volume * 0.14), 0.0, 0.92))
+	var back_volume_points := _hair_v2_back_volume_polygon(pose, state)
+	_hair_v2_apply_polygon("back_volume_shadow", "back", _hair_v2_offset_polygon(back_volume_points, Vector2(0.8, 1.0)), Color(0.0, 0.0, 0.0, clampf(back_alpha * 0.16, 0.0, 0.40)), -3)
+	_hair_v2_apply_polygon("back_volume", "back", back_volume_points, hair_fill, -2)
+
+	if body_alpha > 0.001:
+		_hair_v2_apply_polygon("body_front_volume", "front", _hair_v2_body_front_polygon(pose, state), Color(0.002, 0.003, 0.004, clampf(body_alpha * (0.18 + volume * 0.07), 0.0, 0.46)), 1)
+
+	var fixed_scalp_alpha := _hair_scalp_alpha(scalp_alpha)
+	var head_cap_points := _hair_v2_head_cap_polygon(pose, state)
+	var scalp_points := _hair_v2_scalp_polygon(pose)
+	var hairline_points := _hair_v2_hairline_cap_polygon(pose, state)
+	_hair_v2_apply_polygon("head_cap_shadow", "front", _hair_v2_offset_polygon(head_cap_points, Vector2(0.50, 0.72)), Color(0.0, 0.0, 0.0, clampf(0.28 * fixed_scalp_alpha, 0.0, 1.0)), 2)
+	_hair_v2_apply_polygon("head_cap", "front", head_cap_points, Color(0.002, 0.003, 0.004, fixed_scalp_alpha), 3)
+	_hair_v2_apply_polygon("scalp_shadow", "front", _hair_v2_offset_polygon(scalp_points, Vector2(0.55, 0.75)), Color(0.0, 0.0, 0.0, clampf(0.22 * fixed_scalp_alpha, 0.0, 1.0)), 4)
+	_hair_v2_apply_polygon("scalp", "front", scalp_points, Color(0.003, 0.004, 0.005, fixed_scalp_alpha), 5)
+	_hair_v2_apply_polygon("hairline_shadow", "front", _hair_v2_offset_polygon(hairline_points, Vector2(0.38, 0.46)), Color(0.0, 0.0, 0.0, clampf((0.34 + root_ink * 0.10) * fixed_scalp_alpha, 0.0, 1.0)), 6)
+	_hair_v2_apply_polygon("hairline_cap", "front", hairline_points, Color(0.004, 0.005, 0.006, fixed_scalp_alpha), 7)
+	_hair_v2_apply_polygon("temple_left_mass", "front", _hair_v2_temple_mass_polygon(pose, state, 0.0), Color(0.002, 0.003, 0.004, clampf(side_alpha * 0.92, 0.0, 1.0)), 8)
+	_hair_v2_apply_polygon("temple_right_mass", "front", _hair_v2_temple_mass_polygon(pose, state, 1.0), Color(0.002, 0.003, 0.004, clampf(side_alpha * 0.92, 0.0, 1.0)), 8)
+	_hair_v2_apply_polygon("crown_plane_shadow", "front", _hair_v2_crown_plane_polygon(pose, state), Color(0.0, 0.0, 0.0, clampf(crown_alpha * (0.08 + volume * 0.03), 0.0, 0.18)), 9)
+	if highlight_power > 0.05:
+		_hair_v2_apply_polygon("hairline_gloss_left", "front", _hair_v2_hairline_gloss_polygon(pose, state, 0.0), Color(0.74, 0.86, 0.82, clampf(crown_alpha * highlight_power * 0.050, 0.0, 0.10)), 10)
+		_hair_v2_apply_polygon("hairline_gloss_right", "front", _hair_v2_hairline_gloss_polygon(pose, state, 1.0), Color(0.78, 0.90, 0.86, clampf(crown_alpha * highlight_power * 0.034, 0.0, 0.08)), 10)
+	_hair_v2_apply_polygon("bun", "front", _hair_v2_bun_polygon(pose, state), Color(0.004, 0.005, 0.006, clampf(maxf(bun_alpha, _hair_scalp_alpha(bun_alpha)) * 0.96, 0.0, 1.0)), 11)
+
+	for lock_def in _hair_groom_lock_defs():
+		var lock_id := String(lock_def.get("id", ""))
+		if lock_id.is_empty():
+			continue
+		var lane_t := clampf(float(lock_def.get("lane", 0.5)), 0.0, 1.0)
+		var body := 1.0 - absf(lane_t - 0.5) * 0.36
+		var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0)
+		var width_scale := float(lock_def.get("width", 1.0))
+		var points := _hair_groom_points_for_id(lock_id, pose, state)
+		var root_width := (3.50 + body * 1.15) * width_scale * hair_fx_width * (0.82 + root_ink * 0.18)
+		var mid_width := (5.10 + body * 3.20 + wind * 1.35) * width_scale * hair_fx_width * (0.68 + volume * 0.32)
+		var tip_width := (0.34 + body * 0.34) * width_scale * hair_fx_width * (0.78 + volume * 0.22)
+		var root_visibility := _hair_root_region_visibility(String(lock_def.get("region", "occipital")))
+		var socket_alpha := clampf(fixed_scalp_alpha * root_visibility * (0.48 + root_ink * 0.18), 0.0, 1.0)
+		_hair_v2_apply_polygon("root_socket_%s" % lock_id, "front", _hair_v2_root_socket_polygon(pose, state, lock_def), Color(0.0, 0.0, 0.0, socket_alpha), 12)
+		_hair_v2_apply_polygon("root_groove_%s" % lock_id, "front", _hair_v2_root_groove_polygon(pose, state, lock_def), Color(0.014, 0.016, 0.017, clampf(socket_alpha * 0.72, 0.0, 0.72)), 13)
+		var back_weight := _hair_groom_layer_weight(lock_def, "back", pose, state)
+		if back_weight > 0.015:
+			var lock_alpha := clampf(back_alpha * back_weight * (0.54 + body * 0.12), 0.0, 0.92)
+			_hair_v2_apply_polygon("lock_back_%s" % lock_id, "back", _hair_v2_lock_polygon(points, root_width, mid_width, tip_width), Color(0.002, 0.003, 0.004, lock_alpha), 0)
+			if highlight_power > 0.05:
+				_hair_v2_apply_polygon("gloss_back_%s" % lock_id, "back", _hair_v2_lock_polygon(points, root_width * 0.18, mid_width * 0.13, tip_width * 0.08), Color(0.74, 0.86, 0.82, clampf(lock_alpha * highlight_power * 0.055, 0.0, 0.08)), 1)
+		var front_weight := maxf(_hair_groom_layer_weight(lock_def, "body_front", pose, state), _hair_groom_layer_weight(lock_def, "front", pose, state))
+		if front_weight > 0.015:
+			var front_alpha := clampf(alpha * front_weight * (0.46 + body * 0.10), 0.0, 0.78)
+			_hair_v2_apply_polygon("lock_front_%s" % lock_id, "front", _hair_v2_lock_polygon(points, root_width * 0.82, mid_width * 0.82, tip_width * 0.86), Color(0.002, 0.003, 0.004, front_alpha), 14)
+			if highlight_power > 0.05:
+				_hair_v2_apply_polygon("gloss_front_%s" % lock_id, "front", _hair_v2_lock_polygon(points, root_width * 0.14, mid_width * 0.10, tip_width * 0.07), Color(0.78, 0.90, 0.86, clampf(front_alpha * highlight_power * 0.052, 0.0, 0.08)), 15)
+
+func _hair_v2_lock_polygon(points: PackedVector2Array, root_width: float, mid_width: float, tip_width: float) -> PackedVector2Array:
+	if points.size() < 2:
+		return PackedVector2Array()
+	var render_points := _hair_smooth_open_curve(points, HAIR_FX_LOCK_CURVE_SUBDIVISIONS)
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	var count := render_points.size()
+	for index in range(count):
+		var t := float(index) / maxf(float(count - 1), 1.0)
+		var tangent := _hair_curve_tangent(render_points, index)
+		var normal := tangent.rotated(PI * 0.5)
+		var width := _hair_groom_width(t, root_width, mid_width, tip_width)
+		left.append(render_points[index] + normal * width)
+		right.append(render_points[index] - normal * width)
+	var polygon := PackedVector2Array(left)
+	for index in range(count - 1, -1, -1):
+		polygon.append(right[index])
+	return polygon
+
+
+func _hair_v2_head_cap_polygon(pose: Dictionary, state: Dictionary) -> PackedVector2Array:
+	var head_center: Vector2 = pose["head_center"]
+	var h := _hair_pose_vector(pose, "heading", Vector2.RIGHT)
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var head_radius := _hair_head_radius(pose)
+	var volume := maxf(hair_fx_volume, 0.0)
+	var front_cover := clampf(float(state.get("front_cover", 0.0)), 0.0, 1.0)
+	var spread_width := clampf(hair_fx_spread, 0.2, 5.0)
+	var cap_width := 0.70 + minf(spread_width, 3.0) * 0.025 + volume * 0.030
+	var front_push := 0.18 + front_cover * 0.10
+	return PackedVector2Array([
+		head_center - side * head_radius * cap_width - h * head_radius * 0.08 + Vector2.UP * head_radius * 0.02,
+		head_center - side * head_radius * (cap_width * 0.88) - h * head_radius * 0.15 + Vector2.UP * head_radius * 0.45,
+		head_center - side * head_radius * (cap_width * 0.52) - h * head_radius * 0.15 + Vector2.UP * head_radius * (0.78 + volume * 0.03),
+		head_center - h * head_radius * 0.08 + Vector2.UP * head_radius * (0.95 + volume * 0.04),
+		head_center + side * head_radius * (cap_width * 0.52) - h * head_radius * 0.15 + Vector2.UP * head_radius * (0.78 + volume * 0.03),
+		head_center + side * head_radius * (cap_width * 0.88) - h * head_radius * 0.12 + Vector2.UP * head_radius * 0.45,
+		head_center + side * head_radius * cap_width + h * head_radius * front_push + Vector2.UP * head_radius * 0.02,
+		head_center + h * head_radius * (0.42 + front_cover * 0.14) + Vector2.UP * head_radius * (0.02 + front_cover * 0.06),
+		head_center - side * head_radius * cap_width + h * head_radius * front_push + Vector2.UP * head_radius * 0.02,
+	])
+
+
+func _hair_v2_hairline_cap_polygon(pose: Dictionary, state: Dictionary) -> PackedVector2Array:
+	var h := _hair_pose_vector(pose, "heading", Vector2.RIGHT)
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0) * 0.18
+	var front_cover := clampf(float(state.get("front_cover", 0.0)), 0.0, 1.0)
+	var head_radius := _hair_head_radius(pose)
+	var temple_span := head_radius * (0.13 + front_cover * 0.025)
+	var left_temple := _hair_scalp_anchor(pose, "temple", 0.0, 0.62, wind)
+	var right_temple := _hair_scalp_anchor(pose, "temple", 1.0, 0.62, wind)
+	var crown_left := _hair_scalp_anchor(pose, "crown", 0.16, 0.44, wind)
+	var crown := _hair_scalp_anchor(pose, "crown", 0.52, 0.52, wind)
+	var crown_right := _hair_scalp_anchor(pose, "crown", 0.84, 0.44, wind)
+	var cover_left := _hair_scalp_anchor(pose, "cover", 0.18, 0.64, wind)
+	var cover_right := _hair_scalp_anchor(pose, "cover", 0.82, 0.64, wind)
+	var bang_left := _hair_scalp_anchor(pose, "bang", 0.28, 0.68, wind)
+	var bang_right := _hair_scalp_anchor(pose, "bang", 0.72, 0.68, wind)
+	var forehead := _hair_scalp_anchor(pose, "bang", 0.50, 0.78, wind)
+	var lower_hairline := forehead + h * head_radius * 0.03 + Vector2.DOWN * head_radius * (0.05 - front_cover * 0.02)
+	return PackedVector2Array([
+		left_temple - side * temple_span + Vector2.UP * head_radius * 0.02,
+		crown_left,
+		crown + Vector2.UP * head_radius * 0.09,
+		crown_right,
+		right_temple + side * temple_span + Vector2.UP * head_radius * 0.02,
+		cover_right + h * head_radius * 0.03 - Vector2.UP * head_radius * (0.03 + front_cover * 0.04),
+		bang_right + Vector2.UP * head_radius * (0.045 + front_cover * 0.07),
+		lower_hairline,
+		bang_left + Vector2.UP * head_radius * (0.045 + front_cover * 0.07),
+		cover_left + h * head_radius * 0.03 - Vector2.UP * head_radius * (0.03 + front_cover * 0.04),
+	])
+
+
+func _hair_v2_temple_mass_polygon(pose: Dictionary, state: Dictionary, lane_t: float) -> PackedVector2Array:
+	var head_center: Vector2 = pose["head_center"]
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0) * 0.28
+	var head_radius := _hair_head_radius(pose)
+	var lane := clampf(lane_t, 0.0, 1.0)
+	var side_sign := -1.0 if lane < 0.5 else 1.0
+	var root := _hair_temple_root(pose, lane, wind)
+	var cover := _hair_scalp_anchor(pose, "cover", 0.18 if lane < 0.5 else 0.82, 0.64, wind)
+	var initial := _hair_front_initial(pose, "temple", lane)
+	var inward := head_center - root
+	if inward.length_squared() <= 0.0001:
+		inward = -initial
+	inward = inward.normalized()
+	var outer := side * side_sign
+	var width := head_radius * (0.105 + maxf(hair_fx_volume, 0.0) * 0.018)
+	var temple_tip := root + initial * head_radius * (0.54 + wind * 0.10) + outer * width * 0.26
+	var cheek_tuck := root + initial * head_radius * 0.42 + inward * head_radius * 0.22
+	return PackedVector2Array([
+		cover + Vector2.UP * head_radius * 0.08,
+		root + outer * width * 0.80 + Vector2.UP * head_radius * 0.03,
+		temple_tip,
+		cheek_tuck,
+		root + inward * head_radius * 0.34 + Vector2.DOWN * head_radius * 0.06,
+		cover.lerp(root, 0.38) + inward * head_radius * 0.10,
+	])
+
+
+func _hair_v2_crown_plane_polygon(pose: Dictionary, state: Dictionary) -> PackedVector2Array:
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0) * 0.12
+	var head_radius := _hair_head_radius(pose)
+	var crown_left := _hair_scalp_anchor(pose, "crown", 0.24, 0.50, wind)
+	var crown := _hair_scalp_anchor(pose, "crown", 0.52, 0.56, wind)
+	var crown_right := _hair_scalp_anchor(pose, "crown", 0.78, 0.50, wind)
+	var cover_mid := _hair_scalp_anchor(pose, "cover", 0.52, 0.62, wind)
+	var forehead := _hair_scalp_anchor(pose, "bang", 0.50, 0.64, wind)
+	return PackedVector2Array([
+		crown_left.lerp(crown, 0.18) + Vector2.UP * head_radius * 0.02,
+		crown + Vector2.UP * head_radius * 0.06,
+		crown_right.lerp(crown, 0.18) + Vector2.UP * head_radius * 0.02,
+		cover_mid.lerp(forehead, 0.32),
+	])
+
+
+func _hair_v2_hairline_gloss_polygon(pose: Dictionary, state: Dictionary, lane_t: float) -> PackedVector2Array:
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0) * 0.16
+	var lane := clampf(lane_t, 0.0, 1.0)
+	var head_radius := _hair_head_radius(pose)
+	var from_lane := 0.30 if lane < 0.5 else 0.70
+	var to_lane := 0.74 if lane < 0.5 else 0.26
+	var root := _hair_scalp_anchor(pose, "bang", from_lane, 0.66, wind) + Vector2.UP * head_radius * 0.05
+	var mid := _hair_scalp_anchor(pose, "cover", 0.44 if lane < 0.5 else 0.58, 0.62, wind)
+	var tip := _hair_scalp_anchor(pose, "crown", to_lane, 0.52, wind) + Vector2.UP * head_radius * 0.02
+	return _hair_v2_lock_polygon(PackedVector2Array([root, mid, tip]), head_radius * 0.020, head_radius * 0.015, head_radius * 0.006)
+
+
+func _hair_v2_root_socket_polygon(pose: Dictionary, state: Dictionary, lock_def: Dictionary) -> PackedVector2Array:
+	var head_center: Vector2 = pose["head_center"]
+	var head_radius := _hair_head_radius(pose)
+	var root_ink := maxf(hair_fx_root_ink, 0.0)
+	var root := _hair_groom_root_for_def(lock_def, pose, state)
+	var initial := _hair_groom_initial_for_def(lock_def, pose)
+	if initial.length_squared() <= 0.0001:
+		initial = Vector2.DOWN
+	initial = initial.normalized()
+	var inward := head_center - root
+	if inward.length_squared() <= 0.0001:
+		inward = -initial
+	inward = inward.normalized()
+	var normal := initial.rotated(PI * 0.5)
+	var width_scale := float(lock_def.get("width", 1.0))
+	var socket_width := maxf(head_radius * (0.060 + width_scale * 0.017) * (0.88 + root_ink * 0.24), 0.70)
+	var buried := root + inward * head_radius * (0.18 + root_ink * 0.030)
+	var shoulder := root + initial * head_radius * (0.12 + width_scale * 0.022)
+	return PackedVector2Array([
+		buried - normal * socket_width * 0.82,
+		root - normal * socket_width * 1.08,
+		shoulder - normal * socket_width * 0.62,
+		shoulder + normal * socket_width * 0.62,
+		root + normal * socket_width * 1.08,
+		buried + normal * socket_width * 0.82,
+	])
+
+
+func _hair_v2_root_groove_polygon(pose: Dictionary, state: Dictionary, lock_def: Dictionary) -> PackedVector2Array:
+	var head_center: Vector2 = pose["head_center"]
+	var head_radius := _hair_head_radius(pose)
+	var root := _hair_groom_root_for_def(lock_def, pose, state)
+	var initial := _hair_groom_initial_for_def(lock_def, pose)
+	if initial.length_squared() <= 0.0001:
+		initial = Vector2.DOWN
+	initial = initial.normalized()
+	var inward := head_center - root
+	if inward.length_squared() <= 0.0001:
+		inward = -initial
+	inward = inward.normalized()
+	var normal := initial.rotated(PI * 0.5)
+	var width_scale := float(lock_def.get("width", 1.0))
+	var phase := float(lock_def.get("phase", 0.0))
+	var socket_width := maxf(head_radius * (0.030 + width_scale * 0.012), 0.28)
+	var buried := root + inward * head_radius * 0.13
+	var shoulder := root + initial * head_radius * (0.15 + width_scale * 0.020)
+	var groove := PackedVector2Array([
+		buried + normal * sin(phase) * socket_width * 0.52,
+		root + initial * head_radius * 0.055,
+		shoulder + normal * sin(phase * 1.70) * socket_width * 0.48,
+	])
+	return _hair_v2_lock_polygon(groove, socket_width * 0.72, socket_width * 0.46, socket_width * 0.12)
+
+
+func _hair_v2_back_volume_polygon(pose: Dictionary, state: Dictionary) -> PackedVector2Array:
+	var head_center: Vector2 = pose["head_center"]
+	var h := _hair_pose_vector(pose, "heading", Vector2.RIGHT)
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0)
+	var head_radius := _hair_head_radius(pose)
+	var spread := clampf(hair_fx_spread, 0.4, 5.0)
+	var volume := maxf(hair_fx_volume, 0.0)
+	var volume_width := 0.68 + volume * 0.32
+	var physical_mix := clampf(0.20 + wind * 0.10 + absf(float(state.get("turn", 0.0))) * 0.08, 0.18, 0.40)
+	var occ_left := _hair_groom_volume_points_for_id("occipital_left", pose, state, physical_mix)
+	var occ_mid_left := _hair_groom_volume_points_for_id("occipital_mid_left", pose, state, physical_mix)
+	var occ_core := _hair_groom_volume_points_for_id("occipital_core", pose, state, physical_mix)
+	var occ_right := _hair_groom_volume_points_for_id("occipital_right", pose, state, physical_mix)
+	var nape_near := _hair_groom_volume_points_for_id("nape_near", pose, state, physical_mix)
+	var nape_long := _hair_groom_volume_points_for_id("nape_long", pose, state, physical_mix)
+	if occ_left.size() < 2 or occ_core.size() < 2 or occ_right.size() < 2 or nape_long.size() < 2:
+		return PackedVector2Array()
+	var bun := _hair_bun_center(pose, wind)
+	var left_mid := _hair_offset_sample(occ_left, 0.34, -side, head_radius * (0.18 + spread * 0.035) * volume_width)
+	var left_body := _hair_offset_sample(occ_mid_left, 0.66, -side, head_radius * (0.22 + spread * 0.045) * volume_width)
+	var lower_near := _hair_offset_sample(nape_near, 0.76, -side, head_radius * (0.16 + spread * 0.030) * volume_width) if nape_near.size() >= 2 else _hair_offset_sample(occ_mid_left, 0.84, -side, head_radius * 0.20 * volume_width)
+	var long_tip := _hair_offset_sample(nape_long, 0.96, Vector2.DOWN, head_radius * (0.12 + wind * 0.08))
+	var core_tip := _hair_offset_sample(occ_core, 0.88, h.rotated(PI * 0.5), head_radius * 0.10 * volume_width)
+	var right_body := _hair_offset_sample(occ_right, 0.70, side, head_radius * (0.20 + spread * 0.040) * volume_width)
+	var right_mid := _hair_offset_sample(occ_right, 0.32, side, head_radius * (0.17 + spread * 0.035) * volume_width)
+	var crown_left := _hair_scalp_anchor(pose, "crown", 0.10, 0.46, 0.0) - side * head_radius * (0.16 + spread * 0.040) * volume_width - h * head_radius * 0.06
+	var crown_peak := _hair_scalp_anchor(pose, "crown", 0.50, 0.60, 0.0) + Vector2.UP * head_radius * 0.08 - h * head_radius * 0.05
+	var crown_right := _hair_scalp_anchor(pose, "crown", 0.90, 0.46, 0.0) + side * head_radius * (0.15 + spread * 0.038) * volume_width - h * head_radius * 0.05
+	var neck_close := head_center - h * head_radius * 0.42 + Vector2.DOWN * head_radius * 0.20
+	return PackedVector2Array([
+		neck_close - side * head_radius * 0.32,
+		crown_left,
+		crown_peak,
+		crown_right,
+		right_mid,
+		right_body,
+		core_tip,
+		long_tip,
+		lower_near,
+		left_body,
+		left_mid,
+	])
+
+
+func _hair_v2_body_front_polygon(pose: Dictionary, state: Dictionary) -> PackedVector2Array:
+	var occ_left := _hair_groom_points_for_id("occipital_left", pose, state)
+	var occ_core := _hair_groom_points_for_id("occipital_core", pose, state)
+	var occ_right := _hair_groom_points_for_id("occipital_right", pose, state)
+	var nape_near := _hair_groom_points_for_id("nape_near", pose, state)
+	var nape_long := _hair_groom_points_for_id("nape_long", pose, state)
+	if occ_core.size() < 2 or nape_long.size() < 2:
+		return PackedVector2Array()
+	var h := _hair_pose_vector(pose, "heading", Vector2.RIGHT)
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0)
+	var volume := maxf(hair_fx_volume, 0.0)
+	var head_radius := _hair_head_radius(pose)
+	var near_occ := occ_core
+	if h.x > 0.16 and occ_right.size() >= 2:
+		near_occ = occ_right
+	elif h.x < -0.16 and occ_left.size() >= 2:
+		near_occ = occ_left
+	var top := _hair_sample_curve(near_occ, 0.16)
+	var shoulder_cover := _hair_offset_sample(near_occ, 0.46, side * signf(h.x if absf(h.x) > 0.05 else 1.0), head_radius * (0.12 + volume * 0.04))
+	var lower_cover := _hair_sample_curve(nape_long, 0.78)
+	var tip := _hair_offset_sample(nape_long, 0.96, Vector2.DOWN, head_radius * (0.08 + wind * 0.08))
+	var inner := _hair_sample_curve(occ_core, 0.42)
+	var nape_mid := _hair_sample_curve(nape_near, 0.68) if nape_near.size() >= 2 else _hair_sample_curve(nape_long, 0.54)
+	return PackedVector2Array([top, shoulder_cover, lower_cover, tip, nape_mid, inner])
+
+
+func _hair_v2_scalp_polygon(pose: Dictionary) -> PackedVector2Array:
+	var h := _hair_pose_vector(pose, "heading", Vector2.RIGHT)
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var fixed_wind := 0.0
+	var head_radius := _hair_head_radius(pose)
+	var occ_left := _hair_scalp_anchor(pose, "occipital", 0.12, 0.54, fixed_wind)
+	var occ_right := _hair_scalp_anchor(pose, "occipital", 0.88, 0.54, fixed_wind)
+	var nape_left := _hair_scalp_anchor(pose, "nape", 0.20, 0.50, fixed_wind)
+	var nape_right := _hair_scalp_anchor(pose, "nape", 0.80, 0.50, fixed_wind)
+	var crown_left := _hair_scalp_anchor(pose, "crown", 0.12, 0.50, fixed_wind)
+	var crown_peak := _hair_scalp_anchor(pose, "crown", 0.50, 0.60, fixed_wind)
+	var crown_right := _hair_scalp_anchor(pose, "crown", 0.88, 0.50, fixed_wind)
+	var temple_left := _hair_scalp_anchor(pose, "temple", 0.0, 0.64, fixed_wind)
+	var temple_right := _hair_scalp_anchor(pose, "temple", 1.0, 0.64, fixed_wind)
+	return PackedVector2Array([
+		nape_left - side * head_radius * 0.12,
+		occ_left - side * head_radius * 0.08,
+		crown_left,
+		crown_peak + Vector2.UP * head_radius * 0.05,
+		crown_right,
+		occ_right + side * head_radius * 0.08,
+		nape_right + side * head_radius * 0.12,
+		temple_right - h * head_radius * 0.03,
+		temple_left - h * head_radius * 0.03,
+	])
+
+
+func _hair_v2_bun_polygon(pose: Dictionary, state: Dictionary) -> PackedVector2Array:
+	var wind := clampf(float(state.get("wind", 0.0)), 0.0, 1.0)
+	var center := _hair_bun_center(pose, wind)
+	var side := _hair_pose_vector(pose, "side", Vector2.RIGHT)
+	var head_radius := _hair_head_radius(pose)
+	var radius_x := head_radius * (0.28 + maxf(hair_fx_volume, 0.0) * 0.04)
+	var radius_y := head_radius * (0.22 + hair_fx_width * 0.06)
+	var points := PackedVector2Array()
+	for index in range(12):
+		var angle := TAU * float(index) / 12.0
+		points.append(center + side * cos(angle) * radius_x + Vector2.UP * sin(angle) * radius_y)
+	return points
+
+
+func _hair_v2_offset_polygon(points: PackedVector2Array, offset: Vector2) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	for point in points:
+		result.append(point + offset)
+	return result
 
 
 func _draw_v4_hair_fx_back(pose: Dictionary) -> void:
@@ -2769,7 +3227,7 @@ func _hair_sdf_push_from_capsule(point: Vector2, a: Vector2, b: Vector2, radius:
 func _draw_hair_groom_lock(points: PackedVector2Array, root_width: float, mid_width: float, tip_width: float, fill: Color, rim: Color, highlight: Color) -> void:
 	if points.size() < 2 or fill.a <= 0.001:
 		return
-	var render_points := _hair_smooth_open_curve(points, 4)
+	var render_points := _hair_smooth_open_curve(points, HAIR_FX_LOCK_CURVE_SUBDIVISIONS)
 	_draw_hair_ribbon(render_points, root_width + 1.3 * hair_fx_width, mid_width + 1.0 * hair_fx_width, tip_width + 0.30 * hair_fx_width, rim)
 	_draw_hair_ribbon(render_points, root_width, mid_width, tip_width, fill)
 	_draw_hair_tapered_tip(render_points, mid_width, tip_width, fill, rim, highlight)
@@ -2791,6 +3249,8 @@ func _draw_hair_ribbon(points: PackedVector2Array, root_width: float, mid_width:
 		return
 	var left := PackedVector2Array()
 	var right := PackedVector2Array()
+	var left_colors := PackedColorArray()
+	var right_colors := PackedColorArray()
 	var count := points.size()
 	for i in range(count):
 		var t := float(i) / maxf(float(count - 1), 1.0)
@@ -2799,9 +3259,15 @@ func _draw_hair_ribbon(points: PackedVector2Array, root_width: float, mid_width:
 		var width := _hair_groom_width(t, root_width, mid_width, tip_width)
 		left.append(points[i] + normal * width)
 		right.append(points[i] - normal * width)
-	for i in range(count - 1):
-		var t_mid := (float(i) + 0.5) / maxf(float(count - 1), 1.0)
-		_draw_quad_safe(left[i], left[i + 1], right[i + 1], right[i], _hair_gradient_color(color, t_mid))
+		var vertex_color := _hair_gradient_color(color, t)
+		left_colors.append(vertex_color)
+		right_colors.append(vertex_color)
+	var polygon := PackedVector2Array(left)
+	var colors := PackedColorArray(left_colors)
+	for i in range(count - 1, -1, -1):
+		polygon.append(right[i])
+		colors.append(right_colors[i])
+	draw_polygon(polygon, colors)
 
 
 func _draw_hair_tapered_tip(points: PackedVector2Array, mid_width: float, tip_width: float, fill: Color, rim: Color, highlight: Color) -> void:
@@ -2954,7 +3420,7 @@ func _hair_catmull_rom_point(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2,
 func _draw_hair_center_highlight(points: PackedVector2Array, color: Color, width: float) -> void:
 	if points.size() < 2 or color.a <= 0.001:
 		return
-	var render_points := _hair_smooth_open_curve(points, 3)
+	var render_points := _hair_smooth_open_curve(points, HAIR_FX_DETAIL_CURVE_SUBDIVISIONS)
 	var segment_count := render_points.size() - 1
 	for i in range(segment_count):
 		var t := float(i) / maxf(float(segment_count - 1), 1.0)
@@ -2974,7 +3440,7 @@ func _draw_hair_groom_surface_details(
 ) -> void:
 	if points.size() < 3 or alpha <= 0.001:
 		return
-	var render_points := _hair_smooth_open_curve(points, 3)
+	var render_points := _hair_smooth_open_curve(points, HAIR_FX_DETAIL_CURVE_SUBDIVISIONS)
 	var volume := maxf(hair_fx_volume, 0.0)
 	var material_depth := maxf(hair_fx_material_depth, 0.0)
 	if material_depth > 0.001:
@@ -3127,7 +3593,7 @@ func _draw_closed_hair_shape(points: PackedVector2Array, fill: Color, rim: Color
 func _draw_hair_shape_fan(points: PackedVector2Array, fill: Color, rim: Color) -> void:
 	if points.size() < 3:
 		return
-	var render_points := _hair_smooth_closed_loop(points, 3)
+	var render_points := _hair_smooth_closed_loop(points, HAIR_FX_CLOSED_CURVE_SUBDIVISIONS)
 	var center := Vector2.ZERO
 	for point in render_points:
 		center += point
@@ -3173,7 +3639,7 @@ func _hair_strand_points(
 func _draw_hair_gradient_strand(points: PackedVector2Array, start_width: float, end_width: float, color: Color) -> void:
 	if points.size() < 2 or color.a <= 0.001:
 		return
-	var render_points := _hair_smooth_open_curve(points, 3)
+	var render_points := _hair_smooth_open_curve(points, HAIR_FX_DETAIL_CURVE_SUBDIVISIONS)
 	var safe_start_width := maxf(start_width, 0.10)
 	var safe_end_width := maxf(end_width, 0.04)
 	var segment_count := render_points.size() - 1
@@ -4345,8 +4811,13 @@ func _draw_triangle_safe(a: Vector2, b: Vector2, c: Vector2, color: Color) -> vo
 
 
 func _draw_quad_safe(a: Vector2, b: Vector2, c: Vector2, d: Vector2, color: Color) -> void:
-	_draw_triangle_safe(a, b, c, color)
-	_draw_triangle_safe(a, c, d, color)
+	if color.a <= 0.001:
+		return
+	var ab := b - a
+	var ac := c - a
+	if absf(ab.cross(ac)) <= 0.001:
+		return
+	draw_colored_polygon(PackedVector2Array([a, b, c, d]), color)
 
 
 func _draw_closed_polyline(points: PackedVector2Array, color: Color, width: float) -> void:
@@ -4677,8 +5148,40 @@ func _toggle_hair_fx_panel() -> void:
 		return
 	_hair_fx_panel.visible = not _hair_fx_panel.visible
 	if _hair_fx_panel.visible:
+		_fit_hair_fx_panel_to_viewport()
 		_refresh_hair_fx_controls()
 	queue_redraw()
+
+
+func _hair_fx_panel_size() -> Vector2:
+	var viewport_size := get_viewport_rect().size
+	var max_width := maxf(viewport_size.x - 32.0, 320.0)
+	var max_height := maxf(viewport_size.y - 32.0, 260.0)
+	return Vector2(minf(470.0, max_width), minf(620.0, max_height))
+
+
+func _hair_fx_scroll_size() -> Vector2:
+	var panel_size := _hair_fx_panel_size()
+	return Vector2(maxf(panel_size.x - 26.0, 294.0), maxf(panel_size.y - 64.0, 196.0))
+
+
+func _fit_hair_fx_panel_to_viewport() -> void:
+	if _hair_fx_panel == null:
+		return
+	var viewport_size := get_viewport_rect().size
+	var panel_size := _hair_fx_panel_size()
+	_hair_fx_panel.custom_minimum_size = panel_size
+	_hair_fx_panel.size = panel_size
+	if _hair_fx_scroll != null:
+		_hair_fx_scroll.custom_minimum_size = _hair_fx_scroll_size()
+	var max_position := Vector2(
+		maxf(viewport_size.x - panel_size.x - 16.0, 16.0),
+		maxf(viewport_size.y - panel_size.y - 16.0, 16.0)
+	)
+	_hair_fx_panel.position = Vector2(
+		clampf(430.0, 16.0, max_position.x),
+		clampf(72.0, 16.0, max_position.y)
+	)
 
 
 func _create_hair_fx_panel() -> void:
@@ -4690,8 +5193,9 @@ func _create_hair_fx_panel() -> void:
 
 	_hair_fx_panel = PanelContainer.new()
 	_hair_fx_panel.name = "V4HairFxTuningPanel"
-	_hair_fx_panel.position = Vector2(430.0, 92.0)
-	_hair_fx_panel.custom_minimum_size = Vector2(470.0, 0.0)
+	_hair_fx_panel.position = Vector2(430.0, 72.0)
+	_hair_fx_panel.custom_minimum_size = _hair_fx_panel_size()
+	_hair_fx_panel.size = _hair_fx_panel_size()
 	_hair_fx_panel.visible = false
 	_editor_layer.add_child(_hair_fx_panel)
 
@@ -4713,6 +5217,18 @@ func _create_hair_fx_panel() -> void:
 	close_button.text = "关闭"
 	close_button.pressed.connect(Callable(self, "_on_hair_fx_close_pressed"))
 	title_row.add_child(close_button)
+
+	_hair_fx_scroll = ScrollContainer.new()
+	_hair_fx_scroll.custom_minimum_size = _hair_fx_scroll_size()
+	_hair_fx_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hair_fx_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(_hair_fx_scroll)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hair_fx_scroll.add_child(content)
+	root = content
 
 	_hair_fx_enabled_check = CheckBox.new()
 	_hair_fx_enabled_check.text = "启用头发 FX"
@@ -4912,6 +5428,7 @@ func _expand_slider_to_value(slider: HSlider, value: float) -> void:
 func _refresh_hair_fx_controls() -> void:
 	if _hair_fx_enabled_check == null:
 		return
+	_fit_hair_fx_panel_to_viewport()
 	_hair_fx_updating_controls = true
 	_hair_fx_enabled_check.button_pressed = hair_fx_enabled
 	if _hair_fx_debug_check != null:

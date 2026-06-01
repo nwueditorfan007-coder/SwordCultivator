@@ -19,7 +19,7 @@
 					"head"
 				],
 				"_front_side_sign": 1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					187.66,
 					-4.75
@@ -129,7 +129,7 @@
 			},
 			"03_up": {
 				"_front_side_sign": 1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					17.85,
 					-123.69
@@ -239,7 +239,7 @@
 			},
 			"05_left": {
 				"_front_side_sign": -1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					-95.25,
 					-2.25
@@ -357,7 +357,7 @@
 					"head"
 				],
 				"_front_side_sign": -1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					18.04,
 					170.02
@@ -469,7 +469,7 @@
 		"low": {
 			"01_right": {
 				"_front_side_sign": 1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					41.2,
 					-19.53
@@ -533,7 +533,7 @@
 					"head"
 				],
 				"_front_side_sign": 1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					11.21,
 					-6.8
@@ -589,7 +589,7 @@
 			},
 			"05_left": {
 				"_front_side_sign": -1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					-6.56,
 					-19.29
@@ -653,7 +653,7 @@
 					"head"
 				],
 				"_front_side_sign": -1.0,
-				"_head_scale": 0.81,
+				"_head_scale": 1.01,
 				"ankle_far": [
 					14.05,
 					13.18
