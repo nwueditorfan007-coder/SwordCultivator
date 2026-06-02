@@ -3267,6 +3267,19 @@ func _get_visible_world_rect() -> Rect2:
 	return Rect2(_camera_origin(), VIEW_SIZE * camera_zoom).intersection(PLAY_RECT)
 
 
+func _background_zoom() -> float:
+	return maxf(CAMERA_MIN_ZOOM, 0.001)
+
+
+func _background_camera_origin() -> Vector2:
+	return camera_center - VIEW_SIZE * 0.5 * _background_zoom()
+
+
+func _get_background_visible_world_rect() -> Rect2:
+	var zoom := _background_zoom()
+	return Rect2(_background_camera_origin(), VIEW_SIZE * zoom).intersection(PLAY_RECT)
+
+
 func _update_afterimages(delta: float) -> void:
 	for image in afterimages:
 		image["age"] = float(image["age"]) + delta
@@ -4116,7 +4129,7 @@ func _draw_first_level_far_clouds(readability_fade: float) -> void:
 
 
 func _draw_first_level_cloud_layer(depth: float, spacing_world: float, y_ratio: float, alpha: float, scale_base: float) -> void:
-	var visible_rect := _get_visible_world_rect()
+	var visible_rect := _get_background_visible_world_rect()
 	if not visible_rect.has_area():
 		return
 	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 3
@@ -4163,7 +4176,7 @@ func _draw_first_level_perspective_island(island: Dictionary, horizon_y: float, 
 	var length_z := clampf(float(island.get("length", 0.14)), 0.035, 0.28)
 	var kind := int(island.get("kind", 0))
 	var center := _first_level_project_scenic_point(center_x, center_y, center_z, layer, band, horizon_y)
-	var scale := _first_level_scenic_screen_scale(center_z, layer) / maxf(camera_zoom, 0.001)
+	var scale := _first_level_scenic_screen_scale(center_z, layer) / _background_zoom()
 	var cliff_height := float(island.get("height", 48.0)) * scale
 	var cull_padding := width_world * scale + cliff_height + 120.0
 	if center.x < -cull_padding or center.x > VIEW_SIZE.x + cull_padding:
@@ -4414,7 +4427,7 @@ func _first_level_project_island_footprint_point(center_x: float, center_y: floa
 	var local_z := local_point.y * foreshortening
 	var local_x := local_point.x + local_z * side_yaw
 	var center := _first_level_project_scenic_point(center_x, center_y, center_z, layer, band, horizon_y)
-	var scale := _first_level_scenic_screen_scale(center_z, layer) / maxf(camera_zoom, 0.001)
+	var scale := _first_level_scenic_screen_scale(center_z, layer) / _background_zoom()
 	var x := center.x + local_x * width * scale
 	var y := center.y + local_z * width * scale * lerpf(0.22, 0.34, center_z) + local_point.y * length_z * 260.0 * scale
 	return Vector2(x, y)
@@ -4471,15 +4484,15 @@ func _first_level_project_scenic_point(world_x: float, world_y: float, depth: fl
 	var band_key := band.to_lower()
 	var x_parallax := _first_level_scenic_layer_parallax_x(layer_key, depth)
 	var y_parallax := _first_level_scenic_layer_parallax_y(layer_key)
-	var x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * x_parallax / maxf(camera_zoom, 0.001)
-	var y := horizon_y + _first_level_scenic_band_offset(band_key, depth, horizon_y) + _first_level_background_y_delta(world_y) * y_parallax / maxf(camera_zoom, 0.001)
+	var x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * x_parallax / _background_zoom()
+	var y := horizon_y + _first_level_scenic_band_offset(band_key, depth, horizon_y) + _first_level_background_y_delta(world_y) * y_parallax / _background_zoom()
 	return Vector2(x, y)
 
 
 func _first_level_project_sea_point(world_x: float, sea_z: float, horizon_y: float) -> Vector2:
 	var z := clampf(sea_z, 0.02, 0.985)
 	var parallax := _first_level_perspective_parallax(z)
-	var x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * parallax / maxf(camera_zoom, 0.001)
+	var x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * parallax / _background_zoom()
 	var sea_height := VIEW_SIZE.y - horizon_y
 	var y := horizon_y + sea_height * pow(z, 1.18) * 0.96
 	return Vector2(x, y)
@@ -4522,7 +4535,7 @@ func _first_level_scenic_band_offset(band: String, depth: float, horizon_y: floa
 
 func _first_level_background_y_delta(world_y: float) -> float:
 	var raw_delta := world_y - camera_center.y
-	var compression := maxf(背景纵向压缩尺度 * maxf(camera_zoom, 0.001), 1.0)
+	var compression := maxf(背景纵向压缩尺度 * _background_zoom(), 1.0)
 	return raw_delta / (1.0 + absf(raw_delta) / compression)
 
 
@@ -4587,7 +4600,7 @@ func _draw_first_level_far_island_bands(readability_fade: float) -> void:
 
 
 func _draw_first_level_far_island_layer(depth: float, spacing_world: float, base_y: float, height: float, color: Color, scale_base: float, horizon_y: float) -> void:
-	var visible_rect := _get_visible_world_rect()
+	var visible_rect := _get_background_visible_world_rect()
 	if not visible_rect.has_area():
 		return
 	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 3
@@ -4598,8 +4611,8 @@ func _draw_first_level_far_island_layer(depth: float, spacing_world: float, base
 		var screen_x := _background_screen_x(world_x, depth)
 		if screen_x < -520.0 or screen_x > VIEW_SIZE.x + 520.0:
 			continue
-		var width := lerpf(330.0, 780.0, _hash01(seed + 2.0)) * scale_base / maxf(camera_zoom, 0.001)
-		var layer_height := height * lerpf(0.72, 1.35, _hash01(seed + 3.0)) / maxf(camera_zoom, 0.001)
+		var width := lerpf(330.0, 780.0, _hash01(seed + 2.0)) * scale_base / _background_zoom()
+		var layer_height := height * lerpf(0.72, 1.35, _hash01(seed + 3.0)) / _background_zoom()
 		_draw_first_level_far_island_segment(screen_x, base_y, width, layer_height, color, seed, horizon_y)
 
 
@@ -4626,7 +4639,7 @@ func _draw_first_level_island_set_pieces(speed_pressure: float, grounded_plane_f
 		var anchor_world_x := float(group.get("x", FLIGHT_START_POS.x))
 		var depth := clampf(float(group.get("depth", 0.48)) * 岛群世界移动倍率, 0.12, 1.0)
 		var screen_x := _background_screen_x(anchor_world_x, depth)
-		var unit_scale := float(group.get("scale", 0.76)) / maxf(camera_zoom, 0.001)
+		var unit_scale := float(group.get("scale", 0.76)) / _background_zoom()
 		var cull_width := 1180.0 * maxf(unit_scale, 0.45)
 		if screen_x < -cull_width or screen_x > VIEW_SIZE.x + cull_width:
 			continue
@@ -4781,7 +4794,7 @@ func _draw_first_level_mist_band(center_x: float, center_y: float, width: float,
 func _draw_first_level_sea_shimmer(speed_pressure: float, grounded_plane_fade: float) -> void:
 	if grounded_plane_fade <= 0.001:
 		return
-	var visible_rect := _get_visible_world_rect()
+	var visible_rect := _get_background_visible_world_rect()
 	if not visible_rect.has_area():
 		return
 	var horizon_y := _get_sea_horizon_y()
@@ -4802,17 +4815,17 @@ func _draw_first_level_sea_shimmer(speed_pressure: float, grounded_plane_fade: f
 			continue
 		var vp := right_vp if screen_pos.x < VIEW_SIZE.x * 0.5 else left_vp
 		var dir := (vp - screen_pos).normalized()
-		var length := lerpf(28.0, 110.0, _hash01(seed + 3.0)) * lerpf(0.55, 1.2, depth) / maxf(camera_zoom, 0.001)
+		var length := lerpf(28.0, 110.0, _hash01(seed + 3.0)) * lerpf(0.55, 1.2, depth) / _background_zoom()
 		var alpha := lerpf(0.010, 0.034, _hash01(seed + 4.0)) * alpha_scale
 		var wave_offset := Vector2(-dir.y, dir.x) * sin(seed + time * 0.22) * 2.0
-		draw_line(screen_pos - dir * length * 0.45 + wave_offset, screen_pos + dir * length * 0.55 - wave_offset, Color(0.84, 0.98, 1.0, alpha), maxf(1.0, 1.5 / maxf(camera_zoom, 0.001)), true)
+		draw_line(screen_pos - dir * length * 0.45 + wave_offset, screen_pos + dir * length * 0.55 - wave_offset, Color(0.84, 0.98, 1.0, alpha), maxf(1.0, 1.5 / _background_zoom()), true)
 
 
 func _draw_first_level_near_speed_references(speed_pressure: float) -> void:
 	var active_pressure := clampf(maxf(speed_pressure, throttle_energy * 0.30) - 0.04, 0.0, 1.0) * 第一关近景强度
 	if active_pressure <= 0.001:
 		return
-	var visible_rect := _get_visible_world_rect()
+	var visible_rect := _get_background_visible_world_rect()
 	if not visible_rect.has_area():
 		return
 	var spacing_world := 980.0
@@ -4826,7 +4839,7 @@ func _draw_first_level_near_speed_references(speed_pressure: float) -> void:
 		var screen_y := VIEW_SIZE.y * lerpf(0.64, 0.88, _hash01(seed + 2.0))
 		if screen_x < -320.0 or screen_x > VIEW_SIZE.x + 320.0:
 			continue
-		var length := lerpf(210.0, 540.0, _hash01(seed + 3.0)) * lerpf(0.82, 1.34, active_pressure) / maxf(camera_zoom, 0.001)
+		var length := lerpf(210.0, 540.0, _hash01(seed + 3.0)) * lerpf(0.82, 1.34, active_pressure) / _background_zoom()
 		var alpha := lerpf(0.025, 0.075, active_pressure) * lerpf(0.60, 1.0, _hash01(seed + 4.0))
 		_draw_first_level_speed_wisp(Vector2(screen_x, screen_y), length, alpha, seed)
 
@@ -4840,11 +4853,11 @@ func _draw_first_level_speed_wisp(center: Vector2, length: float, alpha: float, 
 			var t := float(i) / 9.0
 			var wave := sin(seed + t * TAU * 0.8 + time * 0.18) * 6.0
 			points.append(center + Vector2(length * (t - 0.5), lane_offset + wave))
-		draw_polyline(points, Color(color.r, color.g, color.b, color.a * lerpf(1.0, 0.45, float(lane) / 2.0)), maxf(2.0, 5.0 / maxf(camera_zoom, 0.001)), true)
+		draw_polyline(points, Color(color.r, color.g, color.b, color.a * lerpf(1.0, 0.45, float(lane) / 2.0)), maxf(2.0, 5.0 / _background_zoom()), true)
 
 
 func _background_screen_x(world_x: float, depth: float) -> float:
-	return VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * depth / maxf(camera_zoom, 0.001)
+	return VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * depth / _background_zoom()
 
 
 func _draw_sky_wash() -> void:
@@ -4872,19 +4885,13 @@ func _draw_sea_plane_wash(speed_pressure: float, readability_fade: float) -> voi
 
 func _get_sea_horizon_y() -> float:
 	var base_horizon_y := VIEW_SIZE.y * 海平线高度比例
-	var half_view_y := VIEW_SIZE.y * 0.5 * camera_zoom
-	var top_center_y := PLAY_RECT.position.y + half_view_y
-	var bottom_center_y := PLAY_RECT.end.y - half_view_y
-	var response_scale := clampf(海平线纵向响应 / 0.016, 0.25, 2.0)
-	var start_t := clampf((FLIGHT_START_POS.y - top_center_y) / maxf(bottom_center_y - top_center_y, 1.0), 0.001, 0.999)
-	var vertical_t := clampf((camera_center.y - top_center_y) / maxf(bottom_center_y - top_center_y, 1.0), 0.0, 1.0)
-	if vertical_t <= start_t:
-		var high_progress := clampf((1.0 - vertical_t / start_t) * response_scale, 0.0, 1.0)
-		var high_eased := high_progress * high_progress * (3.0 - 2.0 * high_progress)
-		return lerpf(base_horizon_y, VIEW_SIZE.y * 高空海平线出屏比例, high_eased)
-	var low_progress := clampf(((vertical_t - start_t) / maxf(1.0 - start_t, 0.001)) * response_scale, 0.0, 1.0)
-	var low_eased := low_progress * low_progress * (3.0 - 2.0 * low_progress)
-	return lerpf(base_horizon_y, VIEW_SIZE.y * 低空海平线近处比例, low_eased)
+	var altitude := FLIGHT_START_POS.y - flight_pos.y
+	var horizon_y := base_horizon_y + altitude * 海平线纵向响应
+	var play_bottom_horizon_y := base_horizon_y + (FLIGHT_START_POS.y - PLAY_RECT.end.y) * 海平线纵向响应
+	var play_top_horizon_y := base_horizon_y + (FLIGHT_START_POS.y - PLAY_RECT.position.y) * 海平线纵向响应
+	var low_altitude_limit := minf(VIEW_SIZE.y * 低空海平线近处比例, play_bottom_horizon_y)
+	var high_altitude_limit := maxf(VIEW_SIZE.y * 高空海平线出屏比例, play_top_horizon_y)
+	return clampf(horizon_y, low_altitude_limit, high_altitude_limit)
 
 
 func _draw_soft_horizon_glow(horizon_y: float, alpha_scale: float) -> void:
@@ -4956,7 +4963,7 @@ func _draw_parallax_texture_layer(texture: Texture2D, y_ratio: float, parallax: 
 	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
 		return
 	var draw_size: Vector2 = texture_size * scale
-	var y_shift: float = -(camera_center.y - FLIGHT_START_POS.y) * parallax.y / maxf(camera_zoom, 0.001)
+	var y_shift: float = -(camera_center.y - FLIGHT_START_POS.y) * parallax.y / _background_zoom()
 	var y: float = VIEW_SIZE.y * y_ratio - draw_size.y * 0.5 + y_shift + y_sway
 	var color := Color(tint.r, tint.g, tint.b, clampf(alpha * tint.a, 0.0, 1.0))
 	var phase := camera_center.x * parallax.x + time * 4.0 * parallax.x
@@ -4970,8 +4977,8 @@ func _draw_world_island_groups(speed_pressure: float, grounded_plane_fade: float
 	var base_fade := 岛群整体透明度 * grounded_plane_fade * lerpf(1.0, 0.88, speed_pressure)
 	for group in BACKGROUND_ISLAND_GROUPS:
 		var depth := clampf(float(group.get("depth", 0.48)) * 岛群世界移动倍率, 0.08, 1.4)
-		var screen_x := VIEW_SIZE.x * 0.5 + (float(group.get("x", FLIGHT_START_POS.x)) - camera_center.x) * depth / maxf(camera_zoom, 0.001)
-		var unit_scale := float(group.get("scale", 0.76)) / maxf(camera_zoom, 0.001)
+		var screen_x := VIEW_SIZE.x * 0.5 + (float(group.get("x", FLIGHT_START_POS.x)) - camera_center.x) * depth / _background_zoom()
+		var unit_scale := float(group.get("scale", 0.76)) / _background_zoom()
 		var cull_width := 2800.0 * maxf(unit_scale, 0.45)
 		if screen_x < -cull_width or screen_x > VIEW_SIZE.x + cull_width:
 			continue
@@ -5148,7 +5155,7 @@ func _draw_sea_shimmer_from_atlas(speed_pressure: float, grounded_plane_fade: fl
 	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
 		return
 	var scale := 1.0
-	var y_shift: float = -(camera_center.y - FLIGHT_START_POS.y) * 0.034 / maxf(camera_zoom, 0.001)
+	var y_shift: float = -(camera_center.y - FLIGHT_START_POS.y) * 0.034 / _background_zoom()
 	var y := VIEW_SIZE.y * 水纹高度比例 - texture_size.y * scale * 0.5 + y_shift + sin(time * 0.16) * 1.5
 	var phase := camera_center.x * 0.30 + time * 1.8
 	var alpha := 水纹透明度 * grounded_plane_fade * lerpf(1.0, 水纹高速保留比例, speed_pressure)
@@ -5162,14 +5169,14 @@ func _draw_far_landmarks_from_atlas(speed_pressure: float) -> void:
 	var texture_size: Vector2 = texture.get_size()
 	var cell_size := Vector2(texture_size.x * 0.5, texture_size.y / 3.0)
 	var spacing_world := 5200.0
-	var visible_rect := _get_visible_world_rect()
+	var visible_rect := _get_background_visible_world_rect()
 	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 2
 	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 2
 	var base_alpha := 0.045 * lerpf(1.0, 0.55, speed_pressure)
 	for index in range(start_index, end_index + 1):
 		var seed := float(index) * 17.37
 		var world_x := float(index) * spacing_world + lerpf(-900.0, 900.0, _hash01(seed + 1.0))
-		var screen_x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * 0.052 / maxf(camera_zoom, 0.001)
+		var screen_x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * 0.052 / _background_zoom()
 		if screen_x < -cell_size.x or screen_x > VIEW_SIZE.x + cell_size.x:
 			continue
 		var row := int(floorf(_hash01(seed + 2.0) * 3.0)) % 3
@@ -5189,7 +5196,7 @@ func _draw_near_cloud_wisps_from_atlas(speed_pressure: float) -> void:
 		return
 	var texture_size: Vector2 = texture.get_size()
 	var cell_size := Vector2(texture_size.x * 0.5, texture_size.y * 0.25)
-	var visible_rect := _get_visible_world_rect()
+	var visible_rect := _get_background_visible_world_rect()
 	var spacing_world := 1250.0
 	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 3
 	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 3
@@ -5198,8 +5205,8 @@ func _draw_near_cloud_wisps_from_atlas(speed_pressure: float) -> void:
 		var world_x := float(index) * spacing_world + lerpf(-280.0, 280.0, _hash01(seed + 1.0))
 		var world_y := visible_rect.position.y + visible_rect.size.y * lerpf(0.16, 0.84, _hash01(seed + 2.0))
 		var screen_pos := Vector2(
-			VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * 0.62 / maxf(camera_zoom, 0.001),
-			VIEW_SIZE.y * 0.5 + (world_y - camera_center.y) * 0.40 / maxf(camera_zoom, 0.001)
+			VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * 0.62 / _background_zoom(),
+			VIEW_SIZE.y * 0.5 + (world_y - camera_center.y) * 0.40 / _background_zoom()
 		)
 		if screen_pos.x < -cell_size.x or screen_pos.x > VIEW_SIZE.x + cell_size.x:
 			continue
@@ -5333,7 +5340,7 @@ func _draw_world_guides() -> void:
 func _draw_parallax_mountain_band(top_ratio: float, bottom_ratio: float, color: Color, offset: float, parallax: float, tile_width: float, ridge_height: float) -> void:
 	var top := VIEW_SIZE.y * top_ratio
 	var bottom := VIEW_SIZE.y * bottom_ratio
-	var y_shift := -(camera_center.y - FLIGHT_START_POS.y) * parallax * 0.11 / maxf(camera_zoom, 0.001)
+	var y_shift := -(camera_center.y - FLIGHT_START_POS.y) * parallax * 0.11 / _background_zoom()
 	var x := -fposmod(camera_center.x * parallax + offset * 113.0, tile_width) - tile_width
 	while x < VIEW_SIZE.x + tile_width:
 		var points := PackedVector2Array([Vector2(x, bottom + y_shift)])
