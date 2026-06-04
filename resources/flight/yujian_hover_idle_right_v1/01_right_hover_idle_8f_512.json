@@ -1,0 +1,12 @@
+{
+	"asset": "01_right_hover_idle",
+	"cell_size": 512,
+	"direction": "01_right",
+	"direction_index": 0,
+	"frame_count": 8,
+	"frames_dir": "res://resources/flight/yujian_hover_idle_right_v1/frames",
+	"notes": "Prototype right-facing hover idle. Transparent 512x512 frames; sword axis and body heading face screen right.",
+	"preview": "res://resources/flight/yujian_hover_idle_right_v1/01_right_hover_idle_8f_preview.png",
+	"sheet": "res://resources/flight/yujian_hover_idle_right_v1/01_right_hover_idle_8f_512.png",
+	"source": "HumanoidEightWaySkeletonVisual V4 runtime idle pose export"
+}

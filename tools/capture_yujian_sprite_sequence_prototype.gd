@@ -26,6 +26,10 @@ func _initialize() -> void:
 	for i in range(8):
 		await process_frame
 	var start_pos: Vector2 = root.get("flight_pos")
+	var renderer := root.get_node_or_null("YujianLevelBackgroundRenderer")
+	var play_rect := Rect2()
+	if renderer != null:
+		play_rect = renderer.get("play_rect")
 	if not _save_root_capture(STATIC_OUTPUT_PATH):
 		quit(1)
 		return
@@ -40,6 +44,7 @@ func _initialize() -> void:
 	root.set("boost_energy", 0.0)
 	root.set("visual_heading", Vector2.UP)
 	_clear_runtime_traces(root)
+	root.call("_sync_level_background_renderer")
 	root.queue_redraw()
 	for i in range(8):
 		await process_frame
@@ -57,6 +62,7 @@ func _initialize() -> void:
 	root.set("boost_energy", 0.0)
 	root.set("visual_heading", Vector2.UP)
 	_clear_runtime_traces(root)
+	root.call("_sync_level_background_renderer")
 	root.queue_redraw()
 	for i in range(8):
 		await process_frame
@@ -64,25 +70,18 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	var y_top_pos: Vector2 = root.call("_clamp_camera_center", Vector2(start_pos.x, -100000.0))
-	root.set("flight_pos", y_top_pos)
-	root.set("visual_pos", y_top_pos)
-	root.set("camera_center", y_top_pos)
-	root.set("camera_look_ahead", Vector2.ZERO)
-	root.set("velocity", Vector2.ZERO)
-	root.set("throttle_energy", 0.0)
-	root.set("boost_energy", 0.0)
-	root.set("visual_heading", Vector2.UP)
-	_clear_runtime_traces(root)
-	root.queue_redraw()
+	var y_top_pos := Vector2(start_pos.x, play_rect.position.y)
+	var y_top_camera: Vector2 = root.call("_clamp_camera_center", y_top_pos)
+	_prepare_capture_pose_with_camera(root, y_top_pos, y_top_camera, Vector2.UP)
 	for i in range(8):
 		await process_frame
 	if not _save_root_capture(Y_TOP_OUTPUT_PATH):
 		quit(1)
 		return
 
-	var y_bottom_pos: Vector2 = root.call("_clamp_camera_center", Vector2(start_pos.x, 100000.0))
-	_prepare_capture_pose(root, y_bottom_pos, Vector2.DOWN)
+	var y_bottom_pos := Vector2(start_pos.x, play_rect.end.y)
+	var y_bottom_camera: Vector2 = root.call("_clamp_camera_center", y_bottom_pos)
+	_prepare_capture_pose_with_camera(root, y_bottom_pos, y_bottom_camera, Vector2.DOWN)
 	for i in range(8):
 		await process_frame
 	if not _save_root_capture(Y_BOTTOM_OUTPUT_PATH):
@@ -122,6 +121,7 @@ func _initialize() -> void:
 	root.set("throttle_energy", 1.0)
 	root.set("boost_energy", 1.0)
 	root.set("visual_heading", Vector2.RIGHT)
+	root.call("_sync_level_background_renderer")
 	root.queue_redraw()
 	for i in range(8):
 		await process_frame
@@ -133,15 +133,20 @@ func _initialize() -> void:
 
 
 func _prepare_capture_pose(root: Node, pos: Vector2, heading: Vector2) -> void:
+	_prepare_capture_pose_with_camera(root, pos, pos, heading)
+
+
+func _prepare_capture_pose_with_camera(root: Node, pos: Vector2, camera_pos: Vector2, heading: Vector2) -> void:
 	root.set("flight_pos", pos)
 	root.set("visual_pos", pos)
-	root.set("camera_center", pos)
+	root.set("camera_center", camera_pos)
 	root.set("camera_look_ahead", Vector2.ZERO)
 	root.set("velocity", Vector2.ZERO)
 	root.set("throttle_energy", 0.0)
 	root.set("boost_energy", 0.0)
 	root.set("visual_heading", heading)
 	_clear_runtime_traces(root)
+	root.call("_sync_level_background_renderer")
 	root.queue_redraw()
 
 

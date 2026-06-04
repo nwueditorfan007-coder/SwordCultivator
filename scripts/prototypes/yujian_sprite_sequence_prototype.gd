@@ -1,6 +1,7 @@
 extends Node2D
 
 const HUMANOID_8WAY_SKELETON_VISUAL := preload("res://scripts/prototypes/humanoid_8way_skeleton_visual.gd")
+const YUJIAN_LEVEL_BACKGROUND_RENDERER := preload("res://scripts/background/yujian_level_background_renderer.gd")
 const WIND_RIBBON_EFFECT_SCRIPT := preload("res://third_party/ffttasd/wind_ribbon/scripts/wind_ribbon_effect.gd")
 const FOG_CARD_3D_SCRIPT := preload("res://third_party/ffttasd/godot_fog_card/scripts/fog_card_3d.gd")
 const FOG_CARD_SHADER := preload("res://third_party/ffttasd/godot_fog_card/reference_fog/shaders/fog-card.gdshader")
@@ -171,11 +172,6 @@ const BACKGROUND_ISLAND_GROUPS := [
 @export var 使用第一关程序背景 := true
 @export_file("*.json") var 关卡背景配置路径 := LEVEL_01_BACKGROUND_PROFILE_PATH
 @export var 显示调试文本 := false
-@export_range(0.0, 1.0, 0.005) var 第一关远景强度 := 1.0
-@export_range(0.0, 1.0, 0.005) var 第一关中景强度 := 1.0
-@export_range(0.0, 1.0, 0.005) var 第一关近景强度 := 0.85
-@export_range(0.50, 1.25, 0.01) var 第一关海岛色彩强度 := 1.08
-@export_range(0.0, 1.40, 0.005) var 第一关纵向近景退场强度 := 0.92
 
 @export_group("天空")
 @export var 天空顶部颜色 := Color(0.36, 0.66, 0.90, 1.0)
@@ -621,6 +617,7 @@ var camera_hard_turn_look_ahead_scale_slider: HSlider
 var camera_hard_turn_look_ahead_scale_spin: SpinBox
 var adjustment_status_label: Label
 
+var level_background_renderer
 var trail_points: Array = []
 var afterimages: Array = []
 var direction_switch_fx: Array = []
@@ -634,14 +631,9 @@ var scene_speed_streaks: Array = []
 var scene_speed_streak_spawn_accumulator := 0.0
 var scene_speed_streak_seed := 0
 var hair_fx_panel_hotkey_down := false
-var level_background_profile: Dictionary = {}
-var first_level_far_island_bands: Array = []
-var first_level_scenic_islands: Array = []
-
 
 func _ready() -> void:
 	_load_background_textures()
-	_load_level_background_profile()
 	_create_nodes()
 	if USE_GEMINI_8WAY_CRUISE:
 		_load_eight_way_adjustments()
@@ -668,88 +660,6 @@ func _load_background_textures() -> void:
 	landmark_silhouettes_atlas_texture = _load_png_texture(LANDMARK_SILHOUETTES_ATLAS_TEXTURE_PATH)
 
 
-func _load_level_background_profile() -> void:
-	level_background_profile = {}
-	first_level_far_island_bands = []
-	first_level_scenic_islands = []
-	if not 使用第一关程序背景:
-		return
-	if not FileAccess.file_exists(关卡背景配置路径):
-		push_warning("Missing level background profile: %s" % 关卡背景配置路径)
-		return
-	var file := FileAccess.open(关卡背景配置路径, FileAccess.READ)
-	if file == null:
-		push_warning("Failed to open level background profile: %s" % 关卡背景配置路径)
-		return
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	if typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("Invalid level background profile JSON: %s" % 关卡背景配置路径)
-		return
-	level_background_profile = parsed
-	var raw_settings: Variant = level_background_profile.get("settings", {})
-	if typeof(raw_settings) == TYPE_DICTIONARY:
-		_apply_level_background_profile_settings(raw_settings)
-	first_level_far_island_bands = _level_background_profile_array("far_island_bands")
-	first_level_scenic_islands = _level_background_profile_array("scenic_islands")
-
-
-func _apply_level_background_profile_settings(settings: Dictionary) -> void:
-	第一关远景强度 = _profile_float(settings, "far_strength", 第一关远景强度)
-	第一关中景强度 = _profile_float(settings, "mid_strength", 第一关中景强度)
-	第一关近景强度 = _profile_float(settings, "near_strength", 第一关近景强度)
-	第一关海岛色彩强度 = _profile_float(settings, "island_color_strength", 第一关海岛色彩强度)
-	第一关纵向近景退场强度 = _profile_float(settings, "vertical_exit_strength", 第一关纵向近景退场强度)
-	天空顶部颜色 = _profile_color(settings, "sky_top_color", 天空顶部颜色)
-	天空中部颜色 = _profile_color(settings, "sky_mid_color", 天空中部颜色)
-	天空底部颜色 = _profile_color(settings, "sky_bottom_color", 天空底部颜色)
-	天空中部雾光强度 = _profile_float(settings, "sky_warm_haze", 天空中部雾光强度)
-	天空低处青雾强度 = _profile_float(settings, "sky_low_cyan_haze", 天空低处青雾强度)
-	海平线高度比例 = _profile_float(settings, "horizon_ratio", 海平线高度比例)
-	海平线纵向响应 = _profile_float(settings, "horizon_y_response", 海平线纵向响应)
-	高空海平线出屏比例 = _profile_float(settings, "horizon_high_exit_ratio", _profile_float(settings, "horizon_top_limit_ratio", 高空海平线出屏比例))
-	低空海平线近处比例 = _profile_float(settings, "horizon_low_visible_ratio", 低空海平线近处比例)
-	背景纵向压缩尺度 = _profile_float(settings, "background_y_compression", 背景纵向压缩尺度)
-	海平线柔光颜色 = _profile_color(settings, "horizon_glow_color", 海平线柔光颜色)
-	海平线柔光强度 = _profile_float(settings, "horizon_glow_strength", 海平线柔光强度)
-	海平线柔光宽度 = _profile_float(settings, "horizon_glow_width", 海平线柔光宽度)
-	海面基础颜色 = _profile_color(settings, "sea_base_color", 海面基础颜色)
-	海面基础透明度 = _profile_float(settings, "sea_base_alpha", 海面基础透明度)
-	水纹高速保留比例 = _profile_float(settings, "shimmer_speed_keep", 水纹高速保留比例)
-
-
-func _level_background_profile_array(key: String) -> Array:
-	var raw_value: Variant = level_background_profile.get(key, [])
-	if typeof(raw_value) != TYPE_ARRAY:
-		push_warning("Level background profile field is not an array: %s" % key)
-		return []
-	var result: Array = raw_value
-	return result.duplicate(true)
-
-
-func _profile_float(settings: Dictionary, key: String, fallback: float) -> float:
-	if not settings.has(key):
-		return fallback
-	return float(settings[key])
-
-
-func _profile_color(settings: Dictionary, key: String, fallback: Color) -> Color:
-	if not settings.has(key):
-		return fallback
-	return _profile_color_from_value(settings[key], fallback)
-
-
-func _profile_color_from_value(value: Variant, fallback: Color) -> Color:
-	if typeof(value) != TYPE_ARRAY:
-		return fallback
-	var parts: Array = value
-	if parts.size() < 3:
-		return fallback
-	var alpha := fallback.a
-	if parts.size() >= 4:
-		alpha = float(parts[3])
-	return Color(float(parts[0]), float(parts[1]), float(parts[2]), alpha)
-
-
 func _process(delta: float) -> void:
 	var step := minf(delta, 1.0 / 30.0)
 	time += step
@@ -771,6 +681,7 @@ func _process(delta: float) -> void:
 	_update_afterimages(step)
 	_update_trail(step)
 	_update_airwake_particles(step)
+	_sync_level_background_renderer()
 	queue_redraw()
 
 
@@ -865,6 +776,7 @@ void fragment() {
 }
 """
 
+	_create_level_background_renderer()
 	trail_halo = _create_trail_line("TrailHalo", 0)
 	trail_ribbon = _create_trail_line("TrailRibbon", 1)
 	trail_core = _create_trail_line("TrailCore", 2)
@@ -892,6 +804,36 @@ void fragment() {
 	skeleton_character.visible = _uses_skeleton_eight_way()
 	sprite_root.add_child(skeleton_character)
 	_setup_boost_shockwave_particles()
+
+
+func _create_level_background_renderer() -> void:
+	if not 使用第一关程序背景:
+		return
+	level_background_renderer = YUJIAN_LEVEL_BACKGROUND_RENDERER.new()
+	level_background_renderer.name = "YujianLevelBackgroundRenderer"
+	level_background_renderer.z_index = -100
+	level_background_renderer.show_behind_parent = true
+	add_child(level_background_renderer)
+	level_background_renderer.configure_world(VIEW_SIZE, PLAY_RECT, FLIGHT_START_POS, CAMERA_MIN_ZOOM)
+	level_background_renderer.set_profile_path(关卡背景配置路径)
+	_sync_level_background_renderer()
+
+
+func _sync_level_background_renderer() -> void:
+	if level_background_renderer == null:
+		return
+	level_background_renderer.visible = 使用第一关程序背景
+	level_background_renderer.set_world_state(
+		time,
+		flight_pos,
+		camera_center,
+		camera_zoom,
+		velocity,
+		throttle_energy,
+		carve_energy,
+		direction_switch_energy,
+		show_debug_guides
+	)
 
 
 func _create_adjustment_panel() -> void:
@@ -3271,7 +3213,16 @@ func _background_zoom() -> float:
 	return maxf(CAMERA_MIN_ZOOM, 0.001)
 
 
+func _background_screen_x(world_x: float, depth: float) -> float:
+	if 使用第一关程序背景 and level_background_renderer != null:
+		_sync_level_background_renderer()
+		return level_background_renderer.background_screen_x(world_x, depth)
+	return VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * depth / _background_zoom()
+
+
 func _background_camera_origin() -> Vector2:
+	if 使用第一关程序背景 and level_background_renderer != null:
+		return Vector2(camera_center.x, flight_pos.y) - VIEW_SIZE * 0.5 * _background_zoom()
 	return camera_center - VIEW_SIZE * 0.5 * _background_zoom()
 
 
@@ -4057,7 +4008,6 @@ func _draw() -> void:
 
 func _draw_background() -> void:
 	if 使用第一关程序背景:
-		_draw_first_level_ocean_archipelago_background()
 		return
 	_draw_legacy_texture_background()
 
@@ -4077,787 +4027,6 @@ func _draw_legacy_texture_background() -> void:
 	_draw_battlefield_boundary_layers()
 	if show_debug_guides:
 		_draw_world_guides()
-
-
-func _draw_first_level_ocean_archipelago_background() -> void:
-	var speed_pressure := _background_speed_pressure()
-	var turn_pressure := clampf(maxf(carve_energy, direction_switch_energy), 0.0, 1.0)
-	var readability_fade := lerpf(1.0, 急转背景保留比例, turn_pressure)
-	var grounded_plane_fade := readability_fade * lerpf(1.0, 海岛高速保留比例, speed_pressure)
-	_draw_first_level_sky_wash(readability_fade)
-	_draw_first_level_far_clouds(readability_fade)
-	_draw_first_level_sea_plane(speed_pressure, readability_fade)
-	_draw_first_level_far_island_bands(readability_fade)
-	_draw_first_level_sea_shimmer(speed_pressure, grounded_plane_fade)
-	_draw_first_level_perspective_islands(grounded_plane_fade)
-	_draw_first_level_near_speed_references(speed_pressure)
-	_draw_battlefield_boundary_layers()
-	if show_debug_guides:
-		_draw_world_guides()
-
-
-func _draw_first_level_sky_wash(readability_fade: float) -> void:
-	_draw_smooth_sky_gradient(天空顶部颜色, 天空中部颜色, 天空底部颜色)
-	_draw_soft_sky_haze(0.42, 0.26, Color(1.0, 0.96, 0.76, 天空中部雾光强度 * 0.78 * readability_fade))
-	_draw_soft_sky_haze(0.70, 0.28, Color(0.72, 0.93, 1.0, 天空低处青雾强度 * 1.35 * readability_fade))
-	for i in range(18):
-		var t := float(i) / 17.0
-		var radius := lerpf(42.0, 220.0, t)
-		var alpha := 0.016 * readability_fade * pow(1.0 - t, 1.9)
-		draw_circle(Vector2(VIEW_SIZE.x * 0.17, VIEW_SIZE.y * 0.20), radius, Color(1.0, 0.88, 0.50, alpha))
-
-
-func _draw_first_level_sea_plane(speed_pressure: float, readability_fade: float) -> void:
-	var horizon_y := _get_sea_horizon_y()
-	var bottom_y := VIEW_SIZE.y + 2.0
-	var height := maxf(bottom_y - horizon_y, 1.0)
-	var alpha_scale := readability_fade * lerpf(1.0, 海面高速保留比例, speed_pressure)
-	var mid_y := horizon_y + height * 0.44
-	var top_color := Color(0.38, 0.80, 0.98, 0.72 * alpha_scale)
-	var mid_color := Color(0.13, 0.58, 0.90, 0.80 * alpha_scale)
-	var bottom_color := Color(0.02, 0.30, 0.74, 0.88 * alpha_scale)
-	_draw_vertical_gradient_rect(Rect2(Vector2(0.0, horizon_y), Vector2(VIEW_SIZE.x, mid_y - horizon_y)), top_color, mid_color)
-	_draw_vertical_gradient_rect(Rect2(Vector2(0.0, mid_y), Vector2(VIEW_SIZE.x, bottom_y - mid_y)), mid_color, bottom_color)
-	_draw_soft_horizon_glow(horizon_y, alpha_scale)
-
-
-func _draw_first_level_far_clouds(readability_fade: float) -> void:
-	if 第一关远景强度 <= 0.001:
-		return
-	_draw_first_level_cloud_layer(0.055, 2350.0, 0.25, 0.016 * 第一关远景强度 * readability_fade, 0.62)
-	_draw_first_level_cloud_layer(0.085, 1850.0, 0.43, 0.022 * 第一关远景强度 * readability_fade, 0.78)
-
-
-func _draw_first_level_cloud_layer(depth: float, spacing_world: float, y_ratio: float, alpha: float, scale_base: float) -> void:
-	var visible_rect := _get_background_visible_world_rect()
-	if not visible_rect.has_area():
-		return
-	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 3
-	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 3
-	for index in range(start_index, end_index + 1):
-		var seed := float(index) * 23.17 + depth * 19.0
-		var world_x := float(index) * spacing_world + lerpf(-420.0, 420.0, _hash01(seed + 1.0))
-		var screen_x := _background_screen_x(world_x, depth)
-		if screen_x < -520.0 or screen_x > VIEW_SIZE.x + 520.0:
-			continue
-		var screen_y := VIEW_SIZE.y * y_ratio + lerpf(-26.0, 24.0, _hash01(seed + 2.0))
-		var scale := scale_base * lerpf(0.82, 1.22, _hash01(seed + 3.0))
-		_draw_first_level_cloud_bank(Vector2(screen_x, screen_y), scale, alpha * lerpf(0.68, 1.0, _hash01(seed + 4.0)), seed)
-
-
-func _draw_first_level_cloud_bank(center: Vector2, scale: float, alpha: float, seed: float) -> void:
-	if alpha <= 0.001:
-		return
-	var color := Color(0.96, 0.99, 1.0, alpha)
-	for i in range(7):
-		var offset_x := lerpf(-170.0, 170.0, float(i) / 6.0) * scale
-		var offset_y := sin(seed + float(i) * 1.7) * 9.0 * scale
-		var radius := lerpf(34.0, 78.0, _hash01(seed + float(i) * 5.2)) * scale
-		draw_circle(center + Vector2(offset_x, offset_y), radius, color)
-	draw_line(center + Vector2(-210.0, 22.0) * scale, center + Vector2(210.0, 21.0) * scale, Color(0.82, 0.93, 0.98, alpha * 0.64), 18.0 * scale, true)
-
-
-func _draw_first_level_perspective_islands(grounded_plane_fade: float) -> void:
-	if 第一关中景强度 <= 0.001:
-		return
-	var horizon_y := _get_sea_horizon_y()
-	var contrast := clampf(第一关中景强度 * lerpf(0.84, 1.0, grounded_plane_fade), 0.0, 1.0)
-	for island in first_level_scenic_islands:
-		_draw_first_level_perspective_island(island, horizon_y, contrast)
-
-
-func _draw_first_level_perspective_island(island: Dictionary, horizon_y: float, contrast: float) -> void:
-	var center_x := float(island.get("x", FLIGHT_START_POS.x))
-	var center_y := FLIGHT_START_POS.y + float(island.get("y", 0.0))
-	var layer := String(island.get("layer", "mid"))
-	var band := String(island.get("band", "mid_sea"))
-	var center_z := clampf(float(island.get("depth", island.get("z", 0.5))), 0.06, 0.96)
-	var width_world := float(island.get("width", 420.0))
-	var length_z := clampf(float(island.get("length", 0.14)), 0.035, 0.28)
-	var kind := int(island.get("kind", 0))
-	var center := _first_level_project_scenic_point(center_x, center_y, center_z, layer, band, horizon_y)
-	var scale := _first_level_scenic_screen_scale(center_z, layer) / _background_zoom()
-	var cliff_height := float(island.get("height", 48.0)) * scale
-	var cull_padding := width_world * scale + cliff_height + 120.0
-	if center.x < -cull_padding or center.x > VIEW_SIZE.x + cull_padding:
-		return
-	if center.y < horizon_y - 80.0 or center.y > VIEW_SIZE.y + cull_padding:
-		return
-
-	var top_outline := _first_level_perspective_island_outline(center_x, center_y, center_z, width_world, length_z, horizon_y, kind, layer, band)
-	var horizon_guard_y := _first_level_island_horizon_guard_y(layer, band, center_z, horizon_y)
-	var screen_offset := Vector2(0.0, maxf(0.0, horizon_guard_y - _first_level_points_min_y(top_outline)))
-	if screen_offset.y > 0.001:
-		top_outline = _first_level_offset_points(top_outline, screen_offset)
-	var visible_edge := _first_level_perspective_island_visible_edge(top_outline)
-	var lower_edge := _first_level_perspective_island_lower_edge(visible_edge, width_world, scale, cliff_height, center_z, center_x * 0.011 + float(kind) * 23.0)
-	var air_mix := clampf((1.0 - center_z) * 0.42 + (1.0 - contrast) * 0.20, 0.0, 0.55)
-	var air_color := Color(0.62, 0.82, 0.84, 1.0)
-	var top_color := _first_level_island_top_color(kind).lerp(air_color, air_mix)
-	var cliff_color := _first_level_island_cliff_color(kind).lerp(air_color, air_mix * 0.76)
-	var cliff_dark := Color(0.32, 0.27, 0.20, 1.0).lerp(air_color, air_mix * 0.62)
-
-	_draw_first_level_perspective_island_shadow(visible_edge, lower_edge, center_z)
-	_draw_first_level_perspective_cliff_faces(visible_edge, lower_edge, cliff_color, cliff_dark, center_z, air_mix)
-	draw_colored_polygon(top_outline, top_color)
-	_draw_first_level_perspective_island_top_details(center_x, center_y, center_z, width_world, length_z, horizon_y, top_outline, kind, center_z, air_mix, layer, band, screen_offset)
-	_draw_first_level_perspective_island_rims(top_outline, visible_edge, lower_edge, center_z, air_mix)
-	_draw_first_level_perspective_vegetation(center_x, center_y, center_z, width_world, length_z, horizon_y, center_z, kind, layer, band, screen_offset)
-	var landmark := int(island.get("landmark", -1))
-	if landmark >= 0:
-		var landmark_anchor := _first_level_project_island_local_point(center_x, center_y, center_z, width_world, length_z, 0.52, 0.54, horizon_y, layer, band) + screen_offset
-		_draw_first_level_perspective_landmark(landmark, landmark_anchor, scale * lerpf(0.58, 0.94, center_z), air_mix)
-
-
-func _draw_first_level_perspective_island_shadow(visible_edge: PackedVector2Array, lower_edge: PackedVector2Array, depth: float) -> void:
-	if lower_edge.size() < 2 or visible_edge.size() < 2:
-		return
-	var lower_left := lower_edge[0]
-	var lower_right := lower_edge[lower_edge.size() - 1]
-	var front_left := visible_edge[0]
-	var front_right := visible_edge[visible_edge.size() - 1]
-	var shadow_alpha := lerpf(0.035, 0.115, depth)
-	var offset := Vector2(0.0, lerpf(8.0, 22.0, depth))
-	draw_colored_polygon(
-		PackedVector2Array([
-			lower_left + Vector2(-18.0, 4.0) + offset,
-			lower_right + Vector2(18.0, 3.0) + offset,
-			front_right + Vector2(34.0, 34.0) + offset,
-			front_left + Vector2(-34.0, 36.0) + offset,
-		]),
-		Color(0.02, 0.20, 0.28, shadow_alpha)
-	)
-
-
-func _draw_first_level_perspective_cliff_faces(visible_edge: PackedVector2Array, lower_edge: PackedVector2Array, cliff_color: Color, cliff_dark: Color, depth: float, air_mix: float) -> void:
-	var count: int = visible_edge.size()
-	if lower_edge.size() < count:
-		count = lower_edge.size()
-	if count < 2:
-		return
-	for i in range(count - 1):
-		var t := float(i) / maxf(float(count - 2), 1.0)
-		var panel_mix := 0.06 + absf(t - 0.5) * 0.34
-		var face_color := cliff_color.lerp(cliff_dark, panel_mix)
-		draw_colored_polygon(PackedVector2Array([
-			visible_edge[i],
-			visible_edge[i + 1],
-			lower_edge[i + 1],
-			lower_edge[i],
-		]), face_color)
-		var seam_alpha := lerpf(0.10, 0.22, depth) * (1.0 - air_mix * 0.75)
-		var seam_top := visible_edge[i].lerp(visible_edge[i + 1], 0.52)
-		var seam_bottom := lower_edge[i].lerp(lower_edge[i + 1], 0.47)
-		draw_line(seam_top, seam_bottom, Color(0.28, 0.24, 0.18, seam_alpha), maxf(1.0, lerpf(1.0, 2.0, depth)), true)
-	for i in range(3):
-		var t := (float(i) + 0.5) / 3.0
-		var top := _first_level_polyline_lerp(visible_edge, t)
-		var bottom := _first_level_polyline_lerp(lower_edge, clampf(t + lerpf(-0.06, 0.06, _hash01(depth * 23.0 + float(i))), 0.0, 1.0))
-		var crease_color := Color(0.88, 0.76, 0.50, lerpf(0.09, 0.16, depth) * (1.0 - air_mix * 0.55))
-		draw_line(top.lerp(bottom, 0.16), bottom.lerp(top, 0.12), crease_color, maxf(1.0, lerpf(1.0, 2.4, depth)), true)
-
-
-func _first_level_perspective_island_outline(center_x: float, center_y: float, center_z: float, width: float, length_z: float, horizon_y: float, kind: int, layer: String, band: String) -> PackedVector2Array:
-	var seed := center_x * 0.011 + center_y * 0.007 + float(kind) * 19.31 + width * 0.017 + length_z * 13.0
-	var local_points := [
-		Vector2(-0.42, 0.50 + lerpf(-0.04, 0.02, _hash01(seed + 1.0))),
-		Vector2(lerpf(-0.08, 0.08, _hash01(seed + 2.0)), 0.56 + lerpf(-0.02, 0.04, _hash01(seed + 3.0))),
-		Vector2(0.42, 0.50 + lerpf(-0.04, 0.02, _hash01(seed + 4.0))),
-		Vector2(0.53 + lerpf(-0.03, 0.04, _hash01(seed + 5.0)), 0.08 + lerpf(-0.05, 0.04, _hash01(seed + 6.0))),
-		Vector2(0.35 + lerpf(-0.04, 0.03, _hash01(seed + 7.0)), -0.42 + lerpf(-0.04, 0.02, _hash01(seed + 8.0))),
-		Vector2(lerpf(-0.08, 0.08, _hash01(seed + 9.0)), -0.56 + lerpf(-0.03, 0.03, _hash01(seed + 10.0))),
-		Vector2(-0.36 + lerpf(-0.03, 0.04, _hash01(seed + 11.0)), -0.42 + lerpf(-0.03, 0.04, _hash01(seed + 12.0))),
-		Vector2(-0.53 + lerpf(-0.04, 0.03, _hash01(seed + 13.0)), 0.08 + lerpf(-0.04, 0.05, _hash01(seed + 14.0))),
-	]
-	var points := PackedVector2Array()
-	for raw_local_point in local_points:
-		var local_point: Vector2 = raw_local_point
-		points.append(_first_level_project_island_footprint_point(center_x, center_y, center_z, width, length_z, local_point, horizon_y, layer, band))
-	return points
-
-
-func _first_level_perspective_island_visible_edge(top_outline: PackedVector2Array) -> PackedVector2Array:
-	if top_outline.size() < 8:
-		return top_outline
-	return PackedVector2Array([
-		top_outline[7],
-		top_outline[0],
-		top_outline[1],
-		top_outline[2],
-		top_outline[3],
-	])
-
-
-func _first_level_perspective_island_lower_edge(visible_edge: PackedVector2Array, width: float, scale: float, cliff_height: float, depth: float, seed: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
-	var count := visible_edge.size()
-	for i in range(count):
-		var t := float(i) / maxf(float(count - 1), 1.0)
-		var side_push := (t - 0.5) * width * scale * lerpf(0.024, 0.040, depth)
-		var height_jitter := lerpf(0.88, 1.10, _hash01(seed + float(i) * 6.13))
-		points.append(visible_edge[i] + Vector2(side_push, cliff_height * height_jitter))
-	return points
-
-
-func _draw_first_level_perspective_island_rims(top_outline: PackedVector2Array, visible_edge: PackedVector2Array, lower_edge: PackedVector2Array, depth: float, air_mix: float) -> void:
-	var shore_color := Color(0.92, 0.82, 0.54, 0.92).lerp(Color(0.70, 0.88, 0.86, 1.0), air_mix)
-	var waterline := Color(0.84, 0.97, 1.0, lerpf(0.20, 0.36, depth))
-	var rim_points := PackedVector2Array(top_outline)
-	rim_points.append(top_outline[0])
-	draw_polyline(rim_points, shore_color, maxf(1.0, lerpf(1.5, 4.0, depth)), true)
-	draw_polyline(lower_edge, waterline, maxf(3.0, lerpf(4.0, 12.0, depth)), true)
-	if visible_edge.size() > 2:
-		draw_polyline(visible_edge, Color(0.98, 0.87, 0.58, lerpf(0.30, 0.54, depth) * (1.0 - air_mix * 0.45)), maxf(1.0, lerpf(1.0, 2.8, depth)), true)
-	for i in range(3):
-		var t := (float(i) + 1.0) / 4.0
-		var top_a := top_outline[0].lerp(top_outline[4], t * 0.72)
-		var top_b := top_outline[2].lerp(top_outline[5], minf(t * 0.72 + 0.16, 0.92))
-		draw_line(top_a, top_b, Color(0.98, 0.86, 0.54, lerpf(0.22, 0.42, depth)), maxf(1.0, lerpf(1.0, 2.2, depth)), true)
-
-
-func _draw_first_level_perspective_island_top_details(center_x: float, center_y: float, center_z: float, width: float, length_z: float, horizon_y: float, top_outline: PackedVector2Array, kind: int, depth: float, air_mix: float, layer: String, band: String, screen_offset: Vector2) -> void:
-	var seed := center_x * 0.017 + float(kind) * 11.0
-	var center := _first_level_polygon_center(top_outline)
-	var inner := _first_level_scaled_polygon(top_outline, center, lerpf(0.72, 0.84, _hash01(seed + 1.0)))
-	draw_colored_polygon(inner, Color(0.86, 0.76, 0.53, lerpf(0.10, 0.18, depth) * (1.0 - air_mix * 0.60)))
-	for i in range(4):
-		var v := lerpf(0.30, 0.72, (float(i) + 0.35) / 4.0)
-		var u0 := lerpf(0.20, 0.32, _hash01(seed + float(i) * 5.0))
-		var u1 := lerpf(0.66, 0.82, _hash01(seed + float(i) * 7.0))
-		var mid := lerpf(0.42, 0.58, _hash01(seed + float(i) * 9.0))
-		var p0 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, u0, v, horizon_y, layer, band) + screen_offset
-		var p1 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, mid, clampf(v + 0.035, 0.08, 0.92), horizon_y, layer, band) + screen_offset
-		var p2 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, u1, clampf(v + 0.015, 0.08, 0.92), horizon_y, layer, band) + screen_offset
-		var line_color := Color(0.96, 0.84, 0.58, lerpf(0.12, 0.24, depth) * (1.0 - air_mix * 0.55))
-		draw_polyline(PackedVector2Array([p0, p1, p2]), line_color, maxf(1.0, lerpf(1.0, 2.3, depth)), true)
-
-
-func _draw_first_level_perspective_vegetation(center_x: float, center_y: float, center_z: float, width: float, length_z: float, horizon_y: float, depth: float, kind: int, layer: String, band: String, screen_offset: Vector2) -> void:
-	var patch_count := 2 + (kind % 3)
-	for patch_index in range(patch_count):
-		var seed := float(kind * 17 + patch_index * 11)
-		var u := lerpf(0.24, 0.72, _hash01(seed + 1.0))
-		var v := lerpf(0.34, 0.76, _hash01(seed + 2.0))
-		var patch_w := lerpf(0.12, 0.24, _hash01(seed + 3.0))
-		var patch_d := lerpf(0.08, 0.16, _hash01(seed + 4.0))
-		var p0 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, clampf(u - patch_w, 0.05, 0.95), clampf(v - patch_d, 0.05, 0.95), horizon_y, layer, band) + screen_offset
-		var p1 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, clampf(u + patch_w, 0.05, 0.95), clampf(v - patch_d * 0.68, 0.05, 0.95), horizon_y, layer, band) + screen_offset
-		var p2 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, clampf(u + patch_w * 0.82, 0.05, 0.95), clampf(v + patch_d, 0.05, 0.95), horizon_y, layer, band) + screen_offset
-		var p3 := _first_level_project_island_local_point(center_x, center_y, center_z, width, length_z, clampf(u - patch_w * 0.70, 0.05, 0.95), clampf(v + patch_d * 0.82, 0.05, 0.95), horizon_y, layer, band) + screen_offset
-		var green := Color(0.12, 0.56, 0.34, 1.0).lerp(Color(0.52, 0.72, 0.58, 1.0), (1.0 - depth) * 0.30)
-		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), green)
-		for blade in range(3):
-			var t := (float(blade) + 0.5) / 3.0
-			var a := p0.lerp(p3, t)
-			var b := p1.lerp(p2, clampf(t + lerpf(-0.10, 0.10, _hash01(seed + float(blade) * 4.4)), 0.0, 1.0))
-			draw_line(a, b, Color(0.50, 0.82, 0.42, 0.72), maxf(1.0, width * 0.0045), true)
-
-
-func _draw_first_level_perspective_landmark(kind: int, anchor: Vector2, scale: float, air_mix: float) -> void:
-	var solid := Color(0.30, 0.32, 0.30, 1.0).lerp(Color(0.64, 0.78, 0.78, 1.0), air_mix)
-	var gold := Color(0.90, 0.76, 0.36, 1.0).lerp(Color(0.78, 0.86, 0.76, 1.0), air_mix * 0.60)
-	var h := 48.0 * scale
-	var w := 14.0 * scale
-	match kind % 4:
-		0:
-			draw_colored_polygon(PackedVector2Array([
-				anchor + Vector2(-w * 0.5, 0.0),
-				anchor + Vector2(w * 0.5, 0.0),
-				anchor + Vector2(w * 0.36, -h),
-				anchor + Vector2(-w * 0.36, -h),
-			]), solid)
-			draw_line(anchor + Vector2(-w, -h), anchor + Vector2(w, -h), gold, maxf(1.0, 1.6 * scale), true)
-		1:
-			draw_line(anchor + Vector2(-24.0, 0.0) * scale, anchor + Vector2(24.0, -5.0) * scale, solid, maxf(2.0, 3.2 * scale), true)
-			draw_line(anchor, anchor + Vector2(0.0, -h), gold, maxf(1.0, 2.0 * scale), true)
-			draw_circle(anchor + Vector2(0.0, -h - 4.0 * scale), 4.0 * scale, gold)
-		2:
-			var arch := PackedVector2Array()
-			for i in range(14):
-				var t := float(i) / 13.0
-				var a := lerpf(PI, 0.0, t)
-				arch.append(anchor + Vector2(cos(a) * 26.0, -absf(sin(a)) * 36.0) * scale)
-			draw_polyline(arch, solid, maxf(1.5, 3.0 * scale), true)
-		_:
-			draw_line(anchor + Vector2(-20.0, -4.0) * scale, anchor + Vector2(22.0, -4.0) * scale, solid, maxf(2.0, 3.0 * scale), true)
-			draw_line(anchor, anchor + Vector2(0.0, -h * 0.86), gold, maxf(1.0, 1.5 * scale), true)
-
-
-func _first_level_plane_quad_point(front_left: Vector2, front_right: Vector2, rear_right: Vector2, rear_left: Vector2, u: float, v: float) -> Vector2:
-	var front := front_left.lerp(front_right, u)
-	var rear := rear_left.lerp(rear_right, u)
-	return front.lerp(rear, v)
-
-
-func _first_level_polygon_center(points: PackedVector2Array) -> Vector2:
-	if points.is_empty():
-		return Vector2.ZERO
-	var total := Vector2.ZERO
-	for point in points:
-		total += point
-	return total / float(points.size())
-
-
-func _first_level_scaled_polygon(points: PackedVector2Array, center: Vector2, scale: float) -> PackedVector2Array:
-	var result := PackedVector2Array()
-	for point in points:
-		result.append(center + (point - center) * scale)
-	return result
-
-
-func _first_level_polyline_lerp(points: PackedVector2Array, t: float) -> Vector2:
-	if points.is_empty():
-		return Vector2.ZERO
-	if points.size() == 1:
-		return points[0]
-	var scaled_t := clampf(t, 0.0, 1.0) * float(points.size() - 1)
-	var index := int(floorf(scaled_t))
-	if index >= points.size() - 1:
-		return points[points.size() - 1]
-	return points[index].lerp(points[index + 1], scaled_t - float(index))
-
-
-func _first_level_project_island_local_point(center_x: float, center_y: float, center_z: float, width: float, length_z: float, u: float, v: float, horizon_y: float, layer: String, band: String) -> Vector2:
-	return _first_level_project_island_footprint_point(center_x, center_y, center_z, width, length_z, Vector2(u - 0.5, v - 0.5), horizon_y, layer, band)
-
-
-func _first_level_project_island_footprint_point(center_x: float, center_y: float, center_z: float, width: float, length_z: float, local_point: Vector2, horizon_y: float, layer: String, band: String) -> Vector2:
-	var foreshortening := _first_level_island_depth_foreshortening(center_z)
-	var side_yaw := clampf((center_x - camera_center.x) * 0.000075, -0.16, 0.16)
-	var local_z := local_point.y * foreshortening
-	var local_x := local_point.x + local_z * side_yaw
-	var center := _first_level_project_scenic_point(center_x, center_y, center_z, layer, band, horizon_y)
-	var scale := _first_level_scenic_screen_scale(center_z, layer) / _background_zoom()
-	var x := center.x + local_x * width * scale
-	var y := center.y + local_z * width * scale * lerpf(0.22, 0.34, center_z) + local_point.y * length_z * 260.0 * scale
-	return Vector2(x, y)
-
-
-func _first_level_island_depth_foreshortening(center_z: float) -> float:
-	var t := clampf((center_z - 0.20) / 0.74, 0.0, 1.0)
-	var eased := t * t * (3.0 - 2.0 * t)
-	return lerpf(0.38, 0.70, eased)
-
-
-func _first_level_island_top_color(kind: int) -> Color:
-	match kind % 3:
-		0:
-			return Color(0.72, 0.58, 0.39, 1.0)
-		1:
-			return Color(0.66, 0.56, 0.40, 1.0)
-		_:
-			return Color(0.76, 0.64, 0.43, 1.0)
-
-
-func _first_level_island_cliff_color(kind: int) -> Color:
-	match kind % 3:
-		0:
-			return Color(0.46, 0.37, 0.27, 1.0)
-		1:
-			return Color(0.40, 0.34, 0.26, 1.0)
-		_:
-			return Color(0.52, 0.40, 0.28, 1.0)
-
-
-func _first_level_left_vanishing_point(horizon_y: float) -> Vector2:
-	return Vector2(-880.0, horizon_y - 14.0)
-
-
-func _first_level_right_vanishing_point(horizon_y: float) -> Vector2:
-	return Vector2(VIEW_SIZE.x + 880.0, horizon_y - 14.0)
-
-
-func _first_level_perspective_parallax(depth: float) -> float:
-	return 0.62 * _first_level_perspective_screen_scale(depth)
-
-
-func _first_level_perspective_screen_scale(depth: float) -> float:
-	return lerpf(0.18, 1.06, pow(clampf(depth, 0.0, 1.0), 0.82))
-
-
-func _first_level_perspective_point(world_x: float, depth: float, horizon_y: float) -> Vector2:
-	return _first_level_project_sea_point(world_x, depth, horizon_y)
-
-
-func _first_level_project_scenic_point(world_x: float, world_y: float, depth: float, layer: String, band: String, horizon_y: float) -> Vector2:
-	var layer_key := layer.to_lower()
-	var band_key := band.to_lower()
-	var x_parallax := _first_level_scenic_layer_parallax_x(layer_key, depth)
-	var y_parallax := _first_level_scenic_layer_parallax_y(layer_key)
-	var x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * x_parallax / _background_zoom()
-	var y := horizon_y + _first_level_scenic_band_offset(band_key, depth, horizon_y) + _first_level_background_y_delta(world_y) * y_parallax / _background_zoom()
-	return Vector2(x, y)
-
-
-func _first_level_project_sea_point(world_x: float, sea_z: float, horizon_y: float) -> Vector2:
-	var z := clampf(sea_z, 0.02, 0.985)
-	var parallax := _first_level_perspective_parallax(z)
-	var x := VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * parallax / _background_zoom()
-	var sea_height := VIEW_SIZE.y - horizon_y
-	var y := horizon_y + sea_height * pow(z, 1.18) * 0.96
-	return Vector2(x, y)
-
-
-func _first_level_scenic_layer_parallax_x(layer: String, depth: float) -> float:
-	match layer:
-		"far":
-			return lerpf(0.055, 0.12, clampf(depth, 0.0, 1.0))
-		"near":
-			return lerpf(0.46, 0.66, clampf(depth, 0.0, 1.0))
-		_:
-			return lerpf(0.22, 0.38, clampf(depth, 0.0, 1.0))
-
-
-func _first_level_scenic_layer_parallax_y(layer: String) -> float:
-	var base := 0.045
-	match layer:
-		"far":
-			base = 0.012
-		"near":
-			base = 0.090
-		_:
-			base = 0.045
-	return base * 第一关纵向近景退场强度
-
-
-func _first_level_scenic_band_offset(band: String, depth: float, horizon_y: float) -> float:
-	var sea_height := maxf(VIEW_SIZE.y - horizon_y, 1.0)
-	match band:
-		"horizon":
-			return 66.0 + depth * 22.0
-		"foreground_bottom":
-			return sea_height * lerpf(0.92, 1.04, depth) + 110.0
-		"foreground":
-			return minf(280.0 + depth * 34.0, sea_height * 0.84)
-		_:
-			return 132.0 + depth * 44.0
-
-
-func _first_level_background_y_delta(world_y: float) -> float:
-	var raw_delta := world_y - camera_center.y
-	var compression := maxf(背景纵向压缩尺度 * _background_zoom(), 1.0)
-	return raw_delta / (1.0 + absf(raw_delta) / compression)
-
-
-func _first_level_island_horizon_guard_y(layer: String, band: String, depth: float, horizon_y: float) -> float:
-	var margin := 20.0
-	match band.to_lower():
-		"foreground_bottom":
-			margin = 56.0
-		"foreground":
-			margin = 44.0
-		"horizon":
-			margin = 14.0
-		_:
-			margin = 28.0
-	if layer.to_lower() == "near":
-		margin = maxf(margin, 42.0 + depth * 16.0)
-	return horizon_y + margin
-
-
-func _first_level_points_min_y(points: PackedVector2Array) -> float:
-	if points.is_empty():
-		return INF
-	var result := points[0].y
-	for point in points:
-		result = minf(result, point.y)
-	return result
-
-
-func _first_level_offset_points(points: PackedVector2Array, offset: Vector2) -> PackedVector2Array:
-	var result := PackedVector2Array()
-	for point in points:
-		result.append(point + offset)
-	return result
-
-
-func _first_level_scenic_screen_scale(depth: float, layer: String) -> float:
-	var scale := _first_level_perspective_screen_scale(depth)
-	match layer.to_lower():
-		"far":
-			return scale * 0.78
-		"near":
-			return scale * 1.05
-		_:
-			return scale
-
-
-func _draw_first_level_far_island_bands(readability_fade: float) -> void:
-	if 第一关远景强度 <= 0.001 or first_level_far_island_bands.is_empty():
-		return
-	var horizon_y := _get_sea_horizon_y()
-	for band in first_level_far_island_bands:
-		if typeof(band) != TYPE_DICTIONARY:
-			continue
-		var depth := clampf(float(band.get("depth", 0.06)), 0.01, 0.20)
-		var spacing_world := float(band.get("spacing_world", 2600.0))
-		var y_offset := float(band.get("y_offset", 28.0))
-		var height := float(band.get("height", 42.0))
-		var scale_base := float(band.get("scale", 1.0))
-		var color := _profile_color_from_value(band.get("color", []), Color(0.24, 0.45, 0.46, 0.08))
-		color.a *= 第一关远景强度 * readability_fade
-		_draw_first_level_far_island_layer(depth, spacing_world, horizon_y + y_offset, height, color, scale_base, horizon_y)
-
-
-func _draw_first_level_far_island_layer(depth: float, spacing_world: float, base_y: float, height: float, color: Color, scale_base: float, horizon_y: float) -> void:
-	var visible_rect := _get_background_visible_world_rect()
-	if not visible_rect.has_area():
-		return
-	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 3
-	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 3
-	for index in range(start_index, end_index + 1):
-		var seed := float(index) * 41.73 + depth * 31.0
-		var world_x := float(index) * spacing_world + lerpf(-520.0, 520.0, _hash01(seed + 1.0))
-		var screen_x := _background_screen_x(world_x, depth)
-		if screen_x < -520.0 or screen_x > VIEW_SIZE.x + 520.0:
-			continue
-		var width := lerpf(330.0, 780.0, _hash01(seed + 2.0)) * scale_base / _background_zoom()
-		var layer_height := height * lerpf(0.72, 1.35, _hash01(seed + 3.0)) / _background_zoom()
-		_draw_first_level_far_island_segment(screen_x, base_y, width, layer_height, color, seed, horizon_y)
-
-
-func _draw_first_level_far_island_segment(center_x: float, base_y: float, width: float, height: float, color: Color, seed: float, horizon_y: float) -> void:
-	var points := PackedVector2Array()
-	points.append(Vector2(center_x - width * 0.56, base_y + height * 0.28))
-	var safe_top_y := horizon_y + 10.0
-	for i in range(8):
-		var t := float(i) / 7.0
-		var ridge := absf(sin(seed * 0.27 + float(i) * 1.13)) * 0.85 + absf(sin(seed * 0.51 + float(i) * 0.71)) * 0.35
-		var y := maxf(base_y - height * lerpf(0.20, 1.0, clampf(ridge, 0.0, 1.0)), safe_top_y)
-		points.append(Vector2(center_x - width * 0.5 + width * t, y))
-	points.append(Vector2(center_x + width * 0.58, base_y + height * 0.30))
-	draw_colored_polygon(points, color)
-	draw_line(Vector2(center_x - width * 0.48, base_y + height * 0.08), Vector2(center_x + width * 0.50, base_y + height * 0.05), Color(0.92, 0.98, 1.0, color.a * 0.18), maxf(height * 0.06, 1.0), true)
-
-
-func _draw_first_level_island_set_pieces(speed_pressure: float, grounded_plane_fade: float) -> void:
-	if 第一关中景强度 <= 0.001 or grounded_plane_fade <= 0.001:
-		return
-	var horizon_y := _get_sea_horizon_y()
-	var base_fade := 第一关中景强度 * 岛群整体透明度 * grounded_plane_fade * lerpf(1.0, 0.88, speed_pressure)
-	for group in BACKGROUND_ISLAND_GROUPS:
-		var anchor_world_x := float(group.get("x", FLIGHT_START_POS.x))
-		var depth := clampf(float(group.get("depth", 0.48)) * 岛群世界移动倍率, 0.12, 1.0)
-		var screen_x := _background_screen_x(anchor_world_x, depth)
-		var unit_scale := float(group.get("scale", 0.76)) / _background_zoom()
-		var cull_width := 1180.0 * maxf(unit_scale, 0.45)
-		if screen_x < -cull_width or screen_x > VIEW_SIZE.x + cull_width:
-			continue
-		var edge_margin := cull_width * 0.62
-		var left_fade := clampf((screen_x + edge_margin) / maxf(edge_margin * 0.55, 1.0), 0.0, 1.0)
-		var right_fade := clampf((VIEW_SIZE.x + edge_margin - screen_x) / maxf(edge_margin * 0.55, 1.0), 0.0, 1.0)
-		var cull_fade := minf(left_fade, right_fade)
-		var group_alpha := clampf(base_fade * float(group.get("alpha", 1.0)) * cull_fade, 0.0, 1.0)
-		if group_alpha <= 0.001:
-			continue
-		var sea_y := horizon_y + 岛群贴海偏移 + float(group.get("sea_offset", 0.0)) * unit_scale
-		var flip_x := bool(group.get("mirror", false))
-		var kind := int(group.get("landmark", 0))
-		var seed := anchor_world_x * 0.013 + float(kind) * 18.77 + depth * 9.3
-		_draw_first_level_island_piece(screen_x, sea_y, unit_scale, group_alpha, kind, flip_x, depth, seed)
-
-
-func _draw_first_level_island_piece(screen_x: float, sea_y: float, unit_scale: float, group_alpha: float, kind: int, flip_x: bool, depth: float, seed: float) -> void:
-	var width_main := lerpf(640.0, 980.0, _hash01(seed + 1.0)) * unit_scale
-	var height_main := lerpf(118.0, 224.0, _hash01(seed + 2.0)) * unit_scale
-	var side := -1.0 if flip_x else 1.0
-	_draw_first_level_mist_band(screen_x, sea_y + 50.0 * unit_scale, width_main * 1.16, 28.0 * unit_scale, group_alpha * 0.11, seed + 7.0)
-	_draw_first_level_rock_island(screen_x - side * width_main * 0.34, sea_y + 8.0 * unit_scale, width_main * 0.42, height_main * 0.58, unit_scale, group_alpha * 0.68, seed + 3.0, depth)
-	_draw_first_level_rock_island(screen_x + side * width_main * 0.06, sea_y, width_main, height_main, unit_scale, group_alpha, seed + 5.0, depth)
-	_draw_first_level_rock_island(screen_x + side * width_main * 0.45, sea_y + 16.0 * unit_scale, width_main * 0.34, height_main * 0.46, unit_scale, group_alpha * 0.56, seed + 9.0, depth)
-	_draw_first_level_landmark(kind, Vector2(screen_x + side * width_main * 0.10, sea_y - height_main * 0.62), unit_scale, group_alpha * 地标建筑透明度, flip_x)
-	_draw_first_level_waterline(screen_x, sea_y, width_main * 1.26, unit_scale, group_alpha)
-
-
-func _draw_first_level_rock_island(center_x: float, sea_y: float, width: float, height: float, unit_scale: float, alpha: float, seed: float, depth: float) -> void:
-	if alpha <= 0.001:
-		return
-	var saturation := 第一关海岛色彩强度 * lerpf(0.62, 1.0, clampf(depth, 0.0, 1.0))
-	var rock_dark := Color(0.22, 0.20, 0.18, 0.50 * alpha)
-	var rock_mid := Color(lerpf(0.50, 0.75, saturation), lerpf(0.42, 0.56, saturation), lerpf(0.31, 0.36, saturation), 0.82 * alpha)
-	var rock_light := Color(0.90, 0.76, 0.48, 0.68 * alpha)
-	var beach_light := Color(0.92, 0.82, 0.54, 0.36 * alpha)
-	var points := PackedVector2Array()
-	points.append(Vector2(center_x - width * 0.54, sea_y + 34.0 * unit_scale))
-	for i in range(9):
-		var t := float(i) / 8.0
-		var ridge := pow(absf(sin(seed + float(i) * 1.19)), 0.72)
-		var shoulder := 1.0 - absf(t * 2.0 - 1.0) * 0.32
-		var y := sea_y - height * lerpf(0.26, 1.0, ridge * shoulder)
-		points.append(Vector2(center_x - width * 0.50 + width * t, y))
-	points.append(Vector2(center_x + width * 0.55, sea_y + 38.0 * unit_scale))
-	draw_colored_polygon(points, rock_mid)
-	var lower := PackedVector2Array([
-		Vector2(center_x - width * 0.52, sea_y - height * 0.04),
-		Vector2(center_x - width * 0.18, sea_y - height * 0.18),
-		Vector2(center_x + width * 0.18, sea_y - height * 0.08),
-		Vector2(center_x + width * 0.54, sea_y + 30.0 * unit_scale),
-		Vector2(center_x - width * 0.54, sea_y + 34.0 * unit_scale),
-	])
-	draw_colored_polygon(lower, rock_dark)
-	for ridge_index in range(4):
-		var t := (float(ridge_index) + 0.5) / 4.0
-		var x := center_x - width * 0.34 + width * 0.68 * t
-		var top_y := sea_y - height * lerpf(0.22, 0.74, _hash01(seed + float(ridge_index) * 3.1))
-		draw_line(Vector2(x, top_y), Vector2(x + lerpf(-42.0, 58.0, _hash01(seed + float(ridge_index) * 4.7)) * unit_scale, sea_y + 18.0 * unit_scale), rock_light, maxf(1.0, 2.4 * unit_scale), true)
-	draw_line(Vector2(center_x - width * 0.44, sea_y + 8.0 * unit_scale), Vector2(center_x + width * 0.48, sea_y + 4.0 * unit_scale), beach_light, maxf(2.0, 6.0 * unit_scale), true)
-	_draw_first_level_vegetation_cap(center_x, sea_y, width, height, unit_scale, alpha, seed)
-
-
-func _draw_first_level_vegetation_cap(center_x: float, sea_y: float, width: float, height: float, unit_scale: float, alpha: float, seed: float) -> void:
-	var cap_count := 3
-	for cap_index in range(cap_count):
-		var t := (float(cap_index) + 0.25) / float(cap_count)
-		var cap_width := width * lerpf(0.18, 0.34, _hash01(seed + float(cap_index) * 5.8))
-		var x := center_x - width * 0.34 + width * 0.62 * t
-		var y := sea_y - height * lerpf(0.45, 0.86, _hash01(seed + float(cap_index) * 7.2))
-		var points := PackedVector2Array([
-			Vector2(x - cap_width * 0.52, y + 8.0 * unit_scale),
-			Vector2(x - cap_width * 0.18, y - 12.0 * unit_scale),
-			Vector2(x + cap_width * 0.22, y - 10.0 * unit_scale),
-			Vector2(x + cap_width * 0.55, y + 7.0 * unit_scale),
-		])
-		draw_colored_polygon(points, Color(0.10, 0.56, 0.32, 0.66 * alpha * 第一关海岛色彩强度))
-		draw_line(points[0], points[3], Color(0.50, 0.82, 0.38, 0.48 * alpha * 第一关海岛色彩强度), maxf(2.0, 5.0 * unit_scale), true)
-
-
-func _draw_first_level_landmark(kind: int, anchor: Vector2, unit_scale: float, alpha: float, flip_x: bool) -> void:
-	if alpha <= 0.001:
-		return
-	var side := -1.0 if flip_x else 1.0
-	var gold := Color(0.86, 0.70, 0.34, 0.42 * alpha)
-	var teal := Color(0.60, 0.88, 0.92, 0.30 * alpha)
-	var dark := Color(0.22, 0.28, 0.30, 0.34 * alpha)
-	match kind % 6:
-		0:
-			var h := 92.0 * unit_scale
-			var w := 26.0 * unit_scale
-			draw_rect(Rect2(anchor + Vector2(-w * 0.5, -h), Vector2(w, h)), dark)
-			draw_line(anchor + Vector2(-w, -h), anchor + Vector2(w, -h), gold, maxf(1.0, 2.0 * unit_scale), true)
-			draw_circle(anchor + Vector2(0.0, -h - 8.0 * unit_scale), 7.0 * unit_scale, gold)
-		1:
-			var radius := 58.0 * unit_scale
-			var points := PackedVector2Array()
-			for i in range(26):
-				var a := lerpf(-0.92, 0.92, float(i) / 25.0) - PI * 0.5
-				points.append(anchor + Vector2(cos(a) * radius, sin(a) * radius * 0.42))
-			draw_polyline(points, teal, maxf(1.0, 1.8 * unit_scale), true)
-			draw_line(anchor + Vector2(-radius, 0.0), anchor + Vector2(radius, 0.0), gold, maxf(1.0, 1.2 * unit_scale), true)
-		2:
-			for tier in range(3):
-				var y := anchor.y - float(tier) * 24.0 * unit_scale
-				var half_w := (34.0 - float(tier) * 6.0) * unit_scale
-				draw_line(Vector2(anchor.x - half_w, y), Vector2(anchor.x + half_w, y - 4.0 * unit_scale), dark, maxf(2.0, 3.0 * unit_scale), true)
-				draw_line(Vector2(anchor.x - half_w, y), Vector2(anchor.x, y - 16.0 * unit_scale), gold, maxf(1.0, 1.3 * unit_scale), true)
-			draw_line(anchor, anchor + Vector2(0.0, -88.0 * unit_scale), teal, maxf(1.0, 1.4 * unit_scale), true)
-		3:
-			draw_line(anchor + Vector2(-42.0, 4.0) * unit_scale, anchor + Vector2(52.0, -18.0) * unit_scale, dark, maxf(2.0, 3.0 * unit_scale), true)
-			draw_line(anchor + Vector2(-10.0, -4.0) * unit_scale, anchor + Vector2(-10.0, -78.0) * unit_scale, gold, maxf(1.0, 2.0 * unit_scale), true)
-			draw_line(anchor + Vector2(-10.0, -74.0) * unit_scale, anchor + Vector2(side * 38.0, -50.0) * unit_scale, teal, maxf(1.0, 1.8 * unit_scale), true)
-		4:
-			var arch := PackedVector2Array()
-			for i in range(18):
-				var t := float(i) / 17.0
-				var a := lerpf(PI, 0.0, t)
-				arch.append(anchor + Vector2(cos(a) * 44.0, -absf(sin(a)) * 70.0) * unit_scale)
-			draw_polyline(arch, dark, maxf(2.0, 4.0 * unit_scale), true)
-			draw_line(anchor + Vector2(-58.0, 0.0) * unit_scale, anchor + Vector2(-34.0, -42.0) * unit_scale, gold, maxf(1.0, 1.6 * unit_scale), true)
-		_:
-			draw_line(anchor + Vector2(-42.0, -8.0) * unit_scale, anchor + Vector2(46.0, -8.0) * unit_scale, dark, maxf(2.0, 3.0 * unit_scale), true)
-			draw_line(anchor, anchor + Vector2(0.0, -84.0) * unit_scale, teal, maxf(1.0, 1.5 * unit_scale), true)
-			draw_circle(anchor + Vector2(0.0, -92.0) * unit_scale, 6.0 * unit_scale, gold)
-
-
-func _draw_first_level_waterline(screen_x: float, sea_y: float, width: float, unit_scale: float, alpha: float) -> void:
-	var shadow_alpha := 岛屿接触阴影透明度 * 0.18 * alpha
-	draw_line(Vector2(screen_x - width * 0.52, sea_y + 22.0 * unit_scale), Vector2(screen_x + width * 0.55, sea_y + 18.0 * unit_scale), Color(0.02, 0.20, 0.32, shadow_alpha), maxf(10.0, 24.0 * unit_scale), true)
-	for band in range(5):
-		var t := float(band) / 4.0
-		var y := sea_y + lerpf(2.0, 42.0, t) * unit_scale
-		var line_width := width * lerpf(0.50, 0.72, t)
-		var band_alpha := alpha * lerpf(0.18, 0.045, t)
-		draw_line(Vector2(screen_x - line_width * 0.5, y), Vector2(screen_x + line_width * 0.5, y + sin(t * 4.0) * 2.0 * unit_scale), Color(0.78, 0.95, 1.0, band_alpha), maxf(3.0, 11.0 * unit_scale * (1.0 - t * 0.42)), true)
-	_draw_first_level_mist_band(screen_x, sea_y + 32.0 * unit_scale, width * 1.08, 34.0 * unit_scale, alpha * 0.20, screen_x * 0.01)
-
-
-func _draw_first_level_mist_band(center_x: float, center_y: float, width: float, height: float, alpha: float, seed: float) -> void:
-	if alpha <= 0.001:
-		return
-	for i in range(6):
-		var t := float(i) / 5.0
-		var y := center_y + lerpf(-height * 0.42, height * 0.42, t) + sin(seed + float(i) * 1.8) * 3.0
-		var half_w := width * lerpf(0.38, 0.58, _hash01(seed + float(i) * 3.4))
-		var line_alpha := alpha * lerpf(0.075, 0.022, t)
-		draw_line(Vector2(center_x - half_w, y), Vector2(center_x + half_w, y + sin(seed + t * 5.0) * 2.0), Color(0.92, 0.99, 1.0, line_alpha), maxf(4.0, height * lerpf(0.10, 0.20, 1.0 - t)), true)
-
-
-func _draw_first_level_sea_shimmer(speed_pressure: float, grounded_plane_fade: float) -> void:
-	if grounded_plane_fade <= 0.001:
-		return
-	var visible_rect := _get_background_visible_world_rect()
-	if not visible_rect.has_area():
-		return
-	var horizon_y := _get_sea_horizon_y()
-	var left_vp := _first_level_left_vanishing_point(horizon_y)
-	var right_vp := _first_level_right_vanishing_point(horizon_y)
-	var spacing_world := 740.0
-	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 4
-	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 4
-	var alpha_scale := 第一关远景强度 * grounded_plane_fade * lerpf(1.0, 水纹高速保留比例, speed_pressure)
-	for index in range(start_index, end_index + 1):
-		var seed := float(index) * 13.37
-		var world_x := float(index) * spacing_world + lerpf(-240.0, 240.0, _hash01(seed + 1.0))
-		var depth := lerpf(0.18, 0.92, _hash01(seed + 2.0))
-		var screen_pos := _first_level_perspective_point(world_x, depth, horizon_y)
-		if screen_pos.x < -180.0 or screen_pos.x > VIEW_SIZE.x + 180.0:
-			continue
-		if screen_pos.y < horizon_y + 24.0 or screen_pos.y > VIEW_SIZE.y + 40.0:
-			continue
-		var vp := right_vp if screen_pos.x < VIEW_SIZE.x * 0.5 else left_vp
-		var dir := (vp - screen_pos).normalized()
-		var length := lerpf(28.0, 110.0, _hash01(seed + 3.0)) * lerpf(0.55, 1.2, depth) / _background_zoom()
-		var alpha := lerpf(0.010, 0.034, _hash01(seed + 4.0)) * alpha_scale
-		var wave_offset := Vector2(-dir.y, dir.x) * sin(seed + time * 0.22) * 2.0
-		draw_line(screen_pos - dir * length * 0.45 + wave_offset, screen_pos + dir * length * 0.55 - wave_offset, Color(0.84, 0.98, 1.0, alpha), maxf(1.0, 1.5 / _background_zoom()), true)
-
-
-func _draw_first_level_near_speed_references(speed_pressure: float) -> void:
-	var active_pressure := clampf(maxf(speed_pressure, throttle_energy * 0.30) - 0.04, 0.0, 1.0) * 第一关近景强度
-	if active_pressure <= 0.001:
-		return
-	var visible_rect := _get_background_visible_world_rect()
-	if not visible_rect.has_area():
-		return
-	var spacing_world := 980.0
-	var depth := 0.70
-	var start_index := int(floorf(visible_rect.position.x / spacing_world)) - 4
-	var end_index := int(ceilf(visible_rect.end.x / spacing_world)) + 4
-	for index in range(start_index, end_index + 1):
-		var seed := float(index) * 29.91
-		var world_x := float(index) * spacing_world + lerpf(-320.0, 320.0, _hash01(seed + 1.0))
-		var screen_x := _background_screen_x(world_x, depth)
-		var screen_y := VIEW_SIZE.y * lerpf(0.64, 0.88, _hash01(seed + 2.0))
-		if screen_x < -320.0 or screen_x > VIEW_SIZE.x + 320.0:
-			continue
-		var length := lerpf(210.0, 540.0, _hash01(seed + 3.0)) * lerpf(0.82, 1.34, active_pressure) / _background_zoom()
-		var alpha := lerpf(0.025, 0.075, active_pressure) * lerpf(0.60, 1.0, _hash01(seed + 4.0))
-		_draw_first_level_speed_wisp(Vector2(screen_x, screen_y), length, alpha, seed)
-
-
-func _draw_first_level_speed_wisp(center: Vector2, length: float, alpha: float, seed: float) -> void:
-	var color := Color(0.88, 0.99, 1.0, alpha)
-	for lane in range(3):
-		var lane_offset := (float(lane) - 1.0) * 10.0
-		var points := PackedVector2Array()
-		for i in range(10):
-			var t := float(i) / 9.0
-			var wave := sin(seed + t * TAU * 0.8 + time * 0.18) * 6.0
-			points.append(center + Vector2(length * (t - 0.5), lane_offset + wave))
-		draw_polyline(points, Color(color.r, color.g, color.b, color.a * lerpf(1.0, 0.45, float(lane) / 2.0)), maxf(2.0, 5.0 / _background_zoom()), true)
-
-
-func _background_screen_x(world_x: float, depth: float) -> float:
-	return VIEW_SIZE.x * 0.5 + (world_x - camera_center.x) * depth / _background_zoom()
 
 
 func _draw_sky_wash() -> void:
@@ -4884,6 +4053,9 @@ func _draw_sea_plane_wash(speed_pressure: float, readability_fade: float) -> voi
 
 
 func _get_sea_horizon_y() -> float:
+	if 使用第一关程序背景 and level_background_renderer != null:
+		_sync_level_background_renderer()
+		return level_background_renderer.get_horizon_y()
 	var base_horizon_y := VIEW_SIZE.y * 海平线高度比例
 	var altitude := FLIGHT_START_POS.y - flight_pos.y
 	var horizon_y := base_horizon_y + altitude * 海平线纵向响应

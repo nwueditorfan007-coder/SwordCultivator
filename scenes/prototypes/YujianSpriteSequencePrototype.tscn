@@ -93,8 +93,6 @@ turbulence_influence_min = 0.02
 [node name="YujianSpriteSequencePrototype" type="Node2D" unique_id=713209019]
 script = ExtResource("1_sequence")
 "岛群整体透明度" = 1.0
-"第一关近景强度" = 1.0
-"第一关海岛色彩强度" = 1.25
 "远山透明度" = 0.615
 "中景山透明度" = 1.0
 "远岛高度比例" = 0.72

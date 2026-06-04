@@ -1,0 +1,6 @@
+interface:
+  display_name: "Yujian Pixel Idle Aseprite"
+  short_description: "Aseprite绘制御剑body-only像素idle"
+  default_prompt: "Use $yujian-pixel-idle-aseprite to create a body-only right-facing Yujian pixel idle animation in Aseprite."
+policy:
+  allow_implicit_invocation: true

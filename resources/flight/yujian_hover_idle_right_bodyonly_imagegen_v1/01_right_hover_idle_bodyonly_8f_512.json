@@ -1,0 +1,94 @@
+{
+  "asset": "01_right_hover_idle_bodyonly",
+  "direction": "01_right",
+  "frame_count": 8,
+  "cell_size": 512,
+  "source": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_02.png",
+  "master": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/01_right_hover_idle_bodyonly_master.png",
+  "sheet": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/01_right_hover_idle_bodyonly_8f_512.png",
+  "preview": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/01_right_hover_idle_bodyonly_preview.png",
+  "anchor_y": 392,
+  "notes": "Generated from an image_gen source frame. Visible sword pixels removed locally; feet/low body remain anchored while upper body, hair, and robe receive scripted idle micro-motion.",
+  "frames": [
+    {
+      "frame": 0,
+      "bbox": [
+        166,
+        74,
+        347,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_00.png"
+    },
+    {
+      "frame": 1,
+      "bbox": [
+        166,
+        72,
+        348,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_01.png"
+    },
+    {
+      "frame": 2,
+      "bbox": [
+        165,
+        71,
+        348,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_02.png"
+    },
+    {
+      "frame": 3,
+      "bbox": [
+        165,
+        72,
+        348,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_03.png"
+    },
+    {
+      "frame": 4,
+      "bbox": [
+        164,
+        74,
+        347,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_04.png"
+    },
+    {
+      "frame": 5,
+      "bbox": [
+        164,
+        76,
+        346,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_05.png"
+    },
+    {
+      "frame": 6,
+      "bbox": [
+        165,
+        77,
+        346,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_06.png"
+    },
+    {
+      "frame": 7,
+      "bbox": [
+        165,
+        76,
+        346,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_bodyonly_imagegen_v1/frames/01_right_hover_idle_bodyonly_07.png"
+    }
+  ]
+}

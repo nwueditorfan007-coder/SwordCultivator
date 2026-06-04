@@ -1,0 +1,189 @@
+{
+  "asset": "01_right_hover_idle_imagegen",
+  "direction": "01_right",
+  "frame_count": 8,
+  "cell_size": 512,
+  "sheet": "resources/flight/yujian_hover_idle_right_imagegen_v1/01_right_hover_idle_imagegen_8f_512.png",
+  "preview": "resources/flight/yujian_hover_idle_right_imagegen_v1/01_right_hover_idle_imagegen_preview.png",
+  "source": "resources/flight/yujian_hover_idle_right_imagegen_v1/01_right_hover_idle_imagegen_alpha_raw.png",
+  "target_height": 340,
+  "anchor_y": 392,
+  "frames": [
+    {
+      "frame": 0,
+      "source_slice": [
+        0,
+        0,
+        272,
+        724
+      ],
+      "source_bbox": [
+        17,
+        181,
+        272,
+        527
+      ],
+      "cell_bbox": [
+        131,
+        53,
+        381,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_00.png"
+    },
+    {
+      "frame": 1,
+      "source_slice": [
+        272,
+        0,
+        543,
+        724
+      ],
+      "source_bbox": [
+        272,
+        182,
+        543,
+        527
+      ],
+      "cell_bbox": [
+        122,
+        53,
+        389,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_01.png"
+    },
+    {
+      "frame": 2,
+      "source_slice": [
+        543,
+        0,
+        814,
+        724
+      ],
+      "source_bbox": [
+        543,
+        180,
+        810,
+        528
+      ],
+      "cell_bbox": [
+        125,
+        53,
+        386,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_02.png"
+    },
+    {
+      "frame": 3,
+      "source_slice": [
+        814,
+        0,
+        1086,
+        724
+      ],
+      "source_bbox": [
+        819,
+        189,
+        1079,
+        529
+      ],
+      "cell_bbox": [
+        126,
+        53,
+        386,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_03.png"
+    },
+    {
+      "frame": 4,
+      "source_slice": [
+        1086,
+        0,
+        1358,
+        724
+      ],
+      "source_bbox": [
+        1086,
+        189,
+        1356,
+        530
+      ],
+      "cell_bbox": [
+        121,
+        54,
+        390,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_04.png"
+    },
+    {
+      "frame": 5,
+      "source_slice": [
+        1358,
+        0,
+        1629,
+        724
+      ],
+      "source_bbox": [
+        1377,
+        192,
+        1629,
+        533
+      ],
+      "cell_bbox": [
+        130,
+        53,
+        381,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_05.png"
+    },
+    {
+      "frame": 6,
+      "source_slice": [
+        1629,
+        0,
+        1900,
+        724
+      ],
+      "source_bbox": [
+        1629,
+        192,
+        1896,
+        533
+      ],
+      "cell_bbox": [
+        123,
+        53,
+        389,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_06.png"
+    },
+    {
+      "frame": 7,
+      "source_slice": [
+        1900,
+        0,
+        2172,
+        724
+      ],
+      "source_bbox": [
+        1911,
+        190,
+        2162,
+        535
+      ],
+      "cell_bbox": [
+        132,
+        53,
+        379,
+        393
+      ],
+      "frame_path": "resources/flight/yujian_hover_idle_right_imagegen_v1/frames/01_right_hover_idle_imagegen_07.png"
+    }
+  ]
+}
