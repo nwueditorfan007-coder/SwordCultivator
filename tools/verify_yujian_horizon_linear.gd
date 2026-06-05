@@ -148,8 +148,8 @@ func _expect_bottom_boundary_projection_contract(root: Node, renderer: Node, sta
 	var mid_delta := absf(mid_lower - mid_higher)
 	var far_delta := absf(far_lower - far_higher)
 	_expect_less("bottom_boundary_near_moves_up_when_player_descends", near_lower, near_higher)
-	_expect_close("bottom_boundary_mid_uses_same_grounded_y_speed", mid_delta, near_delta)
-	_expect_close("bottom_boundary_far_uses_same_grounded_y_speed", far_delta, near_delta)
+	_expect_greater("bottom_boundary_near_y_speed_gt_mid", near_delta, mid_delta)
+	_expect_greater("bottom_boundary_mid_y_speed_gt_far", mid_delta, far_delta)
 
 
 func _expect_scenic_y_linear_velocity_contract(root: Node, renderer: Node, start_pos: Vector2) -> void:
@@ -199,8 +199,12 @@ func _expect_scenic_y_cross_layer_velocity_contract(root: Node, renderer: Node, 
 	var near_delta := near_low - near_high
 	var mid_delta := mid_low - mid_high
 	var far_delta := far_low - far_high
-	_expect_close("scenic_y_delta_mid_matches_near", mid_delta, near_delta)
-	_expect_close("scenic_y_delta_far_matches_near", far_delta, near_delta)
+	var flight_delta := low_flight.y - high_flight.y
+	_expect_close("scenic_y_delta_near_matches_layer_rate", near_delta, _expected_scenic_y_delta(renderer, flight_delta, "near", 0.82, 1.12))
+	_expect_close("scenic_y_delta_mid_matches_layer_rate", mid_delta, _expected_scenic_y_delta(renderer, flight_delta, "mid", 0.42, 1.12))
+	_expect_close("scenic_y_delta_far_matches_layer_rate", far_delta, _expected_scenic_y_delta(renderer, flight_delta, "far", 0.20, 1.12))
+	_expect_greater("scenic_y_near_speed_gt_mid", absf(near_delta), absf(mid_delta))
+	_expect_greater("scenic_y_mid_speed_gt_far", absf(mid_delta), absf(far_delta))
 
 
 func _expect_scenic_y_ignores_vertical_camera_framing(root: Node, renderer: Node, start_pos: Vector2) -> void:
@@ -246,13 +250,19 @@ func _expect_bounds_equal_steps(label: String, values: Array) -> void:
 		_expect_bounds_close("%s_step_%d" % [label, i], actual, expected)
 
 
+func _expected_scenic_y_delta(renderer: Node, flight_delta: float, layer: String, depth: float, zoom: float) -> float:
+	var horizon_response := float(renderer.call("get_horizon_y_response"))
+	var layer_y_parallax := float(renderer.call("get_scenic_anchor_parallax_y", layer, depth))
+	return -flight_delta * (horizon_response + layer_y_parallax / zoom)
+
+
 func _expect_scenic_bounds_visibility_contract(root: Node, renderer: Node, start_pos: Vector2) -> void:
 	var flight_start_pos: Vector2 = renderer.get("flight_start_pos")
 	_sync_renderer_for_projection(root, renderer, start_pos, start_pos, 1.12)
 	var horizon := float(renderer.call("get_horizon_y"))
 	var guarded_island := {
 		"x": flight_start_pos.x + 1600.0,
-		"y": -3600.0,
+		"y": -6500.0,
 		"layer": "far",
 		"band": "horizon",
 		"depth": 0.20,

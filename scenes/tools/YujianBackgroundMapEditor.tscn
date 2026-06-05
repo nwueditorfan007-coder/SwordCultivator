@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://died4uopr3y8f"]
 
-[ext_resource type="Script" path="res://tools/yujian_background_map_editor.gd" id="1_yujian_background_map_editor"]
+[ext_resource type="Script" uid="uid://djv5khafnqchf" path="res://tools/yujian_background_map_editor.gd" id="1_yujian_background_map_editor"]
 
-[node name="YujianBackgroundMapEditor" type="Control"]
+[node name="YujianBackgroundMapEditor" type="Control" unique_id=40123649]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

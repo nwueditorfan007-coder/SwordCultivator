@@ -32,7 +32,7 @@ res://scripts/background/yujian_level_background_renderer.gd
 
 - 海平线只响应 `flight_pos.y`，不响应速度、look-ahead、`camera_zoom`。
 - 实体岛屿的主 Y 运动使用 `flight_pos.y`，不使用被边界钳制后的 `camera_center.y`。
-- `layer` 可以影响 X 视差和体量表现，不影响实体岛主 Y 速度。
+- `layer` 影响 X 视差、体量表现和实体岛主 Y 速度；Y 速度必须按层级保持线性。
 - `depth` 只影响缩放、空气透视、顶面压缩，不直接决定屏幕纵向摆放。
 - 实体 scenic island 不做地平线 alpha fade；否则会出现“岛屿在画面中渐隐消失”的飞行参照问题。
 
@@ -111,12 +111,46 @@ res://artifacts/yujian_background_map_editor.png
 编辑器用途：
 
 - 读取 `level_01_immortal_sea_background.json`。
-- 复用正式 `YujianLevelBackgroundRenderer` 作为左侧预览。
-- 在右侧列出全部 `scenic_islands`。
-- 支持选择、拖动、复制、新增、删除实体岛。
+- 复用正式 `YujianLevelBackgroundRenderer` 作为唯一预览来源，画布只负责显示和交互。
+- 在右侧列出全部 `scenic_islands`，界面文字全部中文。
+- 支持选择、框选、多选、拖动、复制、新增、删除实体岛。
 - 支持编辑 `x/y/layer/band/depth/width/length/height/kind/landmark`。
-- 支持切换 `Start`、`Up`、`High`、`Top`、`Bottom` 高度预览。
-- 支持直接 `Save` 写回 profile。
+- 支持切换 `起点`、`上升`、`高空`、`顶部`、`底部` 高度预览。
+- 支持手动 `保存` 写回 profile；编辑过程中只标记“未保存”，不会自动写 JSON。
+
+V2 画布状态：
+
+| 状态 | 说明 |
+| --- | --- |
+| `canvas_zoom` | 编辑器视口缩放，只影响画布显示，不改变游戏 `camera_zoom` |
+| `canvas_pan` | 画布显示偏移，只影响编辑器视口 |
+| `flight_pos` | 当前预览玩家锚点；右键拖动画布时会按“抓住画布”的方向反向移动 |
+| `selected_indices` | 当前选中的实体岛索引，可多选 |
+| 撤销栈 / 重做栈 | 记录移动、属性修改、新增、复制、删除和批量移动 |
+
+画布操作：
+
+| 操作 | 行为 |
+| --- | --- |
+| 左键点击岛屿 | 选择岛屿 |
+| 左键拖动选中岛屿 | 修改选中岛屿的 `x/y` |
+| Shift + 左键点击 | 增减选择 |
+| 空白左键拖动 | 框选岛屿 |
+| 右键拖动画布 | 平移预览地图；鼠标向右拖，画面内容跟着向右走，底层 `flight_pos` 反向变化 |
+| 鼠标滚轮 | 以鼠标位置为中心缩放画布，不改 profile |
+| Ctrl + S | 保存 JSON |
+| Ctrl + Z / Ctrl + Y | 撤销 / 重做 |
+| Delete | 删除选中岛屿 |
+| F | 适配视图 |
+| 1 | 恢复 100% 画布缩放 |
+| G | 显示 / 隐藏网格 |
+| H | 显示帮助 |
+
+叠层默认：
+
+- 默认显示海平线、玩家投影点、岛屿选框和红色穿帮警告。
+- 默认不显示网格、对象编号和屏幕边界。
+- 网格吸附默认关闭；开启后岛屿 `x/y` 按 100 世界单位吸附。
 
 预览标记：
 
@@ -149,7 +183,7 @@ res://artifacts/yujian_background_map_editor.png
 ```gdscript
 screen_y = horizon_y
   + band_offset
-  + (object_world_y - flight_y) * sea_anchor_parallax_y
+  + (object_world_y - flight_y) * layer_sea_anchor_parallax_y
 ```
 
 含义：
@@ -157,16 +191,34 @@ screen_y = horizon_y
 - `horizon_y` 是海平线，是稳定物理参照。
 - `band_offset` 把岛放入海平线下方的表现带。
 - `object_world_y - flight_y` 决定玩家上下飞行时，岛在屏幕上的线性移动。
-- `sea_anchor_parallax_y` 是所有海面实体岛共享的 Y 速度。
+- `layer_sea_anchor_parallax_y` 按 `far` / `mid` / `near` 分层，默认 far 最慢、mid 居中、near 最快。
 
-这条投影链必须保持线性。不要再引入：
+这条投影链必须保持线性。可以按层级调整斜率，但不要再引入：
 
 - `smoothstep` 纵向压缩。
-- 按 `layer` 拆不同 Y 速度。
+- 按屏幕位置动态改变 Y 速度。
 - `max(horizon_guard - min_y)` 这类把岛屿吸回海平线下方的屏幕空间补偿。
 - 地平线 alpha fade 直接淡掉实体岛。
 
 这些方法都会破坏飞行参照。
+
+当前默认层级倍率：
+
+| 层级 | Y 速度倍率 | 目的 |
+| --- | --- | --- |
+| `far` | `0.48` | 远景岛接近海平线，纵向变化最慢 |
+| `mid` | `0.78` | 中景岛提供航路参照，变化中等 |
+| `near` | `1.12` | 近景岛最贴近玩家，纵向变化最大 |
+
+倍率可通过 profile `settings` 覆盖：
+
+```json
+{
+  "far_scenic_y_parallax": 0.48,
+  "mid_scenic_y_parallax": 0.78,
+  "near_scenic_y_parallax": 1.12
+}
+```
 
 ## 当前已知边界
 
@@ -204,12 +256,12 @@ res://resources/flight/background/level_01_immortal_sea_background.json
 ## 推荐编辑流程
 
 1. 打开 `res://scenes/tools/YujianBackgroundMapEditor.tscn`。
-2. 先用 `Start` 检查初始构图：角色周围要开阔，岛屿不能遮挡。
-3. 用 `Up`、`High` 检查向上飞时近景岛是否从下方退场。
-4. 用 `Bottom` 检查低空边界：仍可见实体岛必须在海平线下方，不能飞到天空。
-5. 用 `Flight X/Y` 检查玩家在航路不同位置时的空间感。
+2. 先用 `起点` 检查初始构图：角色周围要开阔，岛屿不能遮挡。
+3. 用 `上升`、`高空` 检查向上飞时近景岛是否从下方退场。
+4. 用 `底部` 检查低空边界：仍可见实体岛必须在海平线下方，不能飞到天空。
+5. 用 `预览 X/Y` 或右键拖动画布检查玩家在航路不同位置时的空间感。
 6. 出现红框时，优先调整 `y` 和 `band`，其次调整 `depth`、`width`、`height`。
-7. 满意后点击 `Save`。
+7. 满意后点击 `保存` 或按 `Ctrl + S`。
 8. 运行截图验证和数值验证。
 
 ## 验证命令
@@ -225,6 +277,13 @@ res://resources/flight/background/level_01_immortal_sea_background.json
 
 ```powershell
 .\tools\start_godot_with_log.ps1 -Mode run -Wait -ExtraArgs @('--script','res://tools/capture_yujian_background_map_editor.gd')
+.\tools\show_godot_errors.ps1 -Tail 260
+```
+
+验证编辑器 V2 交互契约：
+
+```powershell
+.\tools\start_godot_with_log.ps1 -Mode run -Headless -Wait -ExtraArgs @('--script','res://tools/verify_yujian_background_map_editor_v2.gd')
 .\tools\show_godot_errors.ps1 -Tail 260
 ```
 

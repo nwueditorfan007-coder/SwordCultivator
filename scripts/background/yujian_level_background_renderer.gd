@@ -40,6 +40,9 @@ var mid_strength := 1.0
 var near_strength := 0.85
 var island_color_strength := 1.08
 var vertical_exit_strength := 0.92
+var far_scenic_y_parallax := 0.05
+var mid_scenic_y_parallax := 0.5
+var near_scenic_y_parallax := 1
 var turn_background_keep_ratio := 0.72
 var island_speed_keep_ratio := 0.70
 var sea_speed_keep_ratio := 0.82
@@ -154,6 +157,10 @@ func get_horizon_y_response() -> float:
 	return horizon_y_response
 
 
+func get_scenic_anchor_parallax_y(layer: String, depth: float) -> float:
+	return _scenic_anchor_parallax_y(layer, depth)
+
+
 func background_screen_x(world_x: float, depth: float) -> float:
 	return view_size.x * 0.5 + (world_x - camera_center.x) * depth / _background_zoom()
 
@@ -216,6 +223,9 @@ func _apply_profile_settings(settings: Dictionary) -> void:
 	near_strength = _profile_float(settings, "near_strength", near_strength)
 	island_color_strength = _profile_float(settings, "island_color_strength", island_color_strength)
 	vertical_exit_strength = _profile_float(settings, "vertical_exit_strength", vertical_exit_strength)
+	far_scenic_y_parallax = _profile_float(settings, "far_scenic_y_parallax", far_scenic_y_parallax)
+	mid_scenic_y_parallax = _profile_float(settings, "mid_scenic_y_parallax", mid_scenic_y_parallax)
+	near_scenic_y_parallax = _profile_float(settings, "near_scenic_y_parallax", near_scenic_y_parallax)
 	turn_background_keep_ratio = _profile_float(settings, "turn_background_keep_ratio", turn_background_keep_ratio)
 	island_speed_keep_ratio = _profile_float(settings, "island_speed_keep_ratio", island_speed_keep_ratio)
 	sea_speed_keep_ratio = _profile_float(settings, "sea_speed_keep_ratio", sea_speed_keep_ratio)
@@ -729,7 +739,7 @@ func _project_scenic_point(world_x: float, world_y: float, depth: float, layer: 
 	var band_key := band.to_lower()
 	var x_parallax := _scenic_layer_parallax_x(layer_key, depth)
 	var x := view_size.x * 0.5 + (world_x - camera_center.x) * x_parallax / _background_zoom()
-	var y := horizon_y + _scenic_band_offset(band_key, depth) + _scenic_anchor_y_delta(world_y) * _scenic_anchor_parallax_y() / _background_zoom()
+	var y := horizon_y + _scenic_band_offset(band_key, depth) + _scenic_anchor_y_delta(world_y) * _scenic_anchor_parallax_y(layer_key, depth) / _background_zoom()
 	return Vector2(x, y)
 
 
@@ -747,8 +757,15 @@ func _scenic_layer_parallax_x(layer: String, depth: float) -> float:
 			return lerpf(0.22, 0.38, clampf(depth, 0.0, 1.0))
 
 
-func _scenic_anchor_parallax_y() -> float:
-	return 0.060 * vertical_exit_strength
+func _scenic_anchor_parallax_y(layer: String, _depth: float) -> float:
+	var base := 0.060 * vertical_exit_strength
+	match layer.to_lower():
+		"far":
+			return base * far_scenic_y_parallax
+		"near":
+			return base * near_scenic_y_parallax
+		_:
+			return base * mid_scenic_y_parallax
 
 
 func _scenic_band_offset(band: String, depth: float) -> float:
