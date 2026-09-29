@@ -3,6 +3,8 @@ extends Node2D
 const AttackProfiles = preload("res://scripts/combat/attack_profiles.gd")
 const DamageResolver = preload("res://scripts/combat/damage_resolver.gd")
 const DemoLevelController = preload("res://scripts/system/demo_level_controller.gd")
+const FlightMomentumControllerScript = preload("res://scripts/system/flight_momentum_controller.gd")
+const FlightEncounterDirectorScript = preload("res://scripts/system/flight_encounter_director.gd")
 const HitDetection = preload("res://scripts/combat/hit_detection.gd")
 const HurtboxRegistry = preload("res://scripts/combat/hurtbox_registry.gd")
 const GameBossController = preload("res://scripts/system/game_boss_controller.gd")
@@ -210,8 +212,16 @@ const FLIGHT_ENGAGEMENT_PURSUER_RELATIVE_SPEED := 360.0
 const FLIGHT_ENGAGEMENT_INTERCEPTOR_RELATIVE_SPEED := 280.0
 const FLIGHT_ENGAGEMENT_APEX_SPEED_SCALE := 0.45
 const FLIGHT_ENGAGEMENT_APEX_RADIUS := 480.0
+const FLIGHT_ENGAGEMENT_EXIT_SPEED_SCALE := 2.0
 const FLIGHT_ENGAGEMENT_EXIT_VISIBLE_MARGIN := 120.0
 const FLIGHT_ENGAGEMENT_MAX_ROUTE_SCALE := 2.5
+const FLIGHT_BULLET_FRAME_HALF_LIFE := 0.35
+const FLIGHT_BULLET_RELATIVE_SPEED := 460.0
+const FLIGHT_BULLET_LARGE_RELATIVE_SPEED := 340.0
+const FLIGHT_BULLET_CULL_DISTANCE := 2600.0
+const FLIGHT_BULLET_COLOR := Color(1.0, 0.36, 0.26, 1.0)
+const FLIGHT_MOMENTUM_COLOR := Color(0.55, 0.95, 1.0, 1.0)
+const FLIGHT_MARKER_COLOR := Color(1.0, 0.64, 0.3, 1.0)
 
 const PLAYER_RADIUS := 15.0
 const PLAYER_MAX_HEALTH := 100.0
@@ -1079,6 +1089,12 @@ var flight_scroll_speed: float = FLIGHT_BASE_SCROLL_SPEED
 var flight_scroll_distance: float = 0.0
 var flight_combat_time_ratio: float = 1.0
 var flight_frame_player_displacement := Vector2.ZERO
+# 敌弹随「平滑后的玩家飞行」平移：持续巡航被抵消，短促变向仍能真实躲弹。
+var flight_bullet_frame_velocity := Vector2.ZERO
+var flight_bullet_frame_displacement := Vector2.ZERO
+var flight_momentum = FlightMomentumControllerScript.new()
+var flight_encounter_director = FlightEncounterDirectorScript.new()
+var flight_momentum_sword_was_striking := false
 var flight_script_index: int = 0
 var flight_stage_complete: bool = false
 var flight_segment_index: int = 0
@@ -2814,14 +2830,25 @@ func _process(delta: float) -> void:
 	if _uses_flight_prototype_battlefield() and is_flying_sword:
 		flight_combat_time_ratio = _get_flight_slice_time_ratio(float(sword.get("time_slow_timer", 0.0)))
 	flight_frame_player_displacement = Vector2.ZERO
+	flight_bullet_frame_displacement = Vector2.ZERO
 
 	if _uses_flight_prototype_battlefield():
+		flight_momentum.update(delta)
 		var proto_axis := _get_move_axis()
-		var proto_boosting := _is_boost_pressed()
+		# 空格手动加速已移除：高速只来自斩后爆速（势），让切割成为速度的来源。
+		var proto_boosting: bool = flight_momentum.is_bursting()
+		if control_mode == CONTROL_MODE_STEER_THROTTLE:
+			# 旧的油门式调试操作仍靠按键推进，否则无法移动。
+			proto_boosting = proto_boosting or _is_boost_pressed()
 		var world_step := proto_step * flight_combat_time_ratio
 		var previous_flight_pos := flight_pos
 		_update_motion(proto_axis, proto_boosting, world_step)
 		flight_frame_player_displacement = flight_pos - previous_flight_pos
+		if world_step > 0.0001:
+			var frame_velocity_target := flight_frame_player_displacement / world_step
+			var frame_blend := 1.0 - pow(0.5, world_step / FLIGHT_BULLET_FRAME_HALF_LIFE)
+			flight_bullet_frame_velocity = flight_bullet_frame_velocity.lerp(frame_velocity_target, frame_blend)
+		flight_bullet_frame_displacement = flight_bullet_frame_velocity * world_step
 		_update_speed_mode()
 		_update_clip_requests(proto_axis, proto_boosting)
 		_advance_clip(proto_step, proto_axis, proto_boosting)
@@ -2910,6 +2937,7 @@ func _process(delta: float) -> void:
 	_update_flight_skeleton_visual(delta)
 	_update_flight_world_scroll(delta)
 	_update_sword(delta)
+	_update_flight_momentum_settlement()
 	_trace_time_rift_sword()
 	_update_boss(delta, bullet_time_delta)
 	_update_enemies(bullet_time_delta, delta)
@@ -3073,6 +3101,79 @@ func _draw() -> void:
 		if show_debug_guides:
 			_draw_debug()
 	GameRenderer.draw_game(self)
+	if _uses_flight_prototype_battlefield() and not is_start_menu_active:
+		_draw_flight_combat_overlay()
+
+
+func _draw_flight_combat_overlay() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var player_pos: Vector2 = Vector2(player.get("pos", flight_pos))
+	# 远处待机敌群：大号标记 + 数量，告诉玩家「下一群在哪」。
+	for marker_variant in flight_encounter_director.get_dormant_markers(self):
+		var marker: Dictionary = marker_variant
+		_draw_flight_edge_marker(Vector2(marker["pos"]), player_pos, int(marker.get("count", 0)), true)
+	# 已交锋但暂时在画面外的敌人：小号标记，避免丢失目标。
+	for enemy_variant in enemies:
+		var enemy: Dictionary = enemy_variant
+		if bool(enemy.get("is_dying", false)) or bool(enemy.get("flight_dormant", false)):
+			continue
+		_draw_flight_edge_marker(Vector2(enemy.get("pos", Vector2.ZERO)), player_pos, 0, false)
+	_draw_flight_momentum_meter()
+
+
+func _draw_flight_edge_marker(world_pos: Vector2, player_pos: Vector2, count: int, is_group: bool) -> void:
+	var screen_pos := _to_screen(world_pos)
+	var inset := Rect2(Vector2(36.0, 36.0), VIEW_SIZE - Vector2(72.0, 72.0))
+	if inset.has_point(screen_pos):
+		return
+	var screen_center := VIEW_SIZE * 0.5
+	var direction := (screen_pos - screen_center).normalized()
+	if direction.is_zero_approx():
+		return
+	var half_extent := inset.size * 0.5
+	var reach := minf(
+		half_extent.x / maxf(absf(direction.x), 0.001),
+		half_extent.y / maxf(absf(direction.y), 0.001)
+	)
+	var anchor := screen_center + direction * reach
+	var distance := world_pos.distance_to(player_pos)
+	var closeness := clampf(1.0 - (distance - 900.0) / 2600.0, 0.0, 1.0)
+	var size := lerpf(10.0, 18.0, closeness) * (1.0 if is_group else 0.62)
+	var pulse := 0.75 + 0.25 * sin(elapsed_time * (6.0 + closeness * 6.0))
+	var color := FLIGHT_MARKER_COLOR if is_group else FLIGHT_BULLET_COLOR
+	color.a = lerpf(0.55, 1.0, closeness) * (pulse if is_group else 0.85)
+	var side := direction.orthogonal()
+	var tip := anchor + direction * size
+	var arrow := PackedVector2Array([tip, anchor - direction * size * 0.4 + side * size * 0.8, anchor - direction * size * 0.4 - side * size * 0.8])
+	draw_colored_polygon(arrow, color)
+	draw_polyline(PackedVector2Array([arrow[0], arrow[1], arrow[2], arrow[0]]), Color(0.05, 0.03, 0.02, color.a * 0.8), 2.0)
+	if is_group and count > 0:
+		var font := ThemeDB.fallback_font
+		var label_pos := anchor - direction * (size + 16.0) + Vector2(-5.0, 6.0)
+		draw_string(font, label_pos, str(count), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, color)
+
+
+# 势的读条只做辅助：真正的速度感来自镜头、风带和尾流，这里只让玩家确认「势在涨」。
+func _draw_flight_momentum_meter() -> void:
+	var font := ThemeDB.fallback_font
+	var center := Vector2(VIEW_SIZE.x * 0.5, VIEW_SIZE.y - 30.0)
+	var width := 180.0
+	var tier: int = flight_momentum.get_tier()
+	var bar_rect := Rect2(center - Vector2(width * 0.5, 3.0), Vector2(width, 6.0))
+	draw_rect(bar_rect, Color(0.02, 0.05, 0.08, 0.55))
+	var fill := width * clampf(float(flight_momentum.value) / FlightMomentumControllerScript.MAX_VALUE, 0.0, 1.0)
+	var fill_color := FLIGHT_MOMENTUM_COLOR
+	fill_color.a = 0.55 + 0.15 * float(tier)
+	draw_rect(Rect2(bar_rect.position, Vector2(fill, bar_rect.size.y)), fill_color)
+	for threshold in FlightMomentumControllerScript.TIER_THRESHOLDS:
+		if float(threshold) <= 0.0:
+			continue
+		var tick_x := bar_rect.position.x + width * float(threshold) / FlightMomentumControllerScript.MAX_VALUE
+		draw_line(Vector2(tick_x, bar_rect.position.y - 2.0), Vector2(tick_x, bar_rect.end.y + 2.0), Color(1, 1, 1, 0.35), 1.0)
+	var label := "势 · %s" % flight_momentum.get_tier_name()
+	if flight_momentum.is_bursting():
+		label += "  爆"
+	draw_string(font, center + Vector2(-width * 0.5, -10.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(fill_color, 0.9))
 
 
 func _draw_hud_bars() -> void:
@@ -3614,6 +3715,11 @@ func _should_hide_sword_array_ui() -> bool:
 
 
 func _reset_flight_prototype_state() -> void:
+	flight_momentum.reset()
+	flight_encounter_director.reset()
+	flight_momentum_sword_was_striking = false
+	flight_bullet_frame_velocity = Vector2.ZERO
+	flight_bullet_frame_displacement = Vector2.ZERO
 	flight_stage_timer = 0.0
 	flight_scroll_speed = FLIGHT_BASE_SCROLL_SPEED
 	flight_scroll_distance = 0.0
@@ -4200,6 +4306,13 @@ func _update_flight_engagement_trajectory(
 	entry_direction: Vector2,
 	entry_distance: float
 ) -> bool:
+	if bool(enemy.get("flight_dormant", false)):
+		# 待机敌群停在世界坐标里等玩家飞来：不跟随、不攻击，由导演在进入画面时整组激活。
+		enemy["large_arena_attack_enabled"] = false
+		enemy["large_arena_match_velocity"] = 0.0
+		enemy["large_arena_engagement_velocity"] = Vector2.ZERO
+		enemy["vel"] = Vector2.ZERO
+		return true
 	var follow_target := 1.0 if state == "engaged" or state == "approach" else LARGE_ARENA_DISENGAGE_MATCH_VELOCITY
 	var follow_weight: float = float(enemy.get("flight_engagement_follow", 1.0))
 	follow_weight = lerpf(follow_weight, follow_target, 1.0 - exp(-delta / FLIGHT_ENGAGEMENT_FOLLOW_BLEND_TIME))
@@ -4213,20 +4326,29 @@ func _update_flight_engagement_trajectory(
 	var travel_direction := (-entry_direction).rotated(cross_angle * side).normalized()
 	var lane_offset := entry_direction.orthogonal() * side * LARGE_ARENA_ENGAGEMENT_LANE_OFFSET
 	var start_relative := entry_direction * entry_distance + lane_offset
+	var route_length := entry_distance * 2.0 + LARGE_ARENA_ENGAGEMENT_EXIT_BUFFER
+	# 导演派出的敌群共用一条路线：各成员从自己的激活位置出发、同向平行推进，队形不散。
+	if enemy.has("flight_route_direction"):
+		travel_direction = Vector2(enemy["flight_route_direction"])
+		start_relative = Vector2(enemy.get("flight_route_origin_relative", start_relative))
+		route_length = float(enemy.get("flight_route_length", route_length))
 	var previous_progress: float = float(enemy.get("large_arena_entry_progress", 0.0))
 	# 靠近玩家的一段减速，形成「顶点」，给出刀留出看清的窗口。
 	var path_distance := (start_relative + travel_direction * previous_progress).length()
 	var apex_blend := smoothstep(0.0, 1.0, clampf(path_distance / FLIGHT_ENGAGEMENT_APEX_RADIUS, 0.0, 1.0))
-	var relative_speed := base_speed * lerpf(FLIGHT_ENGAGEMENT_APEX_SPEED_SCALE, 1.0, apex_blend)
+	var speed_scale := lerpf(FLIGHT_ENGAGEMENT_APEX_SPEED_SCALE, 1.0, apex_blend)
+	# 过了顶点后加速掠出：慢入、顶点停、快出，没斩到的敌群不在画面里拖沓。
+	if previous_progress > route_length * 0.5:
+		speed_scale = lerpf(FLIGHT_ENGAGEMENT_APEX_SPEED_SCALE, FLIGHT_ENGAGEMENT_EXIT_SPEED_SCALE, apex_blend)
+	var relative_speed := base_speed * speed_scale
 	var progress := previous_progress + relative_speed * delta
 	enemy["large_arena_entry_progress"] = progress
 
 	var desired_relative := start_relative + travel_direction * progress
 	var current_relative := carried_pos - player_pos
-	var relative_step := (desired_relative - current_relative).limit_length(base_speed * delta)
+	var relative_step := (desired_relative - current_relative).limit_length(maxf(base_speed, relative_speed) * delta)
 	var next_pos := carried_pos + relative_step
 
-	var route_length := entry_distance * 2.0 + LARGE_ARENA_ENGAGEMENT_EXIT_BUFFER
 	if progress >= route_length:
 		# 交会完成后只在离开画面时回收，不回落到自由追击 AI，也不在画面中凭空消失。
 		var exit_rect := _get_engagement_visible_world_rect().grow(FLIGHT_ENGAGEMENT_EXIT_VISIBLE_MARGIN)
@@ -4790,11 +4912,44 @@ func _cleanup_flight_offscreen_world() -> void:
 
 
 func _get_flight_slice_time_ratio(time_slow_timer: float) -> float:
-	if time_slow_timer <= FLIGHT_SLICE_DILATION_HOLD:
-		return FLIGHT_SLICE_DILATION_START
-	var recovery_progress := clampf((time_slow_timer - FLIGHT_SLICE_DILATION_HOLD) / FLIGHT_SLICE_DILATION_RECOVERY, 0.0, 1.0)
+	# 势越高，凝滞越深、保持越久：速度不惩罚切割精度。
+	var dilation_start: float = flight_momentum.get_dilation_start()
+	var dilation_hold: float = flight_momentum.get_dilation_hold()
+	if time_slow_timer <= dilation_hold:
+		return dilation_start
+	var recovery_progress := clampf((time_slow_timer - dilation_hold) / FLIGHT_SLICE_DILATION_RECOVERY, 0.0, 1.0)
 	# 缓入恢复：凝滞在前段多停留一会儿，给玩家看清并划线的时间。
-	return lerpf(FLIGHT_SLICE_DILATION_START, 1.0, recovery_progress * recovery_progress)
+	return lerpf(dilation_start, 1.0, recovery_progress * recovery_progress)
+
+
+func _is_sword_striking() -> bool:
+	var state := int(sword.get("state", SwordState.ORBITING))
+	return state == SwordState.SLICING or state == SwordState.POINT_STRIKE or state == SwordState.PIERCE_DRAWING
+
+
+# 一次御剑出手结束（飞剑离开斩击状态）时结算势：按斩杀数开启斩后爆速，并让凝滞迅速收束。
+func _update_flight_momentum_settlement() -> void:
+	if not _uses_flight_prototype_battlefield():
+		flight_momentum_sword_was_striking = false
+		return
+	var striking := _is_sword_striking()
+	if flight_momentum_sword_was_striking and not striking:
+		var kills: int = flight_momentum.settle_strike()
+		if kills > 0:
+			var hold: float = flight_momentum.get_dilation_hold()
+			sword["time_slow_timer"] = maxf(float(sword.get("time_slow_timer", 0.0)), hold + FLIGHT_SLICE_DILATION_RECOVERY * 0.85)
+			screen_shake = maxf(screen_shake, 4.0 + 1.5 * float(mini(kills, 4)))
+			if kills >= 2:
+				_show_focus_status_message("一剑%d斩" % kills, FLIGHT_MOMENTUM_COLOR, 0.7)
+	flight_momentum_sword_was_striking = striking
+
+
+func _register_flight_momentum_kill(enemy: Dictionary) -> void:
+	if not _uses_flight_prototype_battlefield() or bool(enemy.get("flight_momentum_counted", false)):
+		return
+	enemy["flight_momentum_counted"] = true
+	if flight_momentum.register_kill():
+		_show_focus_status_message("势·%s" % flight_momentum.get_tier_name(), FLIGHT_MOMENTUM_COLOR, 0.8)
 
 
 func _get_bullet_time_recovery_duration() -> float:
@@ -7795,6 +7950,8 @@ func _damage_enemies_with_sword(delta: float) -> void:
 		var contact_point: Vector2 = contact.get("contact_point", sword["pos"])
 		var effect_color: Color = COLORS["ranged_sword"].lerp(COLORS[str(enemy.get("type", SHOOTER))], 0.24)
 		_emit_sword_hit_effect(contact_point, swing_direction, effect_color)
+		if float(enemy.get("health", 0.0)) <= 0.0 or bool(enemy.get("is_dying", false)):
+			_register_flight_momentum_kill(enemy)
 
 	_damage_fan_time_stop_clone_swords(delta)
 	_update_drape_priest_threads(delta)
@@ -8659,8 +8816,14 @@ func _update_bullets(delta: float, bullet_time_delta: float) -> void:
 					index -= 1
 					continue
 			_:
+				if bool(bullet.get("flight_frame_carried", false)):
+					bullet["pos"] += flight_bullet_frame_displacement
 				bullet["pos"] += bullet["vel"] * bullet_time_delta
 				if not _is_inside_extended_bounds(bullet["pos"]):
+					_remove_bullet(index)
+					index -= 1
+					continue
+				if bool(bullet.get("flight_frame_carried", false)) and Vector2(bullet["pos"]).distance_to(Vector2(player.get("pos", bullet["pos"]))) > FLIGHT_BULLET_CULL_DISTANCE:
 					_remove_bullet(index)
 					index -= 1
 					continue
@@ -10648,10 +10811,22 @@ func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, ow
 	var base_damage: float = BULLET_LARGE_DAMAGE if bullet_type == "large" else BULLET_DAMAGE
 	var resolved_velocity := velocity
 	var engagement_ai_active := false
+	var flight_frame_carried := false
+	var resolved_color := color
+	if _uses_flight_prototype_battlefield() and owner_id != "player":
+		# 飞行大战场的敌弹：随平滑后的玩家飞行平移，自身只保留固定的相对速度。
+		# 这样弹道在屏幕上是稳定的直线，速度可读；玩家短促变向依然能真实躲开。
+		var direction := velocity.normalized()
+		if direction.is_zero_approx():
+			direction = Vector2.LEFT
+		var relative_speed := FLIGHT_BULLET_LARGE_RELATIVE_SPEED if bullet_type == "large" else FLIGHT_BULLET_RELATIVE_SPEED
+		resolved_velocity = direction * relative_speed
+		flight_frame_carried = true
+		resolved_color = FLIGHT_BULLET_COLOR
 	# 大战场交战弹幕使用与敌人相同的局部参照系，避免玩家高速飞行时弹幕瞬间掉队。
 	# 只给仍在交战区内、且由敌人发出的普通弹幕继承部分玩家速度；
 	# 玩家反弹弹和屏外/接近阶段的弹幕不参与该补偿。
-	if _uses_engagement_ai() and owner_id != "player":
+	elif _uses_engagement_ai() and owner_id != "player":
 		var source_enemy: Variant = _find_enemy_by_id(owner_id)
 		if source_enemy is Dictionary:
 			var source_role := str(source_enemy.get("large_arena_role", ""))
@@ -10668,9 +10843,10 @@ func _spawn_bullet(position: Vector2, velocity: Vector2, bullet_type: String, ow
 		"type": bullet_type,
 		"owner_id": owner_id,
 		"engagement_ai_active": engagement_ai_active,
+		"flight_frame_carried": flight_frame_carried,
 		"source_owner_id": str(extra.get("source_owner_id", owner_id)),
 		"source_enemy_type": str(extra.get("source_enemy_type", "")),
-		"color": color,
+		"color": resolved_color,
 		"state": "normal",
 		"attack_instance_id": "",
 		"attack_profile_id": "",
@@ -10761,6 +10937,10 @@ var flight_endless_wave_interval: float = 8.0
 func _update_flight_prototype(delta: float) -> void:
 	flight_stage_timer += delta
 	_add_player_energy(FLIGHT_PASSIVE_ENERGY_REGEN * delta, false)
+	if _is_flight_free_prototype_mode():
+		# 自由航行大战场由入场导演按敌群节奏派怪，不再使用计时脚本与无尽补怪。
+		flight_encounter_director.update(self, delta)
+		return
 	_update_flight_scripted_events()
 	if flight_script_index >= _get_flight_scripted_events().size():
 		_update_endless_flight_wave(delta)
@@ -10847,6 +11027,10 @@ func _spawn_flight_event(kind: String) -> void:
 
 func _spawn_flight_enemy(enemy_type: String, spawn_pos: Vector2, behavior: String) -> Dictionary:
 	var world_spawn_pos: Vector2 = _screen_to_world(spawn_pos) if _uses_flight_prototype_battlefield() else spawn_pos
+	return _spawn_flight_enemy_world(enemy_type, world_spawn_pos, behavior)
+
+
+func _spawn_flight_enemy_world(enemy_type: String, world_spawn_pos: Vector2, behavior: String) -> Dictionary:
 	var enemy: Dictionary = _spawn_enemy(enemy_type, world_spawn_pos)
 	enemy["pos"] = world_spawn_pos
 	enemy["package_desired_pos"] = world_spawn_pos
@@ -13027,6 +13211,8 @@ func _apply_player_damage(amount: float, _damage_source: String = DAMAGE_SOURCE_
 	player["health"] = max(player["health"] - amount, 0.0)
 	if _is_demo_level_active():
 		demo_level_controller.on_player_damage(self, amount)
+	if _uses_flight_prototype_battlefield():
+		flight_momentum.on_player_hit()
 	return true
 
 
@@ -15006,7 +15192,7 @@ func _update_direct_intent_motion(axis: Vector2, boosting: bool, delta: float) -
 
 	if input_active or throttle_pressed:
 		var carve_ratio := clampf(carve_timer / CARVE_DURATION, 0.0, 1.0)
-		var target_speed := BOOST_SPEED if throttle_pressed else CRUISE_SPEED
+		var target_speed := BOOST_SPEED if throttle_pressed else CRUISE_SPEED * flight_momentum.get_cruise_multiplier()
 		target_speed *= lerpf(1.0, CARVE_SPEED_KEEP, carve_ratio)
 		var target_velocity := target_heading * target_speed
 		var throttle_ratio := 1.0 if throttle_pressed else 0.0

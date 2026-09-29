@@ -28,13 +28,38 @@ func _initialize() -> void:
 		await process_frame
 	var cruise_speed: float = Vector2(main.player.get("vel", Vector2.ZERO)).length()
 
-	main.flight_stage_timer = 0.99
-	main._update_flight_prototype(0.02)
+	main._update_flight_prototype(1.0)
 	if main.enemies.size() < 2:
-		_fail("Free flight did not spawn its first scripted enemies.")
+		_fail("Free flight director did not spawn its first enemy group.")
 		return
+	# 把玩家放到敌群前方，模拟「飞近敌群」，由导演自然激活。
+	var group_center: Vector2 = Vector2(main.flight_encounter_director.groups[0]["center"])
+	var approach_pos := group_center - Vector2(700.0, 0.0)
+	main.flight_pos = approach_pos
+	main.player["pos"] = approach_pos
+	main.camera_center = approach_pos
+	for _i in range(20):
+		await process_frame
 
 	var cruise_stats := await _measure_relative_motion(90)
+
+	# 敌弹：巡航中弹道应以固定相对速度在屏幕上直线推进。
+	var shooter_id := ""
+	for enemy_variant in main.enemies:
+		if not bool(Dictionary(enemy_variant).get("is_dying", false)):
+			shooter_id = str(Dictionary(enemy_variant).get("id", ""))
+			break
+	var bullet_origin: Vector2 = Vector2(main.player["pos"]) + Vector2(0.0, -600.0)
+	main._spawn_bullet(bullet_origin, Vector2(0.0, 150.0), "small", shooter_id, Color.WHITE)
+	var bullet: Dictionary = main.bullets[main.bullets.size() - 1]
+	var bullet_rel_start: Vector2 = Vector2(bullet["pos"]) - Vector2(main.player["pos"])
+	for _i in range(20):
+		await process_frame
+	var bullet_rel_speed: float = (Vector2(bullet["pos"]) - Vector2(main.player["pos"]) - bullet_rel_start).length() / (20.0 * FRAME_DELTA)
+	print("[FLIGHT-FRAME] enemy bullet relative speed while cruising: %.0f px/s" % bullet_rel_speed)
+	if absf(bullet_rel_speed - main.FLIGHT_BULLET_RELATIVE_SPEED) > 80.0:
+		_fail("Enemy bullet relative speed is unstable while cruising (%.0f px/s)." % bullet_rel_speed)
+		return
 
 	var health_before := _total_enemy_health()
 	main._start_sword_attack_instance(main.AttackProfiles.PROFILE_FLYING_SWORD_SLICE)
@@ -43,7 +68,27 @@ func _initialize() -> void:
 	var dilated_stats := await _measure_relative_motion(15)
 	var dilation_ratio: float = main.flight_combat_time_ratio
 	var health_after := _total_enemy_health()
+
+	# 势：同一刀斩 3 个 -> 10 + 14 + 18 = 42，进入「起势」；收刀结算后开启斩后爆速。
+	for _k in range(3):
+		main._register_flight_momentum_kill({})
+	var momentum_value: float = main.flight_momentum.value
+	var momentum_tier: int = main.flight_momentum.get_tier()
+	main.sword["state"] = main.SwordState.RECALLING
+	await process_frame
+	var bursting: bool = main.flight_momentum.is_bursting()
+	var peak_speed := 0.0
+	for _i in range(30):
+		await process_frame
+		peak_speed = maxf(peak_speed, Vector2(main.player.get("vel", Vector2.ZERO)).length())
 	Input.action_release("move_right")
+	print("[FLIGHT-FRAME] momentum after 3-kill strike: %.0f (tier %d), burst=%s, peak speed %.0f px/s" % [momentum_value, momentum_tier, str(bursting), peak_speed])
+	if momentum_tier != 1 or not bursting:
+		_fail("Momentum did not rise to tier 1 and burst after a 3-kill strike.")
+		return
+	if peak_speed <= cruise_speed * 1.2:
+		_fail("Post-strike burst did not raise flight speed (peak %.0f)." % peak_speed)
+		return
 
 	print("[FLIGHT-FRAME] player cruise speed: %.0f px/s" % cruise_speed)
 	print("[FLIGHT-FRAME] cruise   relative speed mean %.0f / max %.0f px/s (samples %d)" % [cruise_stats.mean, cruise_stats.max, cruise_stats.samples])

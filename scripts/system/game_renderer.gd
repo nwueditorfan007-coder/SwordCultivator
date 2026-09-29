@@ -24,6 +24,7 @@ const BULLET_EDGE_SHADE := 0.24
 const BULLET_CORE_HIGHLIGHT := 0.28
 const BULLET_SPECULAR_HIGHLIGHT := 0.52
 const BULLET_RENDER_SCALE := 1.24
+const FLIGHT_BULLET_RENDER_SCALE := 1.5
 const ART_BG_DEEP := Color("010409")
 const ART_BG := Color("05101a")
 const ART_ARENA := Color("07101a")
@@ -122,6 +123,12 @@ static func draw_game(main: Node2D) -> void:
 		if bullet["state"] == "deflected":
 			bullet_color = main.COLORS["melee_sword"]
 			bullet_radius *= 1.15
+		elif uses_battlefield:
+			# 飞行大战场背景明亮且在高速流动：敌弹放大，并用暗色描边 + 暖色光晕和海天拉开对比。
+			bullet_radius *= FLIGHT_BULLET_RENDER_SCALE
+			var glow_pulse: float = 0.8 + 0.2 * sin(main.elapsed_time * 14.0 + bullet_pos.x * 0.03)
+			main.draw_circle(bullet_pos, bullet_radius * 2.4, _with_alpha(bullet_color, 0.16 * glow_pulse))
+			main.draw_circle(bullet_pos, bullet_radius * 1.45, _with_alpha(Color(0.16, 0.02, 0.04), 0.72))
 		_draw_bullet_shape(
 			main,
 			bullet_pos,

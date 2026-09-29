@@ -13,11 +13,25 @@ func _initialize() -> void:
 	main.run_mode = main.RUN_MODE_FLIGHT_PROTOTYPE
 	main.is_start_menu_active = false
 	main._reset_game()
-	main.flight_stage_timer = 0.99
-	main._update_flight_prototype(0.02)
+	# 入场导演先在远处派出待机敌群，玩家飞近后整组激活。
+	main._update_flight_prototype(1.0)
 	if main.enemies.size() < 2:
-		_fail("Free flight did not spawn its first scripted enemies.")
+		_fail("Free flight director did not spawn its first enemy group.")
 		return
+	for enemy_variant in main.enemies:
+		if not bool(Dictionary(enemy_variant).get("flight_dormant", false)):
+			_fail("New director groups should wait dormant until the player approaches.")
+			return
+	var group_center: Vector2 = Vector2(main.flight_encounter_director.groups[0]["center"])
+	var approach_pos := group_center - Vector2(700.0, 0.0)
+	main.flight_pos = approach_pos
+	main.player["pos"] = approach_pos
+	main.camera_center = approach_pos
+	main.flight_encounter_director.update(main, 0.016)
+	for enemy_variant in main.enemies:
+		if bool(Dictionary(enemy_variant).get("flight_dormant", false)):
+			_fail("Director did not activate the group once it entered the screen.")
+			return
 
 	var tracked: Dictionary = {}
 	for enemy_variant in main.enemies:
