@@ -200,6 +200,18 @@ const LARGE_ARENA_PURSUER_CROSS_ANGLE := PI * 0.11
 const LARGE_ARENA_INTERCEPTOR_CROSS_ANGLE := PI * 0.20
 const LARGE_ARENA_ENGAGEMENT_LANE_OFFSET := 72.0
 const LARGE_ARENA_ENGAGEMENT_EXIT_BUFFER := 420.0
+# 飞行大战场交锋参考系（见 docs/systems/YUJIAN_BATTLEFIELD_MOMENTUM_CORE.md 第 6 节）。
+# 交锋敌人按玩家实际位移整体平移，只有相对轨迹决定屏幕上的运动。
+const FLIGHT_SLICE_DILATION_START := 0.30
+const FLIGHT_SLICE_DILATION_HOLD := 0.25
+const FLIGHT_SLICE_DILATION_RECOVERY := 1.2
+const FLIGHT_ENGAGEMENT_FOLLOW_BLEND_TIME := 0.25
+const FLIGHT_ENGAGEMENT_PURSUER_RELATIVE_SPEED := 360.0
+const FLIGHT_ENGAGEMENT_INTERCEPTOR_RELATIVE_SPEED := 280.0
+const FLIGHT_ENGAGEMENT_APEX_SPEED_SCALE := 0.45
+const FLIGHT_ENGAGEMENT_APEX_RADIUS := 480.0
+const FLIGHT_ENGAGEMENT_EXIT_VISIBLE_MARGIN := 120.0
+const FLIGHT_ENGAGEMENT_MAX_ROUTE_SCALE := 2.5
 
 const PLAYER_RADIUS := 15.0
 const PLAYER_MAX_HEALTH := 100.0
@@ -1065,6 +1077,8 @@ var operation_scheme_button: Button = null
 var flight_stage_timer: float = 0.0
 var flight_scroll_speed: float = FLIGHT_BASE_SCROLL_SPEED
 var flight_scroll_distance: float = 0.0
+var flight_combat_time_ratio: float = 1.0
+var flight_frame_player_displacement := Vector2.ZERO
 var flight_script_index: int = 0
 var flight_stage_complete: bool = false
 var flight_segment_index: int = 0
@@ -2788,19 +2802,35 @@ func _process(delta: float) -> void:
 	var proto_step := minf(delta, 1.0 / 30.0)
 	time += proto_step
 	_update_hair_fx_panel_hotkey()
+
+	var is_flying_sword: bool = int(sword.get("state", SwordState.ORBITING)) != SwordState.ORBITING
+	if is_flying_sword:
+		sword["time_slow_timer"] = float(sword.get("time_slow_timer", 0.0)) + delta
+	else:
+		sword["time_slow_timer"] = 0.0
+	# 飞行大战场的出剑凝滞：玩家飞行、敌人、敌弹、背景共享同一时间倍率，
+	# 飞剑与光标不受凝滞影响，交锋画布因此在出剑瞬间定格。
+	flight_combat_time_ratio = 1.0
+	if _uses_flight_prototype_battlefield() and is_flying_sword:
+		flight_combat_time_ratio = _get_flight_slice_time_ratio(float(sword.get("time_slow_timer", 0.0)))
+	flight_frame_player_displacement = Vector2.ZERO
+
 	if _uses_flight_prototype_battlefield():
 		var proto_axis := _get_move_axis()
 		var proto_boosting := _is_boost_pressed()
-		_update_motion(proto_axis, proto_boosting, proto_step)
+		var world_step := proto_step * flight_combat_time_ratio
+		var previous_flight_pos := flight_pos
+		_update_motion(proto_axis, proto_boosting, world_step)
+		flight_frame_player_displacement = flight_pos - previous_flight_pos
 		_update_speed_mode()
 		_update_clip_requests(proto_axis, proto_boosting)
 		_advance_clip(proto_step, proto_axis, proto_boosting)
 		_update_camera(proto_step)
 		_update_visual_state(proto_step)
 		_update_hover_vfx(proto_step)
-		_update_reference_vfx(proto_step)
-		_update_scene_speed_streaks(proto_step)
-		_update_yujian_birds(proto_step)
+		_update_reference_vfx(world_step)
+		_update_scene_speed_streaks(world_step)
+		_update_yujian_birds(world_step)
 		_update_adjustment_panel_follow_state()
 		_update_direction_switch_fx(proto_step)
 		_update_boost_shockwaves(proto_step)
@@ -2812,12 +2842,10 @@ func _process(delta: float) -> void:
 		player["pos"] = flight_pos
 		player["vel"] = velocity
 		player["flight_heading"] = body_heading
+		# 镜头已在本帧更新，立即刷新光标世界坐标，避免飞剑追一个落后一帧镜头位移的目标。
+		if get_viewport() != null:
+			mouse_world = _screen_to_world(get_viewport().get_mouse_position())
 
-	var is_flying_sword: bool = int(sword.get("state", SwordState.ORBITING)) != SwordState.ORBITING
-	if is_flying_sword:
-		sword["time_slow_timer"] = float(sword.get("time_slow_timer", 0.0)) + delta
-	else:
-		sword["time_slow_timer"] = 0.0
 	unsheath_flash_timer = max(unsheath_flash_timer - delta, 0.0)
 	unsheath_flash_repeat_timer = max(unsheath_flash_repeat_timer - delta, 0.0)
 	unsheath_press_flash_timer = max(unsheath_press_flash_timer - delta, 0.0)
@@ -2834,6 +2862,9 @@ func _process(delta: float) -> void:
 			var time_slow_timer: float = float(sword.get("time_slow_timer", 0.0))
 			bullet_time_ratio = _get_bullet_time_ratio(time_slow_timer)
 			player_time_ratio = _get_player_bullet_time_ratio(time_slow_timer)
+	elif _uses_flight_prototype_battlefield():
+		bullet_time_ratio = flight_combat_time_ratio
+		player_time_ratio = flight_combat_time_ratio
 
 	var bullet_time_delta: float = delta * bullet_time_ratio
 	var player_delta: float = delta * player_time_ratio
@@ -2891,7 +2922,7 @@ func _process(delta: float) -> void:
 	if _is_large_arena_test_enabled():
 		_update_large_arena_test(delta)
 	elif _is_flight_prototype_mode():
-		_update_flight_prototype(delta)
+		_update_flight_prototype(bullet_time_delta)
 	elif _is_demo_level_active():
 		demo_level_controller.update(self, delta)
 	else:
@@ -4113,9 +4144,9 @@ func _update_large_arena_engagement(enemy: Dictionary, delta: float) -> bool:
 	if entry_distance <= 0.0:
 		entry_distance = maxf((enemy_pos - player_pos).length(), LARGE_ARENA_ENGAGEMENT_ENTRY_DISTANCE_MIN)
 		enemy["large_arena_entry_distance"] = entry_distance
-	var transit_speed: float = LARGE_ARENA_PURSUER_TRANSIT_SPEED if role == "pursuer" else LARGE_ARENA_INTERCEPTOR_TRANSIT_SPEED
 	if _uses_flight_prototype_battlefield():
-		transit_speed = FLIGHT_ENEMY_PURSUER_SPEED if role == "pursuer" else FLIGHT_ENEMY_SHOOTER_SPEED
+		return _update_flight_engagement_trajectory(enemy, delta, role, state, player_pos, enemy_pos, entry_direction, entry_distance)
+	var transit_speed: float = LARGE_ARENA_PURSUER_TRANSIT_SPEED if role == "pursuer" else LARGE_ARENA_INTERCEPTOR_TRANSIT_SPEED
 	var cross_angle: float = LARGE_ARENA_PURSUER_CROSS_ANGLE if role == "pursuer" else LARGE_ARENA_INTERCEPTOR_CROSS_ANGLE
 	var side: float = float(enemy.get("large_arena_entry_side", 1.0))
 	var travel_direction := (-entry_direction).rotated(cross_angle * side).normalized()
@@ -4124,26 +4155,8 @@ func _update_large_arena_engagement(enemy: Dictionary, delta: float) -> bool:
 	enemy["large_arena_entry_progress"] = progress
 	var route_length := entry_distance * 2.0 + LARGE_ARENA_ENGAGEMENT_EXIT_BUFFER
 	if progress >= route_length:
-		if _uses_flight_prototype_battlefield():
-			# 大战场自由飞行模式下，交会完成后不抹杀，允许在大战场全域自由飞行回切
-			enemy["large_arena_trajectory_active"] = false
-			enemy["engagement_ai_active"] = false
-			enemy["large_arena_engagement_state"] = "engaged"
-			enemy["large_arena_attack_enabled"] = true
-			enemy["large_arena_match_velocity"] = 0.0
-			return false
-		enemy["large_arena_trajectory_active"] = false
-		enemy["large_arena_engagement_state"] = "strategic"
-		enemy["large_arena_attack_enabled"] = false
-		enemy["large_arena_match_velocity"] = 0.0
-		enemy["vel"] = Vector2.ZERO
 		# 大战场压力敌人完成一次交会后回收，避免重新落回旧追击 AI。
-		enemy["large_arena_dismissed"] = true
-		enemy["score"] = 0
-		enemy["is_dying"] = true
-		enemy["death_feedback_timer"] = 0.0
-		_clear_target_runtime_state(str(enemy.get("id", "")))
-		_clear_target_hurtboxes(str(enemy.get("id", "")))
+		_dismiss_engagement_enemy(enemy)
 		return true
 
 	var start_relative := entry_direction * entry_distance + lane_offset
@@ -4154,6 +4167,75 @@ func _update_large_arena_engagement(enemy: Dictionary, delta: float) -> bool:
 	var compensation := player_velocity * match_velocity * delta
 	enemy["pos"] = player_pos + current_relative + relative_step + compensation
 	var engagement_velocity := relative_step / maxf(delta, 0.001) + player_velocity * match_velocity
+	enemy["large_arena_engagement_velocity"] = engagement_velocity
+	enemy["vel"] = engagement_velocity
+	_clamp_enemy_to_arena(enemy)
+	return true
+
+
+func _dismiss_engagement_enemy(enemy: Dictionary) -> void:
+	enemy["large_arena_trajectory_active"] = false
+	enemy["large_arena_engagement_state"] = "strategic"
+	enemy["large_arena_attack_enabled"] = false
+	enemy["large_arena_match_velocity"] = 0.0
+	enemy["vel"] = Vector2.ZERO
+	enemy["large_arena_dismissed"] = true
+	enemy["score"] = 0
+	enemy["is_dying"] = true
+	enemy["death_feedback_timer"] = 0.0
+	_clear_target_runtime_state(str(enemy.get("id", "")))
+	_clear_target_hurtboxes(str(enemy.get("id", "")))
+
+
+# 飞行大战场的交会轨迹完全在玩家参考系中描述：
+# 敌人先随玩家本帧实际位移整体平移（跟随强度平滑逼近 100%），再沿相对轨迹推进。
+# 这样玩家加速、转弯、爆速都不会改变敌人在屏幕上的运动，切割目标可预判。
+func _update_flight_engagement_trajectory(
+	enemy: Dictionary,
+	delta: float,
+	role: String,
+	state: String,
+	player_pos: Vector2,
+	enemy_pos: Vector2,
+	entry_direction: Vector2,
+	entry_distance: float
+) -> bool:
+	var follow_target := 1.0 if state == "engaged" or state == "approach" else LARGE_ARENA_DISENGAGE_MATCH_VELOCITY
+	var follow_weight: float = float(enemy.get("flight_engagement_follow", 1.0))
+	follow_weight = lerpf(follow_weight, follow_target, 1.0 - exp(-delta / FLIGHT_ENGAGEMENT_FOLLOW_BLEND_TIME))
+	enemy["flight_engagement_follow"] = follow_weight
+	enemy["large_arena_match_velocity"] = follow_weight
+	var carried_pos := enemy_pos + flight_frame_player_displacement * follow_weight
+
+	var base_speed: float = FLIGHT_ENGAGEMENT_PURSUER_RELATIVE_SPEED if role == "pursuer" else FLIGHT_ENGAGEMENT_INTERCEPTOR_RELATIVE_SPEED
+	var cross_angle: float = LARGE_ARENA_PURSUER_CROSS_ANGLE if role == "pursuer" else LARGE_ARENA_INTERCEPTOR_CROSS_ANGLE
+	var side: float = float(enemy.get("large_arena_entry_side", 1.0))
+	var travel_direction := (-entry_direction).rotated(cross_angle * side).normalized()
+	var lane_offset := entry_direction.orthogonal() * side * LARGE_ARENA_ENGAGEMENT_LANE_OFFSET
+	var start_relative := entry_direction * entry_distance + lane_offset
+	var previous_progress: float = float(enemy.get("large_arena_entry_progress", 0.0))
+	# 靠近玩家的一段减速，形成「顶点」，给出刀留出看清的窗口。
+	var path_distance := (start_relative + travel_direction * previous_progress).length()
+	var apex_blend := smoothstep(0.0, 1.0, clampf(path_distance / FLIGHT_ENGAGEMENT_APEX_RADIUS, 0.0, 1.0))
+	var relative_speed := base_speed * lerpf(FLIGHT_ENGAGEMENT_APEX_SPEED_SCALE, 1.0, apex_blend)
+	var progress := previous_progress + relative_speed * delta
+	enemy["large_arena_entry_progress"] = progress
+
+	var desired_relative := start_relative + travel_direction * progress
+	var current_relative := carried_pos - player_pos
+	var relative_step := (desired_relative - current_relative).limit_length(base_speed * delta)
+	var next_pos := carried_pos + relative_step
+
+	var route_length := entry_distance * 2.0 + LARGE_ARENA_ENGAGEMENT_EXIT_BUFFER
+	if progress >= route_length:
+		# 交会完成后只在离开画面时回收，不回落到自由追击 AI，也不在画面中凭空消失。
+		var exit_rect := _get_engagement_visible_world_rect().grow(FLIGHT_ENGAGEMENT_EXIT_VISIBLE_MARGIN)
+		if not exit_rect.has_point(next_pos) or progress >= route_length * FLIGHT_ENGAGEMENT_MAX_ROUTE_SCALE:
+			_dismiss_engagement_enemy(enemy)
+			return true
+
+	enemy["pos"] = next_pos
+	var engagement_velocity := (next_pos - enemy_pos) / maxf(delta, 0.001)
 	enemy["large_arena_engagement_velocity"] = engagement_velocity
 	enemy["vel"] = engagement_velocity
 	_clamp_enemy_to_arena(enemy)
@@ -4705,6 +4787,14 @@ func _cleanup_flight_offscreen_world() -> void:
 		if pickup_pos.x < FLIGHT_OFFSCREEN_LEFT:
 			score_loot_pickups.remove_at(pickup_index)
 		pickup_index -= 1
+
+
+func _get_flight_slice_time_ratio(time_slow_timer: float) -> float:
+	if time_slow_timer <= FLIGHT_SLICE_DILATION_HOLD:
+		return FLIGHT_SLICE_DILATION_START
+	var recovery_progress := clampf((time_slow_timer - FLIGHT_SLICE_DILATION_HOLD) / FLIGHT_SLICE_DILATION_RECOVERY, 0.0, 1.0)
+	# 缓入恢复：凝滞在前段多停留一会儿，给玩家看清并划线的时间。
+	return lerpf(FLIGHT_SLICE_DILATION_START, 1.0, recovery_progress * recovery_progress)
 
 
 func _get_bullet_time_recovery_duration() -> float:
@@ -7508,6 +7598,9 @@ func _update_sword(delta: float) -> void:
 	if sword["state"] == SwordState.PIERCE_DRAWING:
 		sword["vel"] = Vector2.ZERO
 	elif sword["state"] == SwordState.SLICING:
+		if _uses_flight_prototype_battlefield():
+			# 连斩飞剑先随玩家平移，再在交锋参考系里追光标，手上划多快剑就走多快。
+			sword["pos"] += flight_frame_player_displacement
 		sword["pos"] = sword["pos"].lerp(mouse_world, min(delta * SWORD_SLICE_FOLLOW_SPEED, 1.0))
 		sword["vel"] = (sword["pos"] - sword["prev_pos"]) / maxf(delta, 0.001)
 	elif sword["state"] == SwordState.POINT_STRIKE:
@@ -7652,7 +7745,12 @@ func _update_sword_hover(delta: float, frame_velocity: Vector2) -> void:
 func _damage_enemies_with_sword(delta: float) -> void:
 	if sword["state"] == SwordState.PIERCE_DRAWING:
 		return
-	var swing_direction: Vector2 = sword["pos"] - sword["prev_pos"]
+	# 飞行大战场里，扫掠起点先随玩家本帧位移平移：挥砍速度与扫掠线段都按交锋参考系计算，
+	# 否则巡航速度会被算进挥砍速度，不划光标也会「切中」。
+	var sweep_start: Vector2 = sword["prev_pos"]
+	if _uses_flight_prototype_battlefield():
+		sweep_start += flight_frame_player_displacement
+	var swing_direction: Vector2 = sword["pos"] - sweep_start
 	var detection_result := {
 		"contacts": [],
 		"boss_contact": {},
@@ -7665,7 +7763,7 @@ func _damage_enemies_with_sword(delta: float) -> void:
 		# Keep start-inside hits valid for large targets; attack-instance rehit gating handles repeat damage.
 		detection_result = hit_detection.collect_segment_sweep_targets(
 			self ,
-			sword["prev_pos"],
+			sweep_start,
 			sword["pos"],
 			float(sword.get("radius", SWORD_RADIUS)),
 			str(sword.get("attack_profile_id", "")),
