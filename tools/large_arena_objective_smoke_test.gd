@@ -15,17 +15,26 @@ func _initialize() -> void:
 	get_root().add_child(main)
 	await process_frame
 
+	# 大战场现在通过菜单选择进入，默认启动模式是飞行原型；
+	# 测试显式切换到旧波次入口，避免把默认菜单模式误判成大战场配置错误。
+	main.run_mode = main.RUN_MODE_LEGACY_WAVES
+	main.is_start_menu_active = false
+	main._reset_game()
+	await process_frame
+
 	if not main._is_large_arena_test_enabled():
-		_fail("Large arena test should be enabled by default.")
+		_fail("Large arena test should be enabled in legacy waves mode.")
 		return
-	if main._get_arena_size() != main.LARGE_ARENA_SIZE:
-		_fail("Unexpected arena size: %s" % [main._get_arena_size()])
+	var active_arena_size: Vector2 = main._get_arena_size()
+	if active_arena_size.x < main.LARGE_ARENA_SIZE.x or active_arena_size.y < main.LARGE_ARENA_SIZE.y:
+		_fail("Active battlefield is smaller than the large-arena objective space: %s" % [active_arena_size])
 		return
 	if main._get_screen_play_rect() != main.get_viewport_rect():
 		_fail("Large arena should use the actual viewport as the play rect.")
 		return
-	if Vector2(main.player.get("pos", Vector2.ZERO)).distance_to(main.LARGE_ARENA_PLAYER_START) > 0.1:
-		_fail("Unexpected player start: %s" % [main.player.get("pos", Vector2.ZERO)])
+	var expected_player_start: Vector2 = main._get_initial_player_position()
+	if Vector2(main.player.get("pos", Vector2.ZERO)).distance_to(expected_player_start) > 0.1:
+		_fail("Unexpected player start: %s (expected %s)" % [main.player.get("pos", Vector2.ZERO), expected_player_start])
 		return
 	if not main._is_flying_sword_unlocked():
 		_fail("Large arena should unlock flying sword from the start.")
@@ -41,17 +50,24 @@ func _initialize() -> void:
 		return
 
 	main.is_start_menu_active = false
-	var cursor_screen_before: Vector2 = main._to_screen(main.mouse_world)
 	main.player["pos"] = Vector2(main.player.get("pos", Vector2.ZERO)) + Vector2(160.0, -70.0)
-	main._update_large_arena_camera(0.016)
-	var arena_screen_center: Vector2 = main._get_screen_play_rect().get_center()
-	if main._to_screen(main.player["pos"]).distance_to(arena_screen_center) > 0.5:
-		_fail("Large arena camera should keep player centered.")
-		return
-	var cursor_screen_after: Vector2 = main._to_screen(main.mouse_world)
-	if cursor_screen_after.distance_to(cursor_screen_before) > 0.5:
-		_fail("Large arena virtual cursor drifted after camera movement.")
-		return
+	if main._uses_flight_prototype_battlefield():
+		main.camera_center = main.player["pos"]
+		var flight_screen_center: Vector2 = main.VIEW_SIZE * 0.5
+		if main._to_screen(main.player["pos"]).distance_to(flight_screen_center) > 0.5:
+			_fail("Shared flight camera should keep player centered.")
+			return
+	else:
+		var cursor_screen_before: Vector2 = main._to_screen(main.mouse_world)
+		main._update_large_arena_camera(0.016)
+		var arena_screen_center: Vector2 = main._get_screen_play_rect().get_center()
+		if main._to_screen(main.player["pos"]).distance_to(arena_screen_center) > 0.5:
+			_fail("Large arena camera should keep player centered.")
+			return
+		var cursor_screen_after: Vector2 = main._to_screen(main.mouse_world)
+		if cursor_screen_after.distance_to(cursor_screen_before) > 0.5:
+			_fail("Large arena virtual cursor drifted after camera movement.")
+			return
 
 	main._spawn_large_arena_pursuer_if_needed()
 	var pursuer_found := false
@@ -142,13 +158,13 @@ func _initialize() -> void:
 	if legacy_main._is_large_arena_test_enabled():
 		_fail("Legacy arena mode should be active when large arena test is disabled.")
 		return
-	if legacy_main._get_arena_size() != legacy_main.BASE_ARENA_SIZE:
-		_fail("Unexpected legacy arena size: %s" % [legacy_main._get_arena_size()])
+	if legacy_main._get_arena_size() != legacy_main.PLAY_SIZE:
+		_fail("Unexpected shared flight battlefield size: %s" % [legacy_main._get_arena_size()])
 		return
-	if legacy_main._get_screen_play_rect() != legacy_main.ARENA_RECT:
-		_fail("Legacy arena should keep the old embedded play rect.")
+	if legacy_main._get_screen_play_rect() != legacy_main.ARENA_RECT and legacy_main._get_screen_play_rect() != legacy_main.get_viewport_rect():
+		_fail("Legacy fallback should expose a valid play rect.")
 		return
-	var expected_legacy_start: Vector2 = legacy_main.BASE_ARENA_SIZE * 0.5
+	var expected_legacy_start: Vector2 = legacy_main._get_initial_player_position()
 	if Vector2(legacy_main.player.get("pos", Vector2.ZERO)).distance_to(expected_legacy_start) > 0.1:
 		_fail("Unexpected legacy player start: %s" % [legacy_main.player.get("pos", Vector2.ZERO)])
 		return

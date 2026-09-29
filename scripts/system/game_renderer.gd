@@ -91,13 +91,15 @@ static func draw_game(main: Node2D) -> void:
 	if main.screen_shake > 0.1:
 		shake_offset = Vector2(randf_range(-main.screen_shake, main.screen_shake), randf_range(-main.screen_shake, main.screen_shake))
 	main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
-	if main._is_large_arena_test_enabled():
-		_draw_large_arena_tactical_grid(main)
-	else:
-		_draw_art_tactical_grid(main)
+	var uses_battlefield: bool = main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield"))
+	if not uses_battlefield:
+		if main._is_large_arena_test_enabled():
+			_draw_large_arena_tactical_grid(main)
+		else:
+			_draw_art_tactical_grid(main)
 	if main.time_rift_fx != null and main.time_rift_fx.has_method("draw_background_effect"):
 		main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		if not main._is_large_arena_test_enabled():
+		if not uses_battlefield and not main._is_large_arena_test_enabled():
 			main.time_rift_fx.draw_background_effect(main)
 		main.draw_set_transform(shake_offset, 0.0, Vector2.ONE)
 
@@ -284,9 +286,10 @@ static func draw_game(main: Node2D) -> void:
 
 	var player_pos: Vector2 = main._to_screen(main.player["pos"])
 	var hide_array_ui := _should_hide_sword_array_ui(main)
-	var is_flight_mode := _uses_flight_visuals(main)
-	var prototype_skeleton := _use_flight_prototype_skeleton_visual(main)
-	var clean_flight_vfx := _use_flight_rider_clean_vfx(main) or prototype_skeleton
+	var uses_proto_battlefield: bool = main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield"))
+	var is_flight_mode := _uses_flight_visuals(main) or uses_proto_battlefield
+	var prototype_skeleton := _use_flight_prototype_skeleton_visual(main) or uses_proto_battlefield
+	var clean_flight_vfx := _use_flight_rider_clean_vfx(main)
 	var distance_guide_strength: float = 0.0 if hide_array_ui or clean_flight_vfx else main._get_array_distance_guide_strength()
 	if distance_guide_strength > 0.01:
 		_draw_array_distance_guides(main, player_pos, distance_guide_strength)
@@ -296,7 +299,7 @@ static func draw_game(main: Node2D) -> void:
 		if not prototype_skeleton and not _use_flight_rider_sprite_fx(main):
 			_draw_flight_riding_sword(main, player_pos)
 			_draw_flight_rider(main, player_pos)
-	else:
+	elif not prototype_skeleton:
 		main.draw_circle(player_pos, main.PLAYER_RADIUS, main.COLORS["player"])
 	var aura_color: Color = main.COLORS["melee_sword"] if main.player["mode"] == main.CombatMode.MELEE else main.COLORS["ranged_sword"]
 	var array_channeling: bool = bool(main.player.get("array_is_firing", false)) and not hide_array_ui
@@ -661,7 +664,7 @@ static func draw_game(main: Node2D) -> void:
 	_draw_unsheath_press_flash(main)
 	_draw_unsheath_flash(main)
 	main.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	if not main._is_large_arena_test_enabled():
+	if not main._is_large_arena_test_enabled() and not uses_battlefield:
 		_draw_arena_margin_mask(main)
 		_draw_art_arena_frame(main)
 	if main._has_boss():
@@ -1174,6 +1177,9 @@ static func _draw_melee_focused_slash(
 
 
 static func _draw_art_background(main: Node2D) -> void:
+	if main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield")):
+		return
+
 	var viewport_rect: Rect2 = main.get_viewport_rect()
 	var arena_rect: Rect2 = main.ARENA_RECT
 	if _uses_flight_visuals(main):
@@ -2154,6 +2160,8 @@ static func _draw_flight_rider(main: Node2D, player_pos: Vector2) -> void:
 
 
 static func _draw_art_arena_frame(main: Node2D) -> void:
+	if main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield")):
+		return
 	var arena_rect: Rect2 = main.ARENA_RECT
 	var frame_color: Color = _with_alpha(ART_GOLD, 0.34)
 	var soft_color: Color = _with_alpha(ART_GOLD, 0.16)
@@ -4777,6 +4785,8 @@ static func _draw_resonance_main_sword_mark(
 
 
 static func _draw_arena_margin_mask(main: Node2D) -> void:
+	if main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield")):
+		return
 	var viewport_rect: Rect2 = main.get_viewport_rect()
 	var arena_rect: Rect2 = main.ARENA_RECT
 	var mask_color: Color = ART_BG_DEEP.lerp(ART_BG, 0.22)
@@ -4884,6 +4894,8 @@ static func _draw_demo_hud_bars(main: Node2D, viewport_size: Vector2) -> void:
 
 
 static func _draw_hud_top_banner(main: Node2D, viewport_size: Vector2) -> void:
+	if main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield")):
+		return
 	var center_x: float = viewport_size.x * 0.5
 	var y: float = 38.0
 	var width: float = 350.0
@@ -4940,6 +4952,8 @@ static func _draw_hud_metric_bar(
 
 
 static func _draw_hud_bottom_frame(main: Node2D, viewport_size: Vector2) -> void:
+	if main.has_method("_uses_flight_prototype_battlefield") and bool(main.call("_uses_flight_prototype_battlefield")):
+		return
 	var y: float = viewport_size.y - 37.0
 	main.draw_rect(Rect2(Vector2(0.0, y - 20.0), Vector2(viewport_size.x, 44.0)), _with_alpha(ART_BG_DEEP, 0.34), true)
 	main.draw_line(Vector2(48.0, y - 14.0), Vector2(viewport_size.x - 48.0, y - 14.0), _with_alpha(ART_GOLD, 0.2), 1.0)
