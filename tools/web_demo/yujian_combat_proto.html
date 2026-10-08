@@ -3918,10 +3918,50 @@ defineModule('move', 'piaoyi', {
   reset() { cb.pyT = 0; pyRing.visible = false; }, unequip() { cb.pyT = 0; pyRing.visible = false; },
 });
 
+
+// ---------- 剑阵本命 · 星罗（剑阵）----------
+// 阵剑常驻身边、绕身缓旋成一圈星罗大阵，经过的敌人各挨一剑；回锋斩、御剑收剑时阵剑齐出追杀，杀完回阵。
+// 性格：“站位型”——不靠贴身斩，靠把敌人引进阵里。顺锋斩不派剑。
+Object.assign(CB, { XL_R: 5.2, XL_SPIN: 1.6, XL_HIT_CD: 0.5 });
+defineModule('array', 'xingluo', {
+  name: '星罗', tag: '剑阵本命', locked: true,
+  desc: '阵剑常驻身边，绕身缓旋成星罗大阵，经过的敌人各挨一剑。回锋斩、御剑收剑时阵剑齐出追杀，杀完回阵。筑基即有 4 把。',
+  cost: '阵圈大，贴身的子弹挡不住；顺锋斩不派剑',
+  cast: castArrayBasic, sortie: arraySortieBasic, visible: () => true,
+  step(dt, pc, h) {
+    const keep = new Map(cb.array.filter(s => s.state === 'ready').map(s => [s, s.pos.clone()]));
+    arrayStepBasic(dt, pc, h); // 出击 / 回程照默认剑阵走；待命的剑不回身后剑屏，而是留在星罗阵上
+    for (const [s, p] of keep) if (s.state === 'ready') s.pos.copy(p);
+    cb.xlA = (cb.xlA || 0) + dt * CB.XL_SPIN;
+    const ready = cb.array.filter(s => s.state === 'ready'), lv = modLv('xingluo');
+    const R = (resOn('xingxuan') && vortices.length) ? 2.4 : CB.XL_R * (lv >= 2 ? 1.2 : 1);
+    ready.forEach((s, i) => {
+      const a = cb.xlA + i / ready.length * Math.PI * 2, tgt = new V2(pc.x + Math.cos(a) * R, pc.y + Math.sin(a) * R);
+      const p0 = s.pos.clone(); s.pos.lerp(tgt, 1 - Math.exp(-dt * 10)); s.ang = a + Math.PI / 2;
+      s.xlHits = s.xlHits || new Map();
+      const dir = new V2(-Math.sin(a), Math.cos(a));
+      for (const e of cb.enemies.slice()) {
+        if ((e.cut && e.cut.dead) || segDist(e.pos, p0, s.pos) > e.r + 0.4) continue;
+        const last = s.xlHits.get(e); if (last !== undefined && simTime - last < CB.XL_HIT_CD) continue;
+        s.xlHits.set(e, simTime);
+        if (armorBlocks(e, dir)) blockFx(e, dir); else damageEnemy(e, 1, dir, 'array');
+      }
+      if (lv >= 3) for (let j = cb.bullets.length - 1; j >= 0; j--) {
+        const b = cb.bullets[j];
+        if (!b.friendly && !b.heavy && segDist(b.pos, p0, s.pos) < CB.BULLET_R + 0.45) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 4, 8); freeBullet(j); }
+      }
+    });
+  },
+  on: { carve_start: p => { if (p.sortie !== false) arraySortieBasic(state.arrOnCarve); }, sheathe: () => arraySortieBasic(state.arrOnSheathe) },
+});
+
 // ---------- 道心（剑意来源） ----------
 defineModule('qi', 'heavy', { name: '重剑道心', tag: '道心', desc: '剑意来自重击：贴身命中 +6，横剑挡弹每颗 +3；险只给一半。', cost: '—',
   has: MODULES.qi.basic.has, spend: MODULES.qi.basic.spend, drain: MODULES.qi.basic.drain,
   on: { kill: () => gain(state.killEnergy), deflect: () => gain(state.killEnergy), close_hit: () => gain(6), guard: () => gain(3), risk: () => gain(state.riskEnergy * 0.5) } });
+defineModule('qi', 'zhen', { name: '阵道道心', tag: '道心', desc: '剑意来自阵剑：阵剑击杀给 1.5 倍剑意，其余击杀只给七成。', cost: '—',
+  has: MODULES.qi.basic.has, spend: MODULES.qi.basic.spend, drain: MODULES.qi.basic.drain,
+  on: { kill: p => gain(state.killEnergy * (p.src === 'array' ? 1.5 : 0.7)), deflect: () => gain(state.killEnergy), close_hit: () => gain(2), risk: () => gain(state.riskEnergy) } });
 defineModule('qi', 'piaoyi', { name: '飘逸道心', tag: '道心', desc: '剑意来自险：险给双倍；贴身命中只 +2，斩弹打六折。', cost: '—',
   has: MODULES.qi.basic.has, spend: MODULES.qi.basic.spend, drain: MODULES.qi.basic.drain,
   on: { kill: () => gain(state.killEnergy), deflect: () => gain(state.killEnergy * 0.6), close_hit: () => gain(2), risk: () => gain(state.riskEnergy * 2) } });
@@ -3935,6 +3975,13 @@ const CULTIVATORS = {
     lock: { blade: 'heavy', qi: 'heavy' },
     play: '身法沉：转向慢、惯性大，破空只是一小步。本命开山：按住左键蓄势，正面弹幕全挡下；松开一剑劈开，蓄满破甲。',
     weak: '巡航慢，墨鸦追得上你；蓄势时转不动身，侧面和背后是空门。',
+  },
+  zhen: {
+    id: 'zhen', name: '剑阵 · 星罗', fantasy: '万剑随身，以阵御敌。',
+    body: { turn: 0.9, accel: 0.9, speed: 0.95 }, arrBase: 4,
+    lock: { array: 'xingluo', qi: 'zhen' },
+    play: '身法稳：略慢、略沉。本命星罗：筑基就有 4 把阵剑绕身成阵，经过的敌人各挨一剑；回锋斩、收剑时阵剑齐出追杀。把敌人引进阵里。',
+    weak: '阵圈大，贴身的子弹挡不住；顺锋斩不派剑，近身输出偏弱。',
   },
   piaoyi: {
     id: 'piaoyi', name: '飘逸 · 惊鸿', fantasy: '衣不沾尘，穿弹而过。',
@@ -3982,11 +4029,12 @@ const REALM_TEACH = {
 const realmOn = () => !!G.run;
 const realm = () => REALMS[realmOn() ? G.run.realm : REALMS.length - 1];
 const yjAllowed = () => realm().yj;
-const slotOpen = s => s === 'sword' ? realm().yj : s === 'array' ? realm().arrN > 0 : true;
+const slotOpen = s => s === 'sword' ? realm().yj : s === 'array' ? realm().arrN > 0 || (realmOn() && !!cultivator.arrBase) : true;
 // 剑阵数量随境界：多出来的阵剑收进“封存”，不参与任何剑阵模块的逻辑和绘制
 const sealedSwords = [];
 function syncArrayCap() {
-  const n = realm().arrN ? realm().arrN + (hasRelic('xia') ? 3 : 0) : 0; // 剑匣：多 3 把
+  const base = Math.max(realm().arrN, realmOn() ? cultivator.arrBase || 0 : 0);
+  const n = base ? Math.min(CB.ARRAY_N + 3, base + (hasRelic('xia') ? 3 : 0) + (loadout.array.id === 'xingluo' && modLv('xingluo') >= 2 ? 2 : 0)) : 0; // 剑修自带阵剑、剑匣 +3、星罗第二重 +2
   if (cb.array.length === n) return;
   while (cb.array.length > n) { const s = cb.array.pop(); s.state = 'ready'; s.target = null; s.m.visible = false; s.trail.clear(); s.trail.mesh.visible = false; sealedSwords.push(s); }
   const pc = to2(playerC());
@@ -4115,6 +4163,7 @@ const LV_TEXT = {
   jinghong: ['', '乘势持续 2.5 秒', '圆满：乘势中每杀一个再延长 0.6 秒'],
   heavy: ['', '蓄满只需 0.6 秒', '圆满：蓄满开山劈出一道破甲剑气'],
   piaoyi: ['', '瞬斩伤害 3 → 5', '圆满：一次险可以连续瞬斩两次'],
+  xingluo: ['', '阵剑 +2，星罗更大', '圆满：绕身的阵剑也能挡下子弹'],
 };
 const CN_LV = ['', '一', '二', '三'];
 const MOD_SLOT = {}; for (const s of ['move', 'blade', 'sword', 'array']) for (const id in MODULES[s]) if (id !== 'basic') MOD_SLOT[id] = s;
@@ -4130,6 +4179,8 @@ const RESON = {
   jinghongzhao: { name: '惊鸿照影', need: { move: 'piaoyi', blade: 'pierce' }, desc: '瞬斩之后，顺势放出一道穿锋剑气。' },
   kaishan: { name: '开山镇岳', need: { blade: 'heavy', array: 'ring' }, desc: '开始蓄势时，6 把环阵剑自动护体。' },
   huanying: { name: '分光回影', need: { sword: 'split', move: 'ghost' }, desc: '御剑收剑时，在剑尖处留下一次残影补刀。' },
+  xingxuan: { name: '星旋绞杀', need: { array: 'xingluo', blade: 'vortex' }, desc: '墨旋存在时，星罗收紧到贴身半径，绞杀身边的敌人。' },
+  xinghe: { name: '星河倒悬', need: { array: 'xingluo', sword: 'loop' }, desc: '回环剑折返时，星罗阵剑全部随主剑一起折返追杀。' },
 };
 function resOn(id) {
   if (!G.run) return false;
@@ -4194,6 +4245,7 @@ onRealm('kill', p => {
 });
 onRealm('risk', () => { if (hasRelic('dingfeng')) { cb.riskSlowT += 0.3; gain(6); } });
 onRealm('dodge_end', () => { if (resOn('jianying')) loadout.array.sortie(4); });
+let xingheArmed = false; // 星河倒悬：回环剑开始折返的那一刻派出全部阵剑
 onRealm('sheathe', () => {
   if (resOn('wanjian')) { cb.lanceFanT = 0.9; loadout.array.sortie(6); }
   if (resOn('huanying') && cb.yj) { const a = to2(playerC()), b = cb.yj.pos.clone(); cb.ghostPend = { a, b, t: 0.05, second: true }; }
@@ -4322,6 +4374,7 @@ function stepDuelist(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
 // ---------- 每帧（战斗步内） ----------
 function runStep(dt, pc) {
   stepTrib(dt, pc); stepDomain(dt);
+  if (resOn('xinghe')) { const back = cb.yj.state === 'back'; if (back && !xingheArmed) arraySortieBasic(CB.ARRAY_N + 3); xingheArmed = back; }
   cb.lanceFanT = Math.max(0, (cb.lanceFanT || 0) - dt);
   if (loadout.blade.id !== 'pierce') stepWaves(dt); // 开山圆满 / 共鸣 / 斩仙飞刀的剑气（装着穿锋时由穿锋自己推进）
   if (hasRelic('hulu')) {
@@ -6593,7 +6646,7 @@ function showCultivatorPick() {
   hideOverlays(); setModal(true);
   $g('g-pick-title').textContent = '择 道'; $g('g-pick-tag').textContent = '选剑修'; $g('g-pick-rest').hidden = true;
   $g('g-pick-sub').textContent = '选一位剑修开始历劫：本命招式锁定不换（也能参悟升重），其余槽位靠路上的机缘。';
-  const ids = ['heavy', 'piaoyi', 'free'], box = $g('g-pick-cards'); box.innerHTML = '';
+  const ids = ['heavy', 'piaoyi', 'zhen', 'free'], box = $g('g-pick-cards'); box.innerHTML = '';
   const choose = id => { G.pick = null; startRun(id); };
   ids.forEach((id, i) => {
     const C = CULTIVATORS[id], d = document.createElement('button'); d.className = 'g-pick-card';
@@ -6686,7 +6739,7 @@ $g('g-pop-ok').addEventListener('click', () => G.onConfirm && G.onConfirm());
 $g('g-dead-retry').addEventListener('click', () => G.onConfirm && G.onConfirm());
 $g('g-dead-all').addEventListener('click', () => G.run ? showRunResults(false) : gStart());
 $g('g-res-again').addEventListener('click', () => G.onConfirm && G.onConfirm());
-$g('g-res-title').addEventListener('click', () => { G.run = null; showTitle(); });
+$g('g-res-title').addEventListener('click', () => { G.run = null; for (const sl in SLOTS) equip(sl, 'basic'); applyCultivator('free'); showTitle(); }); // 离开历劫：本命模块不带进剧情模式
 $g('g-map-codex').addEventListener('click', () => showCodex());
 $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { resetCombat(); finishTutorial(); } canvas.focus(); });
 
