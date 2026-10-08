@@ -4526,7 +4526,10 @@ function enterNode(n) {
   else if (n.type === 'event') showEvent();
   else if (n.type === 'shop') showShop();
   else if (n.type === 'rest') showRest();
-  else { runSnap('boss'); popup('来者不善', 'move gold'); G.flow = 'interlude'; G.interT = 1.6; G.next = () => startBoss(); }
+  else {
+    if (G.run.realm === 0) { G.run.xiu = 0; breakthrough(false); popup('生死关头 · 临阵结丹', 'move gold'); } // 切丝要靠御剑：还在筑基就强行结丹
+    runSnap('boss'); G.flow = 'interlude'; G.interT = 1.8; G.next = () => startBoss();
+  }
 }
 const ELITES = [
   { title: '墨影剑客', hint: '正面格挡并反击；破空穿过它的冲斩 = 破绽（伤害 ×2）', squads: [[['duelist'], 0], [['crow', 'crow', 'crow'], Math.PI]], gap: 3 },
@@ -6600,7 +6603,7 @@ function startRun(cid) {
   G.stats = statsZero(); G.taught = {}; G.enc = null;
   G.run = { cid, picks: [], rooms: [], realm: 0, xiu: 0, breaks: [], lv: {}, relics: [], stone: 30, lamps: 2, map: null, cur: null, path: [], depth: -1, seen: {}, killN: 0 }; // 历劫从筑基开始
   for (const s of ['move', 'blade']) if (cultivator.lock[s]) G.run.lv[cultivator.lock[s]] = 1;
-  G.run.map = genMap();
+  G.run.map = genMap(); $g('g-boss').classList.remove('on'); $g('g-obj').classList.remove('on');
   showMap(true);
 }
 // 历劫：开打当前节点的遭遇（陨落后“从本段重来”也走这里）
@@ -6744,7 +6747,7 @@ $g('g-map-codex').addEventListener('click', () => showCodex());
 $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { resetCombat(); finishTutorial(); } canvas.focus(); });
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
-window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
