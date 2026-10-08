@@ -94,6 +94,8 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
 .g.en.ready .gb{box-shadow:inset 0 0 0 1px #000,0 0 10px rgba(111,227,198,.65)}
 .gb u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--paper);box-shadow:0 0 0 1px #000}
 .g.thr b{background:linear-gradient(90deg,#62d2b9,#d8b35c)} .g.thr em{font-family:var(--f-display);font-size:13px}
+.g.xiu .gl{color:#f7d77a} .g.xiu b{background:linear-gradient(90deg,#b8862f,#ffe9a8);transition:width .15s} .g.xiu em{font-family:var(--f-display);font-size:13px;color:#f7d77a}
+.sk.sealed{opacity:.28;filter:grayscale(1)}
 .skills{display:flex;gap:12px}
 .sk{display:flex;flex-direction:column;align-items:center;gap:4px}
 .ico{--p:1;--c:#bfe3ec;position:relative;width:46px;height:46px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p) * 1turn),rgba(245,240,226,.12) 0);box-shadow:0 0 0 2px #000}
@@ -231,6 +233,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
           <div class="gauges">
             <div class="g hp" id="cb-hp-row"><span class="gl">气血</span><div class="gb"><i id="cb-hp-lag"></i><b id="cb-hp"></b><span class="cells"></span></div><em id="cb-hp-n">100</em></div>
             <div class="g en" id="cb-en-row"><span class="gl">剑意</span><div class="gb"><b id="cb-en"></b><span class="cells"></span><u id="cb-en-tap"></u><u id="cb-en-start"></u></div><em id="cb-en-n">0</em></div>
+            <div class="g xiu" id="cb-xiu-row" hidden><span class="gl" id="cb-realm">筑基</span><div class="gb thin"><b id="cb-xiu"></b></div><em id="cb-xiu-n">0</em></div>
             <div class="g thr"><span class="gl">剑速</span><div class="gb thin"><b id="cb-thr"></b><u id="cb-thr-mark"></u></div><em id="cb-thr-n">巡航</em></div>
           </div>
           <div class="skills">
@@ -2903,6 +2906,7 @@ function resetCombat() {
   while (splits.length) { const s = splits.pop(); scene.remove(s.g); fx.splice(fx.indexOf(s.g), 1); }
   for (const s of cb.array) s.state = 'ready';
   for (const k in loadout) if (loadout[k].reset) loadout[k].reset(); // 模块留在场上的东西（剑气、墨旋、残影）一并清掉
+  clearOrbs();
   resetFor(new V2(1, 0));
   state.camFocus = null; state.camLook = null;
 }
@@ -2928,6 +2932,7 @@ function combatStep(dt) {
     if (cb.specials && cb.specialT <= 0) { spawnSpecial(); cb.specialT = CB.SPECIAL_INTERVAL; }
   } else stepPending(dt);
   flowStep(dt);
+  realmStep(dt, pc); // 修仙成长：灵气吸入、剑阵数量随境界、突破
 
   // 敌人
   for (const e of cb.enemies.slice()) {
@@ -3385,7 +3390,7 @@ for (const slot in SLOTS) equip(slot, 'basic');
 function doDodge() { loadout.move.dodge(); }
 function pressSlash() { if (loadout.move.onSlashPress && loadout.move.onSlashPress()) return; loadout.blade.press(); } // 身法可以接管一次出剑（例如飘逸的瞬斩）
 function startSlash(big) { loadout.blade.start(big); }
-function pressYj() { loadout.sword.press(); }
+function pressYj() { if (!yjAllowed()) { if (state.mode === 'fly' && cb.dead <= 0) fail('金丹方能剑气离体'); return; } loadout.sword.press(); } // 历劫：筑基期还不能御剑
 function releaseYj() { loadout.sword.release(); }
 function yjReturn() { loadout.sword.sheathe(); }
 function castArray(auto) { loadout.array.cast(auto); }
@@ -3881,6 +3886,117 @@ function applyCultivator(id) {
 }
 const slotLocked = s => !!cultivator.lock[s];
 
+// ---------------------------------------------------------------------------
+// 修仙成长（docs/systems/XIUXIAN_PROGRESSION_SYSTEM_V1.md · A1 第一步）：只在“历劫”里生效，剧情 / 自由 / 试题保持全部能力。
+// 一局从筑基开始（小说设定：筑基才能踏剑飞行）：筑基 → 金丹（剑气离体：御剑、剑阵 6 把）→ 元婴（分神驭剑：剑阵 12 把）。
+// 境界给“能做什么”（质变），槽位模块给“怎么做”（形态）。敌人死后化作灵气飞入体内积累修为，修为满即突破
+// （第二步改为玩家择时引劫 + 天雷小挑战）。突破：金光、境界大字、气浪震碎周围的普通敌人、回气血。
+// ---------------------------------------------------------------------------
+Object.assign(CB, {
+  XIU_ELITE: 4,     // 精英化出的灵气份数（普通敌人 1 份）
+  XIU_RISK: 1,      // 险 = 顿悟，直接加修为
+  XIU_WAVE_R: 14,   // 突破气浪半径：范围内普通敌人震碎、精英震飞、敌弹清掉
+  XIU_HEAL: 30,     // 突破回复的气血
+});
+const REALMS = [
+  { name: '筑基', yj: false, arrN: 0, need: 16, gain: '踏剑飞行' },
+  { name: '金丹', yj: true, arrN: 6, need: 24, gain: '剑气离体' },
+  { name: '元婴', yj: true, arrN: 12, need: 0, gain: '分神驭剑' }, // need 0 = 本 Demo 的最高境界
+];
+const REALM_TEACH = {
+  金丹: { id: 'jindan', demo: 'slice', title: '金丹 · 剑气离体', tag: '境界突破', keys: [['右键', '点按 = 点刺'], ['右键', '按住 = 时停连斩'], ['松开', '收剑兑现']],
+    text: '结成金丹，剑气终于能离体：手中的剑可以飞出去取敌。点一下右键，剑飞向准星、刺穿沿途；按住右键，时间静止，剑跟着鼠标走，划过的敌人各记一刀，松开时一齐兑现。剑阵也凝出了 6 把阵剑，随你的招式出击。' },
+  元婴: { id: 'yuanying', demo: 'array', title: '元婴 · 分神驭剑', tag: '境界突破', keys: [['自动', '随招出击']],
+    text: '元婴初成，一心可以多用：剑阵扩到 12 把。御剑收剑的那一刻，全部阵剑齐出，追杀范围内的敌人。' },
+};
+const realmOn = () => !!G.run;
+const realm = () => REALMS[realmOn() ? G.run.realm : REALMS.length - 1];
+const yjAllowed = () => realm().yj;
+const slotOpen = s => s === 'sword' ? realm().yj : s === 'array' ? realm().arrN > 0 : true;
+// 剑阵数量随境界：多出来的阵剑收进“封存”，不参与任何剑阵模块的逻辑和绘制
+const sealedSwords = [];
+function syncArrayCap() {
+  const n = realm().arrN;
+  if (cb.array.length === n) return;
+  while (cb.array.length > n) { const s = cb.array.pop(); s.state = 'ready'; s.target = null; s.m.visible = false; s.trail.clear(); s.trail.mesh.visible = false; sealedSwords.push(s); }
+  const pc = to2(playerC());
+  while (cb.array.length < n && sealedSwords.length) { const s = sealedSwords.pop(); s.state = 'ready'; s.pos.copy(pc); cb.array.push(s); }
+  cb.array.sort((a, b) => a.slot - b.slot);
+}
+// 灵气：敌人死后化出的光点，先向外散开，再被吸向主角；吸入才算修为
+const ORB_N = 160, orbs = [];
+const orbGeo = new THREE.BufferGeometry(); orbGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ORB_N * 3), 3));
+const orbPts = new THREE.Points(orbGeo, new THREE.PointsMaterial({ color: 0x4dffc3, size: 6, sizeAttenuation: false, depthWrite: false }));
+orbPts.frustumCulled = false; orbPts.layers.enable(2); scene.add(orbPts); fx.push(orbPts);
+function spawnOrbs(pos, n) {
+  for (let i = 0; i < n; i++) {
+    if (orbs.length >= ORB_N) { xiuGain(1); continue; }
+    const a = vrand() * Math.PI * 2, s = 6 + vrand() * 8;
+    orbs.push({ pos: pos.clone(), vel: new V2(Math.cos(a) * s, Math.sin(a) * s), t: 0 });
+  }
+}
+function clearOrbs() { orbs.length = 0; }
+function stepOrbs(dt, pc) {
+  for (let i = orbs.length - 1; i >= 0; i--) {
+    const o = orbs[i]; o.t += dt;
+    if (o.t > 0.25) {
+      const d = pc.clone().sub(o.pos), L = d.length();
+      if (L < 0.9) { orbs.splice(i, 1); xiuGain(1); swordSparks.emit(new V3(pc.x, pc.y, 0), 2, 3); continue; }
+      o.vel.lerp(d.multiplyScalar(Math.min(80, 22 + o.t * 90) / L), 1 - Math.exp(-dt * 8));
+    } else o.vel.multiplyScalar(1 - 4 * dt);
+    o.pos.addScaledVector(o.vel, dt);
+  }
+  const pa = orbGeo.attributes.position;
+  for (let i = 0; i < ORB_N; i++) { const o = orbs[i]; pa.setXYZ(i, o ? o.pos.x : 0, o && state.fx ? o.pos.y : -999, 1.3); }
+  pa.needsUpdate = true;
+}
+function xiuGain(n) {
+  if (!realmOn()) return;
+  const R = realm(); if (!R.need) return;
+  G.run.xiu = Math.min(R.need, G.run.xiu + n);
+}
+// 核心监听（不属于任何模块，换模块不会被卸掉）
+const onRealm = (type, fn) => (combatListeners[type] = combatListeners[type] || []).push({ m: null, fn });
+onRealm('kill', p => { if (realmOn() && p.e && !p.e.puppet) spawnOrbs(p.e.pos, ENEMY_TYPES[p.e.type].elite ? CB.XIU_ELITE : 1); });
+onRealm('risk', () => { if (realmOn() && realm().need) { xiuGain(CB.XIU_RISK); popup('顿悟', 'small gold'); } });
+// 突破：修为满、主剑在手、不在弹窗里时立刻发生
+function breakthrough() {
+  const R0 = realm(); G.run.realm++; G.run.xiu = 0; const R = realm();
+  const pc = to2(playerC()), p3 = new V3(pc.x, pc.y, 0);
+  popup(R.name, 'sig gold');
+  goldBurst.emit(p3, 60, 26); spawnShock(p3, 2.6); spawnImpact(p3, new V2(1, 0), true, 0xf2c75c); puffRing(pc.x, pc.y, 24, 1.6, 9, 1.2);
+  cb.quake = { t0: performance.now() / 1000, amp: 5 * state.burstShake };
+  cb.riskSlowT = 1.2; AU.burstN = 6; AU.burstBeat = 0.05; sfx('burst');
+  // 气浪：普通敌人震碎，精英震飞，敌弹清掉
+  for (const e of cb.enemies.slice()) {
+    if (e.invuln || e.boss || e.puppet || (e.cut && e.cut.dead)) continue;
+    const d = e.pos.clone().sub(pc); if (d.length() > CB.XIU_WAVE_R) continue;
+    if (d.lengthSq() < 1e-6) d.set(1, 0);
+    if (ENEMY_TYPES[e.type].elite) { e.vel.addScaledVector(d.normalize(), 24); e.knockUntil = cb.realT + 0.5; }
+    else damageEnemy(e, 99, d, 'realm');
+  }
+  for (let j = cb.bullets.length - 1; j >= 0; j--) { const b = cb.bullets[j]; if (!b.friendly && b.pos.distanceTo(pc) < CB.XIU_WAVE_R) { goldBurst.emit(new V3(b.pos.x, b.pos.y, 0), 3, 8); freeBullet(j); } }
+  cb.hp = Math.min(CB.HP_MAX, cb.hp + CB.XIU_HEAL);
+  if (R.yj && !R0.yj) cb.energy = 100; // 金丹：筑基期攒下却用不了的剑意，一口气放出来
+  G.run.breaks.push(R.name);
+  if (REALM_TEACH[R.name] && !G.taught['realm' + R.name]) { G.taught['realm' + R.name] = true; G.run.teach = { S: REALM_TEACH[R.name], t: 1.5 }; }
+}
+function realmStep(dt, pc) {
+  stepOrbs(dt, pc);
+  syncArrayCap();
+  if (!realmOn()) return;
+  const T = G.run.teach;
+  if (T && !G.modal) { T.t -= cb.realDt || dt; if (T.t <= 0) { G.run.teach = null; showPopup(T.S, null); } }
+  const R = realm();
+  if (R.need && G.run.xiu >= R.need && cb.yj.state === 'hand' && cb.dead <= 0 && !G.modal) breakthrough();
+}
+// 每关 / Boss 开打时记下境界和修为；陨落后“从本段重来”回到这一刻
+function runSnap(key) {
+  const R = G.run; if (!R) return;
+  if (R.snapKey === key && R.snap) { R.realm = R.snap.realm; R.xiu = R.snap.xiu; R.breaks = R.snap.breaks.slice(); }
+  R.snapKey = key; R.snap = { realm: R.realm, xiu: R.xiu, breaks: R.breaks.slice() };
+}
+
 // 每帧摆放主剑和阵剑。手持时：平时剑尖朝身后斜下（拖剑），出剑时与剑弧同步扫过，扫完回到拖剑位
 function updateSwordVisuals(camDir) {
   const y = cb.yj, h = headingW(), ha = Math.atan2(h.y, h.x);
@@ -3910,7 +4026,7 @@ function updateSwordVisuals(camDir) {
   {
     const now = cb.realT, rdt = clamp(now - (cb.swordFxT === undefined ? now : cb.swordFxT), 0, 0.05); cb.swordFxT = now;
     swordSparks.step(rdt);                                   // 剑气粒子按真实时间走，时停中照样流动
-    const eF = clamp(cb.energy / 100, 0, 1), ok = cb.energy >= state.yjStart, inHand = y.state === 'hand', fly = state.mode === 'fly';
+    const eF = clamp(cb.energy / 100, 0, 1), ok = cb.energy >= state.yjStart && yjAllowed(), inHand = y.state === 'hand', fly = state.mode === 'fly';
     const sc = inHand ? 1 : 1.25, a = mainSword.rotation.z, dx = Math.cos(a), dy = Math.sin(a);
     const base = new V3(mainSword.position.x + dx * 0.15 * sc, mainSword.position.y + dy * 0.15 * sc, 0), len = MAIN_LEN * sc * 0.85;
     const along = k => new V3(base.x + dx * len * k, base.y + dy * len * k, 0);
@@ -4857,7 +4973,7 @@ function updateHud() {
   $('cb-hp-row').classList.toggle('low', cb.hp > 0 && cb.hp / CB.HP_MAX < 0.3);
   // 剑意：够连斩起手 = 发光；连点刺都不够 = 暗红；两道白刻度是点刺 / 连斩起手的门槛
   $('cb-en').style.width = cb.energy + '%'; $('cb-en-n').textContent = Math.floor(cb.energy);
-  $('cb-en-row').classList.toggle('ready', cb.energy >= state.yjStart);
+  $('cb-en-row').classList.toggle('ready', cb.energy >= state.yjStart && yjAllowed());
   $('cb-en-row').classList.toggle('dim', cb.energy < Math.min(state.yjTap, state.yjStart));
   $('cb-en-tap').style.left = state.yjTap + '%'; $('cb-en-start').style.left = state.yjStart + '%'; $('cb-en-start').hidden = state.yjStart === state.yjTap;
   // 破空闪：圆形冷却（转一圈 = 就绪）
@@ -4867,7 +4983,8 @@ function updateHud() {
   // 剑阵：动作触发 = 待命剑数；手动 / 全自动 = 发动中剩余时间（金色）或冷却进度
   const readyN = cb.array.filter(s => s.state === 'ready').length, act = state.arrMode === 'action';
   const arrReady = act ? readyN > 0 : cb.arrayCd <= 0 && cb.arrayActive <= 0;
-  $('cb-arr').style.setProperty('--p', act ? readyN / CB.ARRAY_N : cb.arrayActive > 0 ? cb.arrayActive / state.arrDur : 1 - cb.arrayCd / Math.max(0.01, cb.arrayCdTotal));
+  $('cb-arr-row').classList.toggle('sealed', !cb.array.length); // 历劫筑基期：剑阵未成
+  $('cb-arr').style.setProperty('--p', act ? readyN / Math.max(1, cb.array.length) : cb.arrayActive > 0 ? cb.arrayActive / state.arrDur : 1 - cb.arrayCd / Math.max(0.01, cb.arrayCdTotal));
   $('cb-arr-row').classList.toggle('ready', arrReady); $('cb-arr-row').classList.toggle('active', cb.arrayActive > 0);
   $('cb-arr-n').textContent = act ? readyN : '';
   $('cb-arr-key').textContent = act ? '随招' : state.arrMode === 'auto' ? '自动' : 'E';
@@ -4876,6 +4993,14 @@ function updateHud() {
   $('cb-thr').style.width = clamp((thr - vMin) / (BOOST - vMin), 0, 1) * 100 + '%';
   $('cb-thr-mark').style.left = ((CRUISE - vMin) / (BOOST - vMin) * 100) + '%';
   $('cb-thr-n').textContent = thr > CRUISE * 1.08 ? '催剑' : thr < CRUISE * 0.92 ? '收势' : '巡航';
+  // 修为（只在历劫里显示）：左边是当前境界，满了就突破
+  const xr = $('cb-xiu-row'); xr.hidden = !realmOn();
+  if (realmOn()) {
+    const R = realm();
+    $('cb-realm').textContent = R.name;
+    $('cb-xiu').style.width = (R.need ? G.run.xiu / R.need * 100 : 100) + '%';
+    $('cb-xiu-n').textContent = R.need ? G.run.xiu + '/' + R.need : '圆满';
+  }
   const kEl = $('cb-kills');
   if (kEl.textContent !== String(cb.kills)) { kEl.textContent = cb.kills; kEl.classList.remove('bump'); void kEl.offsetWidth; kEl.classList.add('bump'); }
 }
@@ -5541,7 +5666,7 @@ const silkMat = new THREE.MeshBasicMaterial({ color: 0xe8d4ff, transparent: true
 const SILK_GEO = new THREE.PlaneGeometry(1, 0.2); // 丝线是这场战斗的目标：加粗、发光，一眼看得到
 Object.assign(CB, { FREE_BOSS_EVERY: 120 }); // 自由模式：每 2 分钟千丝傀儡师再临
 function startBoss(inFree) {
-  if (!inFree) G.flow = 'boss'; $g('g-skip').hidden = true;
+  if (!inFree) G.flow = 'boss'; $g('g-skip').hidden = true; runSnap('boss');
   const pc = playerC(), h = headingW();
   const e = spawnAt('boss', pc.x + h.x * 24, Math.max(CB.ALT_MIN + 6, pc.y + 6));
   e.entering = false; e.invuln = true;
@@ -5708,7 +5833,7 @@ const ROOMS = [
   { id: 'pincer', title: '穿云锥夹击', hint: '穿云锥从两侧同时瞄准，直线闪避会撞上另一只', squads: [[['diver', 'diver'], 1.0], [['diver', 'diver'], -1.0], [['crow', 'crow', 'crow'], Math.PI], [['diver', 'diver', 'diver'], 0.4]], gap: 2.4 },
   { id: 'needle', title: '蓄势针压阵', hint: '蓄势针在剑阵射程外狙击，扇傀挡在前面', squads: [[['needle'], 0], [['fan', 'fan', 'fan'], 0.15], [['crow', 'crow', 'crow'], -1.2], [['crow', 'diver', 'diver'], 1.2]], gap: 2.6 },
 ];
-const SRC_NAME = { slash: '近身', dash: '穿身', reflect: '斩弹', array: '剑阵', yj: '御剑', wave: '剑气', vortex: '墨旋', ghost: '残影' };
+const SRC_NAME = { slash: '近身', dash: '穿身', reflect: '斩弹', array: '剑阵', yj: '御剑', wave: '剑气', vortex: '墨旋', ghost: '残影', realm: '突破气浪' };
 const loadoutText = () => (cultivator.id !== 'free' ? cultivator.name + '：' : '') + ['move', 'blade', 'sword', 'array'].map(s => loadout[s].name).join(' / ');
 // 核心统计（不属于任何模块）：只要有遭遇在进行，就按来源记击杀、记险和斩弹
 const onCombat = (type, fn) => (combatListeners[type] = combatListeners[type] || []).push({ m: null, fn });
@@ -5763,17 +5888,17 @@ function renderTrialLog() {
 function startRun(cid) {
   hideOverlays(); setModal(false); resetCombat();
   for (const s in SLOTS) equip(s, 'basic'); applyCultivator(cid || 'free');
-  G.stats = statsZero(); G.taught = {}; G.run = { picks: [], rooms: [] };
+  G.stats = statsZero(); G.taught = {}; G.run = { picks: [], rooms: [], realm: 0, xiu: 0, breaks: [] }; // 历劫从筑基开始
   startRoom(0);
 }
 function startRoom(i) {
-  G.roomIdx = i; startEncounter(ROOMS[i], 'room');
+  G.roomIdx = i; runSnap('room' + i); startEncounter(ROOMS[i], 'room');
   popup('第 ' + CN_NUM[i] + ' 关 · ' + ROOMS[i].title, 'move');
 }
 // 三选一：从当前没装上的模块里抽三个（尽量来自不同槽位），另可选“调息”回血
 function pickOptions() {
   const pool = [];
-  for (const s of ['move', 'blade', 'sword', 'array']) if (!slotLocked(s)) for (const id in MODULES[s]) if (id !== 'basic' && loadout[s].id !== id && !MODULES[s][id].locked) pool.push(MODULES[s][id]);
+  for (const s of ['move', 'blade', 'sword', 'array']) if (!slotLocked(s) && slotOpen(s)) for (const id in MODULES[s]) if (id !== 'basic' && loadout[s].id !== id && !MODULES[s][id].locked) pool.push(MODULES[s][id]);
   const out = [];
   while (out.length < 3 && pool.length) {
     const fresh = pool.filter(m => !out.some(o => o.slot === m.slot)), from = fresh.length ? fresh : pool;
@@ -5821,6 +5946,7 @@ function showCultivatorPick() {
 function showRunResults() {
   showResults();
   const R = G.run, rows = R.rooms.map((r, i) => [`第 ${CN_NUM[i]} 关 · ${r.title}`, `${r.time}s · 受伤 ${r.dmg} · ${r.bySrc}`]);
+  rows.push(['境界', '筑基' + R.breaks.map(b => ' → ' + b).join('')]);
   rows.push(['剑修', cultivator.name], ['构筑变化', R.picks.join('<br>') || '—'], ['最终构筑', loadoutText()]);
   $g('g-res-table').innerHTML += rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
 }
