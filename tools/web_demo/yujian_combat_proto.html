@@ -3005,6 +3005,7 @@ function bladeStepBasic(dt, pc, h) {
     const sd = h.clone().rotateAround(ORIGIN2, cb.slashOff || 0);
     for (const e of cb.enemies.slice()) if (!cb.slashHits.has(e) && inSector(e.pos, pc, sd, R + e.r * 0.6, half)) {
       cb.slashHits.add(e); const d = e.pos.clone().sub(pc);
+      if (meleeActive(e) && e.hitCd <= 0 && jzTryMelee(e)) continue; // 见招：剑弧迎上来招 = 拆
       if (armorBlocks(e, d)) blockFx(e, d);
       else {
         damageEnemy(e, cb.slashBig || cb.slashScale > 1.01 ? 2 : 1, d, 'slash');
@@ -3411,6 +3412,7 @@ function yjReleaseBasic() {
 function updateYujian(dt) {
   cb.realT += dt; cb.ringFlash = Math.max(0, (cb.ringFlash || 0) - dt);
   pzStep(dt); // 破绽连斩（真实时间）
+  jzScan(); // 见招：剑弧迎招
   loadout.sword.update(dt);
   const y = cb.yj;
   anim.swordOut = y.state !== 'hand';
@@ -5048,6 +5050,15 @@ function drawPZ(toScreen, W, Hc) {
   ctx.font = '400 22px "Ma Shan Zheng", "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff6dc'; ctx.fillText(pt.part, q.x, q.y - Math.max(core, rr) - 14);
   const pc = toScreen(to2(playerC())); ctx.strokeStyle = 'rgba(255,228,138,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(pc.x, pc.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.setLineDash([]);
   ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillStyle = '#ffe48a'; ctx.fillText('破绽 ' + (PZ.i + 1) + ' / ' + PZ.N + '  ·  点圈瞬身斩过去，圈收得越小越痛', W / 2, Hc - 60);
+}
+function jzScan() { // 剑弧迎招（2026-10-09 用户：拆招成功率太低）
+  if (!(loOn() && LO.melee === 'jianzhao') || cb.realT - JZ.t > JZ.WIN_BOSS || cb.dead > 0 || PZ.on) return;
+  const pc = to2(playerC()), R = CB.SLASH_R * (cb.slashScale || 1) + 1.5;
+  for (const e of cb.enemies.slice()) {
+    if (!meleeActive(e) || e.hitCd > 0) continue;
+    const v = pc.clone().sub(e.pos);
+    if (v.length() < R + e.r && e.vel.dot(v) > 0) jzTryMelee(e);
+  }
 }
 function jlForceThrust() { // 练招（测试用）：按 T 让孤鸿立刻起手突刺
   const B = LV.id === 'jianzhong' && LV.d && LV.d.boss;
