@@ -2482,7 +2482,7 @@ function sideStep(e, pc, pv, amt) {
   e.vel.addScaledVector(side, amt); e.knockUntil = cb.realT + 0.35;
 }
 function hurtPlayer(dmg, by) {
-  if (cb.god || cb.iframe > 0 || cb.hurtT < CB.HURT_IFRAME || cb.dead > 0) return false;
+  if (cb.god || cb.iframe > 0 || cb.hurtT < CB.HURT_IFRAME || cb.dead > 0 || cb.realT < (cb.pzSafeUntil || 0)) return false; // 破绽连斩中与收尾 0.6 秒不受伤
   dmg = runHurtMod(dmg); cb.lastHurtBy = by || '敌袭';
   cb.hp -= dmg; cb.hurtT = 0; hitStop(0.03); sfx('hurt'); anim.play('hurt'); gEv('hurt', dmg);
   if (G.flow === 'tutorial' && cb.hp < 20) cb.hp = 20; // 教程里不会死
@@ -2497,7 +2497,6 @@ function inSector(p, pc, h, R, half) {
   return Math.abs(signedAngle(h, new V2(dx, dy))) <= half;
 }
 function reflectBullet(b, h, big) {
-  if (b.heavy && !big && !b.friendly && typeof jzActive === 'function' && jzActive()) { jzSuccess(b.pos.clone(), null); b.breakArmor = true; } // 见招窗口内斩回重弹 = 拆，弹回去破甲（普通子弹仍只是斩弹，免得反馈太密）
   b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.6;
   // 斩回的子弹自动找剑尖前方 50° 内最近的敌人，没有就沿剑尖飞
   let best = null, bd = 42;
@@ -3237,7 +3236,6 @@ function combatStep(dt) {
       const d = b.pos.distanceTo(pc);
       // 无敌帧内子弹擦身（本来会打中）：划开这颗子弹，并触发极限闪避“险”
       if (cb.iframe > 0 && d < CB.PLAYER_R + CB.BULLET_R * (b.heavy ? 1.6 : 1) + CB.RISK_PAD) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 6, 10); riskDodge(); dead = true; }
-      else if (d < CB.PLAYER_R + CB.BULLET_R * (b.heavy ? 1.6 : 1) + (jzActive() ? 0.6 : 0) && jzTryBullet(b)) { /* 见招：弹回去 */ }
       else if (d < CB.PLAYER_R + CB.BULLET_R * (b.heavy ? 1.6 : 1) && hurtPlayer(b.heavy ? CB.NEEDLE_DMG : 10, b.heavy ? '蓄势针的重针' : (b.by || '敌弹'))) dead = true;
     }
     if (!dead && b.pos.y < 0.1) { waterSplash(b.pos.x, b.heavy ? 0.7 : 0.45); dead = true; } // 子弹落海：砸出一个小水花
@@ -3412,13 +3410,14 @@ function yjReleaseBasic() {
 }
 function updateYujian(dt) {
   cb.realT += dt; cb.ringFlash = Math.max(0, (cb.ringFlash || 0) - dt);
+  pzStep(dt); // 破绽连斩（真实时间）
   loadout.sword.update(dt);
   const y = cb.yj;
   anim.swordOut = y.state !== 'hand';
   // 慢放：点刺 / 连斩期间立刻降到滑条倍率；收剑回程开始后在 SLOW_RECOVER 秒内线性恢复
   // 极限闪避“险”：短暂慢放到 0.25 倍（按真实时间计时），比御剑的停止轻得多，只是一口气
   cb.riskSlowT = Math.max(0, (cb.riskSlowT || 0) - dt);
-  const target = Math.min(yjLock() ? state.yjSlow : 1, cb.riskSlowT > 0 ? 0.25 : 1);
+  const target = PZ.on ? 0.02 : Math.min(yjLock() ? state.yjSlow : 1, cb.riskSlowT > 0 ? 0.25 : 1); // 破绽连斩：世界几乎停住
   cb.worldScale = target < cb.worldScale ? target : Math.min(target, cb.worldScale + dt / CB.SLOW_RECOVER);
   // 水墨化：出剑约 0.22 秒铺满全屏，收剑约 0.35 秒退回；水墨中火星换成墨点（亮色会溶进宣纸）
   const inkT = yjLock() ? 1 : 0;
@@ -4467,7 +4466,7 @@ function parryCue(toScreen) { // 来招提示（2026-10-09 用户选 C）
     if (e.cut && e.cut.dead) continue;
     const v = pc.clone().sub(e.pos), dist = v.length(), gap = Math.max(0, dist - e.r - CB.PLAYER_R);
     let tti = null;
-    if (isDuel(e) && e.mode === 'wind') tti = Math.max(0, e.t) + gap / BOOST;
+    if (isDuel(e) && e.mode === 'wind') tti = Math.max(0, e.t) + gap / (e.type === 'jianling' ? BOOST * 1.3 : BOOST);
     else if (isDuel(e) && e.mode === 'dash' && e.vel.dot(v) > 0) tti = gap / Math.max(e.vel.length(), 1);
     else if (e.type === 'diver' && e.mode === 'aim') tti = Math.max(0, e.t) + gap / CB.DIVER_DASH_SPEED;
     else if (e.type === 'diver' && e.mode === 'dash' && e.vel.dot(v) > 0) tti = gap / Math.max(e.vel.length(), 1);
@@ -4490,6 +4489,7 @@ function drawLevelOverlay(toScreen, W, Hc) {
   drawParryFlash(W, Hc); // 拆中的白金闪光
   drawTun(toScreen); // 吞海的吞口（任何模式）
   parryCue(toScreen); // 见招：来招提示
+  drawPZ(toScreen, W, Hc); // 破绽连斩 + 突刺预警
   if (!LV.id) return;
   const L = LEVELS[LV.id]; if (L.overlay) L.overlay(ovCtx, toScreen, W, Hc);
 }
@@ -4979,16 +4979,79 @@ function jzSuccess(p, foe) {
   if (foe) { foe.parryT = cb.realT; foe.punchT0 = cb.realT; }
   sfx('parry'); popup('拆', 'sig gold');
 }
-function jzTryBullet(b) {
-  if (!jzActive() || b.friendly || !jzFacing(b.pos)) return false;
-  const pc = to2(playerC()); let best = null, bd = 40;
-  for (const e of cb.enemies) { const d = e.pos.distanceTo(pc); if (d < bd && !e.invuln) { bd = d; best = e; } }
-  b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.6; b.breakArmor = !!b.heavy;
-  b.vel.copy(best ? best.pos.clone().sub(b.pos) : b.vel.clone().negate()).normalize().multiplyScalar(CB.REFLECT_SPEED);
-  jzSuccess(b.pos, null); return true;
+// ---------- 破绽连斩（2026-10-09 用户定：只对 Boss；拆中后进入，点圈瞬身斩过去，圈越小越痛，点空/超时就结束） ----------
+const PZ = { on: false, foe: null, pts: [], i: 0, t: 0, hits: 0, N: 4, LIFE: [0.8, 0.7, 0.6, 0.55], lines: [], PART: ['肩', '腕', '脊', '膝', '心'] };
+function pzStart(e) {
+  Object.assign(PZ, { on: true, foe: e, i: 0, t: -0.22, hits: 0, perfect: 0, pts: [] });
+  const pc = to2(playerC()); let a = Math.atan2(pc.y - e.pos.y, pc.x - e.pos.x);
+  for (let k = 0; k < PZ.N; k++) { // 交替落在 Boss 两侧：每一次瞬身都从它身上斩过去
+    a += Math.PI * (0.7 + rand() * 0.6);
+    PZ.pts.push({ off: new V2(Math.cos(a), Math.sin(a)).multiplyScalar(3.6 + rand() * 1.4), life: PZ.LIFE[k], part: PZ.PART[(k + Math.floor(rand() * 5)) % 5] });
+  }
+  e.mode = 'stagger'; e.t = 9; e.vel.set(0, 0); popup('破绽', 'move gold');
+}
+const pzPt = k => PZ.foe.pos.clone().add(PZ.pts[k].off);
+function pzStep(dt) {
+  PZ.lines = PZ.lines.filter(l => cb.realT - l.t0 < 0.6);
+  if (!PZ.on) return;
+  const e = PZ.foe; cb.pzSafeUntil = cb.realT + 0.3;
+  if (!cb.enemies.includes(e) || e.hp <= 0 || cb.dead > 0) return pzEnd();
+  PZ.t += dt; if (PZ.t > PZ.pts[PZ.i].life) { popup('迟了', 'small'); pzEnd(); }
+}
+function pzClick(w) {
+  if (!PZ.on || PZ.t < 0) return; // 第一个圈还没亮
+  w = w || mouseWorld(); const q = pzPt(PZ.i);
+  if (!w || w.distanceTo(q) > 2.4) { popup('失手', 'small'); return pzEnd(); }
+  const e = PZ.foe, from = to2(playerC()), u = PZ.t / PZ.pts[PZ.i].life, perfect = u > 0.65, last = PZ.i === PZ.N - 1;
+  sim.pos.set(q.x, wy(q.y)); snapFace(q.clone().sub(from)); // 瞬身：从它身上斩过去
+  PZ.lines.push({ a: from, b: q, t0: cb.realT, perfect });
+  const dir = q.clone().sub(from).normalize();
+  damageEnemy(e, (perfect ? 1.6 : 1) * (last ? 1.5 : 1), dir, 'slash', true); // 破绽中伤害再翻倍（墨影 / 孤鸿的规则）
+  for (let k = 0; k <= 10; k++) { const m = from.clone().lerp(q, k / 10); inkBurst.emit(new V3(m.x, m.y, 0), 2, 6, dir, 0.5); }
+  goldBurst.emit(new V3(e.pos.x, e.pos.y, 0), perfect ? 26 : 12, 18); spawnImpact(new V3(e.pos.x, e.pos.y, 0), dir, perfect, perfect ? 0xffe8a0 : 0xfff3d6);
+  hitStop(perfect ? 0.06 : 0.03); cb.quake = { t0: performance.now() / 1000, amp: (perfect ? 2.5 : 1.2) * state.burstShake };
+  PZ.hits++; if (perfect) PZ.perfect++;
+  sfx(perfect ? 'parry' : 'clang'); popup((perfect ? '破 · ' : '') + PZ.pts[PZ.i].part, perfect ? 'sig gold' : 'move gold');
+  if (last || e.hp <= 0) return pzEnd(true);
+  PZ.i++; PZ.t = -0.06;
+}
+function pzEnd(full) {
+  if (!PZ.on) return; PZ.on = false;
+  const e = PZ.foe; if (e && e.hp > 0) { e.mode = 'recover'; e.t = 0.7; e.vel.set(0, 0); }
+  cb.pzSafeUntil = cb.realT + 0.6; cb.riskSlowT = Math.max(cb.riskSlowT, 0.25);
+  if (full) { spawnShock(new V3(e.pos.x, e.pos.y, 0), 1.6); cb.parryFlashT0 = performance.now(); sfx('burst'); popup(PZ.perfect === PZ.N ? '破绽连斩 · 尽' : '破绽连斩 ×' + PZ.hits, 'sig gold'); }
+  else if (PZ.hits) popup('破绽连斩 ×' + PZ.hits, 'move gold');
+}
+function drawPZ(toScreen, W, Hc) {
+  const ctx = ovCtx;
+  for (const l of PZ.lines) { // 瞬身斩过的剑痕
+    const k = (cb.realT - l.t0) / 0.6, a = toScreen(l.a), b = toScreen(l.b);
+    ctx.globalAlpha = 1 - k; ctx.strokeStyle = l.perfect ? '#ffe48a' : '#fff6dc'; ctx.lineWidth = (l.perfect ? 9 : 5) * (1 - k * 0.6);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  const B = LV.id && LV.d && LV.d.boss; // 孤鸿突刺的预警大字
+  if (B && cb.enemies.includes(B) && B.mode === 'wind') {
+    const c = toScreen(B.pos.clone().add(new V2(0, 3))), lock = B.t < 0.12;
+    ctx.font = '400 ' + (lock ? 46 : 36) + 'px "Ma Shan Zheng", "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = lock ? '#ffe48a' : '#ff5a44'; ctx.globalAlpha = lock ? 1 : 0.6 + 0.4 * Math.sin(cb.realT * 30); ctx.fillText('刺', c.x, c.y); ctx.globalAlpha = 1;
+  }
+  if (!PZ.on) return;
+  const e = PZ.foe, c = toScreen(e.pos), R = Math.max(W, Hc);
+  const g = ctx.createRadialGradient(c.x, c.y, 90, c.x, c.y, R * 0.42); g.addColorStop(0, 'rgba(8,6,4,0.12)'); g.addColorStop(1, 'rgba(8,6,4,0.72)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hc);
+  if (PZ.t < 0) return;
+  const pt = PZ.pts[PZ.i], qw = pzPt(PZ.i), q = toScreen(qw), u = clamp(PZ.t / pt.life, 0, 1), rr = 16 + 74 * (1 - u), hot = u > 0.65;
+  const core = Math.abs(toScreen(qw.clone().add(new V2(2.4, 0))).x - q.x); // 可点范围
+  ctx.fillStyle = 'rgba(255,228,138,0.18)'; ctx.beginPath(); ctx.arc(q.x, q.y, core, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = hot ? '#ffe48a' : '#fff6dc'; ctx.lineWidth = hot ? 5 : 3; ctx.beginPath(); ctx.arc(q.x, q.y, rr, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#ffe48a'; ctx.beginPath(); ctx.arc(q.x, q.y, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '400 22px "Ma Shan Zheng", "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff6dc'; ctx.fillText(pt.part, q.x, q.y - Math.max(core, rr) - 14);
+  const pc = toScreen(to2(playerC())); ctx.strokeStyle = 'rgba(255,228,138,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(pc.x, pc.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillStyle = '#ffe48a'; ctx.fillText('破绽 ' + (PZ.i + 1) + ' / ' + PZ.N + '  ·  点圈瞬身斩过去，圈收得越小越痛', W / 2, Hc - 60);
 }
 function jzTryMelee(e) {
   if (!jzActive() || !jzFacing(e.pos)) return false;
+  if (LV.id && LV.d && LV.d.boss === e) { jzSuccess(e.pos, e); pzStart(e); e.hitCd = 0.8; return true; } // Boss：进入破绽连斩
   if (isDuel(e)) { e.mode = 'stagger'; e.t = 2.0; e.vel.multiplyScalar(0.2); } else { e.stunUntil = cb.realT + 1.5; e.mode = 'drift'; e.t = 1.5; }
   e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 14); e.knockUntil = cb.realT + 0.4; e.hitCd = 0.8; // 被弹开
   jzSuccess(e.pos, e); return true;
@@ -5019,17 +5082,18 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
       } else if (e.cycle % 3 === 0) {
         for (let k = -2; k <= 2; k++) { const b = fireBullet(e.pos, dirP.clone().rotateAround(ORIGIN2, k * 0.17), 18); b.by = '孤鸿的剑气'; }
         e.t = 1.1 + rand() * 0.6; e.strafe = -(e.strafe || 1);
-      } else { e.mode = 'wind'; e.t = ph === 3 ? 0.45 : 0.6; e.combo = ph === 3 ? 3 : 1; sfx('beep'); }
+      } else { e.mode = 'wind'; e.t = ph === 3 ? 0.6 : 0.8; e.combo = ph === 3 ? 3 : 1; sfx('beep'); }
     }
-  } else if (e.mode === 'wind') {
+  } else if (e.mode === 'wind') { // 突刺（2026-10-09 用户定）：蓄势时一直指着你，出手前 0.12 秒锁死，直线刺穿到你身后——方向和时机都读得出来，可拆可躲
     moveToward(e.vel, dirP.clone().multiplyScalar(-3), 40 * dt);
-    if (e.t > 0.2) { const lead = pc.clone().addScaledVector(pv, 0.3).sub(e.pos); e.face = Math.atan2(lead.y, lead.x); }
-    if (e.t <= 0) { e.mode = 'dash'; e.t = 0.4; e.vel.set(Math.cos(e.face), Math.sin(e.face)).multiplyScalar(BOOST); e.dashed = false; sfx('charge'); }
+    if (e.t > 0.12) e.face = Math.atan2(dirP.y, dirP.x);
+    else if (!e.locked) { e.locked = true; e.lockD = dist; sfx('beep'); }
+    if (e.t <= 0) { const spd = BOOST * 1.3; e.mode = 'dash'; e.locked = false; e.t = clamp(((e.lockD || dist) + 14) / spd, 0.3, 1.4); e.vel.set(Math.cos(e.face), Math.sin(e.face)).multiplyScalar(spd); e.dashed = false; sfx('charge'); }
   } else if (e.mode === 'dash') {
     if (!e.dashed && cb.iframe > 0 && dist < e.r + CB.PLAYER_R + CB.RISK_PAD + 0.9) { e.dashed = true; e.mode = 'stagger'; e.t = 1.8; e.vel.multiplyScalar(0.25); popup('破绽', 'move gold'); }
     else if (e.t <= 0) {
       e.combo = (e.combo || 1) - 1;
-      if (e.combo > 0) { e.mode = 'wind'; e.t = 0.28; } // 人剑合一：接着下一段
+      if (e.combo > 0) { e.mode = 'wind'; e.t = 0.45; } // 人剑合一：接着下一段（重新瞄你）
       else { e.mode = 'recover'; e.t = ph === 3 ? 1.5 : 0.8; }
     }
   } else {
@@ -5043,7 +5107,7 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
   e.eye.scale.setScalar(e.mode === 'wind' ? 1.9 : e.mode === 'stagger' ? 0.5 : 1);
   const sh = e.g.userData.shield; if (sh) { sh.visible = e.shield > 0; sh.rotation.z += dt * 2; sh.material.opacity = 0.25 + 0.06 * e.shield; }
   tele.visible = e.mode === 'wind' && state.fx;
-  if (tele.visible) { tele.position.set(e.pos.x, e.pos.y, 0.9); tele.rotation.z = e.face; tele.scale.set(BOOST * 0.4 + 2, 1, 1); tele.material.opacity = e.t < 0.2 ? (Math.sin(e.phase * 50) > 0 ? 0.95 : 0.4) : 0.3; }
+  if (tele.visible) { tele.position.set(e.pos.x, e.pos.y, 0.9); tele.rotation.z = e.face; tele.scale.set(Math.min(dist + 14, 60), 1, 1); tele.material.opacity = e.t < 0.12 ? (Math.sin(e.phase * 50) > 0 ? 1 : 0.5) : 0.35; }
 }
 
 LEVELS.jianzhong = {
@@ -5107,7 +5171,7 @@ LEVELS.jianzhong = {
   reward() {
     ABIL.jianzhao = true; try { localStorage.setItem('yujian_ab_jianzhao', '1'); } catch (e) {} loGrant('melee', 'jianzhao');
     showChoice({ title: '夺能 · 见招', tag: '获得新能力', sub: '孤鸿守了一辈子剑冢，一身本事都在“接得住”三个字上。你从他最后一剑里看懂了这一招。<br>解锁了<b>近战（点按左键）</b>的新形态「见招」，已经替你装上；之后可以在“整剑”里和顺锋换着用。',
-      opts: [{ kind: 'relic', name: '见招', tag: '近战 · 点按左键', desc: '每一刀出手的 0.15 秒内都能拆招：近身攻击者直接露出破绽，子弹弹回去（重弹照样破甲），拆中时慢放一下、回 1 格剑势和 15 剑意。代价：剑弧更短。看准攻击到的那一瞬间再出刀。', cost: '接下来：试招。墨影剑客的冲斩、蓄势针的重针，都拆给它们看。',
+      opts: [{ kind: 'relic', name: '见招', tag: '近战 · 点按左键', desc: '每一刀出手的 0.15 秒内都能拆招——只拆近身攻击，子弹照旧用斩弹。拆中的人露出破绽；拆中 Boss 的突刺，进入破绽连斩。代价：剑弧更短。看准攻击到的那一瞬间再出刀。', cost: '接下来：试招。墨影剑客的冲斩，一个一个拆给它们看。',
         fn: () => { hideOverlays(); setModal(false); this.startTrial(); } }] });
     G.onConfirm = () => { hideOverlays(); setModal(false); this.startTrial(); };
   },
@@ -5117,7 +5181,7 @@ LEVELS.jianzhong = {
     if (cb.enemies.length || cb.pendingSquads.length) return;
     D.gap -= dt; if (D.gap > 0) return;
     if (D.wave === 0) { tSquad(['duelist'], 0.4); tSquad(['duelist'], -0.4); popup('它冲到面前的一瞬间出刀', 'small gold'); }
-    else if (D.wave === 1) { tSquad(['needle'], 0); tSquad(['needle'], Math.PI); tSquad(['crow', 'crow'], 1.5); popup('重针也能拆回去', 'small gold'); }
+    else if (D.wave === 1) { tSquad(['duelist'], 0); tSquad(['duelist'], Math.PI); tSquad(['duelist'], 1.5); popup('三个一起来，一个一个拆', 'small gold'); }
     else { D.times.trial = D.stT; lvFinish(true); return; }
     D.wave++; D.gap = 2;
   },
@@ -5165,7 +5229,7 @@ const LO_SLOTS = [
 ];
 const FORMS = {
   melee: { shunfeng: { name: '顺锋', good: '均衡；高速时自动成冲锋斩', cost: '—', def: true }, chuanfeng: { name: '穿锋', good: '冲锋斩的剑气继续前飞约 20 米、穿透', cost: '剑气命中不给近身剑意' },
-    jianzhao: { name: '见招', good: '每一刀出手的 0.15 秒内都能拆招：近身攻击者露出破绽，重弹也能弹回去破甲；拆中有慢放、回剑势和剑意', cost: '剑弧更短（约 72%）', boss: '孤鸿（剑冢）', abil: 'jianzhao' } },
+    jianzhao: { name: '见招', good: '每一刀出手的 0.15 秒内都能拆近身攻击（子弹不算）：对手露出破绽；拆中 Boss 进入破绽连斩', cost: '剑弧更短（约 72%）', boss: '孤鸿（剑冢）', abil: 'jianzhao' } },
   carve: { zhengquan: { name: '整圈', good: '一整圈大斩，伤害加倍', cost: '—', def: true }, moxuan: { name: '墨旋', good: '回锋处留下墨旋：反复切割、吞掉飞进来的子弹', cost: '回锋斩不再派剑阵' } },
   charge: { kaishan: { name: '开山', good: '蓄势时正面挡弹；松开劈山，蓄满破甲。回锋斩之后按住也能接', cost: '蓄势时转向变慢、减速', def: true } },
   active: { jianming: { name: '剑鸣', good: '震出一圈剑气：清掉身边 8 米的普通子弹，震退小怪', cost: '冷却 10 秒', def: true },
@@ -7343,6 +7407,7 @@ window.addEventListener('keydown', () => auInit());
 canvas.addEventListener('mousedown', e => {
   canvas.focus();
   if (G.modal) return;
+  if (e.button === 0 && PZ.on) { pzClick(); return; } // 破绽连斩：左键点圈
   if (e.button === 0) { cb.leftDown = true; cb.leftDownT = cb.realT; pressSlash(); }
   if (e.button === 2) pressYj();
 });
@@ -8243,7 +8308,7 @@ $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { rese
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
 window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2
-  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, LO, FORMS, showLoadout, loApply, activePress, ACT, // 关卡原型 · 北冥 / 剑冢 / 整剑 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, PZ, pzClick, jzTryMelee, headingW, playerC, LO, FORMS, showLoadout, loApply, activePress, ACT, // 关卡原型 · 北冥 / 剑冢 / 整剑 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
