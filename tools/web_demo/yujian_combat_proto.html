@@ -269,6 +269,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
           </div>
           <div class="skills">
             <div class="sk" id="cb-dash-row"><div class="ico" id="cb-dash"><span>闪</span></div><kbd>空格</kbd></div>
+            <div class="sk" id="cb-kun-row" hidden><div class="ico" id="cb-kun" style="--c:#7fe3ff"><span>鲲</span></div><kbd>Q</kbd></div>
             <div class="sk" id="cb-arr-row"><div class="ico" id="cb-arr" style="--c:#94bdd3"><span>阵</span><small id="cb-arr-n"></small></div><kbd id="cb-arr-key">随招</kbd></div>
           </div>
         </div>
@@ -2188,7 +2189,7 @@ function getBullet() {
 function freeBullet(i) { const b = cb.bullets[i]; b.m.visible = false; cb.bullets.splice(i, 1); bulletPool.push(b); }
 function fireBullet(from, dir, speed, heavy) {
   const b = getBullet(); b.pos.copy(from); b.vel.copy(dir).normalize().multiplyScalar(speed); b.life = 4.5; b.friendly = false; b.m.material = bulletMat.hostile;
-  b.heavy = !!heavy; b.by = null; b.m.scale.set(heavy ? 2.6 : 1, heavy ? 0.9 : 1, 1); b.m.rotation.z = heavy ? Math.atan2(dir.y, dir.x) : 0; // 重针：拉长的大弹
+  b.heavy = !!heavy; b.by = null; b.breakArmor = false; b.m.scale.set(heavy ? 2.6 : 1, heavy ? 0.9 : 1, 1); b.m.rotation.z = heavy ? Math.atan2(dir.y, dir.x) : 0; // 重针：拉长的大弹
   sfx(heavy ? 'heavy' : 'enemyShot', heavy ? 0 : 0.06);
   return b;
 }
@@ -3192,7 +3193,7 @@ function combatStep(dt) {
     b.pos.addScaledVector(b.vel, dt); b.life -= dt;
     let dead = b.life <= 0 || b.pos.distanceTo(pc) > 90;
     if (!dead && b.friendly) {
-      for (const e of cb.enemies) if (!(e.cut && e.cut.dead) && b.pos.distanceTo(e.pos) < e.r + CB.BULLET_R) { if (armorBlocks(e, b.vel)) blockFx(e, b.vel); else damageEnemy(e, b.heavy ? 4 : 2, b.vel, 'reflect'); dead = true; break; }
+      for (const e of cb.enemies) if (!(e.cut && e.cut.dead) && b.pos.distanceTo(e.pos) < e.r + CB.BULLET_R) { if (!b.breakArmor && armorBlocks(e, b.vel)) blockFx(e, b.vel); else damageEnemy(e, b.heavy ? 4 : 2, b.vel, 'reflect'); dead = true; break; } // breakArmor：吞海水弹破甲
     } else if (!dead) {
       const d = b.pos.distanceTo(pc);
       // 无敌帧内子弹擦身（本来会打中）：划开这颗子弹，并触发极限闪避“险”
@@ -4376,11 +4377,12 @@ function stepLevelEnemy(e, dt, pc, dirP, canFire) {
 function showLevelSelect() {
   resetCombat(); G.flow = 'lvsel'; G.run = null;
   let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
-  showChoice({ title: '关卡原型', tag: '灰盒 · 六种方向', sub: '六种“飞行关卡怎么做出新鲜感”的方向，各做了一关灰盒（后两关换了世界形状）。都试一遍，告诉我哪种最重要。数字键 1–6 选择。',
-    opts: Object.keys(LV_INFO).map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
+  showChoice({ title: '关卡原型', tag: '灰盒 · 六种方向', sub: '第一关「北冥」是完整的垂直切片（追鲲 → 鲲鹏 Boss → 夺能 → 试招）；后面六关是“飞行关卡怎么做出新鲜感”的灰盒方向。数字键选择。',
+    opts: ['beiming', ...Object.keys(LV_INFO).filter(k => k !== 'beiming')].map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
     leave: { name: '回到标题', fn: () => showTitle() } });
 }
 function showLevelIntro(id) {
+  LV.ckpt = null; // 从选关进来：从头开始
   const I = LV_INFO[id];
   const opts = LEVELS[id].rotOption
     ? [{ kind: 'up', name: '开始 · 镜头固定', tag: '回车', desc: '镜头不转，星球就是画面里的一个圆（2026-10-09 用户试玩：旋转太晕，固定更好）', fn: () => { LV.rotCamPref = false; startLevel(id); } },
@@ -4403,7 +4405,7 @@ function lvStep(dt) {
   LEVELS[LV.id].step(dt, new V2(sim.pos.x, wy(sim.pos.y)));
 }
 function lvFinish(win) {
-  if (LV.done) return; LV.done = true;
+  if (LV.done) return; LV.done = true; LV.ckpt = null;
   const id = LV.id, R = LEVELS[id].result();
   let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
   const nb = !best[id] || R.score < best[id].score;
@@ -4421,6 +4423,7 @@ function lvFinish(win) {
   }, 1200);
 }
 function drawLevelOverlay(toScreen, W, Hc) {
+  drawTun(toScreen); // 吞海的吞口（任何模式）
   if (!LV.id) return;
   const L = LEVELS[LV.id]; if (L.overlay) L.overlay(ovCtx, toScreen, W, Hc);
 }
@@ -4459,7 +4462,7 @@ function lvCamUp(dt) {
   return lvUp;
 }
 // 目标速度修正：小世界俯冲更快、爬升更慢；星海绕星时加速
-function lvSpeedMod(slowMul) { const L = LV.id && LEVELS[LV.id]; return L && L.speedMod && !LV.done ? L.speedMod(slowMul) : slowMul; }
+function lvSpeedMod(slowMul) { const L = LV.id && LEVELS[LV.id]; const m = L && L.speedMod && !LV.done ? L.speedMod(slowMul) : slowMul; return TUN.on ? m * 0.6 : m; } // 吞海期间减速
 function lvPlace(x, alt, hx, hy) { sim.pos.x = x; sim.pos.y = BASE_Y - alt; sim.vel.set(hx * CRUISE, -hy * CRUISE); sim.setHeading(new V2(hx, -hy)); state.camFocus = null; }
 
 // ---------- 五、浮空小世界 ----------
@@ -4579,6 +4582,276 @@ LV_INFO.planet = { name: '浮空小世界', tag: '世界形状 · 弧形地平�
 LV_INFO.stars = { name: '周天星海', tag: '世界形状 · 星辰引力', test: '借星辰引力绕行、甩射，是不是好的飞行技术？',
   goal: '按顺序穿过 6 道星门，计时。每颗星辰都有引力，越近越强；贴着星辰沿切线绕行会被吸住并加速，绕过大半圈再离开 = 星引甩射（白送一次爆冲 + 1 格剑势）。星门都摆在星辰背面，借力甩过去最快。' };
 
+// ===========================================================================
+// 垂直切片 · 北冥（2026-10-09，用户试玩六关后最喜欢“鲲”）：验证“关卡 → Boss → 夺能 → 用能力”的完整循环
+//   一、追鲲（赶路段）：鲲在前方贴海而游，你追上去；海里的礁石、定时冲起的浪柱、头顶雷云、沿途墨鸦
+//   二、鲲（Boss 三阶段）：①鳞眼轮流张开 + 鳃弹幕 + 尾扫 + 吞海吸力  ②（剩两只鳞眼）怒：潜入海底、从你脚下破海而出  ③化鹏：长出双翼、游得更快，振翅掀起扶摇狂风、洒下羽刃，打它背上的鹏心
+//   三、夺能：「鲲鹏之力 · 吞海」（Q）——按住在身前张开吞口，把子弹和小怪吸进来；松开化作破甲水弹扇形喷出，吞得越多喷得越狠
+//   四、试招：弹幕密集的扇傀 / 蓄势针，再来两只正面刀剑不入的墨甲卫——吞海的水弹能破甲
+// 能力解锁后保存在本机，之后在任何模式里按 Q 都能用（“夺能”是带走的）
+// ===========================================================================
+const ABIL = { kunpeng: false };
+try { ABIL.kunpeng = localStorage.getItem('yujian_ab_kunpeng') === '1'; } catch (e) {}
+const TUN = { on: false, t: 0, caught: 0, cd: 0, uses: 0, eaten: 0, MAX: 1.6, CD: 4 };
+function tunPress() {
+  if (!ABIL.kunpeng || state.mode !== 'fly' || cb.dead > 0 || G.modal || TUN.on) return;
+  if (TUN.cd > 0) { fail('吞海冷却中'); return; }
+  TUN.on = true; TUN.t = 0; TUN.caught = 0; sfx('incoming'); popup('吞海', 'small');
+}
+function tunRelease() {
+  if (!TUN.on) return;
+  TUN.on = false; TUN.cd = TUN.CD; TUN.uses++;
+  const pc = to2(playerC()), h = headingW(), mouth = pc.clone().addScaledVector(h, 1.4);
+  const n = clamp(TUN.caught, 3, 24), heavy = TUN.caught >= 6;
+  for (let k = 0; k < n; k++) {
+    const dir = h.clone().rotateAround(ORIGIN2, (n > 1 ? k / (n - 1) - 0.5 : 0) * (0.5 + n * 0.03));
+    const b = fireBullet(mouth, dir, 34); b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.3; b.breakArmor = true;
+    if (heavy) { b.heavy = true; b.m.scale.set(1.8, 1.2, 1); }
+  }
+  spawnShock(new V3(mouth.x, mouth.y, 0), 0.9); sfx('charge'); popup(TUN.caught ? '吐 · ' + TUN.caught : '吐', TUN.caught >= 6 ? 'move gold' : 'small');
+}
+function tunStep(dt) {
+  TUN.cd = Math.max(0, TUN.cd - dt);
+  if (!TUN.on) return;
+  TUN.t += dt; if (TUN.t > TUN.MAX || cb.dead > 0) { tunRelease(); return; }
+  const pc = to2(playerC()), h = headingW(), mouth = pc.clone().addScaledVector(h, 1.4);
+  for (let i = cb.bullets.length - 1; i >= 0; i--) {
+    const b = cb.bullets[i]; if (b.friendly) continue;
+    const v = b.pos.clone().sub(pc), d = v.length();
+    if (d > 14 || Math.abs(signedAngle(h, v)) > 0.85) continue;
+    if (b.pos.distanceTo(mouth) < 1.4) { swordSparks.emit(new V3(b.pos.x, b.pos.y, 0), 3, 4); freeBullet(i); TUN.caught++; TUN.eaten++; continue; }
+    b.vel.copy(mouth.clone().sub(b.pos).normalize().multiplyScalar(38));
+  }
+  for (const e of cb.enemies.slice()) {
+    if (e.boss || e.puppet || ENEMY_TYPES[e.type].elite || (e.cut && e.cut.dead)) continue;
+    const v = e.pos.clone().sub(pc), d = v.length();
+    if (d > 12 || Math.abs(signedAngle(h, v)) > 0.85) continue;
+    if (d < 2) { damageEnemy(e, 99, h, 'kun'); TUN.caught += 2; continue; }
+    e.vel.addScaledVector(mouth.clone().sub(e.pos).normalize(), 45 * dt); e.knockUntil = cb.realT + 0.1;
+  }
+}
+function drawTun(toScreen) {
+  if (!TUN.on || cb.dead > 0) return;
+  const ctx = ovCtx, pc = to2(playerC()), h = headingW(), c = toScreen(pc), e = toScreen(pc.clone().addScaledVector(h, 14)), R = Math.hypot(e.x - c.x, e.y - c.y), a = Math.atan2(e.y - c.y, e.x - c.x);
+  ctx.globalAlpha = 0.18 + 0.1 * Math.sin(cb.realT * 20); ctx.fillStyle = '#7fe3ff';
+  ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.arc(c.x, c.y, R, a - 0.85, a + 0.85); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 0.8; ctx.strokeStyle = '#bff3ff'; ctx.lineWidth = 2;
+  for (let k = 0; k < 7; k++) { const aa = a + (k / 6 - 0.5) * 1.6, r0 = R * (1 - ((cb.realT * 1.6 + k * 0.17) % 1)); ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(4, r0), aa - 0.06, aa + 0.06); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.fillStyle = '#e8fbff'; ctx.font = '700 14px "Noto Serif SC", serif'; ctx.textAlign = 'center';
+  ctx.fillText('吞 ' + TUN.caught + (TUN.caught >= 6 ? ' · 破甲重弹' : ''), c.x, c.y - 34); ctx.textAlign = 'start';
+}
+
+// ---------- 鲲（北冥版）：身体是一串圆，可以游、潜、破海、化鹏 ----------
+function bmKunBuild(x, y) {
+  const K = { x, y, vx: CRUISE * 0.85, ang: 0, t: 0, parts: [], mode: 'swim', mt: 0, gillT: 3, inhaleT: 9, inhale: 0, wings: [] };
+  for (const [ox, r] of KUN_SPINE) {
+    const m = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), lvMat.kun), -1.4); m.scale.set(r * 1.25, r, r);
+    const o = { k: 'circ', x: 0, y: 0, r, dmg: 6, name: '鲲身', ox, m, noBlock: true }; LV.obs.push(o); K.parts.push(o);
+  }
+  K.belly = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), lvMat.kunBelly), -1.3); K.belly.scale.set(26, 5, 5);
+  K.tailM = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(7, 12, 4), lvMat.kun), -1.4);
+  K.tail = { k: 'circ', x: 0, y: 0, r: 5, dmg: 15, name: '鲲尾', noBlock: true }; LV.obs.push(K.tail);
+  K.fin = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(4, 14, 3), lvMat.kun), -1.5);
+  K.eyeM = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe9a0 })), -0.9); K.eyeM.layers.enable(2);
+  for (const sd of [1, -1]) { const w = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(9, 34, 3), toon('#1a1206', '#6a4a1a', '#e8c46a')), -1.6); w.visible = false; K.wings.push({ m: w, sd }); }
+  return K;
+}
+function bmKunAt(K, ox, oy) { const c = Math.cos(K.ang), s = Math.sin(K.ang); return new V2(K.x + ox * c - oy * s, K.y + ox * s + oy * c); }
+function bmKunPose(K, dt) {
+  K.t += dt;
+  for (const o of K.parts) { const p = bmKunAt(K, o.ox, Math.sin(K.t * 1.6 + o.ox * 0.08) * 0.8); o.x = p.x; o.y = p.y; o.m.position.set(p.x, p.y, -1.4); o.m.rotation.z = K.ang; }
+  const bp = bmKunAt(K, -22, -6); K.belly.position.set(bp.x, bp.y, -1.3); K.belly.rotation.z = K.ang;
+  const sw = Math.sin(K.t * (K.bird ? 2.4 : 1.2)) * 9, tp = bmKunAt(K, -63, sw); K.tail.x = tp.x; K.tail.y = tp.y; K.tailM.position.set(tp.x, tp.y, -1.4); K.tailM.rotation.z = Math.PI / 2 + K.ang + sw * 0.05;
+  const fp = bmKunAt(K, -20, 13); K.fin.position.set(fp.x, fp.y, -1.5); K.fin.rotation.z = K.ang + 0.5;
+  const ep = bmKunAt(K, 3, 3); K.eyeM.position.set(ep.x, ep.y, -0.9);
+  K.mouth = bmKunAt(K, 8, -2);
+  // 化鹏：背上两只大翅，一上一下拍动
+  const flap = Math.sin(K.t * 3.2);
+  for (const w of K.wings) { if (!w.m.visible) continue; const p = bmKunAt(K, -18, w.sd * 10); w.m.position.set(p.x, p.y + w.sd * (6 + flap * 6), -1.6); w.m.rotation.z = K.ang + w.sd * (Math.PI / 2 + 0.35 + flap * 0.5); }
+}
+// 每帧移动：游（随正弦起伏）/ 潜入海底 / 海底蛰伏（瞄准你脚下）/ 破海而出
+function bmKunMove(K, dt, P) {
+  K.mt += dt;
+  const prevY = K.y;
+  if (K.mode === 'swim') {
+    K.x += K.vx * dt;
+    const yT = (K.baseY || 50) + 8 * Math.sin(K.t * 0.33); K.y += (yT - K.y) * (1 - Math.exp(-dt * 2));
+  } else if (K.mode === 'dive') {
+    K.x += K.vx * 0.8 * dt; K.y += (-38 - K.y) * (1 - Math.exp(-dt * 2.5));
+    if (K.mt > 1.6) { K.mode = 'under'; K.mt = 0; }
+  } else if (K.mode === 'under') {
+    K.bx = P.x + velW().x * 1.1; K.x = K.bx + 8; K.y = -38; K.ang = Math.PI / 2;
+    if (K.mt > 1.5) { K.mode = 'breach'; K.mt = 0; K.splash = false; }
+  } else if (K.mode === 'breach') {
+    const u = clamp(K.mt / 1.1, 0, 1); K.y = lerp(-38, 70, 1 - Math.pow(1 - u, 2)); K.x = K.bx + 8 - u * 6;
+    if (!K.splash && K.y > 0) { K.splash = true; waterSplash(K.bx, 2.2); cb.quake = { t0: performance.now() / 1000, amp: 4 * state.burstShake }; sfx('burst'); }
+    if (K.mt > 1.3) { K.mode = 'swim'; K.mt = 0; }
+  }
+  const vy = (K.y - prevY) / Math.max(dt, 1e-4), want = K.mode === 'under' ? Math.PI / 2 : Math.atan2(vy, Math.max(K.vx, 4)) * (K.mode === 'breach' ? 1 : 0.5);
+  K.ang += wrapA(want - K.ang) * (1 - Math.exp(-dt * (K.mode === 'breach' ? 10 : 4)));
+}
+
+LEVELS.beiming = {
+  cam: 2.5,
+  build(O) {
+    const D = LV.d; D.stage = 'chase'; D.stT = 0; D.times = {};
+    // 礁石（从海里立起）+ 头顶雷云
+    const r = lvRng(19);
+    for (let x = O.x + 70; x < O.x + 2400; x += 40 + r() * 30) { const h = 6 + r() * 12; lvBox(x, h / 2, 6, h, toon('#1a2228', '#3a4a52', '#7a8a92'), -1.1); LV.obs.push({ k: 'rect', x, y: h / 2, hw: 3, hh: h / 2, dmg: 8, name: '礁石', graze: true }); }
+    LV.obs.push({ k: 'rect', x: O.x + 1200, y: 88, hw: 1400, hh: 18, dmg: 6, name: '雷云' });
+    for (let x = O.x - 60; x < O.x + 2500; x += 22) lvBox(x, 79 + (r() - 0.5) * 3, 26, 14, lvMat.cloud, -1.5);
+    D.K = bmKunBuild(O.x + 175, 34); D.K.baseY = 34; D.K.vx = CRUISE * 0.8; // 鲲尾在前方约 110 米：巡航追约半分钟，爆冲能更快
+    D.pillars = []; D.pillarT = 3;
+    D.triggers = [{ x: O.x + 110, f: () => { for (let k = 0; k < 3; k++) lvSpawn('crow', O.x + 170 + k * 6, 26 + k * 8); } }, { x: O.x + 300, f: () => { for (let k = 0; k < 4; k++) lvSpawn('crow', O.x + 360 + k * 5, 18 + k * 9); } }];
+    lvPlace(O.x, 30, 1, 0);
+    if (LV.ckpt === 'boss' || LV.ckpt === 'trial') { D.K.x = O.x + 60; D.K.y = 48; D.times.chase = 0; this.startBoss(); }
+    if (LV.ckpt === 'trial') { D.times.boss = 0; D.K.parts.forEach(o => { o.alive = false; o.m.visible = false; }); D.K.tail.alive = false; for (const m of [D.K.belly, D.K.tailM, D.K.fin, D.K.eyeM]) m.visible = false; for (const e of D.eyes) removeEnemy(e); D.stage = 'reward'; this.startTrial(); }
+  },
+  speedMod(m) { return m; },
+  physics(dt, P) {
+    const D = LV.d, K = D.K;
+    if (D.stage === 'chase' || D.stage === 'boss') bmKunMove(K, dt, P);
+    bmKunPose(K, dt);
+    for (const e of D.eyes || []) if (cb.enemies.includes(e)) { const o = K.parts[e.part]; e.pos.copy(bmKunAt(K, o.ox, e.side * o.r * 0.92)); e.g.visible = K.mode !== 'under' && K.mode !== 'dive'; }
+    // 吞海：把你往嘴里吸
+    if (K.inhale > 0) {
+      const d = K.mouth.clone().sub(P), L = d.length();
+      if (L < 50) { const k = (D.phase >= 2 ? 16 : 13) * dt / Math.max(L, 1); sim.pos.x += d.x * k; sim.pos.y -= d.y * k; }
+      if (L < 6 && cb.iframe <= 0) hurtPlayer(18, '鲲口');
+    }
+    // 化鹏：振翅掀起扶摇狂风，把你吹开
+    if (D.gust > 0) { D.gust -= dt; const d = P.clone().sub(new V2(K.parts[2].x, K.parts[2].y)), L = d.length(); if (L < 45) { const k = 26 * dt / Math.max(L, 1); sim.pos.x += d.x * k; sim.pos.y -= d.y * k; } }
+  },
+  step(dt, P) {
+    const D = LV.d, K = D.K; D.stT += dt;
+    if (D.stage === 'chase') this.stepChase(dt, P);
+    else if (D.stage === 'boss') this.stepBoss(dt, P);
+    else if (D.stage === 'trial') this.stepTrial(dt, P);
+    void K;
+  },
+  stepChase(dt, P) {
+    const D = LV.d, K = D.K;
+    for (const tr of D.triggers) if (!tr.done && P.x > tr.x) { tr.done = true; tr.f(); }
+    // 浪柱：前方海面先翻起白沫（预警），一秒后冲起一道水柱
+    D.pillarT -= dt;
+    if (D.pillarT <= 0) { D.pillarT = 2.6 + rand() * 1.2; D.pillars.push({ x: P.x + 26 + rand() * 18, t: 0, up: false }); }
+    for (const pl of D.pillars) {
+      pl.t += dt;
+      if (!pl.up && pl.t > 1.0) { pl.up = true; pl.o = { k: 'rect', x: pl.x, y: 18, hw: 2.4, hh: 18, dmg: 10, name: '浪柱' }; LV.obs.push(pl.o); pl.m = lvBox(pl.x, 18, 4.8, 36, new THREE.MeshBasicMaterial({ color: 0xcfefff, transparent: true, opacity: 0.75 }), -0.6); waterSplash(pl.x, 1.6); }
+      if (pl.up && pl.t > 2.4 && pl.o.alive !== false) { pl.o.alive = false; pl.m.visible = false; }
+    }
+    // 鳃往后喷一点弹幕，逼你别直线追
+    K.gillT -= dt;
+    if (K.gillT <= 0) { K.gillT = 3.2; const o = K.parts[1], g = new V2(o.x, o.y), dir = P.clone().sub(g).normalize(); for (let k = -2; k <= 2; k++) { const b = fireBullet(g, dir.clone().rotateAround(ORIGIN2, k * 0.14), 11); b.by = '鲲鳃弹幕'; } }
+    if (D.stT > 40) K.vx = CRUISE * 0.6; // 追太久：鲲放慢，总能追上
+    const tail = new V2(K.tail.x, K.tail.y);
+    if (P.distanceTo(tail) < 26 && D.stT > 8) this.startBoss();
+  },
+  startBoss() {
+    const D = LV.d, K = D.K; if (D.stage === 'chase') D.times.chase = D.stT; D.stage = 'boss'; D.stT = 0; D.phase = 1; if (LV.ckpt !== 'trial') LV.ckpt = 'boss';
+    for (const pl of D.pillars) if (pl.o) { pl.o.alive = false; pl.m.visible = false; } D.pillars = [];
+    K.vx = CRUISE * 0.7; K.baseY = 48; K.gillT = 2; K.inhaleT = 8;
+    D.eyes = [[1, 1], [2, -1], [3, 1], [5, 1]].map(([i, s]) => { const e = lvSpawn('kuneye', K.x, K.y, true); e.part = i; e.side = s; e.invuln = true; return e; });
+    D.openIdx = -1; D.openT = 0;
+    popup('北冥有鱼 · 其名为鲲', 'sig gold'); sfx('realmUp');
+  },
+  stepBoss(dt, P) {
+    const D = LV.d, K = D.K;
+    if (D.phase < 3) {
+      const alive = D.eyes.filter(e => cb.enemies.includes(e));
+      if (!alive.length) { this.toBird(); return; }
+      if (D.phase === 1 && alive.length <= 2) { D.phase = 2; popup('鲲 · 怒', 'sig red'); K.diveT = 3; }
+      const hidden = K.mode !== 'swim';
+      D.openT -= dt;
+      if (D.openT <= 0 || !cb.enemies.includes(D.open)) { D.openIdx = (D.openIdx + 1) % alive.length; D.open = alive[D.openIdx]; D.openT = 7; if (!hidden) popup('鳞眼张开', 'small gold'); }
+      for (const e of alive) { e.invuln = e !== D.open || hidden; e.eye.scale.setScalar(e.invuln ? 0.6 : 1.6 + 0.3 * Math.sin(simTime * 10)); }
+      // 二阶段：潜入海底，从你脚下破海而出
+      if (D.phase === 2 && K.mode === 'swim') { K.diveT -= dt; if (K.diveT <= 0) { K.mode = 'dive'; K.mt = 0; K.diveT = 13; popup('鲲 · 潜渊', 'move red'); } }
+    } else {
+      if (!cb.enemies.includes(D.heart)) { this.win(); return; }
+      D.gustT -= dt;
+      if (D.gustT <= 0) { D.gustT = 2.8; D.gust = 0.45; popup('扶摇', 'small'); sfx('dodge'); const c = new V2(K.parts[2].x, K.parts[2].y); for (let k = 0; k < 14; k++) { const b = fireBullet(c, new V2(Math.cos(k / 14 * Math.PI * 2 + K.t), Math.sin(k / 14 * Math.PI * 2 + K.t)), 13); b.by = '鹏羽'; } }
+      D.heart.eye.scale.setScalar(1.8 + 0.4 * Math.sin(simTime * 8));
+    }
+    if (K.mode === 'swim') {
+      K.gillT -= dt;
+      if (K.gillT <= 0 && cb.dead <= 0) { K.gillT = D.phase >= 2 ? 2.2 : 2.8; for (const pi of [1, 2]) { const o = K.parts[pi], g = new V2(o.x, o.y - o.r * 0.3), dir = P.clone().sub(g).normalize(); for (let k = -3; k <= 3; k++) { const b = fireBullet(g, dir.clone().rotateAround(ORIGIN2, k * 0.12), 12); b.by = '鲲鳃弹幕'; } } }
+      if (D.phase < 3) {
+        K.inhaleT -= dt;
+        if (K.inhaleT <= 0 && K.inhale <= 0) { K.inhale = D.phase >= 2 ? 3.5 : 3; K.inhaleT = D.phase >= 2 ? 10 : 13; popup('鲲 · 吞海', 'move red'); sfx('incoming'); }
+      }
+    }
+    if (K.inhale > 0) K.inhale -= dt;
+    if (P.distanceTo(new V2(K.x - 25, K.y)) > 90 && K.mode === 'swim') sim.pos.x += (K.x - 25 - P.x) * 0.05; // 别被甩得太远
+  },
+  toBird() {
+    const D = LV.d, K = D.K; D.phase = 3; K.bird = true; K.vx = CRUISE * 1.05; K.inhale = 0; K.mode = 'swim'; K.baseY = 50;
+    for (const w of K.wings) w.m.visible = true;
+    const o = K.parts[2]; D.heart = lvSpawn('kuneye', o.x, o.y, true); D.heart.hp = 16; D.heart.part = 2; D.heart.side = 1; D.heart.invuln = false;
+    D.eyes = [D.heart]; D.gustT = 2; D.gust = 0;
+    popup('化而为鹏', 'sig gold'); sfx('realmUp'); cb.quake = { t0: performance.now() / 1000, amp: 5 * state.burstShake };
+  },
+  win() {
+    const D = LV.d, K = D.K; D.times.boss = D.stT; D.stage = 'reward'; D.stT = 0;
+    for (const o of K.parts) { inkBurst.emit(new V3(o.x, o.y, 0), 30, 24); goldBurst.emit(new V3(o.x, o.y, 0), 14, 20); o.m.visible = false; o.alive = false; }
+    K.tail.alive = false; for (const m of [K.belly, K.tailM, K.fin, K.eyeM]) m.visible = false; for (const w of K.wings) w.m.visible = false;
+    for (let j = cb.bullets.length - 1; j >= 0; j--) if (!cb.bullets[j].friendly) freeBullet(j);
+    cb.quake = { t0: performance.now() / 1000, amp: 7 * state.burstShake }; sfx('burst'); popup('鲲鹏归心', 'sig gold'); cb.riskSlowT = 1.4;
+    setTimeout(() => { if (LV.id === 'beiming' && LV.d.stage === 'reward') this.reward(); }, 1800);
+  },
+  reward() {
+    ABIL.kunpeng = true; try { localStorage.setItem('yujian_ab_kunpeng', '1'); } catch (e) {}
+    showChoice({ title: '夺能 · 鲲鹏之力', tag: '获得新能力', sub: '“北冥有鱼，其名为鲲……化而为鹏。”你炼化了它的一缕本源。<br>这份能力会一直跟着你：之后在任何模式里按 Q 都能用。',
+      opts: [{ kind: 'relic', name: '吞海', tag: '按住 Q', desc: '按住 Q：身前张开吞口，把飞来的子弹和小怪吸进来（最多 1.6 秒，期间减速）。松开：吞下的东西化作水弹扇形喷出——吞得越多喷得越狠，吞满 6 颗变成破甲重弹。冷却 4 秒。', cost: '接下来：试招。弹幕越密，吞海越强；墨甲卫正面刀剑不入，但挡不住水弹。',
+        fn: () => { hideOverlays(); setModal(false); this.startTrial(); } }] });
+    G.onConfirm = () => { hideOverlays(); setModal(false); this.startTrial(); };
+  },
+  startTrial() {
+    const D = LV.d; D.stage = 'trial'; D.stT = 0; D.wave = 0; D.gap = 1.2; G.onConfirm = null; LV.ckpt = 'trial';
+    popup('试招 · 吞海（按住 Q）', 'move gold');
+  },
+  stepTrial(dt) {
+    const D = LV.d;
+    if (cb.enemies.length || cb.pendingSquads.length) return;
+    D.gap -= dt; if (D.gap > 0) return;
+    if (D.wave === 0) { tSquad(['fan', 'fan', 'fan'], 0.3); tSquad(['needle'], -0.6); tSquad(['crow', 'crow'], Math.PI); popup('弹幕越密，吞得越多', 'small gold'); }
+    else if (D.wave === 1) { tSquad(['guard'], 0); tSquad(['guard'], Math.PI * 0.8); tSquad(['crow', 'crow', 'crow'], 1.6); popup('墨甲卫挡不住水弹', 'small gold'); }
+    else { D.times.trial = D.stT; lvFinish(true); return; }
+    D.wave++; D.gap = 2;
+  },
+  hud() {
+    const D = LV.d, K = D.K;
+    if (D.stage === 'chase') return `北冥 · 追鲲 · 离鲲尾 <b>${Math.round(Math.max(0, new V2(sim.pos.x, wy(sim.pos.y)).distanceTo(new V2(K.tail.x, K.tail.y)) - 26))}</b>m · 用时 <b>${D.stT.toFixed(1)}</b>s · 浪柱会从海里冲起`;
+    if (D.stage === 'boss') {
+      if (D.phase === 3) return `北冥 · 鹏 · 打它背上的鹏心 · 振翅掀起扶摇狂风 · 用时 <b>${D.stT.toFixed(1)}</b>s`;
+      const left = (D.eyes || []).filter(e => cb.enemies.includes(e)).length;
+      return `北冥 · 鲲${D.phase === 2 ? ' · 怒' : ''} · 鳞眼余 <b>${left}/4</b> · ${K.inhale > 0 ? '<b style="color:#ff6a55">吞海中！爆冲挣脱</b>' : K.mode !== 'swim' ? '<b style="color:#ff6a55">潜渊——看海面白沫，别停在它上方</b>' : '打发光的鳞眼'}`;
+    }
+    if (D.stage === 'trial') return `北冥 · 试招 · 按住 <b>Q</b> 吞海、松开喷出 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 吞下子弹 <b>${TUN.eaten}</b>`;
+    return '北冥 · 鲲鹏归心';
+  },
+  result() {
+    const D = LV.d, T = D.times, dmg = Math.round(G.stats ? G.stats.dmg : 0), sc = LV.t + dmg * 0.3;
+    return { grade: sc < 150 ? '甲上' : sc < 200 ? '甲' : sc < 260 ? '乙' : '丙', rows: [['追鲲', (T.chase || 0).toFixed(1) + ' 秒'], ['鲲 → 鹏', (T.boss || 0).toFixed(1) + ' 秒'], ['试招', (T.trial || 0).toFixed(1) + ' 秒'], ['吞海', TUN.uses + ' 次 · 吞下子弹 ' + TUN.eaten + ' 颗'], ['所受伤害', dmg], ['总用时', LV.t.toFixed(1) + ' 秒']], score: sc };
+  },
+  overlay(ctx, toScreen) {
+    const D = LV.d, K = D.K;
+    for (const pl of D.pillars || []) if (!pl.up) { // 浪柱预警：海面翻白沫
+      const s = toScreen(new V2(pl.x, 0)), r = Math.abs(toScreen(new V2(pl.x + 3, 0)).x - s.x);
+      ctx.fillStyle = Math.sin(cb.realT * 30) > 0 ? 'rgba(255,255,255,.85)' : 'rgba(200,240,255,.5)'; ctx.fillRect(s.x - r, s.y - 6, r * 2, 6);
+      ctx.fillStyle = '#fff'; ctx.font = '700 13px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.fillText('浪', s.x, s.y - 12); ctx.textAlign = 'start';
+    }
+    if (K && (K.mode === 'under' || K.mode === 'dive') && K.bx !== undefined) { // 破海预警
+      const s = toScreen(new V2(K.bx, 0)), r = Math.abs(toScreen(new V2(K.bx + 14, 0)).x - s.x);
+      ctx.fillStyle = Math.sin(cb.realT * 24) > 0 ? 'rgba(255,90,70,.55)' : 'rgba(255,255,255,.6)'; ctx.fillRect(s.x - r, s.y - 8, r * 2, 8);
+      ctx.fillStyle = '#ff6a55'; ctx.font = '700 15px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.fillText('鲲 · 破海', s.x, s.y - 16); ctx.textAlign = 'start';
+    }
+    if (K && K.inhale > 0) { const m = toScreen(K.mouth); ctx.strokeStyle = 'rgba(255,120,100,.6)'; ctx.lineWidth = 2; for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 + cb.realT, r0 = 150 - ((cb.realT * 120 + k * 30) % 140); ctx.beginPath(); ctx.moveTo(m.x + Math.cos(a) * r0, m.y + Math.sin(a) * r0); ctx.lineTo(m.x + Math.cos(a) * (r0 - 14), m.y + Math.sin(a) * (r0 - 14)); ctx.stroke(); } }
+  },
+};
+LV_INFO.beiming = { name: '北冥（垂直切片）', tag: '追鲲 → 鲲鹏 Boss → 夺能 → 试招', test: '“关卡 → Boss → 夺能 → 用新能力”这个循环成不成立？',
+  goal: '一、追鲲：鲲在前方贴海而游，追上它。小心礁石、海面翻白沫后冲起的浪柱、头顶雷云。<br>二、鲲：打发光的鳞眼；吞海时爆冲挣脱；剩两只鳞眼后它会潜入海底，从你脚下破海而出（看海面红白预警）；最后化而为鹏，振翅狂风 + 羽刃，打它背上的鹏心。<br>三、夺能「鲲鹏之力 · 吞海」，然后用它试招。' };
+
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
 //   双击 W = 爆冲：瞬间冲到超过催剑上限的速度，持续一小段；没有无敌，转向变钝（承诺）——追击、拉开、长冲锋斩
@@ -4632,6 +4905,7 @@ function slipTarget(pc, h) {
 }
 // 每帧（飞行模拟里调用）：返回改写后的目标速度倍率
 function flightManeuverStep(dt, slowMul) {
+  tunStep(dt); // 鲲鹏之力 · 吞海
   const pc = to2(playerC()), h = headingW(), spd = sim.vel.length();
   cb.surgeT = Math.max(0, (cb.surgeT || 0) - dt); cb.brakeT = Math.max(0, (cb.brakeT || 0) - dt); cb.slipT = Math.max(0, (cb.slipT || 0) - dt);
   const tgt = slipTarget(pc, h);
@@ -6358,6 +6632,9 @@ function updateHud() {
   $('cb-thr').style.width = clamp((thr - vMin) / (BOOST - vMin), 0, 1) * 100 + '%';
   $('cb-thr-mark').style.left = ((CRUISE - vMin) / (BOOST - vMin) * 100) + '%';
   $('cb-thr-n').textContent = thr > CRUISE * 1.08 ? '催剑' : thr < CRUISE * 0.92 ? '收势' : '巡航';
+  // 鲲鹏之力 · 吞海：解锁后显示；吞的时候是剩余时长，冷却时转圈
+  $('cb-kun-row').hidden = !ABIL.kunpeng;
+  if (ABIL.kunpeng) { $('cb-kun').style.setProperty('--p', TUN.on ? 1 - TUN.t / TUN.MAX : 1 - TUN.cd / TUN.CD); $('cb-kun-row').classList.toggle('ready', !TUN.on && TUN.cd <= 0); $('cb-kun-row').classList.toggle('active', TUN.on); }
   // 修为（只在历劫里显示）：左边是当前境界，满了就突破
   const xr = $('cb-xiu-row'); xr.hidden = !realmOn();
   if (realmOn()) {
@@ -6560,12 +6837,15 @@ window.addEventListener('keydown', e => {
   if (k === ' ' && !e.repeat && state.mode === 'fly' && state.steer === 'mouse') doDodge(); // 空格：破空闪（按住 A / D 横闪）
   if (k === 'r' && !e.repeat && G.flow === 'free') resetCombat(); // R 重开只在自由模式
   if (k === 'f' && !e.repeat && state.mode === 'fly') startTrib(); // F：引劫（历劫中修为满时）
+  if (k === 'q' && !e.repeat) tunPress(); // Q：鲲鹏之力 · 吞海（按住吸、松开喷）
   if (k === 'h' && !e.repeat) app.classList.toggle('nopanel');
   if (k === 'p') $('btn-pause').click();
   if (k === '.') $('btn-step').click();
   if (k === 'b') { $('opt-bones').click(); }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+window.addEventListener('keyup', e => { if (e.key.toLowerCase() === 'q') tunRelease(); });
+window.addEventListener('blur', () => tunRelease());
 window.addEventListener('blur', () => keys.clear());
 
 // 战斗调试面板
@@ -7224,7 +7504,7 @@ const ROOMS = [
   { id: 'pincer', title: '穿云锥夹击', hint: '穿云锥从两侧同时瞄准，直线闪避会撞上另一只', squads: [[['diver', 'diver'], 1.0], [['diver', 'diver'], -1.0], [['crow', 'crow', 'crow'], Math.PI], [['diver', 'diver', 'diver'], 0.4]], gap: 2.4 },
   { id: 'needle', title: '蓄势针压阵', hint: '蓄势针在剑阵射程外狙击，扇傀挡在前面', squads: [[['needle'], 0], [['fan', 'fan', 'fan'], 0.15], [['crow', 'crow', 'crow'], -1.2], [['crow', 'diver', 'diver'], 1.2]], gap: 2.6 },
 ];
-const SRC_NAME = { slash: '近身', dash: '穿身', reflect: '斩弹', array: '剑阵', yj: '御剑', wave: '剑气', vortex: '墨旋', ghost: '残影', realm: '突破气浪', thunder: '天雷', relic: '法宝' };
+const SRC_NAME = { slash: '近身', dash: '穿身', reflect: '斩弹', array: '剑阵', yj: '御剑', wave: '剑气', vortex: '墨旋', ghost: '残影', realm: '突破气浪', thunder: '天雷', relic: '法宝', kun: '吞海' };
 const loadoutText = () => (cultivator.id !== 'free' ? cultivator.name + '：' : '') + ['move', 'blade', 'sword', 'array'].map(s => loadout[s].name).join(' / ');
 // 核心统计（不属于任何模块）：只要有遭遇在进行，就按来源记击杀、记险和斩弹
 const onCombat = (type, fn) => (combatListeners[type] = combatListeners[type] || []).push({ m: null, fn });
@@ -7429,7 +7709,7 @@ $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { rese
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
 window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2
-  LV, LEVELS, startLevel, showLevelSelect, lvFinish, // 关卡原型 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, // 关卡原型 · 北冥 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
