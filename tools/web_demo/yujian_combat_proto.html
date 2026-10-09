@@ -285,7 +285,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
       <div class="g-ov g-title" id="g-title">
         <h1>御剑·<em>千丝</em></h1>
         <div class="sub">边 飞 边 打 · 战 斗 演 示</div>
-        <div class="row"><button class="g-btn main" id="g-run">历劫 · 证道（回车）</button><button class="g-btn" id="g-start">剧情演示</button></div>
+        <div class="row"><button class="g-btn main" id="g-run">历劫 · 证道（回车）</button><button class="g-btn" id="g-start">剧情演示</button><button class="g-btn main" id="g-lv">关卡原型（灰盒）</button></div>
         <div class="row"><label><input type="checkbox" id="g-skip-tut"> 跳过教程</label><button class="g-btn ghost" id="g-free">自由模式（原型调试）</button></div>
         <div class="hint">鼠标转向 · W 催剑 / S 收势 · 左键 顺锋斩 · 空格 破空闪 · 右键 御剑（金丹后）· F 引劫<br>历劫：分叉地图 · 渡劫突破 · 剑诀升重 · 法宝 · 共鸣 · 魂灯 · H 打开 / 收起调参面板</div>
       </div>
@@ -1842,6 +1842,8 @@ const ENEMY_TYPES = {
   boss: { name: '千丝傀儡师', hp: 60, r: 2.6, weight: 0, color: '#c79bff', elite: true, spd: BOOST }, // Boss 战是缠斗：傀儡师和玩家一样快，但不会更快   // 闭窗时刀剑不入；御剑切断全部丝线 → 破绽
   puppet: { name: '傀儡', hp: 999, r: 1.0, weight: 0, color: '#c9a0ff', spd: BOOST },                // 打不死，只能切断牵着它的丝线  // 正面墨甲弹开剑阵 / 顺锋斩，御剑无视墨甲
   needle: { name: '蓄势针', hp: 2, r: 0.9, weight: 0, color: '#ff5fa2', spd: 16 },             // 剑阵射程外蓄力狙击，重针剑阵打不碎
+  zhenyan: { name: '阵眼', hp: 6, r: 1.8, weight: 0, color: '#c79bff', elite: true, spd: 0 },   // 关卡原型·丝网开路：不动，定时放一圈子弹
+  kuneye: { name: '鲲之鳞眼', hp: 8, r: 2.0, weight: 0, color: '#ffd75a', elite: true, spd: 0 }, // 关卡原型·鲲：长在鲲身上的弱点
   duelist: { name: '墨影剑客', hp: 12, r: 1.0, weight: 0, color: '#ff8c5a', elite: true, spd: 24 }, // 斗法型精英：正面格挡、冲斩；破空穿过它的冲斩 = 破绽（伤害 ×2）
 };
 Object.assign(CB, {
@@ -2050,6 +2052,11 @@ function buildEnemy(type) {
     eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), cbRed); eye.position.set(0.3, 1.55, 0.7); g.add(eye);
     const eye2 = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), cbRed); eye2.position.set(-0.3, 1.55, 0.7); g.add(eye2); eye2.layers.enable(2);
     const aura = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.08, 4, 40), new THREE.MeshBasicMaterial({ color: 0x9d6bff })); aura.position.z = -0.6; g.add(aura); aura.layers.enable(2); g.userData.aura = aura;
+  } else if (type === 'zhenyan' || type === 'kuneye') {
+    const kun = type === 'kuneye';
+    const body = new THREE.Mesh(new THREE.OctahedronGeometry(kun ? 1.6 : 1.5, 0), kun ? toon('#2a1e05', '#7a5a12', '#e8c46a') : cbInk); g.add(body);
+    if (!kun) for (let k = 0; k < 4; k++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.4, 4), cbInk); const a = k / 4 * Math.PI * 2; sp.position.set(Math.cos(a) * 1.8, Math.sin(a) * 1.8, 0); sp.rotation.z = a - Math.PI / 2; g.add(sp); }
+    eye = new THREE.Mesh(new THREE.SphereGeometry(kun ? 0.7 : 0.55, 10, 8), new THREE.MeshBasicMaterial({ color: kun ? 0xfff0a0 : 0xc9a0ff })); eye.position.z = 0.6; g.add(eye);
   } else if (type === 'duelist') {
     // 墨影剑客：墨色人形（长袍 + 斗笠）+ 一柄横持的长剑（剑身白，剑尖 +X）；冲斩前亮出一道红色预警线
     const robe = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.6, 6), cbInk); robe.position.y = -0.25; g.add(robe);
@@ -3015,7 +3022,7 @@ function combatStep(dt) {
   for (const e of cb.enemies.slice()) {
     const toP = pc.clone().sub(e.pos), dist = toP.length(), dirP = toP.clone().normalize();
     e.t -= dt; e.flashT += dt; e.hitCd -= dt; e.phase += dt;
-    if (dist > 70 && !e.boss && !e.puppet) { removeEnemy(e); continue; }
+    if (dist > 70 && !e.boss && !e.puppet && !e.keep) { removeEnemy(e); continue; } // keep：关卡原型里摆好的敌人不因距离消失
     if (e.cut) { // 已被御剑斩中：定身，不动、不开火、不撞人，等收剑时兑现（已致命的已经换成两半，本体隐藏）
       const o = shakeOffset(e.shakeT0, e.shakePerp);
       e.vel.set(0, 0); e.g.position.set(e.pos.x + o.x, e.pos.y + o.y, -0.4); e.flash.visible = e.flashT < 0.07 && state.fx && !e.cut.dead;
@@ -3124,6 +3131,8 @@ function combatStep(dt) {
       }
       e.eye.scale.setScalar(1 + u * 1.5);
       e.g.rotation.z = Math.atan2(e.aim.y, e.aim.x);
+    } else if (e.type === 'zhenyan' || e.type === 'kuneye') {
+      stepLevelEnemy(e, dt, pc, dirP, canFire);
     } else if (e.type === 'duelist') {
       stepDuelist(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer);
     } else if (e.boss || e.puppet) {
@@ -3415,6 +3424,7 @@ function yjUpdateBasic(dt) {
         cutEnemy(e, mv.lengthSq() > 1e-6 ? mv.clone() : new V2(Math.cos(y.ang), Math.sin(y.ang)));
       }
       if (G.boss) cutSilks(y.prev, y.pos, mv.lengthSq() > 1e-6 ? mv.clone() : new V2(Math.cos(y.ang), Math.sin(y.ang))); // 切丝
+      lvCutSilk(y.prev, y.pos); // 关卡原型·丝网开路
     }
   }
 }
@@ -3597,6 +3607,7 @@ function yjSweep(p0, p1, hits, normalsOnly) {
     hits.set(e, cb.realT); cutEnemy(e, dir.clone());
   }
   if (G.boss) cutSilks(p0, p1, dir.clone()); // 切丝（P8）：任何御剑模块都必须能完成
+  lvCutSilk(p0, p1);
 }
 
 // ---------- 御剑 · 一剑分三：分光 ----------
@@ -4018,6 +4029,397 @@ function applyCultivator(id) {
   if (typeof syncModuleUI === 'function') syncModuleUI();
 }
 const slotLocked = s => !!cultivator.lock[s];
+
+// ===========================================================================
+// 关卡原型（灰盒，2026-10-09）：验证“飞行大战场里怎么做出关卡新鲜感”，四种方向各一关，由用户试玩判断哪种最重要
+//   一、剑林峡谷（赶路 / 赛道）：插满巨剑的峡谷高速穿梭，计时、符环、擦锋
+//   二、天象战场（不加按键改变飞行）：风带、上升气流、定时落雷的雷区，三波敌人
+//   三、丝网开路（地形 × 战斗动作）：丝线是墙，只有御剑能切开；丝网随时间收拢；摧毁三个阵眼
+//   四、鲲（巨兽即关卡）：贴着一头巨鲲的身体飞，鳞眼轮流张开才能打；鳃喷弹幕、尾扫、吞海吸力
+// 共用：障碍（矩形 / 胶囊线段 / 圆）与玩家、敌人、子弹的碰撞；撞上被弹开并受伤；贴着剑身擦过 = 擦锋（回剑势）
+// ===========================================================================
+const LV = { id: null, lastId: null, obs: [], meshes: [], t: 0, done: false, hits: 0, d: {} };
+const LV_INFO = {
+  canyon: { name: '剑林峡谷', tag: '赶路 · 赛道', test: '在障碍里高速穿梭有没有新鲜感？爆冲、急刹、擦锋好不好用？',
+    goal: '飞到峡谷尽头。穿过金色符环加分、回剑势；贴着剑身擦过 = 擦锋；撞剑会被弹开并受伤；头顶雷云不可触碰。' },
+  weather: { name: '天象战场', tag: '天象 · 力场', test: '不加按键、只靠风和气流，飞行会不会变得不一样？',
+    goal: '打退三波敌人。中层风带向右吹、上层风带向左吹（敌人也会被吹走）；两道上升气流把你托起并快速回剑势；三处雷区定时落雷，敌我都劈。' },
+  silk: { name: '丝网开路', tag: '地形 × 战斗', test: '“用战斗动作改变地形”好不好玩？',
+    goal: '摧毁 3 个阵眼。丝线是墙，撞上会被割伤，只有御剑（右键）划过才能切开；整张丝网会慢慢收拢。剑意开局灌满，击杀回剑意。' },
+  kun: { name: '鲲', tag: '巨兽 · Boss 即关卡', test: '贴着一头巨兽飞、在它身上找弱点，够不够震撼？',
+    goal: '击碎鲲身上的 4 只鳞眼。一次只张开一只（发光时才打得动）；鳃会喷弹幕，尾巴会扫，它张嘴吞海时会把你吸过去——用爆冲挣脱。' },
+};
+
+// ---------- 网格 ----------
+const lvMat = {
+  steel: toon('#2b3036', '#5c6670', '#a7b2ba'), hilt: toon('#1a1206', '#5a3d1c', '#8a6a3a'), jade: toon('#0e3a30', '#2f8f74', '#8ff0d6'),
+  cloud: new THREE.MeshBasicMaterial({ color: 0x2a2f45, transparent: true, opacity: 0.82, depthWrite: false }),
+  gold: new THREE.MeshBasicMaterial({ color: 0xffd75a, transparent: true, opacity: 0.55, depthWrite: false }),
+  ring: new THREE.MeshBasicMaterial({ color: 0xffd75a }), ringDone: new THREE.MeshBasicMaterial({ color: 0x6b7478 }),
+  updraft: new THREE.MeshBasicMaterial({ color: 0xbfefff, transparent: true, opacity: 0.22, depthWrite: false }),
+  kun: toon('#0f1a26', '#2d4560', '#7d9bb8'), kunBelly: toon('#3a4a52', '#9fb5bf', '#e6f0f2'),
+};
+function lvAdd(m, z) { m.position.z = z === undefined ? -1.2 : z; m.frustumCulled = false; scene.add(m); LV.meshes.push(m); return m; }
+function lvBox(x, y, w, h, mat, z) { const m = lvAdd(new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.2), mat), z); m.position.x = x; m.position.y = y; return m; }
+// 一把插着的巨剑：剑身从 y0 到 y1，hiltTop = 剑柄在上（插在海里），否则剑柄在下（倒挂在雷云里）
+function lvSword(x, y0, y1, hiltTop) {
+  const w = 2.4, len = y1 - y0, cy = (y0 + y1) / 2;
+  lvBox(x, cy, w, len, lvMat.steel);
+  lvBox(x, cy, 0.5, len * 0.9, lvMat.jade, -1.1).layers.enable(2); // 剑脊灵光
+  const gy = hiltTop ? y1 : y0, hy = hiltTop ? y1 + 3 : y0 - 3;
+  lvBox(x, gy, 7, 1.2, lvMat.hilt); lvBox(x, hy, 1.2, 5, lvMat.hilt);
+  LV.obs.push({ k: 'rect', x, y: cy, hw: w / 2, hh: len / 2, dmg: 10, name: '巨剑', graze: true });
+  LV.obs.push({ k: 'rect', x, y: gy, hw: 3.5, hh: 0.6, dmg: 10, name: '剑格' });
+}
+function lvClear() {
+  for (const m of LV.meshes) { scene.remove(m); m.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  LV.meshes = []; LV.obs = []; LV.id = null; LV.done = false; LV.d = {};
+  for (const e of cb.enemies.slice()) if (e.keep) removeEnemy(e);
+}
+const lvRng = s0 => { let s = s0; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
+function lvSpawn(type, x, y, keep) { const e = spawnAt(type, x, y); e.entering = false; if (keep) e.keep = true; return e; }
+
+// ---------- 碰撞：有符号距离 + 法线 ----------
+function lvSD(o, p) {
+  if (o.k === 'rect') {
+    const dx = Math.abs(p.x - o.x) - o.hw, dy = Math.abs(p.y - o.y) - o.hh, sx = Math.sign(p.x - o.x) || 1, sy = Math.sign(p.y - o.y) || 1;
+    if (dx > 0 || dy > 0) { const ox = Math.max(dx, 0), oy = Math.max(dy, 0), L = Math.hypot(ox, oy); return { d: L, n: new V2(ox * sx / L, oy * sy / L) }; }
+    return dx > dy ? { d: dx, n: new V2(sx, 0) } : { d: dy, n: new V2(0, sy) };
+  }
+  if (o.k === 'seg') {
+    const ab = o.b.clone().sub(o.a), l2 = ab.lengthSq(), t = l2 < 1e-9 ? 0 : clamp(p.clone().sub(o.a).dot(ab) / l2, 0, 1);
+    const q = o.a.clone().addScaledVector(ab, t), v = p.clone().sub(q), L = v.length() || 1e-6;
+    return { d: L - o.r, n: v.divideScalar(L) };
+  }
+  const v = p.clone().sub(new V2(o.x, o.y)), L = v.length() || 1e-6;
+  return { d: L - o.r, n: v.divideScalar(L) };
+}
+const lvSolid = o => o.alive !== false;
+// 每帧（飞行模拟之后）：玩家被推出障碍并反弹；擦锋；敌人推出；子弹撞墙消失；力场
+function lvPhysics(dt) {
+  if (!LV.id || LV.done) return;
+  const P = new V2(sim.pos.x, wy(sim.pos.y)), PR = CB.PLAYER_R + 0.35;
+  for (const o of LV.obs) {
+    if (!lvSolid(o)) continue;
+    const s = lvSD(o, P);
+    if (s.d < PR) {
+      const pen = PR - s.d; P.addScaledVector(s.n, pen);
+      const v = new V2(sim.vel.x, -sim.vel.y), vn = v.dot(s.n);
+      if (vn < 0) { v.addScaledVector(s.n, -1.5 * vn); v.multiplyScalar(0.75); sim.vel.set(v.x, -v.y); }
+      if (o.dmg && cb.hurtT >= CB.HURT_IFRAME && cb.iframe <= 0 && cb.dead <= 0) {
+        if (hurtPlayer(o.dmg, o.name)) { LV.hits++; goldBurst.emit(new V3(P.x, P.y, 0), 10, 10); sfx('clang'); popup('撞' + (o.name ? '·' + o.name : ''), 'small red'); }
+      }
+    } else if (o.graze && s.d < PR + 1.1 && sim.vel.length() > CRUISE * 0.9 && cb.realT - (o.grazeT || -9) > 1.2) {
+      o.grazeT = cb.realT; cb.mom = Math.min(state.momMax, (cb.mom || 0) + 0.35); LV.grazes = (LV.grazes || 0) + 1;
+      sparkBurst.emit(new V3(P.x - s.n.x * 0.6, P.y - s.n.y * 0.6, 0), 8, 12); popup('擦锋', 'small gold');
+    }
+  }
+  sim.pos.x = P.x; sim.pos.y = BASE_Y - P.y;
+  for (const e of cb.enemies) {
+    if (e.keep && (e.type === 'zhenyan' || e.type === 'kuneye')) continue;
+    for (const o of LV.obs) { if (!lvSolid(o)) continue; const s = lvSD(o, e.pos); if (s.d < e.r) { e.pos.addScaledVector(s.n, e.r - s.d); const vn = e.vel.dot(s.n); if (vn < 0) e.vel.addScaledVector(s.n, -vn); } }
+  }
+  for (let i = cb.bullets.length - 1; i >= 0; i--) {
+    const b = cb.bullets[i];
+    for (const o of LV.obs) { if (!lvSolid(o) || o.noBlock) continue; if (lvSD(o, b.pos).d < 0.25) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 4, 6); freeBullet(i); break; } }
+  }
+  const L = LEVELS[LV.id]; if (L.physics) L.physics(dt, P);
+}
+// 御剑切丝（丝网开路）
+function lvCutSilk(p0, p1) {
+  if (LV.id !== 'silk') return;
+  for (const o of LV.obs) {
+    if (!o.silk || o.alive === false || !segX(p0, p1, o.a, o.b)) continue;
+    o.alive = false; if (o.m) o.m.visible = false;
+    for (let k = 0; k <= 6; k++) { const q = o.a.clone().lerp(o.b, k / 6); goldBurst.emit(new V3(q.x, q.y, 0), 2, 7); }
+    sfx('cut'); popup('断丝', 'small gold'); LV.d.cuts = (LV.d.cuts || 0) + 1;
+  }
+}
+
+// ---------- 一、剑林峡谷 ----------
+const CANYON_LEN = 700, CANYON_TOP = 52;
+const LEVELS = {};
+LEVELS.canyon = {
+  cam: 2.1,
+  build(O) {
+    const r = lvRng(7), x0 = O.x, gates = [];
+    // 头顶雷云：不可触碰的“天花板”
+    LV.obs.push({ k: 'rect', x: x0 + CANYON_LEN / 2, y: CANYON_TOP + 15, hw: CANYON_LEN / 2 + 80, hh: 15, dmg: 8, name: '雷云', noBlock: false });
+    for (let x = x0 - 60; x < x0 + CANYON_LEN + 80; x += 18) lvBox(x, CANYON_TOP + 9 + (r() - 0.5) * 3, 22, 18 + r() * 4, lvMat.cloud, -1.5);
+    // 起点后方一道剑墙，防止往回飞
+    lvSword(x0 - 40, 0, CANYON_TOP, true);
+    let i = 0;
+    for (let x = x0 + 70; x < x0 + CANYON_LEN - 40; x += 24 + r() * 10, i++) {
+      if (i % 5 === 4) { const g = 10 + r() * 26; lvSword(x, 0, g, true); lvSword(x, g + 10, CANYON_TOP, false); gates.push(new V2(x, g + 5)); } // 剑门：上下夹出 10 米的缝
+      else if (i % 2 === 0) { const top = 10 + r() * 24; lvSword(x, 0, top, true); if (r() < 0.4) gates.push(new V2(x, top + 8 + r() * 10)); }
+      else { const bot = 22 + r() * 20; lvSword(x, bot, CANYON_TOP, false); if (r() < 0.4) gates.push(new V2(x, bot - 8 - r() * 10)); }
+    }
+    LV.d.rings = gates.map(p => { const m = lvAdd(new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.35, 6, 24), lvMat.ring), -0.2); m.position.x = p.x; m.position.y = p.y; m.layers.enable(2); return { p, m, got: false }; });
+    // 终点：一道金光
+    lvBox(x0 + CANYON_LEN, CANYON_TOP / 2, 3, CANYON_TOP, lvMat.gold, -0.8).layers.enable(2);
+    LV.d.finish = x0 + CANYON_LEN; LV.d.x0 = x0;
+    LV.d.triggers = [
+      { x: x0 + 120, f: () => { for (let k = 0; k < 3; k++) lvSpawn('crow', x0 + 170 + k * 5, 22 + k * 8); } },
+      { x: x0 + 260, f: () => { lvSpawn('fan', x0 + 310, 18); lvSpawn('fan', x0 + 330, 40); } },
+      { x: x0 + 380, f: () => { for (let k = 0; k < 4; k++) lvSpawn('crow', x0 + 430 + k * 4, 14 + k * 9); } },
+      { x: x0 + 500, f: () => { lvSpawn('diver', x0 + 545, 40); lvSpawn('diver', x0 + 560, 18); lvSpawn('needle', x0 + 600, 30); } },
+    ];
+  },
+  step(dt, P) {
+    const D = LV.d;
+    for (const tr of D.triggers) if (!tr.done && P.x > tr.x) { tr.done = true; tr.f(); }
+    for (const g of D.rings) if (!g.got && g.p.distanceTo(P) < 3.2) { g.got = true; g.m.material = lvMat.ringDone; cb.mom = Math.min(state.momMax, (cb.mom || 0) + 1); popup('符环', 'small gold'); sfx('ready'); }
+    if (P.x > D.finish) lvFinish(true);
+  },
+  hud() { const D = LV.d, got = D.rings.filter(g => g.got).length; return `剑林峡谷 · 用时 <b>${LV.t.toFixed(1)}</b>s · 符环 <b>${got}/${D.rings.length}</b> · 擦锋 <b>${LV.grazes || 0}</b> · 撞 <b>${LV.hits}</b> · 距终点 <b>${Math.max(0, Math.round(D.finish - sim.pos.x))}</b>m`; },
+  result() {
+    const D = LV.d, got = D.rings.filter(g => g.got).length, sc = LV.t - got * 1.5 - (LV.grazes || 0) * 0.5 + LV.hits * 4;
+    return { grade: sc < 34 ? '甲上' : sc < 44 ? '甲' : sc < 58 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['符环', got + ' / ' + D.rings.length + '（每个 −1.5 秒）'], ['擦锋', (LV.grazes || 0) + ' 次（每次 −0.5 秒）'], ['撞剑', LV.hits + ' 次（每次 +4 秒）'], ['折算', sc.toFixed(1) + ' 秒']], score: sc };
+  },
+};
+
+// ---------- 二、天象战场 ----------
+LEVELS.weather = {
+  cam: 2.0,
+  build(O) {
+    const C = new V2(O.x + 40, 55); LV.d.C = C;
+    LV.d.winds = [{ y0: 20, y1: 34, vx: 13 }, { y0: 70, y1: 84, vx: -13 }];
+    LV.d.drafts = [{ x: C.x - 38, w: 5, vy: 15 }, { x: C.x + 38, w: 5, vy: 15 }];
+    for (const d of LV.d.drafts) lvBox(d.x, 65, d.w * 2, 130, lvMat.updraft, -1.6);
+    LV.d.storms = [{ p: new V2(C.x - 22, 48), off: 0 }, { p: new V2(C.x + 18, 28), off: 1.7 }, { p: new V2(C.x + 4, 76), off: 3.4 }].map(s => Object.assign(s, { r: 9, ph: 0, struck: -9 }));
+    LV.d.wave = 0; LV.d.gap = 1.5;
+    LV.d.waves = [
+      [[['crow', 'crow', 'crow', 'crow'], 0], [['crow', 'crow', 'fan'], Math.PI]],
+      [[['fan', 'fan', 'crow', 'crow'], 0.6], [['diver', 'diver', 'crow'], -1.2], [['crow', 'crow', 'crow'], Math.PI]],
+      [[['guard'], 0], [['crow', 'crow', 'crow'], 2], [['diver', 'diver', 'fan'], -2], [['needle'], Math.PI]],
+    ];
+  },
+  physics(dt, P) {
+    const D = LV.d, push = (p, k) => {
+      for (const w of D.winds) if (p.y > w.y0 && p.y < w.y1) p.x += w.vx * dt * k;
+      for (const d of D.drafts) if (Math.abs(p.x - d.x) < d.w && p.y < 130) p.y += d.vy * dt * k;
+    };
+    const q = new V2(sim.pos.x, wy(sim.pos.y)), before = q.clone(); push(q, 1);
+    sim.pos.x = q.x; sim.pos.y = BASE_Y - q.y;
+    if (D.drafts.some(d => Math.abs(q.x - d.x) < d.w)) cb.mom = Math.min(state.momMax, (cb.mom || 0) + 1.2 * dt);
+    for (const e of cb.enemies) push(e.pos, 0.8);
+    // 风墙：离中心太远被吹回来
+    const off = q.clone().sub(D.C), L = off.length();
+    if (L > 90) { const n = off.divideScalar(L); sim.pos.x -= n.x * (L - 90); sim.pos.y += n.y * (L - 90); }
+    void before;
+  },
+  step(dt, P) {
+    const D = LV.d;
+    for (const s of D.storms) {
+      const T = 5, u = ((LV.t + s.off) % T);
+      s.warn = u > T - 1.2; s.u = (u - (T - 1.2)) / 1.2;
+      if (s.warn && s.u > 0.98 && LV.t - s.struck > 1) {
+        s.struck = LV.t; s.flash = 1; sfx('thunder'); spawnShock(new V3(s.p.x, s.p.y, 0), 1.6); goldBurst.emit(new V3(s.p.x, s.p.y, 0), 30, 20);
+        cb.quake = { t0: performance.now() / 1000, amp: 2 * state.burstShake };
+        if (P.distanceTo(s.p) < s.r) { if (cb.iframe > 0) { cb.dodgeRisk = false; riskDodge(); } else hurtPlayer(20, '落雷'); }
+        for (const e of cb.enemies.slice()) if (!ENEMY_TYPES[e.type].elite && e.pos.distanceTo(s.p) < s.r + e.r) damageEnemy(e, 99, new V2(0, -1), 'thunder');
+      }
+      s.flash = Math.max(0, (s.flash || 0) - dt * 3);
+    }
+    if (!cb.enemies.length && !cb.pendingSquads.length) {
+      D.gap -= dt;
+      if (D.gap <= 0) {
+        if (D.wave >= D.waves.length) { lvFinish(true); return; }
+        for (const [types, rel] of D.waves[D.wave]) tSquad(types, rel);
+        D.wave++; D.gap = 2; popup('第 ' + CN_NUM[D.wave - 1] + ' 波', 'move');
+      }
+    }
+  },
+  hud() { return `天象战场 · 第 <b>${Math.max(1, LV.d.wave)}/3</b> 波 · 用时 <b>${LV.t.toFixed(1)}</b>s · 余敌 <b>${cb.enemies.length}</b>`; },
+  result() { const dmg = Math.round(G.stats ? G.stats.dmg : 0), sc = LV.t + dmg * 0.3; return { grade: sc < 70 ? '甲上' : sc < 95 ? '甲' : sc < 130 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['所受伤害', dmg]], score: sc }; },
+  overlay(ctx, toScreen, W, Hc) {
+    const D = LV.d;
+    ctx.lineWidth = 2;
+    for (const w of D.winds) { // 风带：一排顺风向流动的短划
+      const a = toScreen(new V2(sim.pos.x - 60, w.y0)), b = toScreen(new V2(sim.pos.x + 60, w.y1));
+      ctx.fillStyle = 'rgba(230,245,255,.08)'; ctx.fillRect(0, Math.min(a.y, b.y), W, Math.abs(a.y - b.y)); // 风带底色
+      ctx.strokeStyle = 'rgba(255,255,255,.7)';
+      for (let k = 0; k < 40; k++) {
+        const fy = ((k * 0.381) % 1), y = lerp(b.y, a.y, fy), ph = ((cb.realT * (w.vx > 0 ? 1 : -1) * 0.9 + k * 0.137) % 1 + 1) % 1, x = lerp(a.x, b.x, ph);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (w.vx > 0 ? 18 : -18), y); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(230,245,255,.8)'; ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillText(w.vx > 0 ? '风 →' : '← 风', W - 70, (a.y + b.y) / 2);
+    }
+    for (const d of D.drafts) { // 上升气流：向上流动的短划
+      const a = toScreen(new V2(d.x - d.w, 4)), b = toScreen(new V2(d.x + d.w, 120));
+      ctx.strokeStyle = 'rgba(200,240,255,.45)';
+      for (let k = 0; k < 18; k++) { const fx = (k * 0.618) % 1, x = lerp(a.x, b.x, fx), ph = ((cb.realT * 0.6 + k * 0.21) % 1), y = lerp(a.y, b.y, ph); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 16); ctx.stroke(); }
+    }
+    for (const s of D.storms) {
+      const c = toScreen(s.p), r = Math.abs(toScreen(s.p.clone().add(new V2(s.r, 0))).x - c.x);
+      ctx.globalAlpha = s.warn ? 0.9 : 0.3; ctx.strokeStyle = s.warn ? (Math.sin(cb.realT * 30) > 0 ? '#ff3a2a' : '#ffe0a0') : '#8fa3c0';
+      ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      if (s.warn) { ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(c.x, c.y, r * (1 - clamp(s.u, 0, 1)) + 2, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 2; }
+      ctx.globalAlpha = 1; ctx.fillStyle = '#fff4d0'; ctx.font = '700 15px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.fillText('雷', c.x, c.y + 5); ctx.textAlign = 'start';
+      if (s.flash > 0) { ctx.strokeStyle = `rgba(255,255,255,${s.flash})`; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(c.x + 20, -10); ctx.lineTo(c.x - 12, c.y * 0.5); ctx.lineTo(c.x + 8, c.y * 0.75); ctx.lineTo(c.x, c.y); ctx.stroke(); ctx.lineWidth = 2; }
+    }
+  },
+};
+
+// ---------- 三、丝网开路 ----------
+LEVELS.silk = {
+  cam: 2.2,
+  build(O) {
+    const x0 = O.x - 25, x1 = O.x + 155, y0 = 12, y1 = 62, C = new V2((x0 + x1) / 2, (y0 + y1) / 2); LV.d.C = C;
+    const wall = (ax, ay, bx, by) => { // 把一面墙切成 10 米一段的丝线
+      const a = new V2(ax, ay), b = new V2(bx, by), n = Math.max(1, Math.round(a.distanceTo(b) / 10));
+      for (let k = 0; k < n; k++) {
+        const pa = a.clone().lerp(b, k / n), pb = a.clone().lerp(b, (k + 1) / n);
+        const m = lvAdd(new THREE.Mesh(SILK_GEO, silkMat.clone()), -0.3); m.layers.enable(2);
+        LV.obs.push({ k: 'seg', a: pa.clone(), b: pb.clone(), ba: pa.clone(), bb: pb.clone(), r: 0.35, silk: true, alive: true, dmg: 5, name: '丝线', m });
+      }
+    };
+    wall(x0, y0, x1, y0); wall(x1, y0, x1, y1); wall(x1, y1, x0, y1); wall(x0, y1, x0, y0);
+    wall(O.x + 35, y0, O.x + 35, y1); wall(O.x + 95, y0, O.x + 95, y1);           // 三个隔间
+    wall(O.x + 35, 37, O.x + 70, 37); wall(O.x + 95, 37, O.x + 135, 37);           // 隔间里的横丝
+    LV.d.nodes = [new V2(O.x + 65, 25), new V2(O.x + 125, 52), new V2(O.x + 125, 22)].map(p => { const e = lvSpawn('zhenyan', p.x, p.y, true); e.base = p.clone(); return e; });
+    lvSpawn('crow', O.x + 60, 52, true); lvSpawn('crow', O.x + 50, 20, true); lvSpawn('fan', O.x + 120, 30, true); lvSpawn('crow', O.x + 110, 55, true); lvSpawn('crow', O.x + 140, 45, true);
+    cb.energy = 100;
+  },
+  physics(dt) {
+    const D = LV.d, f = Math.max(0.6, 1 - LV.t / 160); D.f = f; // 丝网收拢
+    for (const o of LV.obs) if (o.silk) {
+      o.a.copy(D.C).addScaledVector(o.ba.clone().sub(D.C), f); o.b.copy(D.C).addScaledVector(o.bb.clone().sub(D.C), f);
+      if (o.m && o.alive) { const d = o.b.clone().sub(o.a); o.m.position.set((o.a.x + o.b.x) / 2, (o.a.y + o.b.y) / 2, -0.3); o.m.rotation.z = Math.atan2(d.y, d.x); o.m.scale.set(d.length(), 2.6, 1); o.m.material.opacity = 0.8 + 0.2 * Math.sin(simTime * 6 + o.ba.x); }
+    }
+    for (const e of D.nodes) if (cb.enemies.includes(e)) e.pos.copy(D.C).addScaledVector(e.base.clone().sub(D.C), f);
+  },
+  step() { if (LV.d.nodes.every(e => !cb.enemies.includes(e))) lvFinish(true); },
+  hud() { const left = LV.d.nodes.filter(e => cb.enemies.includes(e)).length; return `丝网开路 · 阵眼余 <b>${left}</b> · 断丝 <b>${LV.d.cuts || 0}</b> · 丝网收拢 <b>${Math.round((1 - (LV.d.f || 1)) / 0.4 * 100)}%</b> · 用时 <b>${LV.t.toFixed(1)}</b>s`; },
+  result() { const sc = LV.t + LV.hits * 5; return { grade: sc < 60 ? '甲上' : sc < 85 ? '甲' : sc < 120 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['断丝', (LV.d.cuts || 0) + ' 根'], ['撞丝', LV.hits + ' 次（每次 +5 秒）']], score: sc }; },
+};
+
+// ---------- 四、鲲 ----------
+const KUN_SPEED = CRUISE * 0.8; // 鲲游得比巡航略慢：跟得上，也甩得掉——你得一直跟着它飞
+const KUN_SPINE = [[0, 7], [-8, 10], [-17, 11.5], [-27, 11], [-37, 9], [-46, 6.5], [-54, 4.2]];
+LEVELS.kun = {
+  cam: 2.6,
+  build(O) {
+    const K = LV.d.K = { x: O.x + 82, y: 50, // 开局鲲尾就在眼前：第一眼看见这头巨兽，往前飞才看得到它的全身
+      t: 0, parts: [], inhaleT: 9, inhale: 0, gillT: 3 };
+    for (const [ox, r] of KUN_SPINE) {
+      const m = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), lvMat.kun), -1.4); m.scale.set(r * 1.25, r, r);
+      const o = { k: 'circ', x: 0, y: 0, r, dmg: 6, name: '鲲身', ox, m, noBlock: true }; LV.obs.push(o); K.parts.push(o);
+    }
+    const belly = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), lvMat.kunBelly), -1.3); belly.scale.set(26, 5, 5); K.belly = belly;
+    const tail = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(7, 12, 4), lvMat.kun), -1.4); tail.rotation.z = Math.PI / 2; K.tailM = tail;
+    K.tail = { k: 'circ', x: 0, y: 0, r: 5, dmg: 15, name: '鲲尾', noBlock: true }; LV.obs.push(K.tail);
+    const fin = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(4, 14, 3), lvMat.kun), -1.5); K.fin = fin;
+    const eyeM = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe9a0 })), -0.9); eyeM.layers.enable(2); K.eyeM = eyeM;
+    // 鳞眼：脊上的弱点（敌人对象，平时刀剑不入，张开时才打得动）
+    LV.d.eyes = [[1, 1], [2, -1], [3, 1], [5, 1]].map(([i, s]) => { const e = lvSpawn('kuneye', K.x, K.y, true); e.part = i; e.side = s; e.invuln = true; return e; });
+    LV.d.openIdx = 0; LV.d.openT = 0;
+  },
+  physics(dt, P) {
+    const K = LV.d.K; K.t += dt;
+    K.x += KUN_SPEED * dt; K.y = 50 + 8 * Math.sin(K.t * 0.33);
+    const ang = Math.atan2(9 * 0.33 * Math.cos(K.t * 0.33), KUN_SPEED) * 0.5, ca = Math.cos(ang), sa = Math.sin(ang);
+    const at = (ox, oy) => new V2(K.x + ox * ca - oy * sa, K.y + ox * sa + oy * ca);
+    for (const o of K.parts) { const p = at(o.ox, Math.sin(K.t * 1.6 + o.ox * 0.08) * 0.8); o.x = p.x; o.y = p.y; o.m.position.set(p.x, p.y, -1.4); o.m.rotation.z = ang; }
+    const bp = at(-22, -6); K.belly.position.set(bp.x, bp.y, -1.3); K.belly.rotation.z = ang;
+    const sw = Math.sin(K.t * 1.2) * 9, tp = at(-63, sw); K.tail.x = tp.x; K.tail.y = tp.y; K.tailM.position.set(tp.x, tp.y, -1.4); K.tailM.rotation.z = Math.PI / 2 + ang + sw * 0.05;
+    const fp = at(-20, 13); K.fin.position.set(fp.x, fp.y, -1.5); K.fin.rotation.z = ang + 0.5;
+    const ep = at(3, 3); K.eyeM.position.set(ep.x, ep.y, -0.9);
+    K.mouth = at(8, -2);
+    for (const e of LV.d.eyes) if (cb.enemies.includes(e)) { const o = K.parts[e.part]; const p = at(o.ox, e.side * o.r * 0.92); e.pos.copy(p); }
+    // 吞海：把你往嘴里吸（爆冲能挣脱），嘴前 6 米重伤
+    if (K.inhale > 0) {
+      const d = K.mouth.clone().sub(P), L = d.length();
+      if (L < 48) { const k = 13 * dt / Math.max(L, 1); sim.pos.x += d.x * k; sim.pos.y -= d.y * k; }
+      if (L < 6 && cb.iframe <= 0) hurtPlayer(18, '鲲口');
+      for (const e of cb.enemies) if (!e.keep) { const de = K.mouth.clone().sub(e.pos); e.pos.addScaledVector(de, 10 * dt / Math.max(de.length(), 1)); }
+    }
+  },
+  step(dt, P) {
+    const D = LV.d, K = D.K;
+    // 鳞眼轮流张开 7 秒
+    const alive = D.eyes.filter(e => cb.enemies.includes(e));
+    if (!alive.length) { lvFinish(true); return; }
+    D.openT -= dt;
+    if (D.openT <= 0 || !cb.enemies.includes(D.open)) { D.openIdx = (D.openIdx + 1) % alive.length; D.open = alive[D.openIdx]; D.openT = 7; popup('鳞眼张开', 'small gold'); }
+    for (const e of alive) { e.invuln = e !== D.open; e.eye.scale.setScalar(e.invuln ? 0.6 : 1.6 + 0.3 * Math.sin(simTime * 10)); }
+    // 鳃喷弹幕
+    K.gillT -= dt;
+    if (K.gillT <= 0 && cb.dead <= 0) {
+      K.gillT = 2.6;
+      for (const pi of [1, 2]) { const o = K.parts[pi], g = new V2(o.x, o.y - o.r * 0.3), dir = P.clone().sub(g).normalize(); for (let k = -3; k <= 3; k++) { const b = fireBullet(g, dir.clone().rotateAround(ORIGIN2, k * 0.12), 12); b.by = '鲲鳃弹幕'; } }
+    }
+    // 吞海
+    K.inhaleT -= dt;
+    if (K.inhaleT <= 0 && K.inhale <= 0) { K.inhale = 3; K.inhaleT = 13; popup('鲲 · 吞海', 'move red'); sfx('incoming'); }
+    if (K.inhale > 0) K.inhale -= dt;
+    if (P.distanceTo(new V2(K.x - 25, K.y)) > 85) { sim.pos.x += (K.x - 25 - P.x) * 0.05; } // 别被甩太远：跟着鲲走
+  },
+  hud() { const left = LV.d.eyes.filter(e => cb.enemies.includes(e)).length; return `鲲 · 鳞眼余 <b>${left}/4</b> · 用时 <b>${LV.t.toFixed(1)}</b>s · ${LV.d.K.inhale > 0 ? '<b style="color:#ff6a55">吞海中！爆冲挣脱</b>' : '贴着鲲身飞，打发光的鳞眼'}`; },
+  result() { const dmg = Math.round(G.stats ? G.stats.dmg : 0), sc = LV.t + dmg * 0.3; return { grade: sc < 75 ? '甲上' : sc < 100 ? '甲' : sc < 140 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['所受伤害', dmg]], score: sc }; },
+  overlay(ctx, toScreen, W, Hc) {
+    const K = LV.d.K; if (!(K.inhale > 0)) return;
+    const m = toScreen(K.mouth); ctx.strokeStyle = 'rgba(255,120,100,.6)'; ctx.lineWidth = 2;
+    for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 + cb.realT, r0 = 140 - ((cb.realT * 120 + k * 30) % 130); ctx.beginPath(); ctx.moveTo(m.x + Math.cos(a) * r0, m.y + Math.sin(a) * r0); ctx.lineTo(m.x + Math.cos(a) * (r0 - 14), m.y + Math.sin(a) * (r0 - 14)); ctx.stroke(); }
+  },
+};
+// 阵眼 / 鳞眼：不动；阵眼每隔一阵放一圈子弹
+function stepLevelEnemy(e, dt, pc, dirP, canFire) {
+  e.vel.set(0, 0);
+  if (e.type === 'zhenyan') {
+    e.g.rotation.z += dt * 1.5;
+    if (e.t <= 0) { e.t = 4.2; if (canFire && e.pos.distanceTo(pc) < 40) for (let k = 0; k < 8; k++) { const b = fireBullet(e.pos, new V2(Math.cos(k / 8 * Math.PI * 2 + simTime), Math.sin(k / 8 * Math.PI * 2 + simTime)), 9); b.by = '阵眼'; } }
+  }
+}
+
+// ---------- 流程 ----------
+function showLevelSelect() {
+  resetCombat(); G.flow = 'lvsel'; G.run = null;
+  let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
+  showChoice({ title: '关卡原型', tag: '灰盒 · 四种方向', sub: '四种“飞行关卡怎么做出新鲜感”的方向，各做了一关灰盒。都试一遍，告诉我哪种最重要。数字键 1–4 选择。',
+    opts: Object.keys(LV_INFO).map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
+    leave: { name: '回到标题', fn: () => showTitle() } });
+}
+function showLevelIntro(id) {
+  const I = LV_INFO[id];
+  showChoice({ title: I.name, tag: I.tag, sub: I.goal + '<br><br><small>飞行：双击 W 爆冲 · 双击 S 急刹 · 尾流咬尾 · 空格破空闪 · 右键御剑</small>',
+    opts: [{ kind: 'up', name: '开始', tag: '回车', desc: '验证：' + I.test, fn: () => startLevel(id) }], leave: { name: '返回选关', fn: showLevelSelect } });
+  G.onConfirm = () => startLevel(id);
+}
+function startLevel(id) {
+  hideOverlays(); setModal(false); resetCombat(); for (const s in SLOTS) equip(s, 'basic'); applyCultivator('free');
+  G.run = null; G.enc = null; G.stats = statsZero(); G.flow = 'lvl'; G.taught = { silk: true };
+  LV.id = id; LV.lastId = id; LV.t = 0; LV.hits = 0; LV.grazes = 0; LV.done = false; LV.d = {};
+  const O = new V2(sim.pos.x, wy(sim.pos.y)); LEVELS[id].build(O);
+  popup(LV_INFO[id].name, 'sig gold');
+}
+function lvStep(dt) {
+  if (!LV.id || LV.done) return;
+  LV.t += dt;
+  LEVELS[LV.id].step(dt, new V2(sim.pos.x, wy(sim.pos.y)));
+}
+function lvFinish(win) {
+  if (LV.done) return; LV.done = true;
+  const id = LV.id, R = LEVELS[id].result();
+  let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
+  const nb = !best[id] || R.score < best[id].score;
+  if (win && nb) { best[id] = { score: R.score, grade: R.grade }; try { localStorage.setItem('yujian_lv_best', JSON.stringify(best)); } catch (e) {} }
+  popup(win ? '过关' : '失败', 'sig gold');
+  setTimeout(() => {
+    hideOverlays(); setModal(true);
+    $g('g-res').querySelector('h2').textContent = LV_INFO[id].name + (win ? ' · 通过' : ' · 失败');
+    $g('g-res-grade').textContent = R.grade; $g('g-res-grade').style.fontSize = R.grade.length > 1 ? '34px' : '46px';
+    const rows = R.rows.concat([['本关验证', LV_INFO[id].test], ['最佳', nb && win ? '新纪录！' : best[id] ? best[id].grade + ' · ' + best[id].score.toFixed(1) + ' 秒' : '—']]);
+    $g('g-res-table').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+    $g('g-res-again').textContent = '再来一次（回车）';
+    $g('g-res').classList.add('on');
+    G.onConfirm = () => startLevel(id);
+  }, 1200);
+}
+function drawLevelOverlay(toScreen, W, Hc) {
+  if (!LV.id) return;
+  const L = LEVELS[LV.id]; if (L.overlay) L.overlay(ovCtx, toScreen, W, Hc);
+}
 
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
@@ -4485,6 +4887,7 @@ function runStep(dt, pc) {
 }
 function runReset() {
   clearOrbs(); clearWaves(); cb.lanceFanT = 0;
+  lvClear();
   if (G.run) { G.run.trib = null; G.run.huluT = 0; G.run.domainT = 0; if (G.run.domainUsed && G.run.snapKey === 'boss') G.run.domainUsed = false; }
   const dk = document.getElementById('g-dark'); if (dk) dk.classList.remove('on', 'gold');
 }
@@ -4933,6 +5336,7 @@ function drawOverlay(map) {
   }
   if (G.run) drawRunOverlay(toScreen, W, Hc); // 渡劫落雷、引劫提示、墨影剑客意图
   drawFlightOverlay(toScreen, pc); // 进阶飞行：尾流咬尾的气流线
+  drawLevelOverlay(toScreen, W, Hc); // 关卡原型：风带、气流、雷区、吞海
   if (cb.dead > 0) return;
   // 角色位置（屏幕坐标）与预警弧半径
   {
@@ -5454,6 +5858,7 @@ function simulate(dt) {
   if (state.mode === 'fly') {
     if (alt < 4) { sim.pos.y = BASE_Y - 4; if (sim.vel.y > 0) sim.vel.y = 0; }
     if (alt > 200) { sim.pos.y = BASE_Y - 200; if (sim.vel.y < 0) sim.vel.y = 0; }
+    lvPhysics(dt); // 关卡原型：障碍碰撞、擦锋、风与气流
   } else if (alt < 6 || alt > 140) {
     sim.pos.y = BASE_Y - (alt < 6 ? 110 : 20); trailNose.clear(); trailTail.clear();
   }
@@ -5592,7 +5997,7 @@ function layoutAndRender() {
   const nowZ = performance.now() / 1000, zDt = state.paused ? 0 : clamp(nowZ - (state.zoomT || nowZ), 0, 0.05); state.zoomT = nowZ;
   if (state.camZoom === undefined) state.camZoom = 1;
   if (state.mode === 'fly' && !(cb.dodgeT > 0) && !yjLock()) {
-    const zT = 1 + (state.camZoomMax - 1) * smooth(CRUISE * 1.05, BOOST, sim.vel.length());
+    const zT = (1 + (state.camZoomMax - 1) * smooth(CRUISE * 1.05, BOOST, sim.vel.length())) * (LV.id && LEVELS[LV.id].cam || 1); // 关卡原型：每种关卡自己的取景距离
     const rate = zT > state.camZoom ? state.camZoomOut : state.camZoomIn;
     state.camZoom += (zT - state.camZoom) * (1 - Math.exp(-zDt * rate));
   } else if (state.mode !== 'fly') state.camZoom = 1;
@@ -6615,7 +7020,7 @@ function showDeath() {
     return;
   }
   $g('g-dead-all').textContent = '从头开始'; $g('g-dead-text').textContent = '剑断人亡，再来一次。';
-  const seg = G.flow === 'boss' ? '从 Boss 前重来' : G.flow === 'waves' ? '从第 ' + CN_NUM[G.waveIdx] + ' 波重来' : G.flow === 'room' ? '从第 ' + CN_NUM[G.roomIdx] + ' 关重来' : G.flow === 'trial' ? '重打这道题' : '重来本课';
+  const seg = G.flow === 'lvl' ? '重来本关' : G.flow === 'boss' ? '从 Boss 前重来' : G.flow === 'waves' ? '从第 ' + CN_NUM[G.waveIdx] + ' 波重来' : G.flow === 'room' ? '从第 ' + CN_NUM[G.roomIdx] + ' 关重来' : G.flow === 'trial' ? '重打这道题' : '重来本课';
   $g('g-dead-retry').textContent = seg + '（回车）';
   $g('g-dead').classList.add('on');
   G.onConfirm = () => retrySegment();
@@ -6623,6 +7028,7 @@ function showDeath() {
 function retrySegment() {
   hideOverlays(); setModal(false); if (G.stats) G.stats.retries++;
   const f = G.flow; resetCombat();
+  if (f === 'lvl') { startLevel(LV.lastId); return; }
   const trial = G.enc && G.enc.R.id; G.enc = null;
   if (f === 'boss') startBoss(); else if (f === 'free') enterFree(); else if (f === 'waves') startWaves(G.waveIdx);
   else if (f === 'room') startRoom(G.roomIdx); else if (f === 'trial') startTrial(trial); else startTut(G.tutIdx, true);
@@ -6799,6 +7205,7 @@ function flowStep(dt) {
   else if (G.flow === 'waves') waveStep(dt);
   else if (G.flow === 'boss') bossStep(dt);
   else if (G.flow === 'room' || G.flow === 'trial') encounterStep(dt);
+  else if (G.flow === 'lvl') lvStep(dt);
   else if (G.flow === 'free') {
     if (G.boss && G.boss.done) clearBoss();
     if (G.boss) bossStep(dt);
@@ -6814,6 +7221,7 @@ function flowStep(dt) {
     const left = cb.enemies.length + cb.pendingSquads.reduce((s, q) => s + q.types.length, 0) + G.squads.reduce((s, q) => s + q[0].length, 0);
     $g('g-obj-text').innerHTML = (G.flow === 'room' && G.run ? `第 ${G.run.depth + 1} 层 · ` : '试题 · ') + `${G.enc.R.title} · 余敌 <b>${left}</b>  <span style="color:#9fb3b0">${G.run ? '灵石 ' + G.run.stone + ' · 魂灯 ' + G.run.lamps + ' · ' + (G.enc.R.hint || '') : loadoutText()}</span>`;
   }
+  else if (G.flow === 'lvl' && LV.id) { obj.classList.add('on'); $g('g-obj-seal').textContent = '关'; $g('g-obj-text').innerHTML = LEVELS[LV.id].hud(); }
   else if (G.flow === 'free' && !G.boss) { obj.classList.add('on'); $g('g-obj-seal').textContent = '游'; const t = Math.max(0, Math.ceil(G.freeBossT)); $g('g-obj-text').innerHTML = `自由模式 · 千丝再临 <b>${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}</b>`; }
   else obj.classList.remove('on');
   const bb = $g('g-boss'), B = G.boss;
@@ -6828,6 +7236,7 @@ function flowStep(dt) {
 $g('g-start').addEventListener('click', () => gStart());
 $g('g-free').addEventListener('click', () => { hideOverlays(); setModal(false); resetCombat(); G.stats = null; G.run = null; G.enc = null; enterFree(false); });
 $g('g-run').addEventListener('click', () => showCultivatorPick());
+$g('g-lv').addEventListener('click', () => showLevelSelect());
 // 面板：构筑（每个槽位选一个模块）与对比试题
 function syncModuleUI() {
   $g('cult').value = cultivator.id;
@@ -6852,14 +7261,15 @@ $g('trial-clear').addEventListener('click', () => { TRIAL_LOG.length = 0; render
 syncModuleUI(); renderTrialLog();
 $g('g-pop-ok').addEventListener('click', () => G.onConfirm && G.onConfirm());
 $g('g-dead-retry').addEventListener('click', () => G.onConfirm && G.onConfirm());
-$g('g-dead-all').addEventListener('click', () => G.run ? showRunResults(false) : gStart());
+$g('g-dead-all').addEventListener('click', () => G.run ? showRunResults(false) : G.flow === 'lvl' ? showLevelSelect() : gStart());
 $g('g-res-again').addEventListener('click', () => G.onConfirm && G.onConfirm());
 $g('g-res-title').addEventListener('click', () => { G.run = null; for (const sl in SLOTS) equip(sl, 'basic'); applyCultivator('free'); showTitle(); }); // 离开历劫：本命模块不带进剧情模式
 $g('g-map-codex').addEventListener('click', () => showCodex());
 $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { resetCombat(); finishTutorial(); } canvas.focus(); });
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
-window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2
+  LV, LEVELS, startLevel, showLevelSelect, lvFinish, // 关卡原型 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
