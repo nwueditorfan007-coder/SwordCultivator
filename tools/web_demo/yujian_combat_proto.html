@@ -2497,6 +2497,7 @@ function inSector(p, pc, h, R, half) {
   return Math.abs(signedAngle(h, new V2(dx, dy))) <= half;
 }
 function reflectBullet(b, h, big) {
+  if (b.heavy && !big && !b.friendly && typeof jzActive === 'function' && jzActive()) { jzSuccess(b.pos.clone(), null); b.breakArmor = true; } // 见招窗口内斩回重弹 = 拆，弹回去破甲（普通子弹仍只是斩弹，免得反馈太密）
   b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.6;
   // 斩回的子弹自动找剑尖前方 50° 内最近的敌人，没有就沿剑尖飞
   let best = null, bd = 42;
@@ -4480,7 +4481,13 @@ function parryCue(toScreen) { // 来招提示（2026-10-09 用户选 C）
     if (now && !e.cueDone) { e.cueDone = true; sfx('ready'); }
   }
 }
+function drawParryFlash(W, Hc) {
+  const t = cb.parryFlashT0 ? (performance.now() - cb.parryFlashT0) / 260 : 9; if (t >= 1) return;
+  ovCtx.globalAlpha = 0.6 * (1 - t) * (1 - t); ovCtx.fillStyle = '#fff6dc'; ovCtx.fillRect(0, 0, W, Hc);
+  ovCtx.globalAlpha = 0.8 * (1 - t); ovCtx.strokeStyle = '#ffd75a'; ovCtx.lineWidth = 14; ovCtx.strokeRect(7, 7, W - 14, Hc - 14); ovCtx.globalAlpha = 1;
+}
 function drawLevelOverlay(toScreen, W, Hc) {
+  drawParryFlash(W, Hc); // 拆中的白金闪光
   drawTun(toScreen); // 吞海的吞口（任何模式）
   parryCue(toScreen); // 见招：来招提示
   if (!LV.id) return;
@@ -4952,29 +4959,39 @@ function snapFace(dir) {
   const d = dir.clone().normalize(), spd = Math.max(sim.vel.length(), CRUISE * 0.3);
   sim.setHeading(new V2(d.x, -d.y)); sim.vel.set(d.x * spd, -d.y * spd); state.camLook && state.camLook.set(0, 0, 0);
 }
-function jzFace(dir) { snapFace(dir); spawnSlashFx(false, Math.atan2(dir.y, dir.x), 1); popup('回身', 'small gold'); } // 拆中自动回身（2026-10-09 用户选 A）
-function jzSuccess(p) {
+// 拆招只在这一刀剑弧的那一侧生效（2026-10-09 用户定：与近战攻击面向一致，和斩弹同一规则）
+function jzFacing(p) {
+  const dir = headingW().rotateAround(ORIGIN2, cb.slashOff || 0), v = p.clone().sub(to2(playerC()));
+  return Math.abs(signedAngle(dir, v)) <= CB.SLASH_HALF + 0.35;
+}
+// 拆中：全游戏最强一档的反馈（2026-10-09 用户选）——定格 + 慢放、白金闪光 + 震屏、对手弹开后仰、“铮”+ 钟声、大字“拆”
+SFX.parry = () => { metal(1320, 0.55, 0.16, { ratios: [1, 2.76, 5.4], verb: 0.5 }); edge(0.3); thud(150, 60, 0.18, 0.3); bellNote(SCALE[4] * 2, 1.8, 0.1, 0.03, AU.sfxSig || AU.sfx); };
+SFX_SIG.add('parry');
+function jzSuccess(p, foe) {
   if (!JZ.hit) { JZ.hit = true; JZ.lockUntil = cb.realT + 0.15; } // 拆中：几乎不留硬直，可以接着出招
-  JZ.parries++; hitStop(0.08); cb.riskSlowT = Math.max(cb.riskSlowT, 0.35);
+  JZ.parries++; hitStop(0.1); cb.riskSlowT = Math.max(cb.riskSlowT, 0.5); // 先定格，再慢放
   cb.mom = Math.min(state.momMax, (cb.mom || 0) + 1); gain(15);
-  goldBurst.emit(new V3(p.x, p.y, 0), 16, 14); spawnImpact(new V3(p.x, p.y, 0), new V2(1, 0), true, 0xf2c75c);
-  sfx('clang'); sfx('risk'); popup('拆招', 'sig gold');
+  const p3 = new V3(p.x, p.y, 0), pc = to2(playerC()), dir = p.clone().sub(pc).normalize();
+  goldBurst.emit(p3, 34, 22); sparkBurst.emit(p3, 24, 26, dir, 1.6); spawnImpact(p3, dir, true, 0xffe8a0); spawnShock(p3, 1.3);
+  for (let k = 0; k < 14; k++) { const a = Math.atan2(dir.y, dir.x) + (k / 13 - 0.5) * CB.SLASH_HALF * 2, q = pc.clone().add(new V2(Math.cos(a), Math.sin(a)).multiplyScalar(CB.SLASH_R * 0.8)); goldBurst.emit(new V3(q.x, q.y, 0), 2, 4); } // 剑弧描成金色
+  cb.quake = { t0: performance.now() / 1000, amp: 3 * state.burstShake };
+  cb.parryFlashT0 = performance.now();
+  if (foe) { foe.parryT = cb.realT; foe.punchT0 = cb.realT; }
+  sfx('parry'); popup('拆', 'sig gold');
 }
 function jzTryBullet(b) {
-  if (!jzActive() || b.friendly) return false;
+  if (!jzActive() || b.friendly || !jzFacing(b.pos)) return false;
   const pc = to2(playerC()); let best = null, bd = 40;
   for (const e of cb.enemies) { const d = e.pos.distanceTo(pc); if (d < bd && !e.invuln) { bd = d; best = e; } }
-  jzFace(b.vel.clone().negate()); // 回身朝向子弹来的方向
   b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.6; b.breakArmor = !!b.heavy;
   b.vel.copy(best ? best.pos.clone().sub(b.pos) : b.vel.clone().negate()).normalize().multiplyScalar(CB.REFLECT_SPEED);
-  jzSuccess(b.pos); return true;
+  jzSuccess(b.pos, null); return true;
 }
 function jzTryMelee(e) {
-  if (!jzActive()) return false;
-  jzFace(e.pos.clone().sub(to2(playerC()))); // 回身朝向攻击者
+  if (!jzActive() || !jzFacing(e.pos)) return false;
   if (isDuel(e)) { e.mode = 'stagger'; e.t = 2.0; e.vel.multiplyScalar(0.2); } else { e.stunUntil = cb.realT + 1.5; e.mode = 'drift'; e.t = 1.5; }
-  e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 8); e.hitCd = 0.8;
-  jzSuccess(e.pos); popup('破绽', 'move gold'); return true;
+  e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 14); e.knockUntil = cb.realT + 0.4; e.hitCd = 0.8; // 被弹开
+  jzSuccess(e.pos, e); return true;
 }
 
 // ---------- 剑冢守灵「孤鸿」 ----------
@@ -5021,7 +5038,7 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
   }
   const right = Math.cos(e.face) >= 0;
   e.g.scale.x = (right ? 1 : -1) * Math.abs(e.g.scale.x || 1);
-  e.g.rotation.z = e.mode === 'stagger' ? Math.sin(e.phase * 20) * 0.25 : (right ? 1 : -1) * Math.sin(e.face) * 0.35;
+  e.g.rotation.z = e.mode === 'stagger' ? Math.sin(e.phase * 20) * 0.12 + (right ? 0.6 : -0.6) * Math.exp(-(cb.realT - (e.parryT || -9)) * 2.5) : (right ? 1 : -1) * Math.sin(e.face) * 0.35;
   const bl = e.g.userData.blade; if (bl) bl.rotation.z = e.mode === 'wind' ? 0.9 : e.mode === 'dash' ? 0 : e.mode === 'stalk' ? -0.6 : -1.2;
   e.eye.scale.setScalar(e.mode === 'wind' ? 1.9 : e.mode === 'stagger' ? 0.5 : 1);
   const sh = e.g.userData.shield; if (sh) { sh.visible = e.shield > 0; sh.rotation.z += dt * 2; sh.material.opacity = 0.25 + 0.06 * e.shield; }
@@ -5787,7 +5804,7 @@ function stepDuelist(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
   }
   const right = Math.cos(e.face) >= 0;
   e.g.scale.x = right ? Math.abs(e.g.scale.x || 1) : -Math.abs(e.g.scale.x || 1);
-  e.g.rotation.z = e.mode === 'stagger' ? Math.sin(e.phase * 20) * 0.25 : (right ? 1 : -1) * Math.sin(e.face) * 0.35;
+  e.g.rotation.z = e.mode === 'stagger' ? Math.sin(e.phase * 20) * 0.12 + (right ? 0.6 : -0.6) * Math.exp(-(cb.realT - (e.parryT || -9)) * 2.5) : (right ? 1 : -1) * Math.sin(e.face) * 0.35;
   const bl = e.g.userData.blade; if (bl) bl.rotation.z = e.mode === 'wind' ? 0.9 : e.mode === 'dash' ? 0 : e.mode === 'stalk' ? -0.6 : -1.2;
   e.eye.scale.setScalar(e.mode === 'wind' ? 1.9 : e.mode === 'stagger' ? 0.5 : 1);
   tele.visible = e.mode === 'wind' && state.fx;
