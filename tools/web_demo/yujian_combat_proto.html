@@ -4943,7 +4943,7 @@ const isDuel = e => e.type === 'duelist' || e.type === 'jianling';
 // ---------- 见招 ----------
 ABIL.jianzhao = false;
 try { ABIL.jianzhao = localStorage.getItem('yujian_ab_jianzhao') === '1'; } catch (e) {}
-const JZ = { t: -9, lockUntil: -9, WIN: 0.15, REC: 0.55, parries: 0 };
+const JZ = { t: -9, lockUntil: -9, WIN: 0.15, WIN_BOSS: 0.35, REC: 0.55, parries: 0 };
 function jzPress() {
   if (!ABIL.jianzhao || state.mode !== 'fly' || cb.dead > 0 || G.modal) return false;
   if (cb.realT < JZ.lockUntil) { fail('招式未收'); return true; }
@@ -4960,9 +4960,9 @@ function snapFace(dir) {
   sim.setHeading(new V2(d.x, -d.y)); sim.vel.set(d.x * spd, -d.y * spd); state.camLook && state.camLook.set(0, 0, 0);
 }
 // 拆招只在这一刀剑弧的那一侧生效（2026-10-09 用户定：与近战攻击面向一致，和斩弹同一规则）
-function jzFacing(p) {
+function jzFacing(p, extra) {
   const dir = headingW().rotateAround(ORIGIN2, cb.slashOff || 0), v = p.clone().sub(to2(playerC()));
-  return Math.abs(signedAngle(dir, v)) <= CB.SLASH_HALF + 0.35;
+  return Math.abs(signedAngle(dir, v)) <= CB.SLASH_HALF + 0.35 + (extra || 0);
 }
 // 拆中：全游戏最强一档的反馈（2026-10-09 用户选）——定格 + 慢放、白金闪光 + 震屏、对手弹开后仰、“铮”+ 钟声、大字“拆”
 SFX.parry = () => { metal(1320, 0.55, 0.16, { ratios: [1, 2.76, 5.4], verb: 0.5 }); edge(0.3); thud(150, 60, 0.18, 0.3); bellNote(SCALE[4] * 2, 1.8, 0.1, 0.03, AU.sfxSig || AU.sfx); };
@@ -5049,9 +5049,15 @@ function drawPZ(toScreen, W, Hc) {
   const pc = toScreen(to2(playerC())); ctx.strokeStyle = 'rgba(255,228,138,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(pc.x, pc.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.setLineDash([]);
   ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillStyle = '#ffe48a'; ctx.fillText('破绽 ' + (PZ.i + 1) + ' / ' + PZ.N + '  ·  点圈瞬身斩过去，圈收得越小越痛', W / 2, Hc - 60);
 }
+function jlForceThrust() { // 练招（测试用）：按 T 让孤鸿立刻起手突刺
+  const B = LV.id === 'jianzhong' && LV.d && LV.d.boss;
+  if (!B || !cb.enemies.includes(B) || PZ.on || B.mode === 'dash' || B.mode === 'wind') return;
+  B.mode = 'wind'; B.t = 0.8; B.combo = 1; B.locked = false; popup('练招 · 孤鸿突刺', 'small gold');
+}
 function jzTryMelee(e) {
-  if (!jzActive() || !jzFacing(e.pos)) return false;
-  if (LV.id && LV.d && LV.d.boss === e) { jzSuccess(e.pos, e); pzStart(e); e.hitCd = 0.8; return true; } // Boss：进入破绽连斩
+  const boss = !!(LV.id && LV.d && LV.d.boss === e), win = boss ? JZ.WIN_BOSS : JZ.WIN; // 拆 Boss 放宽（2026-10-09 用户：太难触发）
+  if (!(loOn() && LO.melee === 'jianzhao' && cb.realT - JZ.t < win) || !jzFacing(e.pos, boss ? 0.9 : 0)) return false;
+  if (boss) { jzSuccess(e.pos, e); pzStart(e); e.hitCd = 0.8; return true; } // Boss：进入破绽连斩
   if (isDuel(e)) { e.mode = 'stagger'; e.t = 2.0; e.vel.multiplyScalar(0.2); } else { e.stunUntil = cb.realT + 1.5; e.mode = 'drift'; e.t = 1.5; }
   e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 14); e.knockUntil = cb.realT + 0.4; e.hitCd = 0.8; // 被弹开
   jzSuccess(e.pos, e); return true;
@@ -5079,7 +5085,7 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
       if (ph === 2) { // 万剑归冢：重剑雨，从两侧斜上方压过来（重弹：斩得回、吞得下、拆得了）
         for (let k = 0; k < 5; k++) { const a = Math.atan2(dirP.y, dirP.x) + (k - 2) * 0.22, src = pc.clone().add(new V2(-Math.cos(a), -Math.sin(a)).multiplyScalar(18)).add(new V2(0, 6 + k)); const b = fireBullet(src, pc.clone().sub(src), 15, true); b.by = '孤鸿的重剑雨'; }
         e.t = 2.2; sfx('needleCharge');
-      } else if (e.cycle % 3 === 0) {
+      } else if (e.cycle % 4 === 0) {
         for (let k = -2; k <= 2; k++) { const b = fireBullet(e.pos, dirP.clone().rotateAround(ORIGIN2, k * 0.17), 18); b.by = '孤鸿的剑气'; }
         e.t = 1.1 + rand() * 0.6; e.strafe = -(e.strafe || 1);
       } else { e.mode = 'wind'; e.t = ph === 3 ? 0.6 : 0.8; e.combo = ph === 3 ? 3 : 1; sfx('beep'); }
@@ -5098,7 +5104,7 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
     }
   } else {
     moveToward(e.vel, ORIGIN2, 25 * dt);
-    if (e.t <= 0) { e.mode = 'stalk'; e.t = 1.0 + rand() * 0.6; }
+    if (e.t <= 0) { e.mode = 'stalk'; e.t = 0.6 + rand() * 0.4; }
   }
   const right = Math.cos(e.face) >= 0;
   e.g.scale.x = (right ? 1 : -1) * Math.abs(e.g.scale.x || 1);
@@ -5188,7 +5194,7 @@ LEVELS.jianzhong = {
   hud() {
     const D = LV.d;
     if (D.stage === 'canyon') return `剑冢 · 剑林峡谷 · 用时 <b>${D.stT.toFixed(1)}</b>s · 距剑冢 <b>${Math.max(0, Math.round(D.arena - 15 - sim.pos.x))}</b>m · ${Math.abs(sim.pos.x - D.curtain.x) < 40 ? '<b style="color:#ffd27a">剑幕：擦弹穿过 / 吞海吸掉 / 等空隙</b>' : '残剑会射剑气'}`;
-    if (D.stage === 'boss') { const e = D.boss, ph = e ? jlPhase(e) : 1; return `剑冢守灵 · 孤鸿 · ${['', '斗剑', '万剑归冢', '人剑合一'][ph]}${ph === 2 && e.shield > 0 ? ' · 剑罡 <b>' + e.shield + '</b>（吞海重弹 / 斩回重剑 / 御剑）' : ''} · 用时 <b>${D.stT.toFixed(1)}</b>s`; }
+    if (D.stage === 'boss') { const e = D.boss, ph = e ? jlPhase(e) : 1; return `剑冢守灵 · 孤鸿 · ${['', '斗剑', '万剑归冢', '人剑合一'][ph]}${ph === 2 && e.shield > 0 ? ' · 剑罡 <b>' + e.shield + '</b>（吞海重弹 / 斩回重剑 / 御剑）' : ''} · 用时 <b>${D.stT.toFixed(1)}</b>s · <b>T</b> 练招：让它立刻突刺`; }
     if (D.stage === 'trial') return `剑冢 · 试招 · 攻击到的瞬间<b>出刀</b>拆招 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 拆招 <b>${JZ.parries}</b> 次`;
     return '剑冢 · 剑意归心';
   },
@@ -7436,6 +7442,7 @@ window.addEventListener('keydown', e => {
   if (k === ' ' && !e.repeat && state.mode === 'fly' && state.steer === 'mouse') doDodge(); // 空格：破空闪（按住 A / D 横闪）
   if (k === 'r' && !e.repeat && G.flow === 'free') resetCombat(); // R 重开只在自由模式
   if (k === 'f' && !e.repeat && state.mode === 'fly') startTrib(); // F：引劫（历劫中修为满时）
+  if (k === 't' && !e.repeat && state.mode === 'fly') jlForceThrust(); // T：练招，孤鸿立刻突刺（测试用）
   if (k === 'q' && !e.repeat) activePress(); // Q：主动技（整剑里选的形态：剑鸣 / 吞海）
   if (k === 'h' && !e.repeat) app.classList.toggle('nopanel');
   if (k === 'p') $('btn-pause').click();
