@@ -283,7 +283,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
           </div>
           <div class="skills">
             <div class="sk" id="cb-dash-row"><div class="ico" id="cb-dash"><span>闪</span></div><kbd>空格</kbd></div>
-            <div class="sk" id="cb-jz-row" hidden><div class="ico" id="cb-jz" style="--c:#ffd27a"><span>招</span></div><kbd>长按</kbd></div>
+            <div class="sk" id="cb-jz-row" hidden><div class="ico" id="cb-jz" style="--c:#ffd27a"><span>招</span></div><kbd>左键</kbd></div>
             <div class="sk" id="cb-kun-row" hidden><div class="ico" id="cb-kun" style="--c:#7fe3ff"><span>鲲</span></div><kbd>Q</kbd></div>
             <div class="sk" id="cb-arr-row"><div class="ico" id="cb-arr" style="--c:#94bdd3"><span>阵</span><small id="cb-arr-n"></small></div><kbd id="cb-arr-key">随招</kbd></div>
           </div>
@@ -2981,6 +2981,7 @@ function bladeStartBasic(big) {
   // 手里的主剑跟剑弧同步扫过：从剑弧起点扫到终点（剑弧每次左右交替，剑也交替）
   const ang = Math.atan2(h.y, h.x) + cb.slashOff, side = cb.slashSide, half = big ? Math.PI : CB.SLASH_HALF;
   cb.sw = { t: 0, a0: ang - side * (half + 0.25), a1: ang + side * (half + 0.15), dur: big ? 0.1 : 0.05 };
+  cb.slashScale *= cb.slashArcMul || 1; // 近战形态可以改剑弧长短（见招：更短）
   spawnSlashFx(big, ang, cb.slashScale);
   if (big) popup('回锋斩', 'move gold');
   gEv(big ? 'carve' : 'slash');
@@ -4913,7 +4914,7 @@ const isDuel = e => e.type === 'duelist' || e.type === 'jianling';
 // ---------- 见招 ----------
 ABIL.jianzhao = false;
 try { ABIL.jianzhao = localStorage.getItem('yujian_ab_jianzhao') === '1'; } catch (e) {}
-const JZ = { t: -9, lockUntil: -9, WIN: 0.2, REC: 0.55, parries: 0 };
+const JZ = { t: -9, lockUntil: -9, WIN: 0.15, REC: 0.55, parries: 0 };
 function jzPress() {
   if (!ABIL.jianzhao || state.mode !== 'fly' || cb.dead > 0 || G.modal) return false;
   if (cb.realT < JZ.lockUntil) { fail('招式未收'); return true; }
@@ -4922,7 +4923,7 @@ function jzPress() {
   const p = playerC(); sparkBurst.emit(new V3(p.x, p.y, 0), 8, 6);
   return true;
 }
-const jzActive = () => !!(cb.hv && cb.hv.stance && LO.charge === 'jianzhao' && loOn() && cb.realT - JZ.t < JZ.WIN); // 见招 = 蓄力槽形态：举剑起手的 0.2 秒
+const jzActive = () => loOn() && LO.melee === 'jianzhao' && cb.realT - JZ.t < JZ.WIN; // 见招 = 近战形态：每一刀出手的瞬间
 function jzSuccess(p) {
   if (!JZ.hit) { JZ.hit = true; JZ.lockUntil = cb.realT + 0.15; } // 拆中：几乎不留硬直，可以接着出招
   JZ.parries++; hitStop(0.08); cb.riskSlowT = Math.max(cb.riskSlowT, 0.35);
@@ -5056,18 +5057,18 @@ LEVELS.jianzhong = {
     setTimeout(() => { if (LV.id === 'jianzhong' && LV.d.stage === 'reward') this.reward(); }, 1600);
   },
   reward() {
-    ABIL.jianzhao = true; try { localStorage.setItem('yujian_ab_jianzhao', '1'); } catch (e) {} loGrant('charge', 'jianzhao');
-    showChoice({ title: '夺能 · 见招', tag: '获得新能力', sub: '孤鸿守了一辈子剑冢，一身本事都在“接得住”三个字上。你从他最后一剑里看懂了这一招。<br>解锁了<b>蓄力（长按左键）</b>的新形态「见招」，已经替你装上；之后可以在“整剑”里和开山换着用。',
-      opts: [{ kind: 'relic', name: '见招', tag: '蓄力 · 长按左键', desc: '按下照样先出一刀；继续按住就举剑，举剑起手 0.2 秒内被子弹或近身攻击打到 = 拆招：子弹弹回去（重弹照样破甲），近身攻击者直接露出破绽，慢放一下、回 1 格剑势和 15 剑意。拆中后松开 = 破甲反击；没拆中松开只是一刀，0.4 秒内不能再举。', cost: '接下来：试招。墨影剑客的冲斩、蓄势针的重针，都拆给它们看。',
+    ABIL.jianzhao = true; try { localStorage.setItem('yujian_ab_jianzhao', '1'); } catch (e) {} loGrant('melee', 'jianzhao');
+    showChoice({ title: '夺能 · 见招', tag: '获得新能力', sub: '孤鸿守了一辈子剑冢，一身本事都在“接得住”三个字上。你从他最后一剑里看懂了这一招。<br>解锁了<b>近战（点按左键）</b>的新形态「见招」，已经替你装上；之后可以在“整剑”里和顺锋换着用。',
+      opts: [{ kind: 'relic', name: '见招', tag: '近战 · 点按左键', desc: '每一刀出手的 0.15 秒内都能拆招：近身攻击者直接露出破绽，子弹弹回去（重弹照样破甲），拆中时慢放一下、回 1 格剑势和 15 剑意。代价：剑弧更短。看准攻击到的那一瞬间再出刀。', cost: '接下来：试招。墨影剑客的冲斩、蓄势针的重针，都拆给它们看。',
         fn: () => { hideOverlays(); setModal(false); this.startTrial(); } }] });
     G.onConfirm = () => { hideOverlays(); setModal(false); this.startTrial(); };
   },
-  startTrial() { const D = LV.d; D.stage = 'trial'; D.stT = 0; D.wave = 0; D.gap = 1.2; G.onConfirm = null; LV.ckpt = 'trial'; popup('试招 · 见招（长按左键）', 'move gold'); },
+  startTrial() { const D = LV.d; D.stage = 'trial'; D.stT = 0; D.wave = 0; D.gap = 1.2; G.onConfirm = null; LV.ckpt = 'trial'; popup('试招 · 见招（攻击到的瞬间出刀）', 'move gold'); },
   stepTrial(dt) {
     const D = LV.d;
     if (cb.enemies.length || cb.pendingSquads.length) return;
     D.gap -= dt; if (D.gap > 0) return;
-    if (D.wave === 0) { tSquad(['duelist'], 0.4); tSquad(['duelist'], -0.4); popup('看到“斩”，提前一点按住左键', 'small gold'); }
+    if (D.wave === 0) { tSquad(['duelist'], 0.4); tSquad(['duelist'], -0.4); popup('它冲到面前的一瞬间出刀', 'small gold'); }
     else if (D.wave === 1) { tSquad(['needle'], 0); tSquad(['needle'], Math.PI); tSquad(['crow', 'crow'], 1.5); popup('重针也能拆回去', 'small gold'); }
     else { D.times.trial = D.stT; lvFinish(true); return; }
     D.wave++; D.gap = 2;
@@ -5076,7 +5077,7 @@ LEVELS.jianzhong = {
     const D = LV.d;
     if (D.stage === 'canyon') return `剑冢 · 剑林峡谷 · 用时 <b>${D.stT.toFixed(1)}</b>s · 距剑冢 <b>${Math.max(0, Math.round(D.arena - 15 - sim.pos.x))}</b>m · ${Math.abs(sim.pos.x - D.curtain.x) < 40 ? '<b style="color:#ffd27a">剑幕：擦弹穿过 / 吞海吸掉 / 等空隙</b>' : '残剑会射剑气'}`;
     if (D.stage === 'boss') { const e = D.boss, ph = e ? jlPhase(e) : 1; return `剑冢守灵 · 孤鸿 · ${['', '斗剑', '万剑归冢', '人剑合一'][ph]}${ph === 2 && e.shield > 0 ? ' · 剑罡 <b>' + e.shield + '</b>（吞海重弹 / 斩回重剑 / 御剑）' : ''} · 用时 <b>${D.stT.toFixed(1)}</b>s`; }
-    if (D.stage === 'trial') return `剑冢 · 试招 · 按住<b>左键</b>举剑拆招 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 拆招 <b>${JZ.parries}</b> 次`;
+    if (D.stage === 'trial') return `剑冢 · 试招 · 攻击到的瞬间<b>出刀</b>拆招 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 拆招 <b>${JZ.parries}</b> 次`;
     return '剑冢 · 剑意归心';
   },
   result() {
@@ -5101,7 +5102,7 @@ LEVELS.jianzhong = {
   },
 };
 LV_INFO.jianzhong = { name: '剑冢（第二关）', tag: '剑林峡谷 → 剑修 Boss → 夺能', test: '剑修 Boss 和巨物 Boss 交替好不好？上一关的吞海在这关有没有用武之地（能力链）？',
-  goal: '一、剑林峡谷：残剑会射剑气；中段的剑幕可以擦弹穿过、用吞海（Q）吸掉，或等空隙。<br>二、剑冢守灵「孤鸿」：①斗剑：看到“斩”就破空穿过去打破绽 ②万剑归冢：罩起剑罡、召重剑雨——用吞海吞剑雨喷重弹、把重剑斩回去或御剑破罡 ③人剑合一：三段连冲。<br>三、夺能「见招」（蓄力形态 · 长按左键），然后试招。<br><small>没打过北冥也能玩，只是没有吞海。</small>' };
+  goal: '一、剑林峡谷：残剑会射剑气；中段的剑幕可以擦弹穿过、用吞海（Q）吸掉，或等空隙。<br>二、剑冢守灵「孤鸿」：①斗剑：看到“斩”就破空穿过去打破绽 ②万剑归冢：罩起剑罡、召重剑雨——用吞海吞剑雨喷重弹、把重剑斩回去或御剑破罡 ③人剑合一：三段连冲。<br>三、夺能「见招」（近战形态 · 点按左键），然后试招。<br><small>没打过北冥也能玩，只是没有吞海。</small>' };
 
 // ===========================================================================
 // 整剑：技能槽位系统（docs/systems/SKILL_SLOT_SYSTEM_V1.md，2026-10-09 用户定）
@@ -5115,10 +5116,10 @@ const LO_SLOTS = [
   ['slice', '御剑连斩', '长按右键', '时停居合、切机制'], ['talent', '特殊天赋', '—', '让移动也能战斗'],
 ];
 const FORMS = {
-  melee: { shunfeng: { name: '顺锋', good: '均衡；高速时自动成冲锋斩', cost: '—', def: true }, chuanfeng: { name: '穿锋', good: '冲锋斩的剑气继续前飞约 20 米、穿透', cost: '剑气命中不给近身剑意' } },
+  melee: { shunfeng: { name: '顺锋', good: '均衡；高速时自动成冲锋斩', cost: '—', def: true }, chuanfeng: { name: '穿锋', good: '冲锋斩的剑气继续前飞约 20 米、穿透', cost: '剑气命中不给近身剑意' },
+    jianzhao: { name: '见招', good: '每一刀出手的 0.15 秒内都能拆招：近身攻击者露出破绽，重弹也能弹回去破甲；拆中有慢放、回剑势和剑意', cost: '剑弧更短（约 72%）', boss: '孤鸿（剑冢）', abil: 'jianzhao' } },
   carve: { zhengquan: { name: '整圈', good: '一整圈大斩，伤害加倍', cost: '—', def: true }, moxuan: { name: '墨旋', good: '回锋处留下墨旋：反复切割、吞掉飞进来的子弹', cost: '回锋斩不再派剑阵' } },
-  charge: { kaishan: { name: '开山', good: '蓄势时正面挡弹；松开劈山，蓄满破甲', cost: '蓄势时几乎转不动身', def: true },
-    jianzhao: { name: '见招', good: '举剑起手 0.2 秒内被打到 = 拆招：子弹弹回（重弹破甲）、近身者露破绽；拆中后松开 = 破甲反击', cost: '举早了白举；没拆中松开只是一刀，0.4 秒内不能再举', boss: '孤鸿（剑冢）', abil: 'jianzhao' } },
+  charge: { kaishan: { name: '开山', good: '蓄势时正面挡弹；松开劈山，蓄满破甲。回锋斩之后按住也能接', cost: '蓄势时转向变慢、减速', def: true } },
   active: { jianming: { name: '剑鸣', good: '震出一圈剑气：清掉身边 8 米的普通子弹，震退小怪', cost: '冷却 10 秒', def: true },
     tunhai: { name: '吞海', good: '按住吸子弹和小怪，松开喷水弹；吞满 6 颗变破甲重弹', cost: '吸的时候减速；冷却 4 秒', boss: '鲲（北冥）', abil: 'kunpeng' } },
   array: { basic: { name: '散星', good: '随招派剑，追击范围内的敌人', cost: '—', def: true }, ring: { name: '环阵', good: '阵剑绕身急旋：切开贴近的敌人、挡子弹', cost: '不追远处的敌人' },
@@ -5146,7 +5147,7 @@ function loGrant(slot, id) { LO[slot] = id; loSave(); if (loOn()) loApply(); }
 // ---------- 蓄力：开山 / 见招 ----------
 function loChargeKaishan(dt, pc, h, hv) {
   const u = clamp((hv.t - CB.HV_TAP) / (hvFull() - CB.HV_TAP), 0, 1); hv.u = u;
-  cb.turnMul = CB.HV_TURN;
+  cb.turnMul = 0.7; // 整剑版开山：蓄势转向放宽到 70%（用户 2026-10-09），边蓄边调方向
   if (cb.throttleV !== undefined) cb.throttleV = Math.min(cb.throttleV, CRUISE * BODY.speed * CB.HV_SLOW);
   for (let j = cb.bullets.length - 1; j >= 0; j--) {
     const b = cb.bullets[j];
@@ -5186,14 +5187,14 @@ defineModule('blade', 'lo', {
   name: '整剑',
   press() {
     if (state.mode !== 'fly' || cb.dead > 0) return;
-    bladePressBasic(); // 按下立刻出刀（或回锋斩）
-    if (cb.slashBig && cb.slashT === 0) return;
+    bladePressBasic(); // 按下立刻出刀（或回锋斩）；不松手就接蓄力——回锋斩之后也能接
     if (cb.yj.state !== 'hand' || (cb.hvCd || 0) > 0) return;
     cb.hv = { t: 0, form: LO.charge };
   },
   start(big) {
-    const mox = big && LO.carve === 'moxuan';
-    cb.carveNoSortie = mox; bladeStartBasic(big); cb.carveNoSortie = false;
+    const mox = big && LO.carve === 'moxuan', jz = !big && LO.melee === 'jianzhao';
+    cb.carveNoSortie = mox; cb.slashArcMul = jz ? 0.72 : 1; bladeStartBasic(big); cb.carveNoSortie = false; cb.slashArcMul = 1;
+    if (jz) { JZ.t = cb.realT; JZ.hit = false; } // 见招：这一刀出手的瞬间开拆招窗口
     if (mox) {
       const p = to2(playerC()), g = new THREE.Group();
       for (const k of [1, 0.68, 0.38]) { const m = new THREE.Mesh(VORTEX_GEO, vortexMat.clone()); m.scale.setScalar(vortexR() * k); m.rotation.z = k * 2; m.frustumCulled = false; g.add(m); }
@@ -7108,8 +7109,8 @@ function updateHud() {
   $('cb-thr-n').textContent = thr > CRUISE * 1.08 ? '催剑' : thr < CRUISE * 0.92 ? '收势' : '巡航';
   // 鲲鹏之力 · 吞海：解锁后显示；吞的时候是剩余时长，冷却时转圈
   { // 蓄力形态为见招时显示举剑状态；Q 图标显示当前主动技形态（剑鸣 / 吞海）
-    const jzOn = loOn() && LO.charge === 'jianzhao'; $('cb-jz-row').hidden = !jzOn;
-    if (jzOn) { $('cb-jz').style.setProperty('--p', (cb.hvCd || 0) > 0 ? 1 - cb.hvCd / 0.4 : 1); $('cb-jz-row').classList.toggle('ready', !(cb.hvCd > 0)); $('cb-jz-row').classList.toggle('active', jzActive()); }
+    const jzOn = loOn() && LO.melee === 'jianzhao'; $('cb-jz-row').hidden = !jzOn;
+    if (jzOn) { $('cb-jz').style.setProperty('--p', 1); $('cb-jz-row').classList.add('ready'); $('cb-jz-row').classList.toggle('active', jzActive()); }
     const af = loActive(); $('cb-kun-row').hidden = af === 'none';
     if (af !== 'none') {
       const tun = af === 'tunhai'; $('cb-kun').querySelector('span').textContent = tun ? '鲲' : '鸣';
