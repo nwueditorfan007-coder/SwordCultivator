@@ -4376,14 +4376,18 @@ function stepLevelEnemy(e, dt, pc, dirP, canFire) {
 function showLevelSelect() {
   resetCombat(); G.flow = 'lvsel'; G.run = null;
   let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
-  showChoice({ title: '关卡原型', tag: '灰盒 · 四种方向', sub: '四种“飞行关卡怎么做出新鲜感”的方向，各做了一关灰盒。都试一遍，告诉我哪种最重要。数字键 1–4 选择。',
+  showChoice({ title: '关卡原型', tag: '灰盒 · 六种方向', sub: '六种“飞行关卡怎么做出新鲜感”的方向，各做了一关灰盒（后两关换了世界形状）。都试一遍，告诉我哪种最重要。数字键 1–6 选择。',
     opts: Object.keys(LV_INFO).map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
     leave: { name: '回到标题', fn: () => showTitle() } });
 }
 function showLevelIntro(id) {
   const I = LV_INFO[id];
-  showChoice({ title: I.name, tag: I.tag, sub: I.goal + '<br><br><small>飞行：双击 W 爆冲 · 双击 S 急刹 · 尾流咬尾 · 空格破空闪 · 右键御剑</small>',
-    opts: [{ kind: 'up', name: '开始', tag: '回车', desc: '验证：' + I.test, fn: () => startLevel(id) }], leave: { name: '返回选关', fn: showLevelSelect } });
+  const opts = LEVELS[id].rotOption
+    ? [{ kind: 'up', name: '开始 · 镜头随地表旋转', tag: '回车', desc: '“局部的上”永远在画面上方，像在星球上空飞', fn: () => { LV.rotCamPref = true; startLevel(id); } },
+       { kind: 'learn', name: '开始 · 镜头固定', tag: '对照', desc: '镜头不转，星球就是画面里的一个圆，飞到下半边时人是倒着的', fn: () => { LV.rotCamPref = false; startLevel(id); } }]
+    : [{ kind: 'up', name: '开始', tag: '回车', desc: '验证：' + I.test, fn: () => startLevel(id) }];
+  showChoice({ title: I.name, tag: I.tag, sub: I.goal + '<br><br><small>验证：' + I.test + '<br>飞行：双击 W 爆冲 · 双击 S 急刹 · 尾流咬尾 · 空格破空闪 · 右键御剑</small>',
+    opts, leave: { name: '返回选关', fn: showLevelSelect } });
   G.onConfirm = () => startLevel(id);
 }
 function startLevel(id) {
@@ -4420,6 +4424,160 @@ function drawLevelOverlay(toScreen, W, Hc) {
   if (!LV.id) return;
   const L = LEVELS[LV.id]; if (L.overlay) L.overlay(ovCtx, toScreen, W, Hc);
 }
+
+// ===========================================================================
+// 关卡原型 · 世界形状（2026-10-09 用户提出：不同关卡可以有不同的“世界形状”——小星球上的弧形地平线、星海里的星辰引力）
+//   五、浮空小世界：一颗小星球自成重力，“下”指向球心，地平线是弧线，绕一圈回到原点；俯冲（朝球心飞）更快、爬升更慢
+//       镜头可选“随地表旋转”（局部的上永远朝上）或“固定”
+//   六、周天星海：没有上下，每颗星辰都有引力；贴着星辰绕行会被吸住并加速，绕过半圈再离开 = 星引甩射（白送一次爆冲 + 剑势）
+//       按序穿过 6 道星门，计时
+// 两关都关掉云海与前景云，换成自己的天幕；操作完全不变，变的是物理规则
+// ===========================================================================
+const lvSpace = () => !!(LV.id && LEVELS[LV.id].space);
+// 天幕：一块始终挡在背景前、跟着镜头走的大平面（渐变 + 星点画在贴图里）
+function lvSkyTex(top, bottom, stars) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, top); gr.addColorStop(1, bottom); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  const r = lvRng(11); for (let i = 0; i < stars; i++) { const a = 0.35 + r() * 0.65; g.fillStyle = `rgba(255,${230 + r() * 25 | 0},${200 + r() * 55 | 0},${a})`; const s = r() < 0.1 ? 2 : 1; g.fillRect(r() * 256 | 0, r() * 256 | 0, s, s); }
+  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; return t;
+}
+function lvBackdrop(top, bottom, stars) {
+  const m = lvAdd(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: lvSkyTex(top, bottom, stars), depthWrite: false })), -60);
+  m.renderOrder = -10; LV.d.sky = m; return m;
+}
+function lvBackdropFollow() {
+  const m = LV.d && LV.d.sky; if (!m) return;
+  const w = (camera.right - camera.left) * 1.8, h = (camera.top - camera.bottom) * 1.8, s = Math.max(w, h);
+  m.position.set(camera.position.x, camera.position.y, -60); m.quaternion.copy(camera.quaternion); m.scale.set(s, s, 1);
+}
+// 镜头的“上”：默认世界向上；小世界里可以随地表旋转（平滑，转得慢一点免得晕）
+const lvUp = new V3(0, 1, 0);
+function lvCamUp(dt) {
+  const L = LV.id && LEVELS[LV.id], want = L && L.camUp && LV.d.rotCam ? L.camUp() : new V2(0, 1);
+  const cur = new V2(lvUp.x, lvUp.y), a = signedAngle(cur, want), k = 1 - Math.exp(-(dt || 0) * 2.2);
+  cur.rotateAround(ORIGIN2, a * k); lvUp.set(cur.x, cur.y, 0).normalize();
+  return lvUp;
+}
+// 目标速度修正：小世界俯冲更快、爬升更慢；星海绕星时加速
+function lvSpeedMod(slowMul) { const L = LV.id && LEVELS[LV.id]; return L && L.speedMod && !LV.done ? L.speedMod(slowMul) : slowMul; }
+function lvPlace(x, alt, hx, hy) { sim.pos.x = x; sim.pos.y = BASE_Y - alt; sim.vel.set(hx * CRUISE, -hy * CRUISE); sim.setHeading(new V2(hx, -hy)); state.camFocus = null; }
+
+// ---------- 五、浮空小世界 ----------
+LEVELS.planet = {
+  cam: 2.4, space: true, rotOption: true,
+  build(O) {
+    const C = LV.d.C = new V2(O.x + 20, 120), R = LV.d.R = 34;
+    lvBackdrop('#20183a', '#6a4a7a', 160);
+    // 星球本体：一大块圆 + 一圈草色地表 + 地表上的小楼阁和树
+    const ground = lvAdd(new THREE.Mesh(new THREE.CircleGeometry(R, 72), toon('#2a2018', '#5a4632', '#8a7050')), -1.3); ground.position.set(C.x, C.y, -1.3);
+    const grass = lvAdd(new THREE.Mesh(new THREE.RingGeometry(R - 1.6, R, 72), toon('#1d3a22', '#3f7a46', '#7fc28a')), -1.25); grass.position.set(C.x, C.y, -1.25);
+    const atm = lvAdd(new THREE.Mesh(new THREE.RingGeometry(R + 44, R + 45.5, 96), new THREE.MeshBasicMaterial({ color: 0x9fd3ff, transparent: true, opacity: 0.25, depthWrite: false })), -1.4); atm.position.set(C.x, C.y, -1.4);
+    const r = lvRng(5);
+    for (let i = 0; i < 26; i++) {
+      const a = i / 26 * Math.PI * 2 + r() * 0.1, tall = r() < 0.3, h = tall ? 6 + r() * 4 : 2 + r() * 2, w = tall ? 3 : 1.6;
+      const m = lvAdd(new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), tall ? toon('#3a1410', '#8a3a2a', '#d07050') : toon('#14301a', '#2f6a3a', '#6fb07a')), -1.2);
+      m.position.set(C.x + Math.cos(a) * (R + h / 2 - 0.4), C.y + Math.sin(a) * (R + h / 2 - 0.4), -1.2); m.rotation.z = a - Math.PI / 2;
+      if (tall) LV.obs.push({ k: 'circ', x: m.position.x, y: m.position.y, r: w * 0.6, dmg: 6, name: '楼阁', graze: true });
+    }
+    LV.obs.push({ k: 'circ', x: C.x, y: C.y, r: R, dmg: 6, name: '地表', graze: true });
+    // 灵脉节点（阵眼）：分布在一圈上，飞到附近才刷出守卫
+    LV.d.nodes = [0.35, 1.5, 2.6, 3.7, 4.9].map((a, i) => { const h = i % 2 ? 9 : 22, p = new V2(C.x + Math.cos(a) * (R + h), C.y + Math.sin(a) * (R + h)); const e = lvSpawn('zhenyan', p.x, p.y, true); e.ang = a; return e; });
+    LV.d.guards = LV.d.nodes.map(() => false);
+    lvPlace(C.x, C.y + R + 12, 1, 0); // 从星球顶上出发，沿地表切线飞
+    LV.d.rotCam = LV.rotCamPref !== false;
+  },
+  camUp() { const P = new V2(sim.pos.x, wy(sim.pos.y)); return P.sub(LV.d.C).normalize(); },
+  speedMod(m) { // 朝球心飞（俯冲）快 35%，背离球心（爬升）慢 35%
+    const v = new V2(sim.vel.x, -sim.vel.y); if (v.lengthSq() < 1) return m;
+    const g = LV.d.C.clone().sub(new V2(sim.pos.x, wy(sim.pos.y))).normalize();
+    return m * (1 + 0.35 * v.normalize().dot(g));
+  },
+  physics(dt, P) {
+    const D = LV.d, off = P.clone().sub(D.C), L = off.length(), n = off.clone().divideScalar(L);
+    // 重力：一直往球心轻轻拉；飞出大气层（罡风）被推回来
+    let pull = 4 * dt; if (L > D.R + 45) pull += (L - D.R - 45) * 0.6;
+    sim.pos.x -= n.x * pull; sim.pos.y += n.y * pull;
+    D.alt = L - D.R;
+  },
+  step(dt, P) {
+    const D = LV.d;
+    D.nodes.forEach((e, i) => { if (!D.guards[i] && cb.enemies.includes(e) && e.pos.distanceTo(P) < 45) { D.guards[i] = true; for (let k = 0; k < 3; k++) lvSpawn('crow', e.pos.x + (k - 1) * 4, e.pos.y + 6, true); } });
+    if (D.nodes.every(e => !cb.enemies.includes(e))) lvFinish(true);
+  },
+  hud() { const D = LV.d, left = D.nodes.filter(e => cb.enemies.includes(e)).length; return `浮空小世界 · 灵脉节点余 <b>${left}/5</b> · 离地 <b>${Math.max(0, Math.round(D.alt || 0))}</b>m · 用时 <b>${LV.t.toFixed(1)}</b>s · 朝球心飞更快`; },
+  result() { const dmg = Math.round(G.stats ? G.stats.dmg : 0), sc = LV.t + dmg * 0.3 + LV.hits * 3; return { grade: sc < 70 ? '甲上' : sc < 95 ? '甲' : sc < 130 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['所受伤害', dmg], ['撞地', LV.hits + ' 次'], ['镜头', LV.d.rotCam ? '随地表旋转' : '固定']], score: sc }; },
+};
+
+// ---------- 六、周天星海 ----------
+LEVELS.stars = {
+  cam: 2.4, space: true,
+  build(O) {
+    lvBackdrop('#05060f', '#141a33', 420);
+    const x0 = O.x, Cc = LV.d.C = new V2(x0 + 85, 105);
+    LV.d.stars = [[40, 100, 10], [110, 145, 7], [160, 78, 12], [92, 48, 6], [22, 158, 8]].map(([dx, y, r], i) => {
+      const c = new V2(x0 + dx, y);
+      const m = lvAdd(new THREE.Mesh(new THREE.CircleGeometry(r, 40), toon(['#3a1a08', '#0a2a3a', '#2a0a3a', '#3a3008', '#0a3a1a'][i], ['#a0521c', '#2a7aa0', '#7a3aa0', '#a08a2a', '#2aa05a'][i], ['#ffb070', '#8fd8ff', '#d8a0ff', '#ffe890', '#90ffb8'][i])), -1.3); m.position.set(c.x, c.y, -1.3);
+      const halo = lvAdd(new THREE.Mesh(new THREE.RingGeometry(r + 6.6, r + 7, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, depthWrite: false })), -1.35); halo.position.set(c.x, c.y, -1.35);
+      LV.obs.push({ k: 'circ', x: c.x, y: c.y, r, dmg: 8, name: '星辰', graze: true });
+      return { c, r };
+    });
+    // 星门：顺序绕着星辰的“背面”摆，直飞很绕，借引力甩过去最快
+    const ringAt = (si, ang) => { const s = LV.d.stars[si]; return s.c.clone().add(new V2(Math.cos(ang), Math.sin(ang)).multiplyScalar(s.r + 5)); };
+    LV.d.gates = [ringAt(0, Math.PI * 0.5), ringAt(2, Math.PI * 0.15), ringAt(1, Math.PI * 0.9), ringAt(4, -Math.PI * 0.4), ringAt(3, Math.PI * 1.1), ringAt(2, -Math.PI * 0.6)].map((p, i) => {
+      const m = lvAdd(new THREE.Mesh(new THREE.TorusGeometry(2.8, 0.35, 6, 24), lvMat.ring), -0.2); m.position.set(p.x, p.y, -0.2); m.layers.enable(2); return { p, m, i };
+    });
+    LV.d.next = 0; LV.d.orbit = null; LV.d.slings = 0;
+    lvPlace(x0 + 5, 100, 1, 0);
+  },
+  speedMod(m) { return LV.d.orbit && LV.d.orbit.t > 0.15 ? m * 1.4 : m; },
+  physics(dt, P) {
+    const D = LV.d, v = new V2(sim.vel.x, -sim.vel.y), vn = v.length() > 0.1 ? v.clone().normalize() : new V2(1, 0);
+    let inBand = null;
+    for (const s of D.stars) {
+      const off = P.clone().sub(s.c), d = off.length(), n = off.divideScalar(d);
+      if (d < s.r * 4) { const pull = 10 * Math.pow(s.r / d, 1.5) * dt; sim.pos.x -= n.x * pull; sim.pos.y += n.y * pull; } // 引力：越近越强
+      if (d < s.r + 7 && Math.abs(vn.dot(n)) < 0.6) inBand = s; // 贴着星辰、沿切线飞 = 在绕星
+    }
+    if (inBand) {
+      if (!D.orbit || D.orbit.s !== inBand) D.orbit = { s: inBand, t: 0, a0: Math.atan2(P.y - inBand.c.y, P.x - inBand.c.x), sweep: 0, last: null };
+      const a = Math.atan2(P.y - inBand.c.y, P.x - inBand.c.x); if (D.orbit.last !== null) D.orbit.sweep += Math.abs(wrapA(a - D.orbit.last)); D.orbit.last = a; D.orbit.t += dt;
+    } else if (D.orbit) {
+      if (D.orbit.sweep > Math.PI * 0.75) { // 绕过大半圈后离开：星引甩射
+        cb.surgeT = state.surgeT + 0.3; cb.mom = Math.min(state.momMax, (cb.mom || 0) + 1); D.slings++;
+        sim.vel.copy(sim.bodyH).multiplyScalar(BOOST * state.surgeMul);
+        popup('星引甩射', 'move gold'); sfx('charge'); spawnShock(new V3(P.x, P.y, 0), 1.0);
+      }
+      D.orbit = null;
+    }
+    // 边界：离星海中心太远被拉回
+    const off = P.clone().sub(D.C), L = off.length(); if (L > 125) { const n = off.divideScalar(L); sim.pos.x -= n.x * (L - 125) * 0.5; sim.pos.y += n.y * (L - 125) * 0.5; }
+  },
+  step(dt, P) {
+    const D = LV.d, g = D.gates[D.next];
+    D.gates.forEach((q, i) => { q.m.material = i < D.next ? lvMat.ringDone : lvMat.ring; q.m.scale.setScalar(i === D.next ? 1.2 + 0.15 * Math.sin(simTime * 8) : 0.8); });
+    if (g && g.p.distanceTo(P) < 3.6) { D.next++; popup('星门 ' + D.next + '/6', 'small gold'); sfx('ready'); if (D.next === 3) for (let k = 0; k < 4; k++) lvSpawn('crow', D.C.x + (k - 1.5) * 8, D.C.y + 30, true); }
+    if (D.next >= D.gates.length) lvFinish(true);
+  },
+  hud() { const D = LV.d; return `周天星海 · 星门 <b>${D.next}/6</b> · 星引甩射 <b>${D.slings}</b> 次 · 用时 <b>${LV.t.toFixed(1)}</b>s · ${D.orbit ? '<b style="color:#ffd75a">绕星中…绕过大半圈再离开</b>' : '贴着星辰绕行可借力'}`; },
+  result() { const sc = LV.t + LV.hits * 4 - LV.d.slings * 1; return { grade: sc < 40 ? '甲上' : sc < 55 ? '甲' : sc < 75 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['星引甩射', LV.d.slings + ' 次（每次 −1 秒）'], ['撞星', LV.hits + ' 次（每次 +4 秒）'], ['折算', sc.toFixed(1) + ' 秒']], score: sc }; },
+  overlay(ctx, toScreen, W, Hc) {
+    const D = LV.d, g = D.gates[D.next]; if (!g) return;
+    const s = toScreen(g.p);
+    ctx.font = '700 16px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (s.on) { ctx.fillStyle = '#ffe48a'; ctx.fillText(String(D.next + 1), s.x, s.y - 26); }
+    else { // 画面外：边缘箭头指向下一道星门
+      const cx = W / 2, cy = Hc / 2, dx = s.x - cx, dy = s.y - cy, k = Math.min((W / 2 - 30) / Math.max(1e-3, Math.abs(dx)), (Hc / 2 - 30) / Math.max(1e-3, Math.abs(dy)));
+      const x = cx + dx * k, y = cy + dy * k, a = Math.atan2(dy, dx);
+      ctx.fillStyle = '#ffe48a'; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); ctx.lineTo(x + Math.cos(a + 2.4) * 10, y + Math.sin(a + 2.4) * 10); ctx.lineTo(x + Math.cos(a - 2.4) * 10, y + Math.sin(a - 2.4) * 10); ctx.fill();
+      ctx.fillText('门' + (D.next + 1), x - Math.cos(a) * 22, y - Math.sin(a) * 22);
+    }
+    ctx.textAlign = 'start';
+  },
+};
+LV_INFO.planet = { name: '浮空小世界', tag: '世界形状 · 弧形地平线', test: '弯的世界、指向球心的重力，飞起来新不新鲜？镜头跟着转会不会晕？',
+  goal: '摧毁散在星球四周的 5 个灵脉节点。“下”指向球心：朝球心俯冲更快，背离球心爬升更慢，一直会被轻轻拉向地表；绕星球一圈回到原点。地表和楼阁会撞，贴着擦过 = 擦锋。可以选镜头随地表旋转或固定。' };
+LV_INFO.stars = { name: '周天星海', tag: '世界形状 · 星辰引力', test: '借星辰引力绕行、甩射，是不是好的飞行技术？',
+  goal: '按顺序穿过 6 道星门，计时。每颗星辰都有引力，越近越强；贴着星辰沿切线绕行会被吸住并加速，绕过大半圈再离开 = 星引甩射（白送一次爆冲 + 1 格剑势）。星门都摆在星辰背面，借力甩过去最快。' };
 
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
@@ -5508,7 +5666,7 @@ for (let i = 0; i < 2; i++) {
   fgItems.push({ g, kind: 'birds', birds, bx: vrand() * FG_TILE, band: 0.12 + vrand() * 0.22, p: 1.3, vx: 3 + vrand() * 2 });
 }
 function updateForeground(target, viewW, viewH, dt) {
-  const on = state.mode === 'fly' && state.fgAmt > 0, wrapC = (v, t) => (((v % t) + t * 1.5) % t) - t / 2;
+  const on = state.mode === 'fly' && state.fgAmt > 0 && !lvSpace(), wrapC = (v, t) => (((v % t) + t * 1.5) % t) - t / 2;
   fgCloudMat.opacity = 0.6 * state.fgAmt;
   for (const f of fgItems) {
     f.g.visible = on; if (!on) continue;
@@ -5659,7 +5817,7 @@ function makeCloudLayer(count, nBanks, front) {
 const cloudBack = makeCloudLayer(400, 9, false), cloudFront = makeCloudLayer(200, 4, true);
 let cloudInside = 0;
 function updateCloudBanks(target, dt) {
-  const on = state.mode === 'fly' && state.cloudSea > 0, wrapC = (v, c, t) => c + (((v - c) % t) + t * 1.5) % t - t / 2;
+  const on = state.mode === 'fly' && state.cloudSea > 0 && !lvSpace(), wrapC = (v, c, t) => c + (((v - c) % t) + t * 1.5) % t - t / 2;
   const pc = state.mode === 'fly' ? to2(playerC()) : new V2(0, -999), spd = sim.vel.length();
   let inside = 0;
   for (const L of [cloudBack, cloudFront]) {
@@ -5806,7 +5964,7 @@ function simulate(dt) {
       else if (down && !up) cb.throttleV = Math.max(vMin, cb.throttleV - state.thrBrake * dt);
       else cb.throttleV += clamp(CRUISE * BODY.speed - cb.throttleV, -state.thrReturn * dt, state.thrReturn * dt);
       boost = false; slowMul = cb.throttleV / CRUISE;
-      slowMul = flightManeuverStep(dt, slowMul); // 进阶飞行：爆冲、急刹、尾流咬尾、剑势回格
+      slowMul = lvSpeedMod(flightManeuverStep(dt, slowMul)); // 进阶飞行：爆冲、急刹、尾流咬尾、剑势回格；关卡世界的速度规则（俯冲借势 / 绕星）
     } else {
       // 八向键盘模式（旧方案，保留对比）：WASD 方向，按住空格加速
       axis.set((keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0),
@@ -6024,6 +6182,7 @@ function layoutAndRender() {
   const target = F.clone();
   // 海面是地板：画面底边最多只到海面下 2.5 米，贴海飞时海面线压在画面底部、上方留出大片天空，不会让人觉得还能往下飞
   target.y = Math.max(target.y, viewH / 2 - 2.5);
+  camera.up.copy(lvCamUp(camDt)); // 关卡原型·浮空小世界：镜头可随地表旋转（平时就是世界向上）
   camera.position.copy(target).addScaledVector(CAM_BACK, 80); camera.lookAt(target);
   camera.updateMatrixWorld();
   // 吸附像素网格：只让相机按整像素移动，静态物体就不会闪
@@ -6038,6 +6197,7 @@ function layoutAndRender() {
   }
   camera.left = -viewW / 2; camera.right = viewW / 2; camera.top = viewH / 2; camera.bottom = -viewH / 2;
   camera.near = 1; camera.far = 220; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+  lvBackdropFollow(); // 关卡原型：太空 / 小世界的天幕跟着镜头
   const wrap = (v, c, t) => c + (((v - c) % t) + t * 1.5) % t - t / 2;
   for (const g of wisps) g.visible = false; // 近景云缕由“云海穿行”的云团代替
   { const nowF = performance.now() / 1000, fdt = clamp(nowF - (state.fgT || nowF), 0, 0.05); state.fgT = nowF; updateForeground(target, viewW, viewH, state.paused ? 0 : fdt); updateCloudBanks(target, state.paused ? 0 : fdt); }
