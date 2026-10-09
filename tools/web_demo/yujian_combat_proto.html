@@ -96,6 +96,20 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
 .g.thr b{background:linear-gradient(90deg,#62d2b9,#d8b35c)} .g.thr em{font-family:var(--f-display);font-size:13px}
 .g.xiu .gl{color:#f7d77a} .g.xiu b{background:linear-gradient(90deg,#b8862f,#ffe9a8);transition:width .15s} .g.xiu em{font-family:var(--f-display);font-size:13px;color:#f7d77a}
 .sk.sealed{opacity:.28;filter:grayscale(1)}
+.g-card.g-loc{width:min(980px,96%);max-height:94%;overflow:auto}
+.lo-sub{font-size:13px!important;margin-bottom:6px!important}
+.lo-realm{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:6px;color:#2b3236}
+.lo-all{margin-left:auto;display:flex;gap:4px;align-items:center;font-size:12px;color:#6b7478}
+.lo-row{padding:5px 0;border-bottom:1px dashed #cfc6b2}
+.lo-head{display:flex;gap:8px;align-items:baseline;font-size:12px;color:#6b7478}
+.lo-head b{font-family:var(--f-brush);font-weight:400;font-size:20px;color:#15191c}
+.lo-head kbd{background:#15191c;color:#f5f0e2;border-radius:3px;padding:1px 6px;font-size:11px}
+.lo-head em{margin-left:auto;font-style:normal;color:#c42b1c;font-family:var(--f-mono)}
+.lo-chips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+.lo-chip{font-family:var(--f-display);font-size:13px;padding:3px 10px;border-radius:3px;border:1px solid #15191c;background:#fbf8f0;color:#15191c;cursor:pointer}
+.lo-chip:hover{border-color:#c42b1c} .lo-chip.on{background:#c42b1c;color:#f5f0e2;border-color:#c42b1c}
+.lo-chip.boss{box-shadow:inset 0 -3px 0 #d8a32c} .lo-chip.off{opacity:.4;cursor:not-allowed}
+.lo-info{font-size:12px;color:#2b3236;line-height:1.6} .lo-info i{color:#8a4a3e;font-style:normal;margin-left:8px}
 .g.mom .pips{display:flex;gap:4px;height:12px} .g.mom .pips i{flex:1;position:relative;background:#1a2427;box-shadow:inset 0 0 0 1px #000,0 0 0 1px rgba(245,240,226,.12);overflow:hidden}
 .g.mom .pips i b{position:absolute;inset:0 auto 0 0;background:linear-gradient(#9fd3ff,#3f7fb8)} .g.mom .pips i.full b{background:linear-gradient(#dff2ff,#6fb6ff);box-shadow:0 0 8px rgba(140,200,255,.8)}
 .g.mom.slip .gl{color:#9fd3ff} .g.mom em{font-family:var(--f-display);font-size:12px;color:#9fd3ff}
@@ -269,7 +283,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
           </div>
           <div class="skills">
             <div class="sk" id="cb-dash-row"><div class="ico" id="cb-dash"><span>闪</span></div><kbd>空格</kbd></div>
-            <div class="sk" id="cb-jz-row" hidden><div class="ico" id="cb-jz" style="--c:#ffd27a"><span>招</span></div><kbd>E</kbd></div>
+            <div class="sk" id="cb-jz-row" hidden><div class="ico" id="cb-jz" style="--c:#ffd27a"><span>招</span></div><kbd>长按</kbd></div>
             <div class="sk" id="cb-kun-row" hidden><div class="ico" id="cb-kun" style="--c:#7fe3ff"><span>鲲</span></div><kbd>Q</kbd></div>
             <div class="sk" id="cb-arr-row"><div class="ico" id="cb-arr" style="--c:#94bdd3"><span>阵</span><small id="cb-arr-n"></small></div><kbd id="cb-arr-key">随招</kbd></div>
           </div>
@@ -329,6 +343,14 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
           <h2>剑谱<span class="tag">全部剑诀 · 共鸣 · 法宝</span></h2>
           <div id="g-codex-body"></div>
           <div class="foot"><button class="g-btn main" id="g-codex-close">合上（空格）</button></div>
+        </div>
+      </div>
+      <div class="g-ov" id="g-lo">
+        <div class="g-card g-loc">
+          <h2>整剑<span class="tag">八个槽位 · 每槽一个形态</span></h2>
+          <p class="lo-sub">针对下一关的 Boss，自己搭出觉得合适的解法。鼠标悬停形态可看好处与代价；🔒 = 击败对应 Boss 后解锁，金色下划线 = Boss 招牌形态。</p>
+          <div id="g-lo-body"></div>
+          <div class="foot"><small>回车 / 空格 = 完成</small><button class="g-btn main" id="g-lo-done">完成</button></div>
         </div>
       </div>
       <div class="g-ov" id="g-res">
@@ -4127,7 +4149,7 @@ function lvPhysics(dt) {
         if (hurtPlayer(o.dmg, o.name)) { LV.hits++; goldBurst.emit(new V3(P.x, P.y, 0), 10, 10); sfx('clang'); popup('撞' + (o.name ? '·' + o.name : ''), 'small red'); }
       }
     } else if (o.graze && s.d < PR + 1.1 && sim.vel.length() > CRUISE * 0.9 && cb.realT - (o.grazeT || -9) > 1.2) {
-      o.grazeT = cb.realT; cb.mom = Math.min(state.momMax, (cb.mom || 0) + 0.35); LV.grazes = (LV.grazes || 0) + 1;
+      o.grazeT = cb.realT; cb.mom = Math.min(state.momMax, (cb.mom || 0) + (hasT('cafeng') ? 0.7 : 0.35)); LV.grazes = (LV.grazes || 0) + 1;
       sparkBurst.emit(new V3(P.x - s.n.x * 0.6, P.y - s.n.y * 0.6, 0), 8, 12); popup('擦锋', 'small gold');
     }
   }
@@ -4391,7 +4413,7 @@ function showLevelSelect() {
   resetCombat(); G.flow = 'lvsel'; G.run = null;
   let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
   showChoice({ title: '关卡原型', tag: '灰盒 · 六种方向', sub: '「北冥」「剑冢」是两关完整的垂直切片（关卡 → Boss → 夺能 → 试招），按顺序打能体验能力链；后面六关是“飞行关卡怎么做出新鲜感”的灰盒方向。数字键选择。',
-    opts: ['beiming', 'jianzhong', ...Object.keys(LV_INFO).filter(k => k !== 'beiming' && k !== 'jianzhong')].map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
+    opts: ['beiming', 'jianzhong', ...Object.keys(LV_INFO).filter(k => k !== 'beiming' && k !== 'jianzhong')].map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }).concat([{ kind: 'relic', slot: '八个槽位', name: '整剑', tag: '搭配', desc: '给近战、回锋斩、蓄力、主动技、剑阵、点刺、连斩、天赋各选一个形态。打败 Boss 解锁的招牌形态也在这里换。', fn: () => showLoadout(showLevelSelect) }]),
     leave: { name: '回到标题', fn: () => showTitle() } });
 }
 function showLevelIntro(id) {
@@ -4401,12 +4423,13 @@ function showLevelIntro(id) {
     ? [{ kind: 'up', name: '开始 · 镜头固定', tag: '回车', desc: '镜头不转，星球就是画面里的一个圆（2026-10-09 用户试玩：旋转太晕，固定更好）', fn: () => { LV.rotCamPref = false; startLevel(id); } },
        { kind: 'learn', name: '开始 · 镜头随地表旋转', tag: '对照', desc: '“局部的上”永远在画面上方（会晕，仅作对照）', fn: () => { LV.rotCamPref = true; startLevel(id); } }]
     : [{ kind: 'up', name: '开始', tag: '回车', desc: '验证：' + I.test, fn: () => startLevel(id) }];
+  opts.push({ kind: 'relic', name: '整剑', tag: '搭配', desc: '进关前给八个槽位选形态，针对这关的 Boss 找自己的解法', fn: () => showLoadout(() => showLevelIntro(id)) });
   showChoice({ title: I.name, tag: I.tag, sub: I.goal + '<br><br><small>验证：' + I.test + '<br>飞行：双击 W 爆冲 · 双击 S 急刹 · 尾流咬尾 · 空格破空闪 · 右键御剑</small>',
     opts, leave: { name: '返回选关', fn: showLevelSelect } });
   G.onConfirm = () => { if (LEVELS[id].rotOption) LV.rotCamPref = false; startLevel(id); };
 }
 function startLevel(id) {
-  hideOverlays(); setModal(false); resetCombat(); for (const s in SLOTS) equip(s, 'basic'); applyCultivator('free');
+  hideOverlays(); setModal(false); resetCombat(); for (const s in SLOTS) equip(s, 'basic'); applyCultivator('free'); loApply(); // 整剑：八个槽位的形态
   G.run = null; G.enc = null; G.stats = statsZero(); G.flow = 'lvl'; G.taught = { silk: true };
   LV.id = id; LV.lastId = id; LV.t = 0; LV.hits = 0; LV.grazes = 0; LV.done = false; LV.d = {};
   const O = new V2(sim.pos.x, wy(sim.pos.y)); LEVELS[id].build(O);
@@ -4826,9 +4849,9 @@ LEVELS.beiming = {
     setTimeout(() => { if (LV.id === 'beiming' && LV.d.stage === 'reward') this.reward(); }, 1800);
   },
   reward() {
-    ABIL.kunpeng = true; try { localStorage.setItem('yujian_ab_kunpeng', '1'); } catch (e) {}
-    showChoice({ title: '夺能 · 鲲鹏之力', tag: '获得新能力', sub: '“北冥有鱼，其名为鲲……化而为鹏。”你炼化了它的一缕本源。<br>这份能力会一直跟着你：之后在任何模式里按 Q 都能用。',
-      opts: [{ kind: 'relic', name: '吞海', tag: '按住 Q', desc: '按住 Q：身前张开吞口，把飞来的子弹和小怪吸进来（最多 1.6 秒，期间减速）。松开：吞下的东西化作水弹扇形喷出——吞得越多喷得越狠，吞满 6 颗变成破甲重弹。冷却 4 秒。', cost: '接下来：试招。弹幕越密，吞海越强；墨甲卫正面刀剑不入，但挡不住水弹。',
+    ABIL.kunpeng = true; try { localStorage.setItem('yujian_ab_kunpeng', '1'); } catch (e) {} loGrant('active', 'tunhai');
+    showChoice({ title: '夺能 · 鲲鹏之力', tag: '获得新能力', sub: '“北冥有鱼，其名为鲲……化而为鹏。”你炼化了它的一缕本源。<br>解锁了<b>主动技（Q）</b>的新形态「吞海」，已经替你装上；之后可以在“整剑”里和剑鸣换着用。',
+      opts: [{ kind: 'relic', name: '吞海', tag: '主动技 · Q', desc: '按住 Q：身前张开吞口，把飞来的子弹和小怪吸进来（最多 1.6 秒，期间减速）。松开：吞下的东西化作水弹扇形喷出——吞得越多喷得越狠，吞满 6 颗变成破甲重弹。冷却 4 秒。', cost: '接下来：试招。弹幕越密，吞海越强；墨甲卫正面刀剑不入，但挡不住水弹。',
         fn: () => { hideOverlays(); setModal(false); this.startTrial(); } }] });
     G.onConfirm = () => { hideOverlays(); setModal(false); this.startTrial(); };
   },
@@ -4899,7 +4922,7 @@ function jzPress() {
   const p = playerC(); sparkBurst.emit(new V3(p.x, p.y, 0), 8, 6);
   return true;
 }
-const jzActive = () => ABIL.jianzhao && cb.realT - JZ.t < JZ.WIN;
+const jzActive = () => !!(cb.hv && cb.hv.stance && LO.charge === 'jianzhao' && loOn() && cb.realT - JZ.t < JZ.WIN); // 见招 = 蓄力槽形态：举剑起手的 0.2 秒
 function jzSuccess(p) {
   if (!JZ.hit) { JZ.hit = true; JZ.lockUntil = cb.realT + 0.15; } // 拆中：几乎不留硬直，可以接着出招
   JZ.parries++; hitStop(0.08); cb.riskSlowT = Math.max(cb.riskSlowT, 0.35);
@@ -5033,18 +5056,18 @@ LEVELS.jianzhong = {
     setTimeout(() => { if (LV.id === 'jianzhong' && LV.d.stage === 'reward') this.reward(); }, 1600);
   },
   reward() {
-    ABIL.jianzhao = true; try { localStorage.setItem('yujian_ab_jianzhao', '1'); } catch (e) {}
-    showChoice({ title: '夺能 · 见招', tag: '获得新能力', sub: '孤鸿守了一辈子剑冢，一身本事都在“接得住”三个字上。你从他最后一剑里看懂了这一招。<br>这份能力会一直跟着你：之后在任何模式里按 E 都能用。',
-      opts: [{ kind: 'relic', name: '见招', tag: '按 E', desc: '按 E 举剑，0.2 秒内被子弹或近身攻击打到 = 拆招：子弹弹回去（重弹弹回去照样破甲），近身攻击者直接露出破绽；拆中时慢放一下、回 1 格剑势和 15 剑意。按空了有 0.55 秒硬直，不能乱按。', cost: '接下来：试招。墨影剑客的冲斩、蓄势针的重针，都拆给它们看。',
+    ABIL.jianzhao = true; try { localStorage.setItem('yujian_ab_jianzhao', '1'); } catch (e) {} loGrant('charge', 'jianzhao');
+    showChoice({ title: '夺能 · 见招', tag: '获得新能力', sub: '孤鸿守了一辈子剑冢，一身本事都在“接得住”三个字上。你从他最后一剑里看懂了这一招。<br>解锁了<b>蓄力（长按左键）</b>的新形态「见招」，已经替你装上；之后可以在“整剑”里和开山换着用。',
+      opts: [{ kind: 'relic', name: '见招', tag: '蓄力 · 长按左键', desc: '按下照样先出一刀；继续按住就举剑，举剑起手 0.2 秒内被子弹或近身攻击打到 = 拆招：子弹弹回去（重弹照样破甲），近身攻击者直接露出破绽，慢放一下、回 1 格剑势和 15 剑意。拆中后松开 = 破甲反击；没拆中松开只是一刀，0.4 秒内不能再举。', cost: '接下来：试招。墨影剑客的冲斩、蓄势针的重针，都拆给它们看。',
         fn: () => { hideOverlays(); setModal(false); this.startTrial(); } }] });
     G.onConfirm = () => { hideOverlays(); setModal(false); this.startTrial(); };
   },
-  startTrial() { const D = LV.d; D.stage = 'trial'; D.stT = 0; D.wave = 0; D.gap = 1.2; G.onConfirm = null; LV.ckpt = 'trial'; popup('试招 · 见招（E）', 'move gold'); },
+  startTrial() { const D = LV.d; D.stage = 'trial'; D.stT = 0; D.wave = 0; D.gap = 1.2; G.onConfirm = null; LV.ckpt = 'trial'; popup('试招 · 见招（长按左键）', 'move gold'); },
   stepTrial(dt) {
     const D = LV.d;
     if (cb.enemies.length || cb.pendingSquads.length) return;
     D.gap -= dt; if (D.gap > 0) return;
-    if (D.wave === 0) { tSquad(['duelist'], 0.4); tSquad(['duelist'], -0.4); popup('看到“斩”，按 E', 'small gold'); }
+    if (D.wave === 0) { tSquad(['duelist'], 0.4); tSquad(['duelist'], -0.4); popup('看到“斩”，提前一点按住左键', 'small gold'); }
     else if (D.wave === 1) { tSquad(['needle'], 0); tSquad(['needle'], Math.PI); tSquad(['crow', 'crow'], 1.5); popup('重针也能拆回去', 'small gold'); }
     else { D.times.trial = D.stT; lvFinish(true); return; }
     D.wave++; D.gap = 2;
@@ -5053,7 +5076,7 @@ LEVELS.jianzhong = {
     const D = LV.d;
     if (D.stage === 'canyon') return `剑冢 · 剑林峡谷 · 用时 <b>${D.stT.toFixed(1)}</b>s · 距剑冢 <b>${Math.max(0, Math.round(D.arena - 15 - sim.pos.x))}</b>m · ${Math.abs(sim.pos.x - D.curtain.x) < 40 ? '<b style="color:#ffd27a">剑幕：擦弹穿过 / 吞海吸掉 / 等空隙</b>' : '残剑会射剑气'}`;
     if (D.stage === 'boss') { const e = D.boss, ph = e ? jlPhase(e) : 1; return `剑冢守灵 · 孤鸿 · ${['', '斗剑', '万剑归冢', '人剑合一'][ph]}${ph === 2 && e.shield > 0 ? ' · 剑罡 <b>' + e.shield + '</b>（吞海重弹 / 斩回重剑 / 御剑）' : ''} · 用时 <b>${D.stT.toFixed(1)}</b>s`; }
-    if (D.stage === 'trial') return `剑冢 · 试招 · 按 <b>E</b> 拆招 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 拆招 <b>${JZ.parries}</b> 次`;
+    if (D.stage === 'trial') return `剑冢 · 试招 · 按住<b>左键</b>举剑拆招 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 拆招 <b>${JZ.parries}</b> 次`;
     return '剑冢 · 剑意归心';
   },
   result() {
@@ -5078,7 +5101,215 @@ LEVELS.jianzhong = {
   },
 };
 LV_INFO.jianzhong = { name: '剑冢（第二关）', tag: '剑林峡谷 → 剑修 Boss → 夺能', test: '剑修 Boss 和巨物 Boss 交替好不好？上一关的吞海在这关有没有用武之地（能力链）？',
-  goal: '一、剑林峡谷：残剑会射剑气；中段的剑幕可以擦弹穿过、用吞海（Q）吸掉，或等空隙。<br>二、剑冢守灵「孤鸿」：①斗剑：看到“斩”就破空穿过去打破绽 ②万剑归冢：罩起剑罡、召重剑雨——用吞海吞剑雨喷重弹、把重剑斩回去或御剑破罡 ③人剑合一：三段连冲。<br>三、夺能「见招」（E），然后试招。<br><small>没打过北冥也能玩，只是没有吞海。</small>' };
+  goal: '一、剑林峡谷：残剑会射剑气；中段的剑幕可以擦弹穿过、用吞海（Q）吸掉，或等空隙。<br>二、剑冢守灵「孤鸿」：①斗剑：看到“斩”就破空穿过去打破绽 ②万剑归冢：罩起剑罡、召重剑雨——用吞海吞剑雨喷重弹、把重剑斩回去或御剑破罡 ③人剑合一：三段连冲。<br>三、夺能「见招」（蓄力形态 · 长按左键），然后试招。<br><small>没打过北冥也能玩，只是没有吞海。</small>' };
+
+// ===========================================================================
+// 整剑：技能槽位系统（docs/systems/SKILL_SLOT_SYSTEM_V1.md，2026-10-09 用户定）
+//   按键固定、八个槽位各装一个形态：近战（点按左键）/ 回锋斩 / 蓄力（长按左键）/ 主动技（Q）/ 剑阵 / 御剑点刺（点按右键）/ 御剑连斩（长按右键）/ 特殊天赋
+//   夺能 = 解锁某个槽位的新形态，不加按键。天赋槽随境界：筑基 1 / 金丹 2 / 元婴 3
+//   手感约束：点按左键仍是“按下立刻出刀”；继续按住才进入蓄力 / 举剑（不给普通攻击加前摇）
+// ===========================================================================
+const LO_SLOTS = [
+  ['melee', '近战', '点按左键', '主输出 + 斩弹'], ['carve', '回锋斩', '高速掉头 + 左键', '解围：身后与包围'], ['charge', '蓄力', '长按左键', '破防：破甲、破盾'],
+  ['active', '主动技', 'Q', '改变局势'], ['array', '剑阵', '随动作自动', '持续辅助输出'], ['thrust', '御剑点刺', '点按右键', '远程精确处理'],
+  ['slice', '御剑连斩', '长按右键', '时停居合、切机制'], ['talent', '特殊天赋', '—', '让移动也能战斗'],
+];
+const FORMS = {
+  melee: { shunfeng: { name: '顺锋', good: '均衡；高速时自动成冲锋斩', cost: '—', def: true }, chuanfeng: { name: '穿锋', good: '冲锋斩的剑气继续前飞约 20 米、穿透', cost: '剑气命中不给近身剑意' } },
+  carve: { zhengquan: { name: '整圈', good: '一整圈大斩，伤害加倍', cost: '—', def: true }, moxuan: { name: '墨旋', good: '回锋处留下墨旋：反复切割、吞掉飞进来的子弹', cost: '回锋斩不再派剑阵' } },
+  charge: { kaishan: { name: '开山', good: '蓄势时正面挡弹；松开劈山，蓄满破甲', cost: '蓄势时几乎转不动身', def: true },
+    jianzhao: { name: '见招', good: '举剑起手 0.2 秒内被打到 = 拆招：子弹弹回（重弹破甲）、近身者露破绽；拆中后松开 = 破甲反击', cost: '举早了白举；没拆中松开只是一刀，0.4 秒内不能再举', boss: '孤鸿（剑冢）', abil: 'jianzhao' } },
+  active: { jianming: { name: '剑鸣', good: '震出一圈剑气：清掉身边 8 米的普通子弹，震退小怪', cost: '冷却 10 秒', def: true },
+    tunhai: { name: '吞海', good: '按住吸子弹和小怪，松开喷水弹；吞满 6 颗变破甲重弹', cost: '吸的时候减速；冷却 4 秒', boss: '鲲（北冥）', abil: 'kunpeng' } },
+  array: { basic: { name: '散星', good: '随招派剑，追击范围内的敌人', cost: '—', def: true }, ring: { name: '环阵', good: '阵剑绕身急旋：切开贴近的敌人、挡子弹', cost: '不追远处的敌人' },
+    lance: { name: '贯穿阵', good: '阵剑沿剑尖连珠射出、穿透', cost: '剑尖没对准就白射' }, xingluo: { name: '星罗', good: '阵剑常驻绕身成阵；回锋 / 收剑齐出追杀', cost: '阵圈大，挡不住贴身子弹', boss: '剑阵修（未做）' } },
+  thrust: { dan: { name: '单剑', good: '精确远程一刺', cost: '—', def: true }, fensan: { name: '一剑分三', good: '点刺成三道扇形', cost: '分出的剑光只斩普通敌人' }, huihuan: { name: '回环剑', good: '刺到尽头原路折返再切一次', cost: '折返不时停；剑在外更久' } },
+  slice: { dan: { name: '单剑', good: '时停中划切，收剑兑现', cost: '—', def: true }, fenguang: { name: '分光', good: '三剑并排划切，一笔切一大片', cost: '分光只斩普通敌人；剑意消耗 ×1.4' } },
+  talent: { ghost: { name: '残影补刀', good: '破空结束后残影沿路再斩一次，也会斩弹', cost: '破空冷却 +0.35 秒' }, chalang: { name: '刹浪', good: '急刹时震出一圈浪波：伤害并震退身边敌人、清掉近处子弹', cost: '急刹多耗半格剑势' },
+    chongzhen: { name: '冲阵', good: '爆冲途中撞到的敌人各挨一下', cost: '撞墨甲正面会被弹开' }, chengshi: { name: '乘势', good: '险之后剑速锁满，下一刀必是冲锋斩', cost: '锁速期间降不了速' },
+    cafeng: { name: '擦锋回势', good: '贴着地形擦过，剑势回得翻倍', cost: '—' }, jinghong: { name: '惊鸿', good: '险之后 1.5 秒内左键瞬身斩过前方敌人；破空冷却更短', cost: '不擦弹就没有', boss: '飘逸修（未做）' } },
+};
+const LO = { melee: 'shunfeng', carve: 'zhengquan', charge: 'kaishan', active: 'jianming', array: 'basic', thrust: 'dan', slice: 'dan', talents: ['ghost'], realm: 1, unlockAll: false };
+try { Object.assign(LO, JSON.parse(localStorage.getItem('yujian_lo') || '{}')); } catch (e) {}
+const loSave = () => { try { localStorage.setItem('yujian_lo', JSON.stringify(LO)); } catch (e) {} };
+const loOn = () => loadout.move && loadout.move.id === 'lo';
+const loTalentSlots = () => clamp(LO.realm || 1, 1, 3);
+const hasT = id => loOn() && LO.talents.slice(0, loTalentSlots()).includes(id);
+function formUnlocked(slot, id) { const f = FORMS[slot][id]; if (!f) return false; if (f.abil) return !!ABIL[f.abil]; if (f.boss) return !!LO.unlockAll; return true; }
+function loApply() {
+  for (const s of ['melee', 'carve', 'charge', 'active', 'array', 'thrust', 'slice']) { const def = Object.keys(FORMS[s]).find(k => FORMS[s][k].def); if (!formUnlocked(s, LO[s])) LO[s] = def; }
+  LO.talents = LO.talents.filter(id => formUnlocked('talent', id));
+  equip('blade', 'lo'); equip('sword', 'lo'); equip('move', 'lo'); equip('qi', 'basic'); equip('array', LO.array);
+}
+function loGrant(slot, id) { LO[slot] = id; loSave(); if (loOn()) loApply(); }
+
+// ---------- 蓄力：开山 / 见招 ----------
+function loChargeKaishan(dt, pc, h, hv) {
+  const u = clamp((hv.t - CB.HV_TAP) / (hvFull() - CB.HV_TAP), 0, 1); hv.u = u;
+  cb.turnMul = CB.HV_TURN;
+  if (cb.throttleV !== undefined) cb.throttleV = Math.min(cb.throttleV, CRUISE * BODY.speed * CB.HV_SLOW);
+  for (let j = cb.bullets.length - 1; j >= 0; j--) {
+    const b = cb.bullets[j];
+    if (!b.friendly && inSector(b.pos, pc, h, CB.HV_GUARD_R, CB.HV_GUARD)) {
+      goldBurst.emit(new V3(b.pos.x, b.pos.y, 0), 6, 12); freeBullet(j); emitCombat('guard');
+      if (cb.realT - (cb.guardPopT || -9) > 0.3) { popup('格', 'small gold'); cb.guardPopT = cb.realT; sfx('clang', 0.06); }
+    }
+  }
+  if (u >= 1 && !hv.full) { hv.full = true; popup('蓄满', 'small gold'); sfx('ready'); }
+  hvArc.material.color.setHex(0xf2c75c); hvArc.visible = state.fx;
+  hvArc.position.set(pc.x, pc.y, 1.1); hvArc.rotation.z = Math.atan2(h.y, h.x); hvArc.scale.setScalar(CB.HV_GUARD_R);
+  hvArc.material.opacity = 0.25 + 0.55 * u + (hv.full ? 0.2 * Math.sin(simTime * 30) : 0);
+}
+function loChargeJianzhao(dt, pc, h, hv) {
+  if (!hv.stance) { hv.stance = true; JZ.t = cb.realT; JZ.hit = false; anim.play('charge', { side: cb.slashSide }); sfx('draw'); }
+  if (JZ.hit) hv.parried = true;
+  cb.turnMul = 0.75;
+  if (cb.throttleV !== undefined) cb.throttleV = Math.min(cb.throttleV, CRUISE * BODY.speed * 0.8);
+  const inWin = cb.realT - JZ.t < JZ.WIN;
+  if (!inWin) for (let j = cb.bullets.length - 1; j >= 0; j--) { // 窗口过后：举着剑只能挡正面普通子弹，没有奖励
+    const b = cb.bullets[j];
+    if (!b.friendly && !b.heavy && inSector(b.pos, pc, h, 2.4, 0.9)) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 4, 8); freeBullet(j); }
+  }
+  hvArc.material.color.setHex(inWin ? 0xffffff : hv.parried ? 0xffd27a : 0x9fd3ff); hvArc.visible = state.fx;
+  hvArc.position.set(pc.x, pc.y, 1.1); hvArc.rotation.z = Math.atan2(h.y, h.x); hvArc.scale.setScalar(2.4);
+  hvArc.material.opacity = inWin ? 0.95 : 0.4;
+}
+function loChargeRelease(hv) {
+  cb.hv = null; cb.turnMul = 1; hvArc.visible = false;
+  if (hv.t < CB.HV_TAP) return; // 只是点按：那一刀按下时已经出过了
+  if (hv.form === 'jianzhao') {
+    if (hv.parried) { heavyCleave(1); popup('反击', 'move gold'); }
+    else { if (cb.slashCd <= 0 && cb.yj.state === 'hand') startSlash(false); cb.hvCd = 0.4; }
+  } else heavyCleave(hv.u || 0);
+}
+defineModule('blade', 'lo', {
+  name: '整剑',
+  press() {
+    if (state.mode !== 'fly' || cb.dead > 0) return;
+    bladePressBasic(); // 按下立刻出刀（或回锋斩）
+    if (cb.slashBig && cb.slashT === 0) return;
+    if (cb.yj.state !== 'hand' || (cb.hvCd || 0) > 0) return;
+    cb.hv = { t: 0, form: LO.charge };
+  },
+  start(big) {
+    const mox = big && LO.carve === 'moxuan';
+    cb.carveNoSortie = mox; bladeStartBasic(big); cb.carveNoSortie = false;
+    if (mox) {
+      const p = to2(playerC()), g = new THREE.Group();
+      for (const k of [1, 0.68, 0.38]) { const m = new THREE.Mesh(VORTEX_GEO, vortexMat.clone()); m.scale.setScalar(vortexR() * k); m.rotation.z = k * 2; m.frustumCulled = false; g.add(m); }
+      g.position.set(p.x, p.y, 0.8); scene.add(g); fx.push(g); vortices.push({ g, pos: p, t: 0, tick: 0 });
+    }
+    if (!big && LO.melee === 'chuanfeng' && cb.slashScale > 1.01) spawnWave(to2(playerC()), headingW().rotateAround(ORIGIN2, cb.slashOff || 0), pierceWaveOpts());
+  },
+  step(dt, pc, h) {
+    bladeStepBasic(dt, pc, h); stepWaves(dt); stepVortices(dt);
+    cb.hvCd = Math.max(0, (cb.hvCd || 0) - dt);
+    const hv = cb.hv; if (!hv) return;
+    hv.t += dt;
+    if (!cb.leftDown || cb.yj.state !== 'hand') { loChargeRelease(hv); return; }
+    if (hv.t >= CB.HV_TAP) (hv.form === 'jianzhao' ? loChargeJianzhao : loChargeKaishan)(dt, pc, h, hv);
+  },
+  reset() { cb.hv = null; cb.turnMul = 1; hvArc.visible = false; clearWaves(); clearVortices(); },
+  unequip() { cb.hv = null; cb.turnMul = 1; hvArc.visible = false; clearWaves(); clearVortices(); },
+});
+// ---------- 御剑：点刺 / 连斩各自的形态 ----------
+const splitOff = () => { for (const w of splitSwords) { w.on = false; w.prev = null; w.hits.clear(); } };
+defineModule('sword', 'lo', {
+  name: '整剑', press: yjPressBasic, release: yjReleaseBasic, sheathe: yjSheatheBasic,
+  update(dt) {
+    const st = cb.yj.state;
+    if ((st === 'thrust' || st === 'back') && LO.thrust === 'huihuan') { splitOff(); MODULES.sword.loop.update(dt); return; }
+    if ((st === 'thrust' && LO.thrust === 'fensan') || (st === 'slice' && LO.slice === 'fenguang')) MODULES.sword.split.update(dt);
+    else { splitOff(); yjUpdateBasic(dt); }
+  },
+  draw(camDir) { MODULES.sword.split.draw(camDir); },
+  unequip() { MODULES.sword.split.unequip(); },
+});
+// ---------- 特殊天赋（挂在身法槽上，可以同时装多个）----------
+defineModule('move', 'lo', {
+  name: '整剑',
+  dodge() { const before = cb.dashCd; dodgeBasic(); if (cb.dashCd !== before && hasT('jinghong') && cb.dashCd > CB.PY_CD) { cb.dashCd = CB.PY_CD; cb.dashCdTotal = CB.PY_CD; } },
+  step(dt, pc) {
+    if (hasT('ghost')) MODULES.move.ghost.step(dt);
+    if (hasT('chengshi')) MODULES.move.jinghong.step(dt);
+    if (hasT('jinghong')) MODULES.move.piaoyi.step(dt, pc);
+    if (hasT('chongzhen') && cb.surgeT > 0) { // 冲阵：爆冲途中撞到的敌人各挨一下
+      cb.ramHits = cb.ramHits || new Set();
+      for (const e of cb.enemies.slice()) {
+        if (cb.ramHits.has(e) || e.invuln || (e.cut && e.cut.dead) || e.pos.distanceTo(pc) > e.r + 1.3) continue;
+        cb.ramHits.add(e); const d = e.pos.clone().sub(pc);
+        if (armorBlocks(e, d.clone().negate())) { blockFx(e, d); sim.vel.multiplyScalar(-0.4); } else { damageEnemy(e, 2, d, 'dash'); popup('冲阵', 'small gold'); }
+      }
+    } else cb.ramHits = null;
+  },
+  onSlashPress() { return hasT('jinghong') ? MODULES.move.piaoyi.onSlashPress() : false; },
+  reset() { for (const id of ['ghost', 'jinghong', 'piaoyi']) MODULES.move[id].reset(); },
+  unequip() { for (const id of ['ghost', 'jinghong', 'piaoyi']) MODULES.move[id].unequip(); },
+});
+for (const [t, fn] of [
+  ['dodge', () => { if (hasT('ghost')) MODULES.move.ghost.on.dodge(); }],
+  ['dodge_end', () => { if (hasT('ghost')) MODULES.move.ghost.on.dodge_end(); }],
+  ['risk', () => { if (hasT('chengshi')) MODULES.move.jinghong.on.risk(); if (hasT('jinghong')) MODULES.move.piaoyi.on.risk(); }],
+  ['kill', p => { if (hasT('chengshi')) MODULES.move.jinghong.on.kill(p); }],
+  ['brake', () => { // 刹浪：急刹震出一圈浪波
+    if (!hasT('chalang')) return;
+    cb.mom = Math.max(0, (cb.mom || 0) - 0.5);
+    const pc = to2(playerC()); spawnShock(new V3(pc.x, pc.y, 0), 1.2); puffRing(pc.x, pc.y, 18, 1.2, 9, 0.7); popup('刹浪', 'small gold');
+    for (const e of cb.enemies.slice()) { if (e.invuln || (e.cut && e.cut.dead) || e.pos.distanceTo(pc) > 7 + e.r) continue; const d = e.pos.clone().sub(pc); damageEnemy(e, 2, d, 'dash'); if (cb.enemies.includes(e)) { e.vel.addScaledVector(d.normalize(), 16); e.knockUntil = cb.realT + 0.4; } }
+    for (let j = cb.bullets.length - 1; j >= 0; j--) { const b = cb.bullets[j]; if (!b.friendly && !b.heavy && b.pos.distanceTo(pc) < 6) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 3, 6); freeBullet(j); } }
+  }],
+]) (combatListeners[t] = combatListeners[t] || []).push({ m: null, fn });
+// ---------- 主动技 Q：剑鸣（默认）/ 吞海 ----------
+const ACT = { cd: 0, CD: 10 };
+const loActive = () => loOn() ? LO.active : ABIL.kunpeng ? 'tunhai' : 'none';
+function activePress() {
+  if (state.mode !== 'fly' || cb.dead > 0 || G.modal) return;
+  const f = loActive();
+  if (f === 'tunhai') { tunPress(); return; }
+  if (f !== 'jianming') return;
+  if (ACT.cd > 0) { fail('剑鸣冷却中'); return; }
+  ACT.cd = ACT.CD;
+  const pc = to2(playerC()), p3 = new V3(pc.x, pc.y, 0);
+  spawnShock(p3, 1.8); puffRing(pc.x, pc.y, 22, 1.4, 10, 0.8); goldBurst.emit(p3, 24, 18); sfx('clang'); sfx('risk'); popup('剑鸣', 'move gold');
+  for (let j = cb.bullets.length - 1; j >= 0; j--) { const b = cb.bullets[j]; if (!b.friendly && !b.heavy && b.pos.distanceTo(pc) < 8) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 4, 8); freeBullet(j); } }
+  for (const e of cb.enemies) { if (e.boss || e.puppet || e.invuln || ENEMY_TYPES[e.type].elite || e.pos.distanceTo(pc) > 7 + e.r) continue; const d = e.pos.clone().sub(pc).normalize(); e.vel.addScaledVector(d, 18); e.knockUntil = cb.realT + 0.5; e.stunUntil = cb.realT + 0.3; }
+}
+function activeRelease() { if (TUN.on) tunRelease(); }
+
+// ---------- 整剑界面 ----------
+function showLoadout(onClose) {
+  hideOverlays(); setModal(true);
+  const box = $g('g-lo-body'); box.innerHTML = '';
+  const realmRow = document.createElement('div'); realmRow.className = 'lo-realm';
+  realmRow.innerHTML = '<span>境界（决定天赋槽数）</span>' + ['筑基 · 1', '金丹 · 2', '元婴 · 3'].map((t, i) => `<button class="lo-chip ${LO.realm === i + 1 ? 'on' : ''}" data-r="${i + 1}">${t}</button>`).join('') +
+    `<label class="lo-all"><input type="checkbox" ${LO.unlockAll ? 'checked' : ''}> 原型：解锁未做 Boss 的形态</label>`;
+  realmRow.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { LO.realm = +b.dataset.r; showLoadout(onClose); });
+  realmRow.querySelector('input').onchange = ev => { LO.unlockAll = ev.target.checked; showLoadout(onClose); };
+  box.appendChild(realmRow);
+  for (const [slot, name, key, duty] of LO_SLOTS) {
+    const row = document.createElement('div'); row.className = 'lo-row';
+    const forms = FORMS[slot], multi = slot === 'talent', cap = loTalentSlots();
+    const sel = multi ? LO.talents.slice(0, cap) : [LO[slot]];
+    let chips = '';
+    for (const id in forms) {
+      const f = forms[id], ok = formUnlocked(slot, id), on = sel.includes(id);
+      chips += `<button class="lo-chip ${on ? 'on' : ''} ${ok ? '' : 'off'} ${f.boss ? 'boss' : ''}" data-id="${id}" ${ok ? '' : 'disabled'} title="${f.good}｜代价：${f.cost}${f.boss ? '｜来源：' + f.boss : ''}">${f.name}${ok ? '' : ' 🔒'}</button>`;
+    }
+    const cur = forms[sel[0]] || null;
+    const info = multi ? sel.map(id => `<b>${forms[id].name}</b>：${forms[id].good}<i>代价：${forms[id].cost}</i>`).join('<br>') || '<i>未装天赋</i>' : cur ? `${cur.good}<i>代价：${cur.cost}</i>` : '';
+    row.innerHTML = `<div class="lo-head"><b>${name}</b><kbd>${key}</kbd><span>${duty}</span>${multi ? `<em>${sel.length}/${cap}</em>` : ''}</div><div class="lo-chips">${chips}</div><div class="lo-info">${info}</div>`;
+    row.querySelectorAll('.lo-chip').forEach(b => b.onclick = () => {
+      const id = b.dataset.id;
+      if (multi) { const i = LO.talents.indexOf(id); if (i >= 0) LO.talents.splice(i, 1); else { LO.talents = LO.talents.slice(0, cap); if (LO.talents.length >= cap) LO.talents.shift(); LO.talents.push(id); } }
+      else LO[slot] = id;
+      showLoadout(onClose);
+    });
+    box.appendChild(row);
+  }
+  const close = () => { loSave(); if (loOn()) loApply(); $g('g-lo').classList.remove('on'); setModal(false); G.onConfirm = null; if (onClose) onClose(); };
+  $g('g-lo-done').onclick = close; G.onConfirm = close;
+  $g('g-lo').classList.add('on');
+}
 
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
@@ -5134,6 +5365,7 @@ function slipTarget(pc, h) {
 // 每帧（飞行模拟里调用）：返回改写后的目标速度倍率
 function flightManeuverStep(dt, slowMul) {
   tunStep(dt); // 鲲鹏之力 · 吞海
+  ACT.cd = Math.max(0, ACT.cd - dt); // 主动技冷却
   const pc = to2(playerC()), h = headingW(), spd = sim.vel.length();
   cb.surgeT = Math.max(0, (cb.surgeT || 0) - dt); cb.brakeT = Math.max(0, (cb.brakeT || 0) - dt); cb.slipT = Math.max(0, (cb.slipT || 0) - dt);
   const tgt = slipTarget(pc, h);
@@ -6875,10 +7107,16 @@ function updateHud() {
   $('cb-thr-mark').style.left = ((CRUISE - vMin) / (BOOST - vMin) * 100) + '%';
   $('cb-thr-n').textContent = thr > CRUISE * 1.08 ? '催剑' : thr < CRUISE * 0.92 ? '收势' : '巡航';
   // 鲲鹏之力 · 吞海：解锁后显示；吞的时候是剩余时长，冷却时转圈
-  $('cb-jz-row').hidden = !ABIL.jianzhao; // 见招：举剑窗口 / 收招硬直
-  if (ABIL.jianzhao) { const left = Math.max(0, JZ.lockUntil - cb.realT); $('cb-jz').style.setProperty('--p', left > 0 ? 1 - left / (JZ.WIN + JZ.REC) : 1); $('cb-jz-row').classList.toggle('ready', left <= 0); $('cb-jz-row').classList.toggle('active', jzActive()); }
-  $('cb-kun-row').hidden = !ABIL.kunpeng;
-  if (ABIL.kunpeng) { $('cb-kun').style.setProperty('--p', TUN.on ? 1 - TUN.t / TUN.MAX : 1 - TUN.cd / TUN.CD); $('cb-kun-row').classList.toggle('ready', !TUN.on && TUN.cd <= 0); $('cb-kun-row').classList.toggle('active', TUN.on); }
+  { // 蓄力形态为见招时显示举剑状态；Q 图标显示当前主动技形态（剑鸣 / 吞海）
+    const jzOn = loOn() && LO.charge === 'jianzhao'; $('cb-jz-row').hidden = !jzOn;
+    if (jzOn) { $('cb-jz').style.setProperty('--p', (cb.hvCd || 0) > 0 ? 1 - cb.hvCd / 0.4 : 1); $('cb-jz-row').classList.toggle('ready', !(cb.hvCd > 0)); $('cb-jz-row').classList.toggle('active', jzActive()); }
+    const af = loActive(); $('cb-kun-row').hidden = af === 'none';
+    if (af !== 'none') {
+      const tun = af === 'tunhai'; $('cb-kun').querySelector('span').textContent = tun ? '鲲' : '鸣';
+      $('cb-kun').style.setProperty('--p', tun ? (TUN.on ? 1 - TUN.t / TUN.MAX : 1 - TUN.cd / TUN.CD) : 1 - ACT.cd / ACT.CD);
+      $('cb-kun-row').classList.toggle('ready', tun ? !TUN.on && TUN.cd <= 0 : ACT.cd <= 0); $('cb-kun-row').classList.toggle('active', tun && TUN.on);
+    }
+  }
   // 修为（只在历劫里显示）：左边是当前境界，满了就突破
   const xr = $('cb-xiu-row'); xr.hidden = !realmOn();
   if (realmOn()) {
@@ -7077,18 +7315,18 @@ window.addEventListener('keydown', e => {
   if (!e.repeat && (k === 'w' || k === 'arrowup')) flightTap('up'); // 双击 W：爆冲
   if (!e.repeat && (k === 's' || k === 'arrowdown')) flightTap('down'); // 双击 S：急刹
   // E：贯穿阵。按住模式 = 按住放阵；切换模式 = 按一下开、再按一下关（冲锋时左手不用一直按着）
-  if (k === 'e' && !e.repeat && state.mode === 'fly') { if (state.arrMode === 'manual' || !jzPress()) castArray(); } // E：见招（解锁后）；剑阵手动模式时仍是发动剑阵
+  if (k === 'e' && !e.repeat && state.mode === 'fly') castArray(); // E：发动剑阵（仅手动模式）
   if (k === ' ' && !e.repeat && state.mode === 'fly' && state.steer === 'mouse') doDodge(); // 空格：破空闪（按住 A / D 横闪）
   if (k === 'r' && !e.repeat && G.flow === 'free') resetCombat(); // R 重开只在自由模式
   if (k === 'f' && !e.repeat && state.mode === 'fly') startTrib(); // F：引劫（历劫中修为满时）
-  if (k === 'q' && !e.repeat) tunPress(); // Q：鲲鹏之力 · 吞海（按住吸、松开喷）
+  if (k === 'q' && !e.repeat) activePress(); // Q：主动技（整剑里选的形态：剑鸣 / 吞海）
   if (k === 'h' && !e.repeat) app.classList.toggle('nopanel');
   if (k === 'p') $('btn-pause').click();
   if (k === '.') $('btn-step').click();
   if (k === 'b') { $('opt-bones').click(); }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-window.addEventListener('keyup', e => { if (e.key.toLowerCase() === 'q') tunRelease(); });
+window.addEventListener('keyup', e => { if (e.key.toLowerCase() === 'q') activeRelease(); });
 window.addEventListener('blur', () => tunRelease());
 window.addEventListener('blur', () => keys.clear());
 
@@ -7449,7 +7687,7 @@ function gEv(name, v) {
 }
 const $g = id => document.getElementById(id);
 function setModal(on) { G.modal = on; state.paused = on; if (on) { keys.clear(); cb.leftDown = false; if (cb.yj.rightDown) releaseYj(); } }
-function hideOverlays() { for (const id of ['g-title', 'g-pop', 'g-dead', 'g-res', 'g-pick', 'g-map', 'g-codex']) $g(id).classList.remove('on'); $g('g-demo-vid').pause(); G.onConfirm = null; G.pick = null; }
+function hideOverlays() { for (const id of ['g-title', 'g-pop', 'g-dead', 'g-res', 'g-pick', 'g-map', 'g-codex', 'g-lo']) $g(id).classList.remove('on'); $g('g-demo-vid').pause(); G.onConfirm = null; G.pick = null; }
 
 // ---------- 教学弹窗 ----------
 let demoRAF = 0;
@@ -7953,7 +8191,7 @@ $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { rese
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
 window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2
-  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, // 关卡原型 · 北冥 / 剑冢 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, LO, FORMS, showLoadout, loApply, activePress, ACT, // 关卡原型 · 北冥 / 剑冢 / 整剑 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
