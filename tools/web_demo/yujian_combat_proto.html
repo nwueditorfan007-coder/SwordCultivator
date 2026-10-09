@@ -4138,12 +4138,12 @@ function lvCutSilk(p0, p1) {
 }
 
 // ---------- 一、剑林峡谷 ----------
-const CANYON_LEN = 700, CANYON_TOP = 52;
+const CANYON_LEN = 600, CANYON_TOP = 30; // 默认镜头约 16 米高：峡谷压到 30 米，缝隙读得清
 const LEVELS = {};
 LEVELS.canyon = {
-  cam: 2.1,
   build(O) {
     const r = lvRng(7), x0 = O.x, gates = [];
+    lvPlace(O.x, 15, 1, 0);
     // 头顶雷云：不可触碰的“天花板”
     LV.obs.push({ k: 'rect', x: x0 + CANYON_LEN / 2, y: CANYON_TOP + 15, hw: CANYON_LEN / 2 + 80, hh: 15, dmg: 8, name: '雷云', noBlock: false });
     for (let x = x0 - 60; x < x0 + CANYON_LEN + 80; x += 18) lvBox(x, CANYON_TOP + 9 + (r() - 0.5) * 3, 22, 18 + r() * 4, lvMat.cloud, -1.5);
@@ -4151,19 +4151,19 @@ LEVELS.canyon = {
     lvSword(x0 - 40, 0, CANYON_TOP, true);
     let i = 0;
     for (let x = x0 + 70; x < x0 + CANYON_LEN - 40; x += 24 + r() * 10, i++) {
-      if (i % 5 === 4) { const g = 10 + r() * 26; lvSword(x, 0, g, true); lvSword(x, g + 10, CANYON_TOP, false); gates.push(new V2(x, g + 5)); } // 剑门：上下夹出 10 米的缝
-      else if (i % 2 === 0) { const top = 10 + r() * 24; lvSword(x, 0, top, true); if (r() < 0.4) gates.push(new V2(x, top + 8 + r() * 10)); }
-      else { const bot = 22 + r() * 20; lvSword(x, bot, CANYON_TOP, false); if (r() < 0.4) gates.push(new V2(x, bot - 8 - r() * 10)); }
+      if (i % 5 === 4) { const g = 5 + r() * 12; lvSword(x, 0, g, true); lvSword(x, g + 8, CANYON_TOP, false); gates.push(new V2(x, g + 4)); } // 剑门：上下夹出 10 米的缝
+      else if (i % 2 === 0) { const top = 5 + r() * 13; lvSword(x, 0, top, true); if (r() < 0.4) gates.push(new V2(x, top + 4 + r() * 5)); }
+      else { const bot = 13 + r() * 11; lvSword(x, bot, CANYON_TOP, false); if (r() < 0.4) gates.push(new V2(x, Math.max(3, bot - 4 - r() * 4))); }
     }
     LV.d.rings = gates.map(p => { const m = lvAdd(new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.35, 6, 24), lvMat.ring), -0.2); m.position.x = p.x; m.position.y = p.y; m.layers.enable(2); return { p, m, got: false }; });
     // 终点：一道金光
     lvBox(x0 + CANYON_LEN, CANYON_TOP / 2, 3, CANYON_TOP, lvMat.gold, -0.8).layers.enable(2);
     LV.d.finish = x0 + CANYON_LEN; LV.d.x0 = x0;
     LV.d.triggers = [
-      { x: x0 + 120, f: () => { for (let k = 0; k < 3; k++) lvSpawn('crow', x0 + 170 + k * 5, 22 + k * 8); } },
-      { x: x0 + 260, f: () => { lvSpawn('fan', x0 + 310, 18); lvSpawn('fan', x0 + 330, 40); } },
-      { x: x0 + 380, f: () => { for (let k = 0; k < 4; k++) lvSpawn('crow', x0 + 430 + k * 4, 14 + k * 9); } },
-      { x: x0 + 500, f: () => { lvSpawn('diver', x0 + 545, 40); lvSpawn('diver', x0 + 560, 18); lvSpawn('needle', x0 + 600, 30); } },
+      { x: x0 + 120, f: () => { for (let k = 0; k < 3; k++) lvSpawn('crow', x0 + 170 + k * 5, 8 + k * 6); } },
+      { x: x0 + 260, f: () => { lvSpawn('fan', x0 + 310, 10); lvSpawn('fan', x0 + 330, 22); } },
+      { x: x0 + 380, f: () => { for (let k = 0; k < 4; k++) lvSpawn('crow', x0 + 430 + k * 4, 6 + k * 6); } },
+      { x: x0 + 460, f: () => { lvSpawn('diver', x0 + 505, 22); lvSpawn('diver', x0 + 520, 10); lvSpawn('needle', x0 + 560, 16); } },
     ];
   },
   step(dt, P) {
@@ -4181,13 +4181,12 @@ LEVELS.canyon = {
 
 // ---------- 二、天象战场 ----------
 LEVELS.weather = {
-  cam: 2.0,
   build(O) {
-    const C = new V2(O.x + 40, 55); LV.d.C = C;
-    LV.d.winds = [{ y0: 20, y1: 34, vx: 13 }, { y0: 70, y1: 84, vx: -13 }];
-    LV.d.drafts = [{ x: C.x - 38, w: 5, vy: 15 }, { x: C.x + 38, w: 5, vy: 15 }];
-    for (const d of LV.d.drafts) lvBox(d.x, 65, d.w * 2, 130, lvMat.updraft, -1.6);
-    LV.d.storms = [{ p: new V2(C.x - 22, 48), off: 0 }, { p: new V2(C.x + 18, 28), off: 1.7 }, { p: new V2(C.x + 4, 76), off: 3.4 }].map(s => Object.assign(s, { r: 9, ph: 0, struck: -9 }));
+    const C = new V2(O.x + 25, 40); LV.d.C = C;
+    LV.d.winds = [{ y0: 29, y1: 35, vx: 13 }, { y0: 46, y1: 52, vx: -13 }];
+    LV.d.drafts = [{ x: C.x - 20, w: 3.5, vy: 15 }, { x: C.x + 20, w: 3.5, vy: 15 }];
+    for (const d of LV.d.drafts) lvBox(d.x, 30, d.w * 2, 60, lvMat.updraft, -1.6);
+    LV.d.storms = [{ p: new V2(C.x - 12, 43), off: 0 }, { p: new V2(C.x + 12, 37), off: 1.7 }, { p: new V2(C.x + 2, 55), off: 3.4 }].map(s => Object.assign(s, { r: 6, ph: 0, struck: -9 }));
     LV.d.wave = 0; LV.d.gap = 1.5;
     LV.d.waves = [
       [[['crow', 'crow', 'crow', 'crow'], 0], [['crow', 'crow', 'fan'], Math.PI]],
@@ -4198,7 +4197,7 @@ LEVELS.weather = {
   physics(dt, P) {
     const D = LV.d, push = (p, k) => {
       for (const w of D.winds) if (p.y > w.y0 && p.y < w.y1) p.x += w.vx * dt * k;
-      for (const d of D.drafts) if (Math.abs(p.x - d.x) < d.w && p.y < 130) p.y += d.vy * dt * k;
+      for (const d of D.drafts) if (Math.abs(p.x - d.x) < d.w && p.y < 60) p.y += d.vy * dt * k;
     };
     const q = new V2(sim.pos.x, wy(sim.pos.y)), before = q.clone(); push(q, 1);
     sim.pos.x = q.x; sim.pos.y = BASE_Y - q.y;
@@ -4206,7 +4205,7 @@ LEVELS.weather = {
     for (const e of cb.enemies) push(e.pos, 0.8);
     // 风墙：离中心太远被吹回来
     const off = q.clone().sub(D.C), L = off.length();
-    if (L > 90) { const n = off.divideScalar(L); sim.pos.x -= n.x * (L - 90); sim.pos.y += n.y * (L - 90); }
+    if (L > 48) { const n = off.divideScalar(L); sim.pos.x -= n.x * (L - 48); sim.pos.y += n.y * (L - 48); }
     void before;
   },
   step(dt, P) {
@@ -4237,7 +4236,7 @@ LEVELS.weather = {
     const D = LV.d;
     ctx.lineWidth = 2;
     for (const w of D.winds) { // 风带：一排顺风向流动的短划
-      const a = toScreen(new V2(sim.pos.x - 60, w.y0)), b = toScreen(new V2(sim.pos.x + 60, w.y1));
+      const a = toScreen(new V2(sim.pos.x - 30, w.y0)), b = toScreen(new V2(sim.pos.x + 30, w.y1));
       ctx.fillStyle = 'rgba(230,245,255,.08)'; ctx.fillRect(0, Math.min(a.y, b.y), W, Math.abs(a.y - b.y)); // 风带底色
       ctx.strokeStyle = 'rgba(255,255,255,.7)';
       for (let k = 0; k < 40; k++) {
@@ -4247,7 +4246,7 @@ LEVELS.weather = {
       ctx.fillStyle = 'rgba(230,245,255,.8)'; ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillText(w.vx > 0 ? '风 →' : '← 风', W - 70, (a.y + b.y) / 2);
     }
     for (const d of D.drafts) { // 上升气流：向上流动的短划
-      const a = toScreen(new V2(d.x - d.w, 4)), b = toScreen(new V2(d.x + d.w, 120));
+      const a = toScreen(new V2(d.x - d.w, 4)), b = toScreen(new V2(d.x + d.w, 60));
       ctx.strokeStyle = 'rgba(200,240,255,.45)';
       for (let k = 0; k < 18; k++) { const fx = (k * 0.618) % 1, x = lerp(a.x, b.x, fx), ph = ((cb.realT * 0.6 + k * 0.21) % 1), y = lerp(a.y, b.y, ph); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 16); ctx.stroke(); }
     }
@@ -4264,9 +4263,8 @@ LEVELS.weather = {
 
 // ---------- 三、丝网开路 ----------
 LEVELS.silk = {
-  cam: 2.2,
   build(O) {
-    const x0 = O.x - 25, x1 = O.x + 155, y0 = 12, y1 = 62, C = new V2((x0 + x1) / 2, (y0 + y1) / 2); LV.d.C = C;
+    const x0 = O.x - 15, x1 = O.x + 105, y0 = 26, y1 = 56, C = new V2((x0 + x1) / 2, (y0 + y1) / 2); LV.d.C = C;
     const wall = (ax, ay, bx, by) => { // 把一面墙切成 10 米一段的丝线
       const a = new V2(ax, ay), b = new V2(bx, by), n = Math.max(1, Math.round(a.distanceTo(b) / 10));
       for (let k = 0; k < n; k++) {
@@ -4276,14 +4274,14 @@ LEVELS.silk = {
       }
     };
     wall(x0, y0, x1, y0); wall(x1, y0, x1, y1); wall(x1, y1, x0, y1); wall(x0, y1, x0, y0);
-    wall(O.x + 35, y0, O.x + 35, y1); wall(O.x + 95, y0, O.x + 95, y1);           // 三个隔间
-    wall(O.x + 35, 37, O.x + 70, 37); wall(O.x + 95, 37, O.x + 135, 37);           // 隔间里的横丝
-    LV.d.nodes = [new V2(O.x + 65, 25), new V2(O.x + 125, 52), new V2(O.x + 125, 22)].map(p => { const e = lvSpawn('zhenyan', p.x, p.y, true); e.base = p.clone(); return e; });
-    lvSpawn('crow', O.x + 60, 52, true); lvSpawn('crow', O.x + 50, 20, true); lvSpawn('fan', O.x + 120, 30, true); lvSpawn('crow', O.x + 110, 55, true); lvSpawn('crow', O.x + 140, 45, true);
+    wall(O.x + 25, y0, O.x + 25, y1); wall(O.x + 65, y0, O.x + 65, y1);           // 三个隔间
+    wall(O.x + 25, 41, O.x + 50, 41); wall(O.x + 65, 41, O.x + 92, 41);           // 隔间里的横丝
+    LV.d.nodes = [new V2(O.x + 45, 32), new V2(O.x + 85, 50), new V2(O.x + 85, 32)].map(p => { const e = lvSpawn('zhenyan', p.x, p.y, true); e.base = p.clone(); return e; });
+    lvSpawn('crow', O.x + 40, 50, true); lvSpawn('crow', O.x + 35, 30, true); lvSpawn('fan', O.x + 80, 36, true); lvSpawn('crow', O.x + 75, 52, true); lvSpawn('crow', O.x + 98, 46, true);
     cb.energy = 100;
   },
   physics(dt) {
-    const D = LV.d, f = Math.max(0.6, 1 - LV.t / 160); D.f = f; // 丝网收拢
+    const D = LV.d, f = Math.max(0.7, 1 - LV.t / 160); D.f = f; // 丝网收拢
     for (const o of LV.obs) if (o.silk) {
       o.a.copy(D.C).addScaledVector(o.ba.clone().sub(D.C), f); o.b.copy(D.C).addScaledVector(o.bb.clone().sub(D.C), f);
       if (o.m && o.alive) { const d = o.b.clone().sub(o.a); o.m.position.set((o.a.x + o.b.x) / 2, (o.a.y + o.b.y) / 2, -0.3); o.m.rotation.z = Math.atan2(d.y, d.x); o.m.scale.set(d.length(), 2.6, 1); o.m.material.opacity = 0.8 + 0.2 * Math.sin(simTime * 6 + o.ba.x); }
@@ -4291,15 +4289,14 @@ LEVELS.silk = {
     for (const e of D.nodes) if (cb.enemies.includes(e)) e.pos.copy(D.C).addScaledVector(e.base.clone().sub(D.C), f);
   },
   step() { if (LV.d.nodes.every(e => !cb.enemies.includes(e))) lvFinish(true); },
-  hud() { const left = LV.d.nodes.filter(e => cb.enemies.includes(e)).length; return `丝网开路 · 阵眼余 <b>${left}</b> · 断丝 <b>${LV.d.cuts || 0}</b> · 丝网收拢 <b>${Math.round((1 - (LV.d.f || 1)) / 0.4 * 100)}%</b> · 用时 <b>${LV.t.toFixed(1)}</b>s`; },
+  hud() { const left = LV.d.nodes.filter(e => cb.enemies.includes(e)).length; return `丝网开路 · 阵眼余 <b>${left}</b> · 断丝 <b>${LV.d.cuts || 0}</b> · 丝网收拢 <b>${Math.round((1 - (LV.d.f || 1)) / 0.3 * 100)}%</b> · 用时 <b>${LV.t.toFixed(1)}</b>s`; },
   result() { const sc = LV.t + LV.hits * 5; return { grade: sc < 60 ? '甲上' : sc < 85 ? '甲' : sc < 120 ? '乙' : '丙', rows: [['用时', LV.t.toFixed(1) + ' 秒'], ['断丝', (LV.d.cuts || 0) + ' 根'], ['撞丝', LV.hits + ' 次（每次 +5 秒）']], score: sc }; },
 };
 
 // ---------- 四、鲲 ----------
 const KUN_SPEED = CRUISE * 0.8; // 鲲游得比巡航略慢：跟得上，也甩得掉——你得一直跟着它飞
-const KUN_SPINE = [[0, 7], [-8, 10], [-17, 11.5], [-27, 11], [-37, 9], [-46, 6.5], [-54, 4.2]];
+const KUN_SPINE = [[0, 5.3], [-6, 7.5], [-12.8, 8.6], [-20.3, 8.3], [-27.8, 6.8], [-34.5, 4.9], [-40.5, 3.2]]; // 0.75 倍：配合默认镜头
 LEVELS.kun = {
-  cam: 2.6,
   build(O) {
     const K = LV.d.K = { x: O.x + 82, y: 50, // 开局鲲尾就在眼前：第一眼看见这头巨兽，往前飞才看得到它的全身
       t: 0, parts: [], inhaleT: 9, inhale: 0, gillT: 3 };
@@ -4307,10 +4304,10 @@ LEVELS.kun = {
       const m = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), lvMat.kun), -1.4); m.scale.set(r * 1.25, r, r);
       const o = { k: 'circ', x: 0, y: 0, r, dmg: 6, name: '鲲身', ox, m, noBlock: true }; LV.obs.push(o); K.parts.push(o);
     }
-    const belly = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), lvMat.kunBelly), -1.3); belly.scale.set(26, 5, 5); K.belly = belly;
-    const tail = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(7, 12, 4), lvMat.kun), -1.4); tail.rotation.z = Math.PI / 2; K.tailM = tail;
-    K.tail = { k: 'circ', x: 0, y: 0, r: 5, dmg: 15, name: '鲲尾', noBlock: true }; LV.obs.push(K.tail);
-    const fin = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(4, 14, 3), lvMat.kun), -1.5); K.fin = fin;
+    const belly = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), lvMat.kunBelly), -1.3); belly.scale.set(19.5, 3.8, 3.8); K.belly = belly;
+    const tail = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(5.3, 9, 4), lvMat.kun), -1.4); tail.rotation.z = Math.PI / 2; K.tailM = tail;
+    K.tail = { k: 'circ', x: 0, y: 0, r: 3.8, dmg: 15, name: '鲲尾', noBlock: true }; LV.obs.push(K.tail);
+    const fin = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(3, 10.5, 3), lvMat.kun), -1.5); K.fin = fin;
     const eyeM = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe9a0 })), -0.9); eyeM.layers.enable(2); K.eyeM = eyeM;
     // 鳞眼：脊上的弱点（敌人对象，平时刀剑不入，张开时才打得动）
     LV.d.eyes = [[1, 1], [2, -1], [3, 1], [5, 1]].map(([i, s]) => { const e = lvSpawn('kuneye', K.x, K.y, true); e.part = i; e.side = s; e.invuln = true; return e; });
@@ -4322,11 +4319,11 @@ LEVELS.kun = {
     const ang = Math.atan2(9 * 0.33 * Math.cos(K.t * 0.33), KUN_SPEED) * 0.5, ca = Math.cos(ang), sa = Math.sin(ang);
     const at = (ox, oy) => new V2(K.x + ox * ca - oy * sa, K.y + ox * sa + oy * ca);
     for (const o of K.parts) { const p = at(o.ox, Math.sin(K.t * 1.6 + o.ox * 0.08) * 0.8); o.x = p.x; o.y = p.y; o.m.position.set(p.x, p.y, -1.4); o.m.rotation.z = ang; }
-    const bp = at(-22, -6); K.belly.position.set(bp.x, bp.y, -1.3); K.belly.rotation.z = ang;
-    const sw = Math.sin(K.t * 1.2) * 9, tp = at(-63, sw); K.tail.x = tp.x; K.tail.y = tp.y; K.tailM.position.set(tp.x, tp.y, -1.4); K.tailM.rotation.z = Math.PI / 2 + ang + sw * 0.05;
-    const fp = at(-20, 13); K.fin.position.set(fp.x, fp.y, -1.5); K.fin.rotation.z = ang + 0.5;
-    const ep = at(3, 3); K.eyeM.position.set(ep.x, ep.y, -0.9);
-    K.mouth = at(8, -2);
+    const bp = at(-16.5, -4.5); K.belly.position.set(bp.x, bp.y, -1.3); K.belly.rotation.z = ang;
+    const sw = Math.sin(K.t * 1.2) * 7, tp = at(-47, sw); K.tail.x = tp.x; K.tail.y = tp.y; K.tailM.position.set(tp.x, tp.y, -1.4); K.tailM.rotation.z = Math.PI / 2 + ang + sw * 0.05;
+    const fp = at(-15, 10); K.fin.position.set(fp.x, fp.y, -1.5); K.fin.rotation.z = ang + 0.5;
+    const ep = at(2.3, 2.3); K.eyeM.position.set(ep.x, ep.y, -0.9);
+    K.mouth = at(6, -1.5);
     for (const e of LV.d.eyes) if (cb.enemies.includes(e)) { const o = K.parts[e.part]; const p = at(o.ox, e.side * o.r * 0.92); e.pos.copy(p); }
     // 吞海：把你往嘴里吸（爆冲能挣脱），嘴前 6 米重伤
     if (K.inhale > 0) {
@@ -4467,14 +4464,14 @@ function lvPlace(x, alt, hx, hy) { sim.pos.x = x; sim.pos.y = BASE_Y - alt; sim.
 
 // ---------- 五、浮空小世界 ----------
 LEVELS.planet = {
-  cam: 2.4, space: true, rotOption: true,
+  space: true, rotOption: true,
   build(O) {
     const C = LV.d.C = new V2(O.x + 20, 120), R = LV.d.R = 34;
     lvBackdrop('#20183a', '#6a4a7a', 160);
     // 星球本体：一大块圆 + 一圈草色地表 + 地表上的小楼阁和树
     const ground = lvAdd(new THREE.Mesh(new THREE.CircleGeometry(R, 72), toon('#2a2018', '#5a4632', '#8a7050')), -1.3); ground.position.set(C.x, C.y, -1.3);
     const grass = lvAdd(new THREE.Mesh(new THREE.RingGeometry(R - 1.6, R, 72), toon('#1d3a22', '#3f7a46', '#7fc28a')), -1.25); grass.position.set(C.x, C.y, -1.25);
-    const atm = lvAdd(new THREE.Mesh(new THREE.RingGeometry(R + 44, R + 45.5, 96), new THREE.MeshBasicMaterial({ color: 0x9fd3ff, transparent: true, opacity: 0.25, depthWrite: false })), -1.4); atm.position.set(C.x, C.y, -1.4);
+    const atm = lvAdd(new THREE.Mesh(new THREE.RingGeometry(R + 29, R + 30.5, 96), new THREE.MeshBasicMaterial({ color: 0x9fd3ff, transparent: true, opacity: 0.25, depthWrite: false })), -1.4); atm.position.set(C.x, C.y, -1.4);
     const r = lvRng(5);
     for (let i = 0; i < 26; i++) {
       const a = i / 26 * Math.PI * 2 + r() * 0.1, tall = r() < 0.3, h = tall ? 6 + r() * 4 : 2 + r() * 2, w = tall ? 3 : 1.6;
@@ -4484,9 +4481,9 @@ LEVELS.planet = {
     }
     LV.obs.push({ k: 'circ', x: C.x, y: C.y, r: R, dmg: 6, name: '地表', graze: true });
     // 灵脉节点（阵眼）：分布在一圈上，飞到附近才刷出守卫
-    LV.d.nodes = [0.35, 1.5, 2.6, 3.7, 4.9].map((a, i) => { const h = i % 2 ? 9 : 22, p = new V2(C.x + Math.cos(a) * (R + h), C.y + Math.sin(a) * (R + h)); const e = lvSpawn('zhenyan', p.x, p.y, true); e.ang = a; return e; });
+    LV.d.nodes = [0.35, 1.5, 2.6, 3.7, 4.9].map((a, i) => { const h = i % 2 ? 7 : 15, p = new V2(C.x + Math.cos(a) * (R + h), C.y + Math.sin(a) * (R + h)); const e = lvSpawn('zhenyan', p.x, p.y, true); e.ang = a; return e; });
     LV.d.guards = LV.d.nodes.map(() => false);
-    lvPlace(C.x, C.y + R + 12, 1, 0); // 从星球顶上出发，沿地表切线飞
+    lvPlace(C.x, C.y + R + 8, 1, 0); // 从星球顶上出发，沿地表切线飞
     LV.d.rotCam = LV.rotCamPref === true; // 默认固定镜头
   },
   camUp() { const P = new V2(sim.pos.x, wy(sim.pos.y)); return P.sub(LV.d.C).normalize(); },
@@ -4498,7 +4495,7 @@ LEVELS.planet = {
   physics(dt, P) {
     const D = LV.d, off = P.clone().sub(D.C), L = off.length(), n = off.clone().divideScalar(L);
     // 重力：一直往球心轻轻拉；飞出大气层（罡风）被推回来
-    let pull = 4 * dt; if (L > D.R + 45) pull += (L - D.R - 45) * 0.6;
+    let pull = 4 * dt; if (L > D.R + 30) pull += (L - D.R - 30) * 0.6;
     sim.pos.x -= n.x * pull; sim.pos.y += n.y * pull;
     D.alt = L - D.R;
   },
@@ -4513,7 +4510,7 @@ LEVELS.planet = {
 
 // ---------- 六、周天星海 ----------
 LEVELS.stars = {
-  cam: 2.4, space: true,
+  space: true,
   build(O) {
     lvBackdrop('#05060f', '#141a33', 420);
     const x0 = O.x, Cc = LV.d.C = new V2(x0 + 85, 105);
@@ -4648,26 +4645,26 @@ function bmKunBuild(x, y) {
     const m = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), lvMat.kun), -1.4); m.scale.set(r * 1.25, r, r);
     const o = { k: 'circ', x: 0, y: 0, r, dmg: 6, name: '鲲身', ox, m, noBlock: true }; LV.obs.push(o); K.parts.push(o);
   }
-  K.belly = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), lvMat.kunBelly), -1.3); K.belly.scale.set(26, 5, 5);
-  K.tailM = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(7, 12, 4), lvMat.kun), -1.4);
-  K.tail = { k: 'circ', x: 0, y: 0, r: 5, dmg: 15, name: '鲲尾', noBlock: true }; LV.obs.push(K.tail);
-  K.fin = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(4, 14, 3), lvMat.kun), -1.5);
+  K.belly = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), lvMat.kunBelly), -1.3); K.belly.scale.set(19.5, 3.8, 3.8);
+  K.tailM = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(5.3, 9, 4), lvMat.kun), -1.4);
+  K.tail = { k: 'circ', x: 0, y: 0, r: 3.8, dmg: 15, name: '鲲尾', noBlock: true }; LV.obs.push(K.tail);
+  K.fin = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(3, 10.5, 3), lvMat.kun), -1.5);
   K.eyeM = lvAdd(new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe9a0 })), -0.9); K.eyeM.layers.enable(2);
-  for (const sd of [1, -1]) { const w = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(9, 34, 3), toon('#1a1206', '#6a4a1a', '#e8c46a')), -1.6); w.visible = false; K.wings.push({ m: w, sd }); }
+  for (const sd of [1, -1]) { const w = lvAdd(new THREE.Mesh(new THREE.ConeGeometry(7, 26, 3), toon('#1a1206', '#6a4a1a', '#e8c46a')), -1.6); w.visible = false; K.wings.push({ m: w, sd }); }
   return K;
 }
 function bmKunAt(K, ox, oy) { const c = Math.cos(K.ang), s = Math.sin(K.ang); return new V2(K.x + ox * c - oy * s, K.y + ox * s + oy * c); }
 function bmKunPose(K, dt) {
   K.t += dt;
   for (const o of K.parts) { const p = bmKunAt(K, o.ox, Math.sin(K.t * 1.6 + o.ox * 0.08) * 0.8); o.x = p.x; o.y = p.y; o.m.position.set(p.x, p.y, -1.4); o.m.rotation.z = K.ang; }
-  const bp = bmKunAt(K, -22, -6); K.belly.position.set(bp.x, bp.y, -1.3); K.belly.rotation.z = K.ang;
-  const sw = Math.sin(K.t * (K.bird ? 2.4 : 1.2)) * 9, tp = bmKunAt(K, -63, sw); K.tail.x = tp.x; K.tail.y = tp.y; K.tailM.position.set(tp.x, tp.y, -1.4); K.tailM.rotation.z = Math.PI / 2 + K.ang + sw * 0.05;
-  const fp = bmKunAt(K, -20, 13); K.fin.position.set(fp.x, fp.y, -1.5); K.fin.rotation.z = K.ang + 0.5;
-  const ep = bmKunAt(K, 3, 3); K.eyeM.position.set(ep.x, ep.y, -0.9);
-  K.mouth = bmKunAt(K, 8, -2);
+  const bp = bmKunAt(K, -16.5, -4.5); K.belly.position.set(bp.x, bp.y, -1.3); K.belly.rotation.z = K.ang;
+  const sw = Math.sin(K.t * (K.bird ? 2.4 : 1.2)) * 7, tp = bmKunAt(K, -47, sw); K.tail.x = tp.x; K.tail.y = tp.y; K.tailM.position.set(tp.x, tp.y, -1.4); K.tailM.rotation.z = Math.PI / 2 + K.ang + sw * 0.05;
+  const fp = bmKunAt(K, -15, 10); K.fin.position.set(fp.x, fp.y, -1.5); K.fin.rotation.z = K.ang + 0.5;
+  const ep = bmKunAt(K, 2.3, 2.3); K.eyeM.position.set(ep.x, ep.y, -0.9);
+  K.mouth = bmKunAt(K, 6, -1.5);
   // 化鹏：背上两只大翅，一上一下拍动
   const flap = Math.sin(K.t * 3.2);
-  for (const w of K.wings) { if (!w.m.visible) continue; const p = bmKunAt(K, -18, w.sd * 10); w.m.position.set(p.x, p.y + w.sd * (6 + flap * 6), -1.6); w.m.rotation.z = K.ang + w.sd * (Math.PI / 2 + 0.35 + flap * 0.5); }
+  for (const w of K.wings) { if (!w.m.visible) continue; const p = bmKunAt(K, -13.5, w.sd * 7.5); w.m.position.set(p.x, p.y + w.sd * (4.5 + flap * 4.5), -1.6); w.m.rotation.z = K.ang + w.sd * (Math.PI / 2 + 0.35 + flap * 0.5); }
 }
 // 每帧移动：游（随正弦起伏）/ 潜入海底 / 海底蛰伏（瞄准你脚下）/ 破海而出
 function bmKunMove(K, dt, P) {
@@ -4683,7 +4680,7 @@ function bmKunMove(K, dt, P) {
     K.bx = P.x + velW().x * 1.1; K.x = K.bx + 8; K.y = -38; K.ang = Math.PI / 2;
     if (K.mt > 1.5) { K.mode = 'breach'; K.mt = 0; K.splash = false; }
   } else if (K.mode === 'breach') {
-    const u = clamp(K.mt / 1.1, 0, 1); K.y = lerp(-38, 70, 1 - Math.pow(1 - u, 2)); K.x = K.bx + 8 - u * 6;
+    const u = clamp(K.mt / 1.1, 0, 1); K.y = lerp(-38, 52, 1 - Math.pow(1 - u, 2)); K.x = K.bx + 8 - u * 6;
     if (!K.splash && K.y > 0) { K.splash = true; waterSplash(K.bx, 2.2); cb.quake = { t0: performance.now() / 1000, amp: 4 * state.burstShake }; sfx('burst'); }
     if (K.mt > 1.3) { K.mode = 'swim'; K.mt = 0; }
   }
@@ -4692,14 +4689,13 @@ function bmKunMove(K, dt, P) {
 }
 
 LEVELS.beiming = {
-  cam: 2.5,
   build(O) {
     const D = LV.d; D.stage = 'chase'; D.stT = 0; D.times = {};
     // 礁石（从海里立起）+ 头顶雷云
     const r = lvRng(19);
     for (let x = O.x + 70; x < O.x + 2400; x += 40 + r() * 30) { const h = 6 + r() * 12; lvBox(x, h / 2, 6, h, toon('#1a2228', '#3a4a52', '#7a8a92'), -1.1); LV.obs.push({ k: 'rect', x, y: h / 2, hw: 3, hh: h / 2, dmg: 8, name: '礁石', graze: true }); }
-    LV.obs.push({ k: 'rect', x: O.x + 1200, y: 88, hw: 1400, hh: 18, dmg: 6, name: '雷云' });
-    for (let x = O.x - 60; x < O.x + 2500; x += 22) lvBox(x, 79 + (r() - 0.5) * 3, 26, 14, lvMat.cloud, -1.5);
+    LV.obs.push({ k: 'rect', x: O.x + 1200, y: 76, hw: 1400, hh: 18, dmg: 6, name: '雷云' });
+    for (let x = O.x - 60; x < O.x + 2500; x += 22) lvBox(x, 67 + (r() - 0.5) * 3, 26, 14, lvMat.cloud, -1.5);
     D.K = bmKunBuild(O.x + 175, 34); D.K.baseY = 34; D.K.vx = CRUISE * 0.8; // 鲲尾在前方约 110 米：巡航追约半分钟，爆冲能更快
     D.pillars = []; D.pillarT = 3;
     D.triggers = [{ x: O.x + 110, f: () => { for (let k = 0; k < 3; k++) lvSpawn('crow', O.x + 170 + k * 6, 26 + k * 8); } }, { x: O.x + 300, f: () => { for (let k = 0; k < 4; k++) lvSpawn('crow', O.x + 360 + k * 5, 18 + k * 9); } }];
@@ -4734,10 +4730,10 @@ LEVELS.beiming = {
     for (const tr of D.triggers) if (!tr.done && P.x > tr.x) { tr.done = true; tr.f(); }
     // 浪柱：前方海面先翻起白沫（预警），一秒后冲起一道水柱
     D.pillarT -= dt;
-    if (D.pillarT <= 0) { D.pillarT = 2.6 + rand() * 1.2; D.pillars.push({ x: P.x + 26 + rand() * 18, t: 0, up: false }); }
+    if (D.pillarT <= 0) { D.pillarT = 2.6 + rand() * 1.2; D.pillars.push({ x: P.x + 15 + rand() * 9 + Math.max(0, velW().x) * 0.4, t: 0, up: false }); } // 默认镜头：在画面里预警
     for (const pl of D.pillars) {
       pl.t += dt;
-      if (!pl.up && pl.t > 1.0) { pl.up = true; pl.o = { k: 'rect', x: pl.x, y: 18, hw: 2.4, hh: 18, dmg: 10, name: '浪柱' }; LV.obs.push(pl.o); pl.m = lvBox(pl.x, 18, 4.8, 36, new THREE.MeshBasicMaterial({ color: 0xcfefff, transparent: true, opacity: 0.75 }), -0.6); waterSplash(pl.x, 1.6); }
+      if (!pl.up && pl.t > 1.0) { pl.up = true; pl.o = { k: 'rect', x: pl.x, y: 13, hw: 2.2, hh: 13, dmg: 10, name: '浪柱' }; LV.obs.push(pl.o); pl.m = lvBox(pl.x, 13, 4.4, 26, new THREE.MeshBasicMaterial({ color: 0xcfefff, transparent: true, opacity: 0.75 }), -0.6); waterSplash(pl.x, 1.6); }
       if (pl.up && pl.t > 2.4 && pl.o.alive !== false) { pl.o.alive = false; pl.m.visible = false; }
     }
     // 鳃往后喷一点弹幕，逼你别直线追
@@ -4842,7 +4838,7 @@ LEVELS.beiming = {
       ctx.fillStyle = '#fff'; ctx.font = '700 13px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.fillText('浪', s.x, s.y - 12); ctx.textAlign = 'start';
     }
     if (K && (K.mode === 'under' || K.mode === 'dive') && K.bx !== undefined) { // 破海预警
-      const s = toScreen(new V2(K.bx, 0)), r = Math.abs(toScreen(new V2(K.bx + 14, 0)).x - s.x);
+      const s = toScreen(new V2(K.bx, 0)), r = Math.abs(toScreen(new V2(K.bx + 10, 0)).x - s.x);
       ctx.fillStyle = Math.sin(cb.realT * 24) > 0 ? 'rgba(255,90,70,.55)' : 'rgba(255,255,255,.6)'; ctx.fillRect(s.x - r, s.y - 8, r * 2, 8);
       ctx.fillStyle = '#ff6a55'; ctx.font = '700 15px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.fillText('鲲 · 破海', s.x, s.y - 16); ctx.textAlign = 'start';
     }
@@ -6429,7 +6425,7 @@ function layoutAndRender() {
   const nowZ = performance.now() / 1000, zDt = state.paused ? 0 : clamp(nowZ - (state.zoomT || nowZ), 0, 0.05); state.zoomT = nowZ;
   if (state.camZoom === undefined) state.camZoom = 1;
   if (state.mode === 'fly' && !(cb.dodgeT > 0) && !yjLock()) {
-    const zT = (1 + (state.camZoomMax - 1) * smooth(CRUISE * 1.05, BOOST, sim.vel.length())) * (LV.id && LEVELS[LV.id].cam || 1); // 关卡原型：每种关卡自己的取景距离
+    const zT = (1 + (state.camZoomMax - 1) * smooth(CRUISE * 1.05, BOOST, sim.vel.length())); // 关卡一律用默认取景（2026-10-09 用户：人物不能比默认更小）
     const rate = zT > state.camZoom ? state.camZoomOut : state.camZoomIn;
     state.camZoom += (zT - state.camZoom) * (1 - Math.exp(-zDt * rate));
   } else if (state.mode !== 'fly') state.camZoom = 1;
