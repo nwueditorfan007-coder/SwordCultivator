@@ -1512,7 +1512,7 @@ class Animator {
     if (M.ev.carve) { this.carveT = 0; this.carveDir = M.carveDir; }
     if (M.ev.hop && this.hopT > 0.75) this.hopT = 0;
     this.stopT += dt; this.hopT += dt; this.burstT += dt; this.carveT += dt; this.slashT += dt;
-    if (M.inputActive && this.stopT < 0.35) this.stopT = 0.35;
+    if (M.inputActive && this.stopT < 0.35 && !(cb.brakeT > 0)) this.stopT = 0.35; // 急刹（双击 S）时完整播放横板刹停
 
     // 朝向：平时跟随机身朝向；刹停时剑身横过来，让人正面迎向来势（脚跟立刃）
     const stopActive = this.stopT < 0.4;
@@ -4049,6 +4049,9 @@ function flightSurge() {
 function flightBrake() {
   if (!spendMom()) return;
   cb.brakeT = state.brakeT; cb.surgeT = 0;
+  // 横板刹停动作：剑身横过来迎着来势，脚跟立刃，扬起一片水雾（用刹停前的速度定方向）
+  M.speed = sim.vel.length(); M.vel.copy(sim.vel);
+  anim.stopT = 0; anim.hoverYaw = Math.atan2(M.vel.x, M.vel.y); emitStopSpray(M);
   sim.vel.multiplyScalar(state.brakeKeep);
   cb.throttleV = CRUISE * SLOW_FLIGHT; cb.revArmed = true;
   const pc = to2(playerC()), hw = headingW();
