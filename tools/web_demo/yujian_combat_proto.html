@@ -4459,8 +4459,30 @@ function lvFinish(win) {
     G.onConfirm = () => startLevel(id);
   }, 1200);
 }
+function parryCue(toScreen) { // 来招提示（2026-10-09 用户选 C）
+  if (!(loOn() && LO.melee === 'jianzhao') || cb.dead > 0) return;
+  const ctx = ovCtx, pc = to2(playerC()), c = toScreen(pc), rr = Math.abs(toScreen(pc.clone().add(new V2(1.05, 0))).x - c.x);
+  for (const e of cb.enemies) {
+    if (e.cut && e.cut.dead) continue;
+    const v = pc.clone().sub(e.pos), dist = v.length(), gap = Math.max(0, dist - e.r - CB.PLAYER_R);
+    let tti = null;
+    if (isDuel(e) && e.mode === 'wind') tti = Math.max(0, e.t) + gap / BOOST;
+    else if (isDuel(e) && e.mode === 'dash' && e.vel.dot(v) > 0) tti = gap / Math.max(e.vel.length(), 1);
+    else if (e.type === 'diver' && e.mode === 'aim') tti = Math.max(0, e.t) + gap / CB.DIVER_DASH_SPEED;
+    else if (e.type === 'diver' && e.mode === 'dash' && e.vel.dot(v) > 0) tti = gap / Math.max(e.vel.length(), 1);
+    if (tti === null || tti > 0.7) { e.cueDone = false; continue; }
+    const u = clamp(tti / 0.7, 0, 1), r = rr + 8 + 70 * u, a = Math.atan2(e.pos.y - pc.y, e.pos.x - pc.x);
+    const now = tti < 0.08;
+    ctx.globalAlpha = 0.55 + 0.45 * (1 - u); ctx.strokeStyle = now ? '#ffe48a' : '#ff6a55'; ctx.lineWidth = now ? 4 : 2;
+    ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(c.x, c.y, r, -a - 0.35, -a + 0.35); ctx.stroke(); // 加粗的一段指着来招方向
+    ctx.globalAlpha = 1;
+    if (now && !e.cueDone) { e.cueDone = true; sfx('ready'); }
+  }
+}
 function drawLevelOverlay(toScreen, W, Hc) {
   drawTun(toScreen); // 吞海的吞口（任何模式）
+  parryCue(toScreen); // 见招：来招提示
   if (!LV.id) return;
   const L = LEVELS[LV.id]; if (L.overlay) L.overlay(ovCtx, toScreen, W, Hc);
 }
@@ -4924,6 +4946,13 @@ function jzPress() {
   return true;
 }
 const jzActive = () => loOn() && LO.melee === 'jianzhao' && cb.realT - JZ.t < JZ.WIN; // 见招 = 近战形态：每一刀出手的瞬间
+// 转身：航向和速度方向立刻对准 dir（世界坐标，y 向上）
+function snapFace(dir) {
+  if (!dir || dir.lengthSq() < 1e-6) return;
+  const d = dir.clone().normalize(), spd = Math.max(sim.vel.length(), CRUISE * 0.3);
+  sim.setHeading(new V2(d.x, -d.y)); sim.vel.set(d.x * spd, -d.y * spd); state.camLook && state.camLook.set(0, 0, 0);
+}
+function jzFace(dir) { snapFace(dir); spawnSlashFx(false, Math.atan2(dir.y, dir.x), 1); popup('回身', 'small gold'); } // 拆中自动回身（2026-10-09 用户选 A）
 function jzSuccess(p) {
   if (!JZ.hit) { JZ.hit = true; JZ.lockUntil = cb.realT + 0.15; } // 拆中：几乎不留硬直，可以接着出招
   JZ.parries++; hitStop(0.08); cb.riskSlowT = Math.max(cb.riskSlowT, 0.35);
@@ -4935,12 +4964,14 @@ function jzTryBullet(b) {
   if (!jzActive() || b.friendly) return false;
   const pc = to2(playerC()); let best = null, bd = 40;
   for (const e of cb.enemies) { const d = e.pos.distanceTo(pc); if (d < bd && !e.invuln) { bd = d; best = e; } }
+  jzFace(b.vel.clone().negate()); // 回身朝向子弹来的方向
   b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.6; b.breakArmor = !!b.heavy;
   b.vel.copy(best ? best.pos.clone().sub(b.pos) : b.vel.clone().negate()).normalize().multiplyScalar(CB.REFLECT_SPEED);
   jzSuccess(b.pos); return true;
 }
 function jzTryMelee(e) {
   if (!jzActive()) return false;
+  jzFace(e.pos.clone().sub(to2(playerC()))); // 回身朝向攻击者
   if (isDuel(e)) { e.mode = 'stagger'; e.t = 2.0; e.vel.multiplyScalar(0.2); } else { e.stunUntil = cb.realT + 1.5; e.mode = 'drift'; e.t = 1.5; }
   e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 8); e.hitCd = 0.8;
   jzSuccess(e.pos); popup('破绽', 'move gold'); return true;
@@ -5187,6 +5218,9 @@ defineModule('blade', 'lo', {
   name: '整剑',
   press() {
     if (state.mode !== 'fly' || cb.dead > 0) return;
+    if (cb.brakeT > 0 && !cb.brakeSnapUsed && cb.yj.state === 'hand') { // 急刹回身斩：急刹后的第一刀瞬间转向鼠标方向（2026-10-09 用户选 B）
+      const w = mouseWorld(); if (w) { cb.brakeSnapUsed = true; snapFace(w.clone().sub(to2(playerC()))); popup('刹那回身', 'small gold'); }
+    }
     bladePressBasic(); // 按下立刻出刀（或回锋斩）；不松手就接蓄力——回锋斩之后也能接
     if (cb.yj.state !== 'hand' || (cb.hvCd || 0) > 0) return;
     cb.hv = { t: 0, form: LO.charge };
@@ -5346,7 +5380,7 @@ function flightBrake() {
   M.speed = sim.vel.length(); M.vel.copy(sim.vel);
   anim.stopT = 0; anim.hoverYaw = Math.atan2(M.vel.x, M.vel.y); emitStopSpray(M);
   sim.vel.multiplyScalar(state.brakeKeep);
-  cb.throttleV = CRUISE * SLOW_FLIGHT; cb.revArmed = true;
+  cb.throttleV = CRUISE * SLOW_FLIGHT; cb.revArmed = true; cb.brakeSnapUsed = false;
   const pc = to2(playerC()), hw = headingW();
   puffRing(pc.x + hw.x * 1.2, pc.y + hw.y * 1.2, 14, 0.9, 7, 0.6);
   if (wy(sim.pos.y) < 8) waterSplash(pc.x, 0.9);
