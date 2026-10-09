@@ -96,6 +96,9 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
 .g.thr b{background:linear-gradient(90deg,#62d2b9,#d8b35c)} .g.thr em{font-family:var(--f-display);font-size:13px}
 .g.xiu .gl{color:#f7d77a} .g.xiu b{background:linear-gradient(90deg,#b8862f,#ffe9a8);transition:width .15s} .g.xiu em{font-family:var(--f-display);font-size:13px;color:#f7d77a}
 .sk.sealed{opacity:.28;filter:grayscale(1)}
+.g.mom .pips{display:flex;gap:4px;height:12px} .g.mom .pips i{flex:1;position:relative;background:#1a2427;box-shadow:inset 0 0 0 1px #000,0 0 0 1px rgba(245,240,226,.12);overflow:hidden}
+.g.mom .pips i b{position:absolute;inset:0 auto 0 0;background:linear-gradient(#9fd3ff,#3f7fb8)} .g.mom .pips i.full b{background:linear-gradient(#dff2ff,#6fb6ff);box-shadow:0 0 8px rgba(140,200,255,.8)}
+.g.mom.slip .gl{color:#9fd3ff} .g.mom em{font-family:var(--f-display);font-size:12px;color:#9fd3ff}
 .skills{display:flex;gap:12px}
 .sk{display:flex;flex-direction:column;align-items:center;gap:4px}
 .ico{--p:1;--c:#bfe3ec;position:relative;width:46px;height:46px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p) * 1turn),rgba(245,240,226,.12) 0);box-shadow:0 0 0 2px #000}
@@ -261,6 +264,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
             <div class="g hp" id="cb-hp-row"><span class="gl">气血</span><div class="gb"><i id="cb-hp-lag"></i><b id="cb-hp"></b><span class="cells"></span></div><em id="cb-hp-n">100</em></div>
             <div class="g en" id="cb-en-row"><span class="gl">剑意</span><div class="gb"><b id="cb-en"></b><span class="cells"></span><u id="cb-en-tap"></u><u id="cb-en-start"></u></div><em id="cb-en-n">0</em></div>
             <div class="g xiu" id="cb-xiu-row" hidden><span class="gl" id="cb-realm">筑基</span><div class="gb thin"><b id="cb-xiu"></b></div><em id="cb-xiu-n">0</em></div>
+            <div class="g mom" id="cb-mom-row"><span class="gl">剑势</span><div class="pips" id="cb-mom"></div><em id="cb-mom-n">双击</em></div>
             <div class="g thr"><span class="gl">剑速</span><div class="gb thin"><b id="cb-thr"></b><u id="cb-thr-mark"></u></div><em id="cb-thr-n">巡航</em></div>
           </div>
           <div class="skills">
@@ -273,7 +277,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
       <div class="cb-pops" id="cb-pops"></div>
       <div class="split-label" id="lbl-hi" hidden>高清 3D（无像素化）</div>
       <div class="split-label" id="lbl-px" hidden>风格化输出</div>
-      <div class="keys-hint" id="fly-hint" hidden>鼠标转向 · <kbd>W</kbd> 催剑 / <kbd>S</kbd> 收势 · <kbd>空格</kbd> 破空闪 · <kbd>左键</kbd> 顺锋斩 · 剑阵随动作出击（可改模式） · <kbd>右键</kbd> 点刺 / 按住连斩 · 高速掉头 + 左键 = 回锋斩 · <kbd>H</kbd> 面板</div>
+      <div class="keys-hint" id="fly-hint" hidden>鼠标转向 · <kbd>W</kbd> 催剑 / <kbd>S</kbd> 收势 · 双击 <kbd>W</kbd> 爆冲 / 双击 <kbd>S</kbd> 急刹 · <kbd>空格</kbd> 破空闪 · <kbd>左键</kbd> 顺锋斩 · 剑阵随动作出击（可改模式） · <kbd>右键</kbd> 点刺 / 按住连斩 · 高速掉头 + 左键 = 回锋斩 · <kbd>H</kbd> 面板</div>
       <div class="cover" id="cover" hidden><span id="cover-text">准备</span></div>
       <!-- Demo 流程界面 -->
       <div class="g-obj" id="g-obj"><span class="seal" id="g-obj-seal">习</span><span id="g-obj-text"></span><button id="g-skip" hidden>跳过教程</button></div>
@@ -448,6 +452,17 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
         <div class="ctl"><label for="thr-acc">油门加速</label><input type="range" id="thr-acc" min="4" max="60" step="1" value="16"><output id="thr-acc-v">16</output></div>
         <div class="ctl"><label for="thr-brake">刹车减速</label><input type="range" id="thr-brake" min="4" max="80" step="1" value="22"><output id="thr-brake-v">22</output></div>
         <div class="ctl"><label for="thr-return">松手回巡航</label><input type="range" id="thr-return" min="0" max="20" step="0.5" value="3"><output id="thr-return-v">3.0</output></div>
+        <h3 style="margin:8px 0 4px;font-size:12px;color:var(--muted)">进阶飞行（双击 W 爆冲 / 双击 S 急刹 / 尾流咬尾）</h3>
+        <div class="ctl"><label for="fl-dt">双击判定窗口</label><input type="range" id="fl-dt" min="0.12" max="0.4" step="0.01" value="0.22"><output id="fl-dt-v">0.22</output></div>
+        <div class="ctl"><label for="fl-mom">剑势格数</label><input type="range" id="fl-mom" min="1" max="5" step="1" value="3"><output id="fl-mom-v">3</output></div>
+        <div class="ctl"><label for="fl-regen">剑势回格（每秒，高速时）</label><input type="range" id="fl-regen" min="0" max="1.5" step="0.05" value="0.4"><output id="fl-regen-v">0.40</output></div>
+        <div class="ctl"><label for="fl-surge">爆冲速度（× 催剑上限）</label><input type="range" id="fl-surge" min="1.1" max="2" step="0.05" value="1.45"><output id="fl-surge-v">1.45</output></div>
+        <div class="ctl"><label for="fl-surge-t">爆冲时长</label><input type="range" id="fl-surge-t" min="0.2" max="1.2" step="0.05" value="0.6"><output id="fl-surge-t-v">0.60</output></div>
+        <div class="ctl"><label for="fl-brake-keep">急刹保留速度</label><input type="range" id="fl-brake-keep" min="0" max="0.6" step="0.05" value="0.2"><output id="fl-brake-keep-v">0.20</output></div>
+        <div class="ctl"><label for="fl-brake-t">急刹回身窗口</label><input type="range" id="fl-brake-t" min="0.2" max="1" step="0.05" value="0.5"><output id="fl-brake-t-v">0.50</output></div>
+        <div class="ctl"><label for="fl-brake-turn">急刹转向倍率</label><input type="range" id="fl-brake-turn" min="1" max="5" step="0.1" value="2.8"><output id="fl-brake-turn-v">2.8</output></div>
+        <div class="ctl"><label for="fl-slip">尾流加速</label><input type="range" id="fl-slip" min="1" max="1.6" step="0.05" value="1.25"><output id="fl-slip-v">1.25</output></div>
+        <div class="ctl"><label for="fl-slip-r">尾流距离</label><input type="range" id="fl-slip-r" min="4" max="20" step="1" value="12"><output id="fl-slip-r-v">12</output></div>
         <div class="ctl"><label for="dodge-style">闪避表现</label><select id="dodge-style"><option value="loop" selected>流线回环</option><option value="light">身化剑光</option></select><span></span></div>
         <div class="ctl"><label for="dodge-loop-r">回环半径</label><input type="range" id="dodge-loop-r" min="0.6" max="3" step="0.1" value="1.5"><output id="dodge-loop-r-v">1.5</output></div>
         <div class="ctl"><label for="dodge-loop-t">回环时长</label><input type="range" id="dodge-loop-t" min="0.16" max="0.5" step="0.01" value="0.3"><output id="dodge-loop-t-v">0.30</output></div>
@@ -628,14 +643,14 @@ class FlightSim {
     if (inAct) {
       const strength = Math.min(1, axis.length());
       const d = signedAngle(this.targetH, this.inputH);
-      this.targetH.rotateAround(ORIGIN2, clamp(d, -INPUT_TURN * BODY.turn * (cb.turnMul || 1) * strength * dt, INPUT_TURN * BODY.turn * (cb.turnMul || 1) * strength * dt)).normalize();
+      this.targetH.rotateAround(ORIGIN2, clamp(d, -INPUT_TURN * BODY.turn * (cb.turnMul || 1) * (cb.flightTurnMul || 1) * strength * dt, INPUT_TURN * BODY.turn * (cb.turnMul || 1) * (cb.flightTurnMul || 1) * strength * dt)).normalize();
     } else if (spd > 0.001) {
       this.targetH.copy(this.vel).normalize();
     }
     const turnDelta = signedAngle(this.bodyH, this.targetH);
     let rate = lerp(BODY_TURN, BODY_TURN_HARD, Math.abs(turnDelta) / Math.PI);
     if (!boost || spd < CRUISE * 0.35) rate = Math.max(rate, HOVER_TURN);
-    rate = rate * BODY.turn * (cb.turnMul || 1);
+    rate = rate * BODY.turn * (cb.turnMul || 1) * (cb.flightTurnMul || 1);
     const step = clamp(turnDelta, -rate * dt, rate * dt);
     this.bodyH.rotateAround(ORIGIN2, step).normalize();
     this.turnSigned = step / dt;
@@ -2934,7 +2949,7 @@ function bladeStepBasic(dt, pc, h) {
   cb.revT -= dt;
   const revAng = sim.inputActive && sim.vel.lengthSq() > 1e-4 ? Math.abs(signedAngle(sim.vel, sim.inputH)) : 0;
   if (revAng < 1.0) cb.revArmed = true;
-  if (cb.revArmed && revAng > 1.92 && sim.vel.length() > CRUISE * 0.75) {
+  if (cb.revArmed && revAng > 1.92 && (sim.vel.length() > CRUISE * 0.75 || cb.brakeT > 0)) { // 急刹回身（过失速机动）也算掉头
     cb.revArmed = false; cb.revT = CB.REV_WINDOW;
     if (simTime - cb.lastPress < CB.CARVE_BUFFER && !(cb.slashBig && cb.slashT < 0.2) && cb.yj.state === 'hand') startSlash(true);
   }
@@ -2962,6 +2977,7 @@ function resetCombat() {
   while (cb.enemies.length) removeEnemy(cb.enemies[0]);
   while (cb.bullets.length) freeBullet(0);
   Object.assign(cb, { hp: CB.HP_MAX, energy: 0, kills: 0, slashT: 9, slashCd: 0, revT: 0, revArmed: true, dashCd: 0, iframe: 0, hurtT: 9, dead: 0, spawnT: 0.4, hitStop: 0, worldScale: 1, sw: null, dodgeT: 0, riskSlowT: 0, throttleV: CRUISE });
+  cb.mom = state.momMax; cb.surgeT = 0; cb.brakeT = 0; cb.slipT = 0; cb.flightTurnMul = 1; cb.lastTap = { up: -9, down: -9 };
   cb.yj.state = 'hand'; cb.yj.rightDown = false; cb.ink = 0; cb.arrayActive = 0; cb.arrayCd = 0; swordTrail.clear();
   cb.cutCount = 0; cb.specialT = 6; cb.specialNext = 'needle'; cb.squadT = 1; cb.pendingSquads.length = 0;
   while (splits.length) { const s = splits.pop(); scene.remove(s.g); fx.splice(fx.indexOf(s.g), 1); }
@@ -4004,6 +4020,84 @@ function applyCultivator(id) {
 const slotLocked = s => !!cultivator.lock[s];
 
 // ---------------------------------------------------------------------------
+// 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
+//   双击 W = 爆冲：瞬间冲到超过催剑上限的速度，持续一小段；没有无敌，转向变钝（承诺）——追击、拉开、长冲锋斩
+//   双击 S = 急刹：骤然减速，短时间内转向大幅变灵（过失速机动）——让冲斩的敌人冲过头、原地回身接回锋斩
+//   尾流咬尾：飞在敌人身后、朝着它飞，得到加速并快速回剑势——鼓励绕到敌人背后
+//   剑势格（HUD 可见）：每次爆冲 / 急刹耗一格；高速飞行、咬尾、出险回格。破空闪仍是唯一带无敌的防守动作
+// ---------------------------------------------------------------------------
+Object.assign(state, { dtWin: 0.22, momMax: 3, momRegen: 0.4, surgeMul: 1.45, surgeT: 0.6, brakeKeep: 0.2, brakeT: 0.5, brakeTurn: 2.8, slipBonus: 1.25, slipRange: 12 });
+cb.mom = 3; cb.lastTap = { up: -9, down: -9 };
+function flightTap(dir) {
+  if (state.mode !== 'fly' || state.steer !== 'mouse' || cb.dead > 0 || G.modal || yjLock()) return;
+  const now = performance.now() / 1000;
+  if (now - cb.lastTap[dir] < state.dtWin) { cb.lastTap[dir] = -9; dir === 'up' ? flightSurge() : flightBrake(); }
+  else cb.lastTap[dir] = now;
+}
+function spendMom() { if ((cb.mom || 0) < 1) { fail('剑势不足'); return false; } cb.mom -= 1; return true; }
+function flightSurge() {
+  if (!spendMom()) return;
+  cb.surgeT = state.surgeT; cb.brakeT = 0;
+  const v = BOOST * BODY.speed * state.surgeMul, h = sim.bodyH;
+  sim.vel.copy(h).multiplyScalar(Math.max(sim.vel.length(), v));
+  cb.throttleV = BOOST * BODY.speed;
+  const pc = to2(playerC()), hw = headingW();
+  spawnShock(new V3(pc.x - hw.x * 1.2, pc.y - hw.y * 1.2, 0), 0.9); puffRing(pc.x - hw.x * 1.5, pc.y - hw.y * 1.5, 10, 0.6, 6, 0.5);
+  for (let k = 0; k < 18; k++) swordSparks.emit(new V3(pc.x, pc.y, 0), 1, 9, hw.clone().negate(), 0.8);
+  sfx('dodge'); sfx('charge'); popup('爆冲', 'small'); emitCombat('surge');
+}
+function flightBrake() {
+  if (!spendMom()) return;
+  cb.brakeT = state.brakeT; cb.surgeT = 0;
+  sim.vel.multiplyScalar(state.brakeKeep);
+  cb.throttleV = CRUISE * SLOW_FLIGHT; cb.revArmed = true;
+  const pc = to2(playerC()), hw = headingW();
+  puffRing(pc.x + hw.x * 1.2, pc.y + hw.y * 1.2, 14, 0.9, 7, 0.6);
+  if (wy(sim.pos.y) < 8) waterSplash(pc.x, 0.9);
+  sfx('heavy'); popup('急刹', 'small'); emitCombat('brake');
+}
+// 尾流：玩家在敌人运动方向的后方锥形区里、并且朝着它飞
+function slipTarget(pc, h) {
+  for (const e of cb.enemies) {
+    if (e.boss || e.puppet || (e.cut && e.cut.dead) || e.entering) continue;
+    const rel = pc.clone().sub(e.pos), d = rel.length(); if (d < 2.5 || d > state.slipRange) continue;
+    const mv = e.vel.length() > 3 ? e.vel.clone().normalize() : new V2(Math.cos(e.face || 0), Math.sin(e.face || 0));
+    rel.divideScalar(d);
+    if (rel.dot(mv) < -0.8 && h.dot(rel) < -0.7) return e; // 在它身后约 ±37° 内，且剑尖对着它
+  }
+  return null;
+}
+// 每帧（飞行模拟里调用）：返回改写后的目标速度倍率
+function flightManeuverStep(dt, slowMul) {
+  const pc = to2(playerC()), h = headingW(), spd = sim.vel.length();
+  cb.surgeT = Math.max(0, (cb.surgeT || 0) - dt); cb.brakeT = Math.max(0, (cb.brakeT || 0) - dt); cb.slipT = Math.max(0, (cb.slipT || 0) - dt);
+  const tgt = slipTarget(pc, h);
+  if (tgt) { if (!(cb.slipT > 0)) popup('咬尾', 'small'); cb.slipT = 0.25; cb.slipE = tgt; }
+  // 剑势回格：高速飞行按速度比例回；咬尾额外回
+  let regen = spd > CRUISE * 1.1 ? state.momRegen * clamp(spd / BOOST, 0, 1.5) : 0;
+  if (cb.slipT > 0) regen += 0.6;
+  cb.mom = Math.min(state.momMax, (cb.mom || 0) + regen * dt);
+  cb.flightTurnMul = cb.brakeT > 0 ? state.brakeTurn : cb.surgeT > 0 ? 0.65 : 1;
+  if (cb.surgeT > 0) return BOOST * BODY.speed * state.surgeMul / CRUISE;
+  if (cb.brakeT > 0) return SLOW_FLIGHT;
+  if (cb.slipT > 0) return slowMul * state.slipBonus;
+  return slowMul;
+}
+for (const [t, fn] of [['risk', () => { cb.mom = Math.min(state.momMax, (cb.mom || 0) + 1); }], ['deflect', () => { cb.mom = Math.min(state.momMax, (cb.mom || 0) + 0.25); }]])
+  (combatListeners[t] = combatListeners[t] || []).push({ m: null, fn }); // 险回一格、斩弹回四分之一格（核心监听，换模块不卸）
+function drawFlightOverlay(toScreen, pc) {
+  if (!(cb.slipT > 0) && !(cb.surgeT > 0) || cb.dead > 0) return;
+  const c = toScreen(pc), h = headingW(), a = Math.atan2(-h.y, h.x), ctx = ovCtx;
+  ctx.globalAlpha = 0.75; ctx.lineWidth = 2; ctx.strokeStyle = cb.surgeT > 0 ? '#ffffff' : '#9fd3ff';
+  for (let k = -2; k <= 2; k++) {
+    const off = k * 7, len = 26 + (k % 2 ? 0 : 14) + Math.sin(cb.realT * 40 + k) * 6;
+    const sx = c.x - Math.cos(a) * 18 - Math.sin(a) * off, sy = c.y - Math.sin(a) * 18 + Math.cos(a) * off;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - Math.cos(a) * len, sy - Math.sin(a) * len); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------------------------------------------------------------------------
 // 修仙成长（docs/systems/XIUXIAN_PROGRESSION_SYSTEM_V1.md · A1 第一步）：只在“历劫”里生效，剧情 / 自由 / 试题保持全部能力。
 // 一局从筑基开始（小说设定：筑基才能踏剑飞行）：筑基 → 金丹（剑气离体：御剑、剑阵 6 把）→ 元婴（分神驭剑：剑阵 12 把）。
 // 境界给“能做什么”（质变），槽位模块给“怎么做”（形态）。敌人死后化作灵气飞入体内积累修为，修为满即突破
@@ -4835,6 +4929,7 @@ function drawOverlay(map) {
     if (pW > 0) { ovCtx.fillStyle = '#141416'; ovCtx.fillRect(x + hpW - pW, y, pW, 5); ovCtx.strokeStyle = '#d8321f'; ovCtx.lineWidth = 1; ovCtx.strokeRect(x + hpW - pW + 0.5, y + 0.5, pW - 1, 4); }
   }
   if (G.run) drawRunOverlay(toScreen, W, Hc); // 渡劫落雷、引劫提示、墨影剑客意图
+  drawFlightOverlay(toScreen, pc); // 进阶飞行：尾流咬尾的气流线
   if (cb.dead > 0) return;
   // 角色位置（屏幕坐标）与预警弧半径
   {
@@ -5304,6 +5399,7 @@ function simulate(dt) {
       else if (down && !up) cb.throttleV = Math.max(vMin, cb.throttleV - state.thrBrake * dt);
       else cb.throttleV += clamp(CRUISE * BODY.speed - cb.throttleV, -state.thrReturn * dt, state.thrReturn * dt);
       boost = false; slowMul = cb.throttleV / CRUISE;
+      slowMul = flightManeuverStep(dt, slowMul); // 进阶飞行：爆冲、急刹、尾流咬尾、剑势回格
     } else {
       // 八向键盘模式（旧方案，保留对比）：WASD 方向，按住空格加速
       axis.set((keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0),
@@ -5703,6 +5799,14 @@ function updateHud() {
     $('cb-xiu-n').textContent = G.run.trib ? '渡劫' : tribReady() ? 'F 引劫' : R.need ? G.run.xiu + '/' + R.need : '圆满';
     xr.classList.toggle('ready', tribReady() || !!G.run.trib);
   }
+  // 剑势格：每格一次爆冲 / 急刹；飞得快、咬尾、出险回格
+  {
+    const box = $('cb-mom'), n = state.momMax;
+    if (box.children.length !== n) { box.innerHTML = ''; for (let i = 0; i < n; i++) { const c = document.createElement('i'); c.appendChild(document.createElement('b')); box.appendChild(c); } }
+    for (let i = 0; i < n; i++) { const f = clamp((cb.mom || 0) - i, 0, 1); box.children[i].firstChild.style.width = f * 100 + '%'; box.children[i].classList.toggle('full', f >= 1); }
+    $('cb-mom-n').textContent = cb.surgeT > 0 ? '爆冲' : cb.brakeT > 0 ? '急刹' : cb.slipT > 0 ? '咬尾' : Math.floor(cb.mom || 0) + '/' + n;
+    $('cb-mom-row').classList.toggle('slip', cb.slipT > 0);
+  }
   const kEl = $('cb-kills');
   if (kEl.textContent !== String(cb.kills)) { kEl.textContent = cb.kills; kEl.classList.remove('bump'); void kEl.offsetWidth; kEl.classList.add('bump'); }
 }
@@ -5881,6 +5985,8 @@ window.addEventListener('keydown', e => {
     return;
   }
   if (state.mode === 'fly' && FLY_KEYS.has(k)) { e.preventDefault(); keys.add(k); }
+  if (!e.repeat && (k === 'w' || k === 'arrowup')) flightTap('up'); // 双击 W：爆冲
+  if (!e.repeat && (k === 's' || k === 'arrowdown')) flightTap('down'); // 双击 S：急刹
   // E：贯穿阵。按住模式 = 按住放阵；切换模式 = 按一下开、再按一下关（冲锋时左手不用一直按着）
   if (k === 'e' && !e.repeat && state.mode === 'fly') castArray(); // E：发动剑阵（仅手动模式）
   if (k === ' ' && !e.repeat && state.mode === 'fly' && state.steer === 'mouse') doDodge(); // 空格：破空闪（按住 A / D 横闪）
@@ -5940,6 +6046,9 @@ $('cut-preview').addEventListener('click', () => {
 });
 bindRange('music-vol', 'musicVol', v => v.toFixed(2), () => applyVolumes()); bindRange('sfx-vol', 'sfxVol', v => v.toFixed(2), () => applyVolumes());
 state.mute = false; $('mute').addEventListener('change', e => { state.mute = e.target.checked; applyVolumes(); });
+bindRange('fl-dt', 'dtWin', v => v.toFixed(2)); bindRange('fl-mom', 'momMax'); bindRange('fl-regen', 'momRegen', v => v.toFixed(2));
+bindRange('fl-surge', 'surgeMul', v => v.toFixed(2)); bindRange('fl-surge-t', 'surgeT', v => v.toFixed(2)); bindRange('fl-brake-keep', 'brakeKeep', v => v.toFixed(2));
+bindRange('fl-brake-t', 'brakeT', v => v.toFixed(2)); bindRange('fl-brake-turn', 'brakeTurn', v => v.toFixed(1)); bindRange('fl-slip', 'slipBonus', v => v.toFixed(2)); bindRange('fl-slip-r', 'slipRange');
 bindRange('thr-acc', 'thrAcc'); bindRange('thr-brake', 'thrBrake'); bindRange('thr-return', 'thrReturn', v => v.toFixed(1));
 $('threat-on').addEventListener('change', e => { state.threatOn = e.target.checked; });
 $('arr-mode').addEventListener('change', e => { state.arrMode = e.target.value; cb.arrayActive = 0; cb.arrayCd = 0; cb.arrayQueue = 0; canvas.focus(); });
