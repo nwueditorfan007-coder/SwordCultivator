@@ -1668,11 +1668,11 @@ function ensureRT(w, h) {
 const post = new THREE.ShaderMaterial({
   uniforms: { tColor: { value: null }, tDepth: { value: null }, tNormal: { value: null }, tMask: { value: null }, res: { value: new V2(1, 1) }, outline: { value: 1 }, near: { value: 1 }, far: { value: 220 }, maxD: { value: 83 }, thick: { value: 1 }, ink: { value: 0 },
     uWash: { value: 0 }, uCenter: { value: new V2(0.5, 0.5) }, uRad: { value: 0 }, uSurge: { value: 0 }, uT: { value: 0 },
-    tGlow: { value: null }, tBg: { value: null }, uBloom: { value: 0 }, uWashBias: { value: 0 }, uLift: { value: new V3() }, uGain: { value: new V3(1, 1, 1) }, uSat: { value: 1 }, uVig: { value: 0 }, uPaper: { value: 0 } },
+    tGlow: { value: null }, tBg: { value: null }, uBloom: { value: 0 }, uHero: { value: 0 }, uWashBias: { value: 0 }, uLift: { value: new V3() }, uGain: { value: new V3(1, 1, 1) }, uSat: { value: 1 }, uVig: { value: 0 }, uPaper: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
   fragmentShader: `uniform sampler2D tColor; uniform sampler2D tDepth; uniform sampler2D tNormal; uniform sampler2D tMask; uniform vec2 res; uniform float outline; uniform float near; uniform float far; uniform float maxD; uniform float thick; uniform float ink;
   uniform float uWash; uniform vec2 uCenter; uniform float uRad; uniform float uSurge; uniform float uT;
-  uniform sampler2D tGlow; uniform sampler2D tBg; uniform float uBloom; uniform float uWashBias; uniform vec3 uLift; uniform vec3 uGain; uniform float uSat; uniform float uVig; uniform float uPaper;
+  uniform sampler2D tGlow; uniform sampler2D tBg; uniform float uBloom; uniform float uHero; uniform float uWashBias; uniform vec3 uLift; uniform vec3 uGain; uniform float uSat; uniform float uVig; uniform float uPaper;
   varying vec2 vUv;
   float D(vec2 uv){ return near + texture2D(tDepth, uv).x * (far - near); }
   vec3 N(vec2 uv){ return texture2D(tNormal, uv).xyz * 2.0 - 1.0; }
@@ -1691,6 +1691,14 @@ const post = new THREE.ShaderMaterial({
                      step(0.45, 1.0 - dot(n, N(uv + vec2(0.0,px.y)))) * step(-0.03, du - d));
       if (edge > 0.5) col = col * 0.28 + vec3(0.01,0.03,0.05);
       else if (ne > 0.5) col = ink > 0.5 ? col * 0.45 : min(col * 1.2 + 0.035, vec3(1.0));
+    }
+    // 人物描边发光（巨物 Boss 取景拉远时）：角色遮罩外一像素亮玉色、两像素淡一些——贴着人物轮廓，不是圆环
+    if (uHero > 0.0 && texture2D(tMask, uv).r < 0.5) {
+      vec2 p1 = 1.0 / res;
+      float n1 = max(max(texture2D(tMask, uv + vec2(p1.x, 0.0)).r, texture2D(tMask, uv - vec2(p1.x, 0.0)).r), max(texture2D(tMask, uv + vec2(0.0, p1.y)).r, texture2D(tMask, uv - vec2(0.0, p1.y)).r));
+      float n2 = max(max(texture2D(tMask, uv + vec2(2.0 * p1.x, 0.0)).r, texture2D(tMask, uv - vec2(2.0 * p1.x, 0.0)).r), max(texture2D(tMask, uv + vec2(0.0, 2.0 * p1.y)).r, texture2D(tMask, uv - vec2(0.0, 2.0 * p1.y)).r));
+      if (n1 > 0.5) col = mix(col, vec3(0.86, 1.0, 0.95), 0.92 * uHero);
+      else if (n2 > 0.5) col = mix(col, vec3(0.45, 0.95, 0.82), 0.5 * uHero);
     }
     if (uWash > 0.5 && uRad > 0.0) {
       vec2 asp = vec2(res.x / res.y, 1.0);
@@ -1999,8 +2007,8 @@ function spawnSlashFx(big, ang, scale) {
     const border = new THREE.Mesh(big ? CARVE_GEO_B : SLASH_GEO_B, new THREE.ShaderMaterial({ vertexShader: BRUSH_VS, fragmentShader: BRUSH_FS, side: THREE.DoubleSide, depthWrite: false, uniforms: bu }));
     border.renderOrder = 1; border.frustumCulled = false; m.add(border);
   }
-  m.frustumCulled = false; m.rotation.z = ang; m.scale.set(k, cb.slashSide * k, 1); cb.slashSide *= -1;
-  scene.add(m); fx.push(m); cb.slashes.push({ m, t: 0, big });
+  m.frustumCulled = false; m.rotation.z = ang; m.scale.set(k, cb.slashSide * k, 1);
+  scene.add(m); fx.push(m); cb.slashes.push({ m, t: 0, big, k, sd: cb.slashSide }); cb.slashSide *= -1;
 }
 function stepSlashFx(dt, pc) {
   for (let i = cb.slashes.length - 1; i >= 0; i--) {
@@ -2009,6 +2017,7 @@ function stepSlashFx(dt, pc) {
     U.uReveal.value = clamp(s.t / sweep, 0.05, 1) * 1.001;
     U.uAge.value = smooth(sweep, life, s.t);
     s.m.position.set(pc.x, pc.y, 1.1); s.m.visible = state.fx;
+    if (s.k) { const z = bossCamTarget() ? Math.max(1, state.camZoom || 1) : 1; s.m.scale.set(s.k * z, s.sd * s.k * z, 1); } // 巨物 Boss 取景拉远：剑光保持屏幕上的原大小
     if (s.t > life) { scene.remove(s.m); s.m.material.dispose(); s.m.children.forEach(c => c.material.dispose()); fx.splice(fx.indexOf(s.m), 1); cb.slashes.splice(i, 1); }
   }
 }
@@ -4434,6 +4443,20 @@ function drawLevelOverlay(toScreen, W, Hc) {
 // 两关都关掉云海与前景云，换成自己的天幕；操作完全不变，变的是物理规则
 // ===========================================================================
 const lvSpace = () => !!(LV.id && LEVELS[LV.id].space);
+// 巨物 Boss 的取景目标（null = 不是巨物 Boss 战，用默认取景）：当前张开的弱点；潜渊时看海面破海点；化鹏后看鹏心
+function bossCamTarget() {
+  if (!LV.id || LV.done || state.mode !== 'fly') return null;
+  const D = LV.d; if (!D) return null;
+  const alive = e => e && cb.enemies.includes(e);
+  if (LV.id === 'kun' && D.K) return alive(D.open) ? D.open.pos : new V2(D.K.parts[2].x, D.K.parts[2].y);
+  if (LV.id === 'beiming' && D.stage === 'boss' && D.K) {
+    const K = D.K;
+    if (K.mode === 'dive' || K.mode === 'under') return new V2(K.bx !== undefined ? K.bx : sim.pos.x, 4);
+    if (alive(D.heart)) return D.heart.pos;
+    return alive(D.open) ? D.open.pos : new V2(K.parts[2].x, K.parts[2].y);
+  }
+  return null;
+}
 // 天幕：一块始终挡在背景前、跟着镜头走的大平面（渐变 + 星点画在贴图里）
 function lvSkyTex(top, bottom, stars) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d');
@@ -6425,7 +6448,15 @@ function layoutAndRender() {
   const nowZ = performance.now() / 1000, zDt = state.paused ? 0 : clamp(nowZ - (state.zoomT || nowZ), 0, 0.05); state.zoomT = nowZ;
   if (state.camZoom === undefined) state.camZoom = 1;
   if (state.mode === 'fly' && !(cb.dodgeT > 0) && !yjLock()) {
-    const zT = (1 + (state.camZoomMax - 1) * smooth(CRUISE * 1.05, BOOST, sim.vel.length())); // 关卡一律用默认取景（2026-10-09 用户：人物不能比默认更小）
+    const zSpeed = 1 + (state.camZoomMax - 1) * smooth(CRUISE * 1.05, BOOST, sim.vel.length()); // 平时：默认取景 + 速度视野
+    // 巨物 Boss 战（2026-10-09 用户定）：双目标取景——同时框住“你”和“Boss 当前的弱点”，离得越远拉得越远，最多 1.7 倍
+    let zBoss = 1; const bt = bossCamTarget();
+    if (bt) {
+      const baseH = Math.floor(dh / pixScale) * 1.45 / state.riderPx, baseW = baseH * lowW / lowH;
+      const dx = Math.abs(bt.x - sim.pos.x), dy = Math.abs(bt.y - wy(sim.pos.y));
+      zBoss = clamp(Math.max((dx * 0.6 + 8) / (baseW / 2), (dy * 0.6 + 6.5) / (baseH / 2)), 1, 1.7);
+    }
+    const zT = Math.min(1.7, Math.max(zSpeed, zBoss));
     const rate = zT > state.camZoom ? state.camZoomOut : state.camZoomIn;
     state.camZoom += (zT - state.camZoom) * (1 - Math.exp(-zDt * rate));
   } else if (state.mode !== 'fly') state.camZoom = 1;
@@ -6443,6 +6474,11 @@ function layoutAndRender() {
   const camHold = state.mode === 'fly' && yjLock(); // 御剑期间镜头不回中、不前瞻，只保留死区兜底，目标稳稳留在画面里
   if (!camHold) state.camLook.lerp(lookT, 1 - Math.exp(-camDt * 1.4));
   const track = new V3(sim.pos.x, wy(sim.pos.y) + 0.7, 0).add(state.camLook);
+  { // 巨物 Boss：镜头中心往 Boss 弱点那一侧偏，你靠画面一边，Boss 那一侧留出空间（平滑过渡，免得镜头跳）
+    const bt = bossCamTarget(), want = bt ? new V3((bt.x - sim.pos.x) * 0.3, (bt.y - wy(sim.pos.y)) * 0.3, 0) : new V3();
+    want.x = clamp(want.x, -viewW * 0.25, viewW * 0.25); want.y = clamp(want.y, -viewH * 0.24, viewH * 0.24); // 人物始终留在画面中部，不会被挤到边上（下沿还有 HUD）
+    state.bossAim = state.bossAim || new V3(); state.bossAim.lerp(want, 1 - Math.exp(-camDt * 1.5)); track.add(state.bossAim);
+  }
   if (!state.camFocus || state.camFocus.distanceTo(track) > viewW) state.camFocus = track.clone();
   const F = state.camFocus;
   if (!camHold) F.lerp(track, 1 - Math.exp(-camDt * state.camRecenter));
@@ -6519,7 +6555,8 @@ function layoutAndRender() {
   scene.overrideMaterial = null; fx.forEach((o, i) => { o.visible = vis[i]; });
   // 水墨遮罩：只画图层 1（角色、主剑、主剑剑光）成白色，水墨化时这些像素保留原色
   const washing = state.mode === 'fly' && cb.ink > 0.001;
-  if (washing) {
+  state.heroK = state.mode === 'fly' && bossCamTarget() ? clamp((state.camZoom - 1.04) / 0.3, 0, 1) : 0; // 巨物 Boss 取景拉远时人物描边
+  if (washing || state.heroK > 0) {
     riderRoot.traverse(o => o.layers.enable(1)); mainSword.traverse(o => o.layers.enable(1)); swordTrail.mesh.layers.enable(1);
     swordCore.mesh.layers.enable(1); tipStar.traverse(o => o.layers.enable(1)); swordSparks.pts.layers.enable(1);
     dashTrail.mesh.layers.enable(1); dashCore.mesh.layers.enable(1); dashStar.traverse(o => o.layers.enable(1));
@@ -6540,7 +6577,7 @@ function layoutAndRender() {
   post.uniforms.uWash.value = washing ? 1 : 0;
   renderer.setClearColor(0x061014, 1);
   renderer.setRenderTarget(null);
-  post.uniforms.outline.value = state.outline ? 1 : 0;
+  post.uniforms.outline.value = state.outline ? 1 : 0; post.uniforms.uHero.value = state.heroK || 0;
   post.uniforms.thick.value = cel ? Math.max(2, Math.round(2 * dpr)) : 1;
   post.uniforms.ink.value = cel ? 1 : 0;
   renderer.setScissorTest(true);
