@@ -4383,12 +4383,12 @@ function showLevelSelect() {
 function showLevelIntro(id) {
   const I = LV_INFO[id];
   const opts = LEVELS[id].rotOption
-    ? [{ kind: 'up', name: '开始 · 镜头随地表旋转', tag: '回车', desc: '“局部的上”永远在画面上方，像在星球上空飞', fn: () => { LV.rotCamPref = true; startLevel(id); } },
-       { kind: 'learn', name: '开始 · 镜头固定', tag: '对照', desc: '镜头不转，星球就是画面里的一个圆，飞到下半边时人是倒着的', fn: () => { LV.rotCamPref = false; startLevel(id); } }]
+    ? [{ kind: 'up', name: '开始 · 镜头固定', tag: '回车', desc: '镜头不转，星球就是画面里的一个圆（2026-10-09 用户试玩：旋转太晕，固定更好）', fn: () => { LV.rotCamPref = false; startLevel(id); } },
+       { kind: 'learn', name: '开始 · 镜头随地表旋转', tag: '对照', desc: '“局部的上”永远在画面上方（会晕，仅作对照）', fn: () => { LV.rotCamPref = true; startLevel(id); } }]
     : [{ kind: 'up', name: '开始', tag: '回车', desc: '验证：' + I.test, fn: () => startLevel(id) }];
   showChoice({ title: I.name, tag: I.tag, sub: I.goal + '<br><br><small>验证：' + I.test + '<br>飞行：双击 W 爆冲 · 双击 S 急刹 · 尾流咬尾 · 空格破空闪 · 右键御剑</small>',
     opts, leave: { name: '返回选关', fn: showLevelSelect } });
-  G.onConfirm = () => startLevel(id);
+  G.onConfirm = () => { if (LEVELS[id].rotOption) LV.rotCamPref = false; startLevel(id); };
 }
 function startLevel(id) {
   hideOverlays(); setModal(false); resetCombat(); for (const s in SLOTS) equip(s, 'basic'); applyCultivator('free');
@@ -4484,7 +4484,7 @@ LEVELS.planet = {
     LV.d.nodes = [0.35, 1.5, 2.6, 3.7, 4.9].map((a, i) => { const h = i % 2 ? 9 : 22, p = new V2(C.x + Math.cos(a) * (R + h), C.y + Math.sin(a) * (R + h)); const e = lvSpawn('zhenyan', p.x, p.y, true); e.ang = a; return e; });
     LV.d.guards = LV.d.nodes.map(() => false);
     lvPlace(C.x, C.y + R + 12, 1, 0); // 从星球顶上出发，沿地表切线飞
-    LV.d.rotCam = LV.rotCamPref !== false;
+    LV.d.rotCam = LV.rotCamPref === true; // 默认固定镜头
   },
   camUp() { const P = new V2(sim.pos.x, wy(sim.pos.y)); return P.sub(LV.d.C).normalize(); },
   speedMod(m) { // 朝球心飞（俯冲）快 35%，背离球心（爬升）慢 35%
