@@ -269,6 +269,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
           </div>
           <div class="skills">
             <div class="sk" id="cb-dash-row"><div class="ico" id="cb-dash"><span>闪</span></div><kbd>空格</kbd></div>
+            <div class="sk" id="cb-jz-row" hidden><div class="ico" id="cb-jz" style="--c:#ffd27a"><span>招</span></div><kbd>E</kbd></div>
             <div class="sk" id="cb-kun-row" hidden><div class="ico" id="cb-kun" style="--c:#7fe3ff"><span>鲲</span></div><kbd>Q</kbd></div>
             <div class="sk" id="cb-arr-row"><div class="ico" id="cb-arr" style="--c:#94bdd3"><span>阵</span><small id="cb-arr-n"></small></div><kbd id="cb-arr-key">随招</kbd></div>
           </div>
@@ -1853,6 +1854,7 @@ const ENEMY_TYPES = {
   needle: { name: '蓄势针', hp: 2, r: 0.9, weight: 0, color: '#ff5fa2', spd: 16 },             // 剑阵射程外蓄力狙击，重针剑阵打不碎
   zhenyan: { name: '阵眼', hp: 6, r: 1.8, weight: 0, color: '#c79bff', elite: true, spd: 0 },   // 关卡原型·丝网开路：不动，定时放一圈子弹
   kuneye: { name: '鲲之鳞眼', hp: 8, r: 2.0, weight: 0, color: '#ffd75a', elite: true, spd: 0 }, // 关卡原型·鲲：长在鲲身上的弱点
+  jianling: { name: '剑冢守灵 · 孤鸿', hp: 45, r: 1.3, weight: 0, color: '#ffd27a', elite: true, spd: 24 }, // 第二关 Boss：人形剑修，三阶段
   duelist: { name: '墨影剑客', hp: 12, r: 1.0, weight: 0, color: '#ff8c5a', elite: true, spd: 24 }, // 斗法型精英：正面格挡、冲斩；破空穿过它的冲斩 = 破绽（伤害 ×2）
 };
 Object.assign(CB, {
@@ -1865,7 +1867,8 @@ Object.assign(CB, {
 // 墨甲：攻击的行进方向 dir（从攻击者指向敌人）迎着墨甲卫正面时被弹开
 function armorBlocks(e, dir) {
   if (e.invuln) return true;
-  if (e.type === 'duelist') return duelistParry(e, dir);
+  if (e.type === 'jianling' && e.shield > 0) return true; // 孤鸿的剑罡：普通攻击打不动
+  if (isDuel(e)) return duelistParry(e, dir);
   if (e.type !== 'guard' || dir.lengthSq() < 1e-8) return false;
   return new V2(Math.cos(e.face), Math.sin(e.face)).dot(dir.clone().normalize()) < -Math.cos(CB.GUARD_FRONT);
 }
@@ -1874,8 +1877,8 @@ function blockFx(e, dir) {
   goldBurst.emit(p, 10, 14, dir.clone().negate(), 1.4); sfx('clang', 0.08);
   spawnImpact(p, dir, false, 0xf2c75c); // 格挡：金色十字闪
   e.shakeT0 = cb.realT; e.shakePerp = new V2(-dir.y, dir.x).normalize(); e.shakeAmp = 0.08;
-  if (cb.realT - (cb.blockPopT || -9) > 0.35) { popup(e.type === 'duelist' ? '格' : '铛', 'small gold'); cb.blockPopT = cb.realT; }
-  if (e.type === 'duelist' && e.mode !== 'wind' && e.mode !== 'dash') { e.mode = 'wind'; e.t = 0.42; e.riposte = true; } // 格挡后立刻反击
+  if (cb.realT - (cb.blockPopT || -9) > 0.35) { popup(isDuel(e) ? (e.shield > 0 ? '罡' : '格') : '铛', 'small gold'); cb.blockPopT = cb.realT; }
+  if (isDuel(e) && !(e.shield > 0) && e.mode !== 'wind' && e.mode !== 'dash') { e.mode = 'wind'; e.t = 0.42; e.riposte = true; } // 格挡后立刻反击
 }
 const cbInk = toon('#07080a', '#16181d', '#2b2f37', THREE.FrontSide, '#6a717a');
 const cbRed = new THREE.MeshBasicMaterial({ color: 0xe0584a });
@@ -2067,7 +2070,7 @@ function buildEnemy(type) {
     const body = new THREE.Mesh(new THREE.OctahedronGeometry(kun ? 1.6 : 1.5, 0), kun ? toon('#2a1e05', '#7a5a12', '#e8c46a') : cbInk); g.add(body);
     if (!kun) for (let k = 0; k < 4; k++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.4, 4), cbInk); const a = k / 4 * Math.PI * 2; sp.position.set(Math.cos(a) * 1.8, Math.sin(a) * 1.8, 0); sp.rotation.z = a - Math.PI / 2; g.add(sp); }
     eye = new THREE.Mesh(new THREE.SphereGeometry(kun ? 0.7 : 0.55, 10, 8), new THREE.MeshBasicMaterial({ color: kun ? 0xfff0a0 : 0xc9a0ff })); eye.position.z = 0.6; g.add(eye);
-  } else if (type === 'duelist') {
+  } else if (type === 'duelist' || type === 'jianling') {
     // 墨影剑客：墨色人形（长袍 + 斗笠）+ 一柄横持的长剑（剑身白，剑尖 +X）；冲斩前亮出一道红色预警线
     const robe = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.6, 6), cbInk); robe.position.y = -0.25; g.add(robe);
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), cbInk); head.position.y = 0.75; g.add(head);
@@ -2076,6 +2079,7 @@ function buildEnemy(type) {
     eye = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), cbRed); eye.position.set(0.16, 0.78, 0.3); g.add(eye);
     const tele = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.16).translate(0.5, 0, 0), new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, depthWrite: false }));
     tele.visible = false; tele.frustumCulled = false; scene.add(tele); fx.push(tele); g.userData.tele = tele;
+    if (type === 'jianling') { g.scale.set(1.4, 1.4, 1.4); const sh = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.12, 6, 28), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.5, depthWrite: false })); sh.position.z = 0.4; sh.visible = false; sh.layers.enable(2); g.add(sh); g.userData.shield = sh; }
   } else if (type === 'puppet') {
     // 傀儡：纸人，紫色灵眼
     box(0.7, 1.1, 0.4, cbInk, g, 0, -0.1, 0);
@@ -2400,7 +2404,7 @@ function stepImpacts(dt) { // 真实时间：慢放 / 时停中闪光照常收�
 function damageEnemy(e, dmg, dir, src, quiet, noFx) {
   const close = src === 'slash' || src === 'reflect' || src === 'dash', yj = src === 'yj';
   const d = dir.clone().normalize(), ang = Math.atan2(d.y, d.x);
-  if (e.type === 'duelist' && e.mode === 'stagger') dmg *= 2; // 墨影剑客露出破绽：伤害加倍
+  if (isDuel(e) && e.mode === 'stagger') dmg *= 2; // 墨影剑客露出破绽：伤害加倍
   e.hp -= dmg; e.flashT = 0; if (close) emitCombat('close_hit', { e, src });
   if (close && !quiet) sfx('hit', 0.03);
   // 受击：击退（定格结束后才生效）、震动、胀大回弹
@@ -2436,13 +2440,13 @@ Object.assign(CB, {
   SLASH_SIDE_PUSH: 12,  // 顺锋斩砍中但没死：被甩出航线的速度
 });
 // 近身攻击判定：只在出招的帧里伤人。以后给墨甲卫加盾推等近身招式也挂在这里
-function meleeActive(e) { return (e.type === 'diver' || e.type === 'guard' || e.type === 'duelist') && (e.mode === 'dash' || e.mode === 'bash'); }
-const meleeDmg = e => e.type === 'guard' ? CB.BASH_DMG : e.type === 'duelist' ? 20 : CB.DIVER_DASH_DMG;
+function meleeActive(e) { return (e.type === 'diver' || e.type === 'guard' || isDuel(e)) && (e.mode === 'dash' || e.mode === 'bash'); }
+const meleeDmg = e => e.type === 'guard' ? CB.BASH_DMG : e.type === 'jianling' ? 22 : e.type === 'duelist' ? 20 : CB.DIVER_DASH_DMG;
 // 敌人此刻允许的最高速度：平时 = 固有移动速度；出招突进 = 攻击速度；被击退/挤开的短时间内 = 外力，放宽到玩家最大速度。
 // 无论哪种都不超过玩家最大速度
 function enemySpeedCap(e) {
   const T = ENEMY_TYPES[e.type];
-  let cap = e.mode === 'dash' ? (e.type === 'duelist' ? BOOST : CB.DIVER_DASH_SPEED) : e.mode === 'bash' ? CB.BASH_SPEED : T.spd;
+  let cap = e.mode === 'dash' ? (isDuel(e) ? BOOST : CB.DIVER_DASH_SPEED) : e.mode === 'bash' ? CB.BASH_SPEED : T.spd;
   if (e.knockUntil > cb.realT) cap = BOOST;
   return Math.min(cap, BOOST);
 }
@@ -3143,6 +3147,8 @@ function combatStep(dt) {
       e.g.rotation.z = Math.atan2(e.aim.y, e.aim.x);
     } else if (e.type === 'zhenyan' || e.type === 'kuneye') {
       stepLevelEnemy(e, dt, pc, dirP, canFire);
+    } else if (e.type === 'jianling') {
+      stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer);
     } else if (e.type === 'duelist') {
       stepDuelist(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer);
     } else if (e.boss || e.puppet) {
@@ -3191,7 +3197,7 @@ function combatStep(dt) {
     // 只有“正在出招”的近身攻击才伤人（目前只有穿云锥的冲刺）；其余敌人碰到只是被挤开，玩家可以在怪群里穿梭
     if (dist < e.r + CB.PLAYER_R + (cb.iframe > 0 ? CB.RISK_PAD : 0)) {
       if (cb.iframe > 0) { riskDodge(); if (!cb.dashHits.has(e)) { cb.dashHits.add(e); const d = dirP.clone().negate(); if (armorBlocks(e, d)) blockFx(e, d); else { damageEnemy(e, 1, d, 'dash'); popup('穿身', 'small'); emitCombat('dash_through', { e }); } } }
-      else if (meleeActive(e)) { if (e.hitCd <= 0 && hurtPlayer(meleeDmg(e), ENEMY_TYPES[e.type].name + '的突袭')) { e.hitCd = 0.8; e.vel.addScaledVector(dirP, -10); } }
+      else if (meleeActive(e)) { if (e.hitCd <= 0 && jzTryMelee(e)) { /* 见招：拆掉近身攻击 */ } else if (e.hitCd <= 0 && hurtPlayer(meleeDmg(e), ENEMY_TYPES[e.type].name + '的突袭')) { e.hitCd = 0.8; e.vel.addScaledVector(dirP, -10); } }
       else if (!e.boss && !e.puppet && e.hitCd <= 0) { sideStep(e, pc, pv, CB.BRUSH_PUSH); e.hitCd = 0.25; }
     }
   }
@@ -3202,11 +3208,12 @@ function combatStep(dt) {
     b.pos.addScaledVector(b.vel, dt); b.life -= dt;
     let dead = b.life <= 0 || b.pos.distanceTo(pc) > 90;
     if (!dead && b.friendly) {
-      for (const e of cb.enemies) if (!(e.cut && e.cut.dead) && b.pos.distanceTo(e.pos) < e.r + CB.BULLET_R) { if (!b.breakArmor && armorBlocks(e, b.vel)) blockFx(e, b.vel); else damageEnemy(e, b.heavy ? 4 : 2, b.vel, 'reflect'); dead = true; break; } // breakArmor：吞海水弹破甲
+      for (const e of cb.enemies) if (!(e.cut && e.cut.dead) && b.pos.distanceTo(e.pos) < e.r + CB.BULLET_R) { if (e.shield > 0 && b.heavy) { shieldHit(e); dead = true; break; } if (!b.breakArmor && armorBlocks(e, b.vel)) blockFx(e, b.vel); else damageEnemy(e, b.heavy ? 4 : 2, b.vel, 'reflect'); dead = true; break; } // breakArmor：吞海水弹破甲
     } else if (!dead) {
       const d = b.pos.distanceTo(pc);
       // 无敌帧内子弹擦身（本来会打中）：划开这颗子弹，并触发极限闪避“险”
       if (cb.iframe > 0 && d < CB.PLAYER_R + CB.BULLET_R * (b.heavy ? 1.6 : 1) + CB.RISK_PAD) { sparkBurst.emit(new V3(b.pos.x, b.pos.y, 0), 6, 10); riskDodge(); dead = true; }
+      else if (d < CB.PLAYER_R + CB.BULLET_R * (b.heavy ? 1.6 : 1) + (jzActive() ? 0.6 : 0) && jzTryBullet(b)) { /* 见招：弹回去 */ }
       else if (d < CB.PLAYER_R + CB.BULLET_R * (b.heavy ? 1.6 : 1) && hurtPlayer(b.heavy ? CB.NEEDLE_DMG : 10, b.heavy ? '蓄势针的重针' : (b.by || '敌弹'))) dead = true;
     }
     if (!dead && b.pos.y < 0.1) { waterSplash(b.pos.x, b.heavy ? 0.7 : 0.45); dead = true; } // 子弹落海：砸出一个小水花
@@ -4383,8 +4390,8 @@ function stepLevelEnemy(e, dt, pc, dirP, canFire) {
 function showLevelSelect() {
   resetCombat(); G.flow = 'lvsel'; G.run = null;
   let best = {}; try { best = JSON.parse(localStorage.getItem('yujian_lv_best') || '{}'); } catch (e) {}
-  showChoice({ title: '关卡原型', tag: '灰盒 · 六种方向', sub: '第一关「北冥」是完整的垂直切片（追鲲 → 鲲鹏 Boss → 夺能 → 试招）；后面六关是“飞行关卡怎么做出新鲜感”的灰盒方向。数字键选择。',
-    opts: ['beiming', ...Object.keys(LV_INFO).filter(k => k !== 'beiming')].map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
+  showChoice({ title: '关卡原型', tag: '灰盒 · 六种方向', sub: '「北冥」「剑冢」是两关完整的垂直切片（关卡 → Boss → 夺能 → 试招），按顺序打能体验能力链；后面六关是“飞行关卡怎么做出新鲜感”的灰盒方向。数字键选择。',
+    opts: ['beiming', 'jianzhong', ...Object.keys(LV_INFO).filter(k => k !== 'beiming' && k !== 'jianzhong')].map(id => { const I = LV_INFO[id]; return { kind: 'learn', slot: I.tag, name: I.name, tag: best[id] ? '最佳 ' + best[id].grade : '未通过', desc: '验证：' + I.test, cost: best[id] ? '最佳折算 ' + best[id].score.toFixed(1) + ' 秒' : '', fn: () => showLevelIntro(id) }; }),
     leave: { name: '回到标题', fn: () => showTitle() } });
 }
 function showLevelIntro(id) {
@@ -4870,6 +4877,208 @@ LEVELS.beiming = {
 };
 LV_INFO.beiming = { name: '北冥（垂直切片）', tag: '追鲲 → 鲲鹏 Boss → 夺能 → 试招', test: '“关卡 → Boss → 夺能 → 用新能力”这个循环成不成立？',
   goal: '一、追鲲：鲲在前方贴海而游，追上它。小心礁石、海面翻白沫后冲起的浪柱、头顶雷云。<br>二、鲲：打发光的鳞眼；吞海时爆冲挣脱；剩两只鳞眼后它会潜入海底，从你脚下破海而出（看海面红白预警）；最后化而为鹏，振翅狂风 + 羽刃，打它背上的鹏心。<br>三、夺能「鲲鹏之力 · 吞海」，然后用它试招。' };
+
+// ===========================================================================
+// 第二关 · 剑冢（2026-10-09，用户选“第二个 Boss：剑修型”）：验证能力链（上一关的吞海在这关很好用）与 Boss 两类交替
+//   一、剑林峡谷：残剑定时射出剑气；中段一道“剑幕”封住通道——擦弹穿过出险 / 吞海吸掉再反喷 / 等空隙
+//   二、剑冢守灵「孤鸿」（人形剑修，默认镜头）：①斗剑：正面格挡反击、冲斩、剑气三连  ②万剑归冢：罩起剑罡（普通攻击无效），召重剑雨——
+//       破剑罡：吞海吞剑雨后喷破甲重弹 / 把重剑斩回去 / 御剑（御剑无视甲）  ③人剑合一：三段连冲，最后一段后破绽更长
+//   三、夺能「见招」（E）：0.2 秒拆招窗口——子弹弹回（重弹照样破甲）、近身攻击者露出破绽；按空有 0.55 秒硬直
+//   四、试招：两名墨影剑客 + 射重针的蓄势针
+// ===========================================================================
+const isDuel = e => e.type === 'duelist' || e.type === 'jianling';
+// ---------- 见招 ----------
+ABIL.jianzhao = false;
+try { ABIL.jianzhao = localStorage.getItem('yujian_ab_jianzhao') === '1'; } catch (e) {}
+const JZ = { t: -9, lockUntil: -9, WIN: 0.2, REC: 0.55, parries: 0 };
+function jzPress() {
+  if (!ABIL.jianzhao || state.mode !== 'fly' || cb.dead > 0 || G.modal) return false;
+  if (cb.realT < JZ.lockUntil) { fail('招式未收'); return true; }
+  JZ.t = cb.realT; JZ.hit = false; JZ.lockUntil = cb.realT + JZ.WIN + JZ.REC;
+  anim.play('charge', { side: cb.slashSide }); sfx('draw');
+  const p = playerC(); sparkBurst.emit(new V3(p.x, p.y, 0), 8, 6);
+  return true;
+}
+const jzActive = () => ABIL.jianzhao && cb.realT - JZ.t < JZ.WIN;
+function jzSuccess(p) {
+  if (!JZ.hit) { JZ.hit = true; JZ.lockUntil = cb.realT + 0.15; } // 拆中：几乎不留硬直，可以接着出招
+  JZ.parries++; hitStop(0.08); cb.riskSlowT = Math.max(cb.riskSlowT, 0.35);
+  cb.mom = Math.min(state.momMax, (cb.mom || 0) + 1); gain(15);
+  goldBurst.emit(new V3(p.x, p.y, 0), 16, 14); spawnImpact(new V3(p.x, p.y, 0), new V2(1, 0), true, 0xf2c75c);
+  sfx('clang'); sfx('risk'); popup('拆招', 'sig gold');
+}
+function jzTryBullet(b) {
+  if (!jzActive() || b.friendly) return false;
+  const pc = to2(playerC()); let best = null, bd = 40;
+  for (const e of cb.enemies) { const d = e.pos.distanceTo(pc); if (d < bd && !e.invuln) { bd = d; best = e; } }
+  b.friendly = true; b.m.material = bulletMat.friendly; b.life = 1.6; b.breakArmor = !!b.heavy;
+  b.vel.copy(best ? best.pos.clone().sub(b.pos) : b.vel.clone().negate()).normalize().multiplyScalar(CB.REFLECT_SPEED);
+  jzSuccess(b.pos); return true;
+}
+function jzTryMelee(e) {
+  if (!jzActive()) return false;
+  if (isDuel(e)) { e.mode = 'stagger'; e.t = 2.0; e.vel.multiplyScalar(0.2); } else { e.stunUntil = cb.realT + 1.5; e.mode = 'drift'; e.t = 1.5; }
+  e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 8); e.hitCd = 0.8;
+  jzSuccess(e.pos); popup('破绽', 'move gold'); return true;
+}
+
+// ---------- 剑冢守灵「孤鸿」 ----------
+function jlPhase(e) { const f = e.hp / ENEMY_TYPES.jianling.hp; return f > 0.66 ? 1 : f > 0.33 ? 2 : 3; }
+function shieldHit(e) {
+  e.shield = Math.max(0, e.shield - 1); goldBurst.emit(new V3(e.pos.x, e.pos.y, 0), 10, 12); sfx('clang'); popup('剑罡 −1', 'small gold');
+  if (e.shield <= 0) { e.mode = 'stagger'; e.t = 3; e.shieldCd = 9; popup('剑罡破', 'sig gold'); sfx('burst'); spawnShock(new V3(e.pos.x, e.pos.y, 0), 1.4); }
+}
+function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
+  const ph = jlPhase(e), tele = e.g.userData.tele;
+  if (ph !== e.ph) { e.ph = ph; if (ph === 2) { e.shield = 6; e.mode = 'stalk'; e.t = 1; popup('万剑归冢', 'sig red'); } if (ph === 3) { e.shield = 0; popup('人剑合一', 'sig red'); e.mode = 'stalk'; e.t = 0.8; } }
+  e.shieldCd = Math.max(0, (e.shieldCd || 0) - dt);
+  if (ph === 2 && e.shield <= 0 && e.shieldCd <= 0 && e.mode !== 'stagger') { e.shield = 6; popup('剑罡复起', 'small'); }
+  if (e.mode === 'drift') { e.mode = 'stalk'; e.t = 1.2; e.strafe = 1; }
+  if (e.mode === 'stalk') {
+    const keep = ph === 2 ? 16 : 10, spd = ph === 3 ? 13 : 9;
+    const want = dirP.clone().multiplyScalar(clamp((dist - keep) / 3, -1, 1) * spd).addScaledVector(new V2(-dirP.y, dirP.x), (e.strafe || 1) * spd).add(chaseV);
+    moveToward(e.vel, want, steer(keep) * dt);
+    e.face += clamp(wrapA(Math.atan2(dirP.y, dirP.x) - e.face), -5 * dt, 5 * dt);
+    if (e.t <= 0 && canFire && dist < 26) {
+      e.cycle = (e.cycle || 0) + 1;
+      if (ph === 2) { // 万剑归冢：重剑雨，从两侧斜上方压过来（重弹：斩得回、吞得下、拆得了）
+        for (let k = 0; k < 5; k++) { const a = Math.atan2(dirP.y, dirP.x) + (k - 2) * 0.22, src = pc.clone().add(new V2(-Math.cos(a), -Math.sin(a)).multiplyScalar(18)).add(new V2(0, 6 + k)); const b = fireBullet(src, pc.clone().sub(src), 15, true); b.by = '孤鸿的重剑雨'; }
+        e.t = 2.2; sfx('needleCharge');
+      } else if (e.cycle % 3 === 0) {
+        for (let k = -2; k <= 2; k++) { const b = fireBullet(e.pos, dirP.clone().rotateAround(ORIGIN2, k * 0.17), 18); b.by = '孤鸿的剑气'; }
+        e.t = 1.1 + rand() * 0.6; e.strafe = -(e.strafe || 1);
+      } else { e.mode = 'wind'; e.t = ph === 3 ? 0.45 : 0.6; e.combo = ph === 3 ? 3 : 1; sfx('beep'); }
+    }
+  } else if (e.mode === 'wind') {
+    moveToward(e.vel, dirP.clone().multiplyScalar(-3), 40 * dt);
+    if (e.t > 0.2) { const lead = pc.clone().addScaledVector(pv, 0.3).sub(e.pos); e.face = Math.atan2(lead.y, lead.x); }
+    if (e.t <= 0) { e.mode = 'dash'; e.t = 0.4; e.vel.set(Math.cos(e.face), Math.sin(e.face)).multiplyScalar(BOOST); e.dashed = false; sfx('charge'); }
+  } else if (e.mode === 'dash') {
+    if (!e.dashed && cb.iframe > 0 && dist < e.r + CB.PLAYER_R + CB.RISK_PAD + 0.9) { e.dashed = true; e.mode = 'stagger'; e.t = 1.8; e.vel.multiplyScalar(0.25); popup('破绽', 'move gold'); }
+    else if (e.t <= 0) {
+      e.combo = (e.combo || 1) - 1;
+      if (e.combo > 0) { e.mode = 'wind'; e.t = 0.28; } // 人剑合一：接着下一段
+      else { e.mode = 'recover'; e.t = ph === 3 ? 1.5 : 0.8; }
+    }
+  } else {
+    moveToward(e.vel, ORIGIN2, 25 * dt);
+    if (e.t <= 0) { e.mode = 'stalk'; e.t = 1.0 + rand() * 0.6; }
+  }
+  const right = Math.cos(e.face) >= 0;
+  e.g.scale.x = (right ? 1 : -1) * Math.abs(e.g.scale.x || 1);
+  e.g.rotation.z = e.mode === 'stagger' ? Math.sin(e.phase * 20) * 0.25 : (right ? 1 : -1) * Math.sin(e.face) * 0.35;
+  const bl = e.g.userData.blade; if (bl) bl.rotation.z = e.mode === 'wind' ? 0.9 : e.mode === 'dash' ? 0 : e.mode === 'stalk' ? -0.6 : -1.2;
+  e.eye.scale.setScalar(e.mode === 'wind' ? 1.9 : e.mode === 'stagger' ? 0.5 : 1);
+  const sh = e.g.userData.shield; if (sh) { sh.visible = e.shield > 0; sh.rotation.z += dt * 2; sh.material.opacity = 0.25 + 0.06 * e.shield; }
+  tele.visible = e.mode === 'wind' && state.fx;
+  if (tele.visible) { tele.position.set(e.pos.x, e.pos.y, 0.9); tele.rotation.z = e.face; tele.scale.set(BOOST * 0.4 + 2, 1, 1); tele.material.opacity = e.t < 0.2 ? (Math.sin(e.phase * 50) > 0 ? 0.95 : 0.4) : 0.3; }
+}
+
+LEVELS.jianzhong = {
+  build(O) {
+    const D = LV.d; D.stage = 'canyon'; D.stT = 0; D.times = {};
+    const r = lvRng(23), x0 = O.x, LEN = 360; D.x0 = x0; D.arena = x0 + LEN + 40;
+    lvPlace(O.x, 15, 1, 0);
+    LV.obs.push({ k: 'rect', x: x0 + 400, y: CANYON_TOP + 15, hw: 700, hh: 15, dmg: 8, name: '雷云' });
+    for (let x = x0 - 60; x < x0 + 900; x += 18) lvBox(x, CANYON_TOP + 9 + (r() - 0.5) * 3, 22, 18 + r() * 4, lvMat.cloud, -1.5);
+    lvSword(x0 - 40, 0, CANYON_TOP, true);
+    D.turrets = []; let i = 0;
+    for (let x = x0 + 60; x < x0 + LEN - 30; x += 30 + r() * 10, i++) {
+      if (x > x0 + 170 && x < x0 + 230) continue; // 剑幕那一段空出来
+      const low = i % 2 === 0, h = low ? 6 + r() * 12 : 13 + r() * 10;
+      if (low) lvSword(x, 0, h, true); else lvSword(x, h, CANYON_TOP, false);
+      if (i % 2 === 1) D.turrets.push({ p: new V2(x, low ? h : h), t: r() * 2 }); // 残剑：定时射出剑气
+    }
+    // 剑幕：两把残剑交叉喷剑气，封住 x0+200 一带
+    D.curtain = { x: x0 + 200, t: 0 };
+    lvSword(x0 + 185, 0, 6, true); lvSword(x0 + 215, 24, CANYON_TOP, false);
+    // 竞技场：峡谷尽头一片开阔地（天花板照旧）
+    lvSword(D.arena + 70, 0, CANYON_TOP, true);
+    D.triggers = [{ x: x0 + 100, f: () => { for (let k = 0; k < 3; k++) lvSpawn('crow', x0 + 150 + k * 5, 8 + k * 6); } }];
+    if (LV.ckpt === 'boss' || LV.ckpt === 'trial') { lvPlace(D.arena - 20, 15, 1, 0); this.startBoss(); }
+    if (LV.ckpt === 'trial') { removeEnemy(D.boss); D.stage = 'reward'; this.startTrial(); }
+  },
+  step(dt, P) {
+    const D = LV.d; D.stT += dt;
+    if (D.stage === 'canyon') {
+      for (const tr of D.triggers) if (!tr.done && P.x > tr.x) { tr.done = true; tr.f(); }
+      for (const tu of D.turrets) { // 残剑剑气：你靠近时，每 2.4 秒朝你射三道
+        tu.t -= dt; const d = tu.p.distanceTo(P);
+        if (tu.t <= 0 && d < 24 && P.x < tu.p.x + 4) { tu.t = 2.4; const dir = P.clone().sub(tu.p).normalize(); for (let k = -1; k <= 1; k++) { const b = fireBullet(tu.p, dir.clone().rotateAround(ORIGIN2, k * 0.15), 13); b.by = '残剑剑气'; } }
+      }
+      const C = D.curtain; C.t += dt; // 剑幕：两股剑气交叉扫过通道，中间偶尔留空隙
+      if (Math.abs(P.x - C.x) < 30 && C.t > 0.12) {
+        C.t = 0; const ph = Math.sin(D.stT * 1.4);
+        if (Math.abs(ph) < 0.82) { // 留一点空隙：读节奏就能钻过去
+          const b1 = fireBullet(new V2(C.x - 15, 7.6), new V2(1, 0.75 + ph * 0.25), 16); b1.by = '剑幕';
+          const b2 = fireBullet(new V2(C.x + 15, 22.4), new V2(-1, -0.75 - ph * 0.25), 16); b2.by = '剑幕';
+        }
+      }
+      if (P.x > D.arena - 15) { D.times.canyon = D.stT; this.startBoss(); }
+    } else if (D.stage === 'boss') {
+      if (!cb.enemies.includes(D.boss)) this.win();
+    } else if (D.stage === 'trial') this.stepTrial(dt);
+  },
+  startBoss() {
+    const D = LV.d; D.stage = 'boss'; D.stT = 0; if (LV.ckpt !== 'trial') LV.ckpt = 'boss';
+    for (let j = cb.bullets.length - 1; j >= 0; j--) if (!cb.bullets[j].friendly) freeBullet(j);
+    const P = new V2(sim.pos.x, wy(sim.pos.y));
+    D.boss = lvSpawn('jianling', P.x + 22, 16, true); D.boss.ph = 1; D.boss.shield = 0; D.boss.face = Math.PI;
+    popup('剑冢守灵 · 孤鸿', 'sig gold'); sfx('realmUp');
+  },
+  win() {
+    const D = LV.d; D.times.boss = D.stT; D.stage = 'reward'; D.stT = 0;
+    for (let j = cb.bullets.length - 1; j >= 0; j--) if (!cb.bullets[j].friendly) freeBullet(j);
+    cb.quake = { t0: performance.now() / 1000, amp: 6 * state.burstShake }; sfx('burst'); popup('孤鸿 · 剑意归心', 'sig gold'); cb.riskSlowT = 1.2;
+    setTimeout(() => { if (LV.id === 'jianzhong' && LV.d.stage === 'reward') this.reward(); }, 1600);
+  },
+  reward() {
+    ABIL.jianzhao = true; try { localStorage.setItem('yujian_ab_jianzhao', '1'); } catch (e) {}
+    showChoice({ title: '夺能 · 见招', tag: '获得新能力', sub: '孤鸿守了一辈子剑冢，一身本事都在“接得住”三个字上。你从他最后一剑里看懂了这一招。<br>这份能力会一直跟着你：之后在任何模式里按 E 都能用。',
+      opts: [{ kind: 'relic', name: '见招', tag: '按 E', desc: '按 E 举剑，0.2 秒内被子弹或近身攻击打到 = 拆招：子弹弹回去（重弹弹回去照样破甲），近身攻击者直接露出破绽；拆中时慢放一下、回 1 格剑势和 15 剑意。按空了有 0.55 秒硬直，不能乱按。', cost: '接下来：试招。墨影剑客的冲斩、蓄势针的重针，都拆给它们看。',
+        fn: () => { hideOverlays(); setModal(false); this.startTrial(); } }] });
+    G.onConfirm = () => { hideOverlays(); setModal(false); this.startTrial(); };
+  },
+  startTrial() { const D = LV.d; D.stage = 'trial'; D.stT = 0; D.wave = 0; D.gap = 1.2; G.onConfirm = null; LV.ckpt = 'trial'; popup('试招 · 见招（E）', 'move gold'); },
+  stepTrial(dt) {
+    const D = LV.d;
+    if (cb.enemies.length || cb.pendingSquads.length) return;
+    D.gap -= dt; if (D.gap > 0) return;
+    if (D.wave === 0) { tSquad(['duelist'], 0.4); tSquad(['duelist'], -0.4); popup('看到“斩”，按 E', 'small gold'); }
+    else if (D.wave === 1) { tSquad(['needle'], 0); tSquad(['needle'], Math.PI); tSquad(['crow', 'crow'], 1.5); popup('重针也能拆回去', 'small gold'); }
+    else { D.times.trial = D.stT; lvFinish(true); return; }
+    D.wave++; D.gap = 2;
+  },
+  hud() {
+    const D = LV.d;
+    if (D.stage === 'canyon') return `剑冢 · 剑林峡谷 · 用时 <b>${D.stT.toFixed(1)}</b>s · 距剑冢 <b>${Math.max(0, Math.round(D.arena - 15 - sim.pos.x))}</b>m · ${Math.abs(sim.pos.x - D.curtain.x) < 40 ? '<b style="color:#ffd27a">剑幕：擦弹穿过 / 吞海吸掉 / 等空隙</b>' : '残剑会射剑气'}`;
+    if (D.stage === 'boss') { const e = D.boss, ph = e ? jlPhase(e) : 1; return `剑冢守灵 · 孤鸿 · ${['', '斗剑', '万剑归冢', '人剑合一'][ph]}${ph === 2 && e.shield > 0 ? ' · 剑罡 <b>' + e.shield + '</b>（吞海重弹 / 斩回重剑 / 御剑）' : ''} · 用时 <b>${D.stT.toFixed(1)}</b>s`; }
+    if (D.stage === 'trial') return `剑冢 · 试招 · 按 <b>E</b> 拆招 · 第 <b>${Math.max(1, D.wave)}/2</b> 波 · 拆招 <b>${JZ.parries}</b> 次`;
+    return '剑冢 · 剑意归心';
+  },
+  result() {
+    const D = LV.d, T = D.times, dmg = Math.round(G.stats ? G.stats.dmg : 0), sc = LV.t + dmg * 0.3;
+    return { grade: sc < 130 ? '甲上' : sc < 170 ? '甲' : sc < 230 ? '乙' : '丙', rows: [['剑林峡谷', (T.canyon || 0).toFixed(1) + ' 秒'], ['孤鸿', (T.boss || 0).toFixed(1) + ' 秒'], ['试招', (T.trial || 0).toFixed(1) + ' 秒'], ['拆招', JZ.parries + ' 次'], ['吞海', TUN.uses + ' 次'], ['所受伤害', dmg], ['总用时', LV.t.toFixed(1) + ' 秒']], score: sc };
+  },
+  overlay(ctx, toScreen, W) {
+    const D = LV.d, e = D.boss;
+    if (D.stage !== 'boss' || !e || !cb.enemies.includes(e)) return;
+    // Boss 血条（画面上方）+ 头顶意图
+    const T = ENEMY_TYPES.jianling, w = Math.min(420, W * 0.6), x = W / 2 - w / 2, y = 26;
+    ctx.fillStyle = 'rgba(6,14,16,.85)'; ctx.fillRect(x - 2, y - 2, w + 4, 12);
+    ctx.fillStyle = '#e0584a'; ctx.fillRect(x, y, w * clamp(e.hp / T.hp, 0, 1), 8);
+    for (const f of [0.66, 0.33]) { ctx.fillStyle = '#f5f0e2'; ctx.fillRect(x + w * f - 1, y - 2, 2, 12); }
+    if (e.shield > 0) { ctx.fillStyle = '#ffd27a'; ctx.fillRect(x, y + 10, w * e.shield / 6, 3); }
+    ctx.font = '700 16px "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#f5f0e2'; ctx.fillText('剑冢守灵 · 孤鸿', W / 2, y - 8);
+    const s = toScreen(new V2(e.pos.x, e.pos.y + e.r + 2)); if (s.on) {
+      const [txt, col] = e.mode === 'wind' || e.mode === 'dash' ? ['斩', Math.sin(cb.realT * 30) > 0 ? '#ff3a2a' : '#ffd0c8'] : e.mode === 'stagger' ? ['破绽', '#f7d77a'] : e.mode === 'recover' ? ['隙', '#f7d77a'] : e.shield > 0 ? ['罡', '#ffd27a'] : ['格', '#9fd3ff'];
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,10,12,.9)'; ctx.strokeText(txt, s.x, s.y); ctx.fillStyle = col; ctx.fillText(txt, s.x, s.y);
+    }
+    ctx.textAlign = 'start';
+  },
+};
+LV_INFO.jianzhong = { name: '剑冢（第二关）', tag: '剑林峡谷 → 剑修 Boss → 夺能', test: '剑修 Boss 和巨物 Boss 交替好不好？上一关的吞海在这关有没有用武之地（能力链）？',
+  goal: '一、剑林峡谷：残剑会射剑气；中段的剑幕可以擦弹穿过、用吞海（Q）吸掉，或等空隙。<br>二、剑冢守灵「孤鸿」：①斗剑：看到“斩”就破空穿过去打破绽 ②万剑归冢：罩起剑罡、召重剑雨——用吞海吞剑雨喷重弹、把重剑斩回去或御剑破罡 ③人剑合一：三段连冲。<br>三、夺能「见招」（E），然后试招。<br><small>没打过北冥也能玩，只是没有吞海。</small>' };
 
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
@@ -6666,6 +6875,8 @@ function updateHud() {
   $('cb-thr-mark').style.left = ((CRUISE - vMin) / (BOOST - vMin) * 100) + '%';
   $('cb-thr-n').textContent = thr > CRUISE * 1.08 ? '催剑' : thr < CRUISE * 0.92 ? '收势' : '巡航';
   // 鲲鹏之力 · 吞海：解锁后显示；吞的时候是剩余时长，冷却时转圈
+  $('cb-jz-row').hidden = !ABIL.jianzhao; // 见招：举剑窗口 / 收招硬直
+  if (ABIL.jianzhao) { const left = Math.max(0, JZ.lockUntil - cb.realT); $('cb-jz').style.setProperty('--p', left > 0 ? 1 - left / (JZ.WIN + JZ.REC) : 1); $('cb-jz-row').classList.toggle('ready', left <= 0); $('cb-jz-row').classList.toggle('active', jzActive()); }
   $('cb-kun-row').hidden = !ABIL.kunpeng;
   if (ABIL.kunpeng) { $('cb-kun').style.setProperty('--p', TUN.on ? 1 - TUN.t / TUN.MAX : 1 - TUN.cd / TUN.CD); $('cb-kun-row').classList.toggle('ready', !TUN.on && TUN.cd <= 0); $('cb-kun-row').classList.toggle('active', TUN.on); }
   // 修为（只在历劫里显示）：左边是当前境界，满了就突破
@@ -6866,7 +7077,7 @@ window.addEventListener('keydown', e => {
   if (!e.repeat && (k === 'w' || k === 'arrowup')) flightTap('up'); // 双击 W：爆冲
   if (!e.repeat && (k === 's' || k === 'arrowdown')) flightTap('down'); // 双击 S：急刹
   // E：贯穿阵。按住模式 = 按住放阵；切换模式 = 按一下开、再按一下关（冲锋时左手不用一直按着）
-  if (k === 'e' && !e.repeat && state.mode === 'fly') castArray(); // E：发动剑阵（仅手动模式）
+  if (k === 'e' && !e.repeat && state.mode === 'fly') { if (state.arrMode === 'manual' || !jzPress()) castArray(); } // E：见招（解锁后）；剑阵手动模式时仍是发动剑阵
   if (k === ' ' && !e.repeat && state.mode === 'fly' && state.steer === 'mouse') doDodge(); // 空格：破空闪（按住 A / D 横闪）
   if (k === 'r' && !e.repeat && G.flow === 'free') resetCombat(); // R 重开只在自由模式
   if (k === 'f' && !e.repeat && state.mode === 'fly') startTrib(); // F：引劫（历劫中修为满时）
@@ -7742,7 +7953,7 @@ $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { rese
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
 window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2
-  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, // 关卡原型 · 北冥 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, // 关卡原型 · 北冥 / 剑冢 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
