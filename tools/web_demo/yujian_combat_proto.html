@@ -481,7 +481,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
         <div class="ctl"><label for="fl-mom">剑势格数</label><input type="range" id="fl-mom" min="1" max="5" step="1" value="3"><output id="fl-mom-v">3</output></div>
         <div class="ctl"><label for="fl-regen">剑势回格（每秒，高速时）</label><input type="range" id="fl-regen" min="0" max="1.5" step="0.05" value="0.4"><output id="fl-regen-v">0.40</output></div>
         <div class="ctl"><label for="fl-surge">爆冲速度（× 催剑上限）</label><input type="range" id="fl-surge" min="1.1" max="2" step="0.05" value="1.45"><output id="fl-surge-v">1.45</output></div>
-        <div class="ctl"><label for="fl-surge-t">爆冲时长</label><input type="range" id="fl-surge-t" min="0.2" max="1.2" step="0.02" value="0.48"><output id="fl-surge-t-v">0.48</output></div>
+        <div class="ctl"><label for="fl-surge-t">爆冲时长</label><input type="range" id="fl-surge-t" min="0.2" max="1.2" step="0.02" value="0.6"><output id="fl-surge-t-v">0.60</output></div>
         <div class="ctl"><label for="fl-brake-keep">急刹保留速度</label><input type="range" id="fl-brake-keep" min="0" max="0.6" step="0.05" value="0.2"><output id="fl-brake-keep-v">0.20</output></div>
         <div class="ctl"><label for="fl-brake-t">急刹回身窗口</label><input type="range" id="fl-brake-t" min="0.2" max="1" step="0.05" value="0.5"><output id="fl-brake-t-v">0.50</output></div>
         <div class="ctl"><label for="fl-brake-turn">急刹转向倍率</label><input type="range" id="fl-brake-turn" min="1" max="5" step="0.1" value="2.8"><output id="fl-brake-turn-v">2.8</output></div>
@@ -5488,7 +5488,7 @@ function showLoadout(onClose) {
 //   尾流咬尾：飞在敌人身后、朝着它飞，得到加速并快速回剑势——鼓励绕到敌人背后
 //   剑势格（HUD 可见）：每次爆冲 / 急刹耗一格；高速飞行、咬尾、出险回格。破空闪仍是唯一带无敌的防守动作
 // ---------------------------------------------------------------------------
-Object.assign(state, { dtWin: 0.22, momMax: 3, momRegen: 0.4, surgeMul: 1.45, surgeT: 0.48, brakeKeep: 0.2, brakeT: 0.5, brakeTurn: 2.8, slipBonus: 1.25, slipRange: 12 });
+Object.assign(state, { dtWin: 0.22, momMax: 3, momRegen: 0.4, surgeMul: 1.45, surgeT: 0.6, brakeKeep: 0.2, brakeT: 0.5, brakeTurn: 2.8, slipBonus: 1.25, slipRange: 12 });
 cb.mom = 3; cb.lastTap = { up: -9, down: -9 };
 function flightTap(dir) {
   if (state.mode !== 'fly' || state.steer !== 'mouse' || cb.dead > 0 || G.modal || yjLock()) return;
@@ -5503,9 +5503,9 @@ function flightSurge() {
   if (hw.lengthSq() < 0.5) hw = headingW(); hw.normalize();
   snapFace(hw); // 空中急转：航向瞬间对准鼠标
   cb.surgeT = state.surgeT; cb.brakeT = 0; // 不带位移（2026-10-10 用户定）：只转向 + 提速，位移是破空闪的事
-  const v = BOOST * BODY.speed * state.surgeMul; sim.vel.set(hw.x * v, -hw.y * v); // 飞行模拟的 y 向下
+  const v = Math.min(Math.max(sim.vel.length(), CRUISE * BODY.speed) * 1.4, BOOST * BODY.speed * state.surgeMul); sim.vel.set(hw.x * v, -hw.y * v); // 只转向不跳速（飞行模拟 y 向下）；速度交给飞行模拟在约 0.2 秒内加上去，避免一帧跳速读成位移
   cb.throttleV = BOOST * BODY.speed;
-  JZ.surgeT0 = cb.realT; JZ.surgeUntil = cb.realT + 0.45; // 爆冲迎锋：这段时间里出刀就能拆
+  JZ.surgeT0 = cb.realT; JZ.surgeUntil = cb.realT + 0.5; // 爆冲迎锋：这段时间里出刀就能拆
   spawnShock(new V3(pc.x - hw.x * 1.2, pc.y - hw.y * 1.2, 0), 0.9); puffRing(pc.x - hw.x * 1.5, pc.y - hw.y * 1.5, 10, 0.6, 6, 0.5);
   for (let k = 0; k < 18; k++) swordSparks.emit(new V3(pc.x, pc.y, 0), 1, 9, hw.clone().negate(), 0.8);
   sfx('dodge'); sfx('charge'); popup('爆冲', 'small'); emitCombat('surge');
