@@ -5482,7 +5482,7 @@ function showLoadout(onClose) {
 
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
-//   双击 W = 爆冲：朝鼠标方向位移约 7 米（0.18 秒），冲完航向就是鼠标方向、爆冲速度再保持约 0.3 秒——空中急转；没有无敌（2026-10-10 用户改）
+//   双击 W = 爆冲：航向瞬间对准鼠标，冲到爆冲速度保持约 0.48 秒——空中急转；不带位移、没有无敌（2026-10-10 用户改）
 //            爆冲迎锋：爆冲开始后 0.45 秒内出刀（见招）= 拆招窗口持续到这段结束，迎头对冲最好拆
 //   双击 S = 急刹：骤然减速，短时间内转向大幅变灵（过失速机动）——让冲斩的敌人冲过头、原地回身接回锋斩
 //   尾流咬尾：飞在敌人身后、朝着它飞，得到加速并快速回剑势——鼓励绕到敌人背后
@@ -5502,7 +5502,7 @@ function flightSurge() {
   const pc = to2(playerC()), w = mouseWorld(); let hw = w ? w.clone().sub(pc) : headingW();
   if (hw.lengthSq() < 0.5) hw = headingW(); hw.normalize();
   snapFace(hw); // 空中急转：航向瞬间对准鼠标
-  cb.surgeT = state.surgeT; cb.brakeT = 0; cb.surgeDash = { t: 0, T: 0.18, D: 7, dir: hw.clone() };
+  cb.surgeT = state.surgeT; cb.brakeT = 0; // 不带位移（2026-10-10 用户定）：只转向 + 提速，位移是破空闪的事
   const v = BOOST * BODY.speed * state.surgeMul; sim.vel.set(hw.x * v, -hw.y * v); // 飞行模拟的 y 向下
   cb.throttleV = BOOST * BODY.speed;
   JZ.surgeT0 = cb.realT; JZ.surgeUntil = cb.realT + 0.45; // 爆冲迎锋：这段时间里出刀就能拆
@@ -6916,11 +6916,6 @@ function simulate(dt) {
       const ease = t => 1 - Math.pow(1 - t, 2.2), d = state.dodgeDist * BODY.dodgeDist * (ease(after) - ease(before));
       sim.pos.x += cb.dodgeDir.x * d; sim.pos.y -= cb.dodgeDir.y * d;
     }
-  }
-  if (state.mode === 'fly' && cb.surgeDash) { // 爆冲位移：朝鼠标方向约 7 米，起步快收尾慢
-    const S = cb.surgeDash, ease = t => 1 - Math.pow(1 - t, 2.2), b0 = S.t / S.T; S.t = Math.min(S.T, S.t + dt);
-    const d = S.D * (ease(S.t / S.T) - ease(b0)); sim.pos.x += S.dir.x * d; sim.pos.y -= S.dir.y * d;
-    if (S.t >= S.T) cb.surgeDash = null;
   }
   // 高度边界：试飞时海面上 4 米到 200 米之间；展示台循环时越界就整体平移回来，保证一直有东西看
   const alt = wy(sim.pos.y);
