@@ -4984,15 +4984,27 @@ function jzSuccess(p, foe) {
   sfx('parry'); popup('拆', 'sig gold');
 }
 // ---------- 破绽连斩（2026-10-09 用户定：只对 Boss；拆中后进入，点圈瞬身斩过去，圈越小越痛，点空/超时就结束） ----------
-const PZ = { on: false, foe: null, pts: [], i: 0, t: 0, hits: 0, N: 4, LIFE: [0.8, 0.7, 0.6, 0.55], lines: [], PART: ['肩', '腕', '脊', '膝', '心'] };
+const PZ = { on: false, foe: null, pts: [], i: 0, t: 0, hits: 0, N: 4, LIFE: [0.8, 0.7, 0.6, 0.55, 0.5, 0.45], lines: [], PART: ['肩', '腕', '脊', '膝', '心'] };
+const JZ_TIERS = [
+  { name: '入门', desc: '破绽 4 个' },
+  { name: '小成', desc: '每个破绽的时机延长 30%' },
+  { name: '大成', desc: '破绽 4 → 6 个' },
+  { name: '圆满', desc: '破绽不设上限：一个接一个，每个比上一个短 8%，直到失手或点不到为止' },
+];
+const jzTier = () => clamp(LO.jzTier | 0, 0, 3);
+function pzLife(k) { // 第 k 个破绽的时机（秒，真实时间）
+  const t = jzTier(), mul = t >= 1 ? 1.3 : 1;
+  return t >= 3 ? 0.8 * mul * Math.pow(0.92, k) : PZ.LIFE[k] * mul;
+}
+function pzGen(k) { // 交替落在 Boss 两侧：每一次瞬身都从它身上斩过去
+  PZ.ang += Math.PI * (0.7 + rand() * 0.6);
+  PZ.pts[k] = { off: new V2(Math.cos(PZ.ang), Math.sin(PZ.ang)).multiplyScalar(3.6 + rand() * 1.4), life: pzLife(k), part: PZ.PART[(k + Math.floor(rand() * 5)) % 5] };
+}
 function pzStart(e) {
-  Object.assign(PZ, { on: true, foe: e, i: 0, t: -0.22, hits: 0, perfect: 0, pts: [], sheathe: 0 }); PZ.lines = [];
-  const pc = to2(playerC()); let a = Math.atan2(pc.y - e.pos.y, pc.x - e.pos.x);
-  for (let k = 0; k < PZ.N; k++) { // 交替落在 Boss 两侧：每一次瞬身都从它身上斩过去
-    a += Math.PI * (0.7 + rand() * 0.6);
-    PZ.pts.push({ off: new V2(Math.cos(a), Math.sin(a)).multiplyScalar(3.6 + rand() * 1.4), life: PZ.LIFE[k], part: PZ.PART[(k + Math.floor(rand() * 5)) % 5] });
-  }
-  e.mode = 'stagger'; e.t = 9; e.vel.set(0, 0); popup('破绽', 'move gold');
+  const t = jzTier();
+  Object.assign(PZ, { on: true, foe: e, i: 0, t: -0.22, hits: 0, perfect: 0, pts: [], sheathe: 0, N: t >= 3 ? Infinity : t >= 2 ? 6 : 4 }); PZ.lines = [];
+  const pc = to2(playerC()); PZ.ang = Math.atan2(pc.y - e.pos.y, pc.x - e.pos.x); pzGen(0);
+  e.mode = 'stagger'; e.t = 9; e.vel.set(0, 0); popup(t >= 3 ? '破绽 · 无尽' : '破绽', 'move gold');
 }
 const pzPt = k => PZ.foe.pos.clone().add(PZ.pts[k].off);
 function pzStep(dt) {
@@ -5015,7 +5027,7 @@ function pzClick(w) {
   PZ.hits++; if (perfect) PZ.perfect++;
   sfx('slash'); popup((perfect ? '破 · ' : '') + PZ.pts[PZ.i].part, perfect ? 'move gold' : 'small');
   if (last || e.hp <= 0) return pzEnd(true);
-  PZ.i++; PZ.t = -0.06;
+  PZ.i++; PZ.t = -0.06; if (!PZ.pts[PZ.i]) pzGen(PZ.i);
 }
 function pzEnd(full) {
   if (!PZ.on) return; PZ.on = false; PZ.full = !!full;
@@ -5037,7 +5049,7 @@ function pzBurst() { // 收剑“铮”：所有剑痕同时爆开，一起结�
   if (alive) { const p3 = new V3(e.pos.x, e.pos.y, 0); spawnImpact(p3, new V2(1, 0), true, 0xffe8a0); spawnShock(p3, 1.2 + 0.25 * PZ.hits); goldBurst.emit(p3, 20 + 10 * PZ.hits, 24); }
   hitStop(0.08); cb.quake = { t0: performance.now() / 1000, amp: (1.5 + PZ.hits) * state.burstShake }; cb.parryFlashT0 = performance.now();
   sfx('parry'); sfx('burst');
-  popup(PZ.full && PZ.perfect === PZ.N ? '破绽连斩 · 尽' : '破绽连斩 ×' + PZ.hits, PZ.full ? 'sig gold' : 'move gold');
+  popup(PZ.full && PZ.perfect === PZ.N ? '破绽连斩 · 尽' : '破绽连斩 ×' + PZ.hits, PZ.full || PZ.hits >= 6 ? 'sig gold' : 'move gold');
   pzRelease();
 }
 function drawPZ(toScreen, W, Hc) {
@@ -5066,7 +5078,7 @@ function drawPZ(toScreen, W, Hc) {
   ctx.fillStyle = '#ffe48a'; ctx.beginPath(); ctx.arc(q.x, q.y, 6, 0, Math.PI * 2); ctx.fill();
   ctx.font = '400 22px "Ma Shan Zheng", "Noto Serif SC", serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff6dc'; ctx.fillText(pt.part, q.x, q.y - Math.max(core, rr) - 14);
   const pc = toScreen(to2(playerC())); ctx.strokeStyle = 'rgba(255,228,138,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(pc.x, pc.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.setLineDash([]);
-  ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillStyle = '#ffe48a'; ctx.fillText('破绽 ' + (PZ.i + 1) + ' / ' + PZ.N + '  ·  点圈瞬身斩过去，圈收得越小剑痕越重，收剑时一起爆', W / 2, Hc - 60);
+  ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillStyle = '#ffe48a'; ctx.fillText('破绽 ' + (PZ.i + 1) + (PZ.N === Infinity ? '（圆满 · 无尽）' : ' / ' + PZ.N) + '  ·  点圈瞬身斩过去，圈收得越小剑痕越重，收剑时一起爆', W / 2, Hc - 60);
 }
 function jzScan() { // 剑弧迎招（2026-10-09 用户：拆招成功率太低）
   if (!(loOn() && LO.melee === 'jianzhao') || !jzWinOK(true) || cb.dead > 0 || PZ.on || PZ.sheathe) return;
@@ -5452,8 +5464,10 @@ function showLoadout(onClose) {
     }
     const cur = forms[sel[0]] || null;
     const info = multi ? sel.map(id => `<b>${forms[id].name}</b>：${forms[id].good}<i>代价：${forms[id].cost}</i>`).join('<br>') || '<i>未装天赋</i>' : cur ? `${cur.good}<i>代价：${cur.cost}</i>` : '';
-    row.innerHTML = `<div class="lo-head"><b>${name}</b><kbd>${key}</kbd><span>${duty}</span>${multi ? `<em>${sel.length}/${cap}</em>` : ''}</div><div class="lo-chips">${chips}</div><div class="lo-info">${info}</div>`;
-    row.querySelectorAll('.lo-chip').forEach(b => b.onclick = () => {
+    const tierRow = slot === 'melee' && LO.melee === 'jianzhao' ? `<div class="lo-chips"><span style="font-size:12px;color:#6b7478;align-self:center">见招重数</span>${JZ_TIERS.map((t, i) => `<button class="lo-chip lo-tier ${jzTier() === i ? 'on' : ''}" data-tier="${i}" title="${t.desc}">${t.name}</button>`).join('')}</div><div class="lo-info">${JZ_TIERS.slice(1, jzTier() + 1).map(t => '<b>' + t.name + '</b>：' + t.desc).join('<br>') || '入门：破绽 4 个'}<i>重数逐级累加；原型里可以直接切换</i></div>` : '';
+    row.innerHTML = `<div class="lo-head"><b>${name}</b><kbd>${key}</kbd><span>${duty}</span>${multi ? `<em>${sel.length}/${cap}</em>` : ''}</div><div class="lo-chips">${chips}</div><div class="lo-info">${info}</div>${tierRow}`;
+    row.querySelectorAll('.lo-tier').forEach(b => b.onclick = ev => { ev.stopPropagation(); LO.jzTier = +b.dataset.tier; showLoadout(onClose); });
+    row.querySelectorAll('.lo-chip:not(.lo-tier)').forEach(b => b.onclick = () => {
       const id = b.dataset.id;
       if (multi) { const i = LO.talents.indexOf(id); if (i >= 0) LO.talents.splice(i, 1); else { LO.talents = LO.talents.slice(0, cap); if (LO.talents.length >= cap) LO.talents.shift(); LO.talents.push(id); } }
       else LO[slot] = id;
