@@ -293,7 +293,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
       <div class="cb-pops" id="cb-pops"></div>
       <div class="split-label" id="lbl-hi" hidden>高清 3D（无像素化）</div>
       <div class="split-label" id="lbl-px" hidden>风格化输出</div>
-      <div class="keys-hint" id="fly-hint" hidden>鼠标转向 · <kbd>W</kbd> 催剑 / <kbd>S</kbd> 收势 · 双击 <kbd>W</kbd> 爆冲 / 双击 <kbd>S</kbd> 急刹 · <kbd>空格</kbd> 破空闪 · <kbd>左键</kbd> 顺锋斩 · 剑阵随动作出击（可改模式） · <kbd>右键</kbd> 点刺 / 按住连斩 · 高速掉头 + 左键 = 回锋斩 · <kbd>H</kbd> 面板</div>
+      <div class="keys-hint" id="fly-hint" hidden>鼠标转向 · <kbd>W</kbd> 催剑 / <kbd>S</kbd> 收势 · 双击 <kbd>W</kbd> 朝鼠标爆冲 / 双击 <kbd>S</kbd> 急刹 · <kbd>空格</kbd> 破空闪 · <kbd>左键</kbd> 顺锋斩 · 剑阵随动作出击（可改模式） · <kbd>右键</kbd> 点刺 / 按住连斩 · 高速掉头 + 左键 = 回锋斩 · <kbd>H</kbd> 面板</div>
       <div class="cover" id="cover" hidden><span id="cover-text">准备</span></div>
       <!-- Demo 流程界面 -->
       <div class="g-obj" id="g-obj"><span class="seal" id="g-obj-seal">习</span><span id="g-obj-text"></span><button id="g-skip" hidden>跳过教程</button></div>
@@ -481,7 +481,7 @@ textarea{width:100%;box-sizing:border-box;height:120px;font-family:var(--f-mono)
         <div class="ctl"><label for="fl-mom">剑势格数</label><input type="range" id="fl-mom" min="1" max="5" step="1" value="3"><output id="fl-mom-v">3</output></div>
         <div class="ctl"><label for="fl-regen">剑势回格（每秒，高速时）</label><input type="range" id="fl-regen" min="0" max="1.5" step="0.05" value="0.4"><output id="fl-regen-v">0.40</output></div>
         <div class="ctl"><label for="fl-surge">爆冲速度（× 催剑上限）</label><input type="range" id="fl-surge" min="1.1" max="2" step="0.05" value="1.45"><output id="fl-surge-v">1.45</output></div>
-        <div class="ctl"><label for="fl-surge-t">爆冲时长</label><input type="range" id="fl-surge-t" min="0.2" max="1.2" step="0.05" value="0.6"><output id="fl-surge-t-v">0.60</output></div>
+        <div class="ctl"><label for="fl-surge-t">爆冲时长</label><input type="range" id="fl-surge-t" min="0.2" max="1.2" step="0.02" value="0.48"><output id="fl-surge-t-v">0.48</output></div>
         <div class="ctl"><label for="fl-brake-keep">急刹保留速度</label><input type="range" id="fl-brake-keep" min="0" max="0.6" step="0.05" value="0.2"><output id="fl-brake-keep-v">0.20</output></div>
         <div class="ctl"><label for="fl-brake-t">急刹回身窗口</label><input type="range" id="fl-brake-t" min="0.2" max="1" step="0.05" value="0.5"><output id="fl-brake-t-v">0.50</output></div>
         <div class="ctl"><label for="fl-brake-turn">急刹转向倍率</label><input type="range" id="fl-brake-turn" min="1" max="5" step="0.1" value="2.8"><output id="fl-brake-turn-v">2.8</output></div>
@@ -4945,7 +4945,9 @@ const isDuel = e => e.type === 'duelist' || e.type === 'jianling';
 // ---------- 见招 ----------
 ABIL.jianzhao = false;
 try { ABIL.jianzhao = localStorage.getItem('yujian_ab_jianzhao') === '1'; } catch (e) {}
-const JZ = { t: -9, lockUntil: -9, WIN: 0.15, WIN_BOSS: 0.35, REC: 0.55, parries: 0 };
+const JZ = { t: -9, lockUntil: -9, WIN: 0.15, WIN_BOSS: 0.2, REC: 0.55, parries: 0, surgeT0: -9, surgeUntil: -9 };
+const jzSurgeWin = () => JZ.t >= JZ.surgeT0 && JZ.t <= JZ.surgeUntil && cb.realT < JZ.surgeUntil + 0.1; // 爆冲迎锋：爆冲中出的刀，拆招窗口持续到爆冲段结束
+const jzWinOK = boss => cb.realT - JZ.t < (boss ? JZ.WIN_BOSS : JZ.WIN) || jzSurgeWin();
 function jzPress() {
   if (!ABIL.jianzhao || state.mode !== 'fly' || cb.dead > 0 || G.modal) return false;
   if (cb.realT < JZ.lockUntil) { fail('招式未收'); return true; }
@@ -4954,7 +4956,7 @@ function jzPress() {
   const p = playerC(); sparkBurst.emit(new V3(p.x, p.y, 0), 8, 6);
   return true;
 }
-const jzActive = () => loOn() && LO.melee === 'jianzhao' && cb.realT - JZ.t < JZ.WIN; // 见招 = 近战形态：每一刀出手的瞬间
+const jzActive = () => loOn() && LO.melee === 'jianzhao' && jzWinOK(false); // 见招 = 近战形态：每一刀出手的瞬间
 // 转身：航向和速度方向立刻对准 dir（世界坐标，y 向上）
 function snapFace(dir) {
   if (!dir || dir.lengthSq() < 1e-6) return;
@@ -5067,12 +5069,13 @@ function drawPZ(toScreen, W, Hc) {
   ctx.font = '700 13px "Noto Serif SC", serif'; ctx.fillStyle = '#ffe48a'; ctx.fillText('破绽 ' + (PZ.i + 1) + ' / ' + PZ.N + '  ·  点圈瞬身斩过去，圈收得越小剑痕越重，收剑时一起爆', W / 2, Hc - 60);
 }
 function jzScan() { // 剑弧迎招（2026-10-09 用户：拆招成功率太低）
-  if (!(loOn() && LO.melee === 'jianzhao') || cb.realT - JZ.t > JZ.WIN_BOSS || cb.dead > 0 || PZ.on || PZ.sheathe) return;
-  const pc = to2(playerC()), R = CB.SLASH_R * (cb.slashScale || 1) + 1.5;
+  if (!(loOn() && LO.melee === 'jianzhao') || !jzWinOK(true) || cb.dead > 0 || PZ.on || PZ.sheathe) return;
+  const pc = to2(playerC()), pv = velW(), R = CB.SLASH_R * (cb.slashScale || 1) + 1.5;
   for (const e of cb.enemies.slice()) {
     if (!meleeActive(e) || e.hitCd > 0) continue;
-    const v = pc.clone().sub(e.pos);
-    if (v.length() < R + e.r && e.vel.dot(v) > 0) jzTryMelee(e);
+    const v = pc.clone().sub(e.pos), d = v.length(); if (d < 1e-3) continue;
+    const closing = (e.vel.dot(v) - pv.dot(v)) / d; // 相对接近速度
+    if (closing > 0 && d < R + e.r + closing * 0.12) jzTryMelee(e); // 按“还有多久撞上”算：约 0.12 秒内会撞上就算迎上
   }
 }
 function jlForceThrust() { // 练招（测试用）：按 T 让孤鸿立刻起手突刺
@@ -5081,8 +5084,9 @@ function jlForceThrust() { // 练招（测试用）：按 T 让孤鸿立刻起�
   B.mode = 'wind'; B.t = 0.8; B.combo = 1; B.locked = false; popup('练招 · 孤鸿突刺', 'small gold');
 }
 function jzTryMelee(e) {
-  const boss = !!(LV.id && LV.d && LV.d.boss === e), win = boss ? JZ.WIN_BOSS : JZ.WIN; // 拆 Boss 放宽（2026-10-09 用户：太难触发）
-  if (!(loOn() && LO.melee === 'jianzhao' && cb.realT - JZ.t < win) || !jzFacing(e.pos, boss ? 0.9 : 0)) return false;
+  const boss = !!(LV.id && LV.d && LV.d.boss === e); // 拆 Boss 略放宽
+  if (!(loOn() && LO.melee === 'jianzhao' && jzWinOK(boss)) || !jzFacing(e.pos, boss ? 0.6 : 0)) return false;
+  if (jzSurgeWin()) popup('迎锋', 'move gold');
   if (boss) { jzSuccess(e.pos, e); pzStart(e); e.hitCd = 0.8; return true; } // Boss：进入破绽连斩
   if (isDuel(e)) { e.mode = 'stagger'; e.t = 2.0; e.vel.multiplyScalar(0.2); } else { e.stunUntil = cb.realT + 1.5; e.mode = 'drift'; e.t = 1.5; }
   e.vel.addScaledVector(e.pos.clone().sub(to2(playerC())).normalize(), 14); e.knockUntil = cb.realT + 0.4; e.hitCd = 0.8; // 被弹开
@@ -5118,8 +5122,11 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
     }
   } else if (e.mode === 'wind') { // 突刺（2026-10-09 用户定）：蓄势时一直指着你，出手前 0.12 秒锁死，直线刺穿到你身后——方向和时机都读得出来，可拆可躲
     moveToward(e.vel, dirP.clone().multiplyScalar(-3), 40 * dt);
-    if (e.t > 0.12) e.face = Math.atan2(dirP.y, dirP.x);
-    else if (!e.locked) { e.locked = true; e.lockD = dist; sfx('beep'); }
+    if (e.t > 0.12) { // 预判拦截（2026-10-10 用户定）：瞄你“将要飞到”的位置，高速飞行时它也会迎上来
+      const spd = BOOST * 1.3; let aim = pc.clone();
+      for (let k = 0; k < 3; k++) { const tt = Math.min(0.12 + aim.distanceTo(e.pos) / spd, 1.0); aim = pc.clone().addScaledVector(pv, tt); }
+      const v = aim.sub(e.pos); e.face = Math.atan2(v.y, v.x); e.aimD = v.length();
+    } else if (!e.locked) { e.locked = true; e.lockD = e.aimD || dist; sfx('beep'); }
     if (e.t <= 0) { const spd = BOOST * 1.3; e.mode = 'dash'; e.locked = false; e.t = clamp(((e.lockD || dist) + 14) / spd, 0.3, 1.4); e.vel.set(Math.cos(e.face), Math.sin(e.face)).multiplyScalar(spd); e.dashed = false; sfx('charge'); }
   } else if (e.mode === 'dash') {
     if (!e.dashed && cb.iframe > 0 && dist < e.r + CB.PLAYER_R + CB.RISK_PAD + 0.9) { e.dashed = true; e.mode = 'stagger'; e.t = 1.8; e.vel.multiplyScalar(0.25); popup('破绽', 'move gold'); }
@@ -5139,7 +5146,7 @@ function stepJianling(e, dt, pc, pv, dist, dirP, canFire, chaseV, steer) {
   e.eye.scale.setScalar(e.mode === 'wind' ? 1.9 : e.mode === 'stagger' ? 0.5 : 1);
   const sh = e.g.userData.shield; if (sh) { sh.visible = e.shield > 0; sh.rotation.z += dt * 2; sh.material.opacity = 0.25 + 0.06 * e.shield; }
   tele.visible = e.mode === 'wind' && state.fx;
-  if (tele.visible) { tele.position.set(e.pos.x, e.pos.y, 0.9); tele.rotation.z = e.face; tele.scale.set(Math.min(dist + 14, 60), 1, 1); tele.material.opacity = e.t < 0.12 ? (Math.sin(e.phase * 50) > 0 ? 1 : 0.5) : 0.35; }
+  if (tele.visible) { tele.position.set(e.pos.x, e.pos.y, 0.9); tele.rotation.z = e.face; tele.scale.set(Math.min((e.aimD || dist) + 14, 60), 1, 1); tele.material.opacity = e.t < 0.12 ? (Math.sin(e.phase * 50) > 0 ? 1 : 0.5) : 0.35; }
 }
 
 LEVELS.jianzhong = {
@@ -5461,12 +5468,13 @@ function showLoadout(onClose) {
 
 // ---------------------------------------------------------------------------
 // 进阶飞行（2026-10-09 用户定：飞行控制是本作的技术核心）
-//   双击 W = 爆冲：瞬间冲到超过催剑上限的速度，持续一小段；没有无敌，转向变钝（承诺）——追击、拉开、长冲锋斩
+//   双击 W = 爆冲：朝鼠标方向位移约 7 米（0.18 秒），冲完航向就是鼠标方向、爆冲速度再保持约 0.3 秒——空中急转；没有无敌（2026-10-10 用户改）
+//            爆冲迎锋：爆冲开始后 0.45 秒内出刀（见招）= 拆招窗口持续到这段结束，迎头对冲最好拆
 //   双击 S = 急刹：骤然减速，短时间内转向大幅变灵（过失速机动）——让冲斩的敌人冲过头、原地回身接回锋斩
 //   尾流咬尾：飞在敌人身后、朝着它飞，得到加速并快速回剑势——鼓励绕到敌人背后
 //   剑势格（HUD 可见）：每次爆冲 / 急刹耗一格；高速飞行、咬尾、出险回格。破空闪仍是唯一带无敌的防守动作
 // ---------------------------------------------------------------------------
-Object.assign(state, { dtWin: 0.22, momMax: 3, momRegen: 0.4, surgeMul: 1.45, surgeT: 0.6, brakeKeep: 0.2, brakeT: 0.5, brakeTurn: 2.8, slipBonus: 1.25, slipRange: 12 });
+Object.assign(state, { dtWin: 0.22, momMax: 3, momRegen: 0.4, surgeMul: 1.45, surgeT: 0.48, brakeKeep: 0.2, brakeT: 0.5, brakeTurn: 2.8, slipBonus: 1.25, slipRange: 12 });
 cb.mom = 3; cb.lastTap = { up: -9, down: -9 };
 function flightTap(dir) {
   if (state.mode !== 'fly' || state.steer !== 'mouse' || cb.dead > 0 || G.modal || yjLock()) return;
@@ -5477,11 +5485,13 @@ function flightTap(dir) {
 function spendMom() { if ((cb.mom || 0) < 1) { fail('剑势不足'); return false; } cb.mom -= 1; return true; }
 function flightSurge() {
   if (!spendMom()) return;
-  cb.surgeT = state.surgeT; cb.brakeT = 0;
-  const v = BOOST * BODY.speed * state.surgeMul, h = sim.bodyH;
-  sim.vel.copy(h).multiplyScalar(Math.max(sim.vel.length(), v));
+  const pc = to2(playerC()), w = mouseWorld(); let hw = w ? w.clone().sub(pc) : headingW();
+  if (hw.lengthSq() < 0.5) hw = headingW(); hw.normalize();
+  snapFace(hw); // 空中急转：航向瞬间对准鼠标
+  cb.surgeT = state.surgeT; cb.brakeT = 0; cb.surgeDash = { t: 0, T: 0.18, D: 7, dir: hw.clone() };
+  const v = BOOST * BODY.speed * state.surgeMul; sim.vel.set(hw.x * v, -hw.y * v); // 飞行模拟的 y 向下
   cb.throttleV = BOOST * BODY.speed;
-  const pc = to2(playerC()), hw = headingW();
+  JZ.surgeT0 = cb.realT; JZ.surgeUntil = cb.realT + 0.45; // 爆冲迎锋：这段时间里出刀就能拆
   spawnShock(new V3(pc.x - hw.x * 1.2, pc.y - hw.y * 1.2, 0), 0.9); puffRing(pc.x - hw.x * 1.5, pc.y - hw.y * 1.5, 10, 0.6, 6, 0.5);
   for (let k = 0; k < 18; k++) swordSparks.emit(new V3(pc.x, pc.y, 0), 1, 9, hw.clone().negate(), 0.8);
   sfx('dodge'); sfx('charge'); popup('爆冲', 'small'); emitCombat('surge');
@@ -6892,6 +6902,11 @@ function simulate(dt) {
       const ease = t => 1 - Math.pow(1 - t, 2.2), d = state.dodgeDist * BODY.dodgeDist * (ease(after) - ease(before));
       sim.pos.x += cb.dodgeDir.x * d; sim.pos.y -= cb.dodgeDir.y * d;
     }
+  }
+  if (state.mode === 'fly' && cb.surgeDash) { // 爆冲位移：朝鼠标方向约 7 米，起步快收尾慢
+    const S = cb.surgeDash, ease = t => 1 - Math.pow(1 - t, 2.2), b0 = S.t / S.T; S.t = Math.min(S.T, S.t + dt);
+    const d = S.D * (ease(S.t / S.T) - ease(b0)); sim.pos.x += S.dir.x * d; sim.pos.y -= S.dir.y * d;
+    if (S.t >= S.T) cb.surgeDash = null;
   }
   // 高度边界：试飞时海面上 4 米到 200 米之间；展示台循环时越界就整体平移回来，保证一直有东西看
   const alt = wy(sim.pos.y);
@@ -8341,7 +8356,7 @@ $g('g-skip').addEventListener('click', () => { if (G.flow === 'tutorial') { rese
 
 // 调试入口：控制台里查看战斗状态；tick(秒, 按键) 可在页面不可见时手动推进模拟并渲染一帧
 window.__combat = { cb, sim, state, pressSlash, keys, camera, mouse, mouseWorld, resetCombat, playerC, headingW, SLOTS, MODULES, loadout, equip, defineModule, emitCombat, BODY, CULTIVATORS, applyCultivator, showCultivatorPick, get cultivator() { return cultivator; }, startRun, startRoom, startTrial, showPick, ROOMS, TRIAL_LOG, showMap, enterNode, startTrib, showCodex, showEvent, showShop, showRest, RELICS, RESON, // 历劫 v2
-  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, PZ, pzClick, jzTryMelee, headingW, playerC, LO, FORMS, showLoadout, loApply, activePress, ACT, // 关卡原型 · 北冥 / 剑冢 / 整剑 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
+  LV, LEVELS, startLevel, showLevelSelect, lvFinish, TUN, ABIL, tunPress, tunRelease, JZ, jzPress, PZ, pzClick, jzTryMelee, flightSurge, headingW, playerC, LO, FORMS, showLoadout, loApply, activePress, ACT, // 关卡原型 · 北冥 / 剑冢 / 整剑 reseed(s) { seed = s >>> 0; vseed = VSEED0; }, setSimTime(v) { simTime = v; state.clipT = 0; }, // 回归测试用：固定随机序列、固定模拟时钟（悬停起伏等动画按 simTime 走）
   tick(sec, hold) { const ks = hold || []; ks.forEach(k => keys.add(k)); for (let t = 0; t < sec; t += 1 / 120) { flushBursts(); if (cb.hitStop > 0) { cb.hitStop -= 1 / 120; continue; } stepAll(1 / 120); } ks.forEach(k => keys.delete(k)); layoutAndRender(); updateHud(); },
   pressYj, releaseYj, anim, spawnAt, splits, castArray, arraySortie, doDodge, fireBullet, AU, auInit, sfx, musicStep, audioFrame, popup, fgItems, cloudFront, cloudBack, puffs, startSlash, G, gStart, startBoss, startWaves, startTut, showResults, DEMO, cutSilks, removeEnemy, pendingBursts, flushBursts, cutEnemy, resolveCuts, setLeft(down) { cb.leftDown = down; if (down) { cb.leftDownT = cb.realT; pressSlash(); } } };
 // 启动：直接进入战斗
