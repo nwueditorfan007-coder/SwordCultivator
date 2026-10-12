@@ -188,7 +188,10 @@ static func reset_runtime(main: Node) -> void:
 		"target_states": {},
 	}
 	main.enemy_packages = {}
-	main.game_over_label.visible = false
+	if main.has_method("_ensure_ui_nodes"):
+		main._ensure_ui_nodes()
+	if main.game_over_label != null:
+		main.game_over_label.visible = false
 	main._rebuild_array_sword_pool()
 	main._update_ui()
 	main.queue_redraw()

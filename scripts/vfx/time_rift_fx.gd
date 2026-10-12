@@ -49,6 +49,7 @@ enum Phase {
 @export_range(-180.0, 180.0, 1.0) var 背景笔触固定角度 := -12.0
 @export_range(0.0, 4.0, 0.01) var 背景笔触偏移倍率 := 1.0
 @export_group("夜界暗场")
+@export var 全屏暗场启用 := false
 @export var 暗场颜色 := Color(0.0, 0.002, 0.008, 1.0)
 @export_range(0.0, 1.0, 0.01) var 暗场持续透明度 := 0.68
 @export_range(0.0, 1.0, 0.01) var 暗场入场透明度 := 0.34
@@ -707,6 +708,8 @@ func _update_domain_rays() -> void:
 
 
 func _draw_background_state_wash(draw_target: CanvasItem, viewport_size: Vector2, state_strength: float, fade: float, ink_stamp: float) -> void:
+	if not 全屏暗场启用:
+		return
 	var viewport_rect := Rect2(Vector2.ZERO, viewport_size)
 	var dark_breathe := 1.0 + sin(effect_time * TAU * 暗场呼吸速度) * 暗场呼吸透明度
 	var dark_alpha := (暗场持续透明度 * state_strength + 暗场入场透明度 * ink_stamp) * 背景暗场强度 * dark_breathe
@@ -726,7 +729,7 @@ func _draw_background_state_wash(draw_target: CanvasItem, viewport_size: Vector2
 
 
 func _draw_background_edge_vignette(draw_target: CanvasItem, viewport_size: Vector2, strength: float) -> void:
-	if not 暗角启用 or strength <= 0.004:
+	if not 全屏暗场启用 or not 暗角启用 or strength <= 0.004:
 		return
 	var band_count := maxi(暗角层数, 1)
 	for index in range(band_count):

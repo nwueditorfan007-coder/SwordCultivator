@@ -23,3 +23,6 @@
 **/_codex_backup*/
 __pycache__/
 *.pyc
+
+# Blender autosave backups
+*.blend1

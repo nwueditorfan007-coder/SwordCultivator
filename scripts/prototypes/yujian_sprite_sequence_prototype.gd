@@ -263,6 +263,57 @@ const BOOST_SHOCKWAVE_PARTICLE_ROOT_PATH := "BoostShockwaveVfxRoot"
 const BOOST_SHOCKWAVE_PARTICLE_VISIBILITY_RECT := Rect2(Vector2(-820.0, -520.0), Vector2(1640.0, 1040.0))
 const AIRWAKE_PARTICLE_VISIBILITY_RECT := Rect2(Vector2(-620.0, -360.0), Vector2(1240.0, 720.0))
 const AIRWAKE_WIND_LINE_COUNT := 2
+const HOVER_VFX_ROOT_PATH := "HoverYujianVfxRoot"
+const HOVER_QI_PARTICLES_PATH := "HoverYujianVfxRoot/HoverQiParticles"
+const HOVER_QI_PARTICLE_VISIBILITY_RECT := Rect2(Vector2(-220.0, -140.0), Vector2(440.0, 280.0))
+const HOVER_QI_WISP_COUNT := 6
+const YUJIAN_BIRD_TEXTURE_PATH := "res://resources/vfx/yujian_birds/feiniao001.png"
+const YUJIAN_BIRD_COLUMNS := 4
+const YUJIAN_BIRD_ROWS := 4
+const YUJIAN_BIRD_FRAME_COUNT := YUJIAN_BIRD_COLUMNS * YUJIAN_BIRD_ROWS
+const YUJIAN_BIRD_ANIM_FPS := 10.0
+const YUJIAN_BIRD_COUNT := 10
+const YUJIAN_BIRD_LAYER_Z := -20
+
+@export_category("环境飞鸟")
+@export var 启用飞鸟环境特效 := true
+@export var 飞鸟颜色 := Color(1.0, 1.0, 1.0, 1.0)
+@export_range(0.0, 1.0, 0.01) var 飞鸟透明度 := 0.52
+@export_range(0.5, 2.0, 0.01) var 飞鸟整体缩放 := 1.0
+@export_range(0.0, 1.0, 0.01) var 飞鸟速度响应 := 0.22
+
+@export_category("悬停御剑")
+@export_group("进入退出")
+@export var 启用悬停御剑浮动 := true
+@export_range(0.0, 0.50, 0.005) var 悬停进入延迟 := 0.14
+@export_range(0.0, 180.0, 1.0) var 悬停进入速度 := 42.0
+@export_range(0.0, 260.0, 1.0) var 悬停退出速度 := 86.0
+@export_range(0.02, 0.60, 0.005) var 悬停淡入时长 := 0.24
+@export_range(0.02, 0.30, 0.005) var 悬停淡出时长 := 0.085
+@export_group("承载浮动")
+@export_range(0.0, 18.0, 0.1) var 悬停上下浮动像素 := 5.8
+@export_range(0.0, 8.0, 0.1) var 悬停前后浮动像素 := 2.2
+@export_range(0.0, 5.0, 0.1) var 悬停侧向浮动像素 := 1.1
+@export_range(0.10, 3.00, 0.01) var 悬停上下频率 := 0.76
+@export_range(0.10, 3.00, 0.01) var 悬停环绕频率 := 0.52
+@export_range(0.0, 5.0, 0.05) var 悬停最大倾角 := 1.45
+@export_range(0.0, 0.08, 0.001) var 悬停缩放脉冲 := 0.012
+@export_group("入停回弹")
+@export_range(0.0, 0.06, 0.001) var 悬停回弹速度系数 := 0.008
+@export_range(0.0, 16.0, 0.1) var 悬停回弹最大像素 := 7.0
+@export_range(0.0, 80.0, 0.1) var 悬停回弹弹性 := 28.0
+@export_range(0.0, 40.0, 0.1) var 悬停回弹阻尼 := 9.5
+@export_range(0.05, 0.80, 0.005) var 悬停回弹闪光时长 := 0.32
+@export_group("御气托举")
+@export var 悬停御气颜色 := Color(0.72, 1.0, 0.96, 1.0)
+@export_range(0.0, 1.2, 0.01) var 悬停御气透明度 := 0.30
+@export_range(12.0, 120.0, 1.0) var 悬停御气气丝长度 := 54.0
+@export_range(2.0, 48.0, 1.0) var 悬停御气气丝散开 := 24.0
+@export_range(-20.0, 42.0, 1.0) var 悬停御气下沉像素 := 10.0
+@export_range(0.0, 2.0, 0.01) var 悬停御气流速 := 0.82
+@export_range(0, 80, 1) var 悬停御气粒子数量 := 24
+@export_range(0.2, 2.0, 0.01) var 悬停御气粒子寿命 := 0.82
+@export_range(0.0, 2.0, 0.01) var 悬停御气粒子强度 := 0.58
 
 @export_category("加速冲击波")
 @export_group("前冲")
@@ -627,12 +678,33 @@ var boost_shockwave_vfx_root: Node2D
 var boost_shockwave_ring_sprite: Sprite2D
 var boost_shockwave_particle_layers: Array[GPUParticles2D] = []
 var boost_shockwave_textures: Dictionary = {}
+var hover_vfx_root: Node2D
+var hover_qi_particles: GPUParticles2D
+var hover_qi_wisps: Array[Line2D] = []
+var hover_idle_candidate_time := 0.0
+var hover_idle_active := false
+var hover_idle_blend := 0.0
+var hover_elapsed_time := 0.0
+var hover_phase := 0.0
+var hover_visual_offset_world := Vector2.ZERO
+var hover_visual_rotation := 0.0
+var hover_visual_scale := 1.0
+var hover_settle_offset_world := Vector2.ZERO
+var hover_settle_velocity_world := Vector2.ZERO
+var hover_recent_direction := Vector2.RIGHT
+var hover_recent_speed := 0.0
+var hover_settle_flash := 0.0
+var yujian_bird_root: Node2D
+var yujian_bird_texture: Texture2D
+var yujian_bird_sprites: Array[Sprite2D] = []
+var yujian_birds: Array = []
 var scene_speed_streaks: Array = []
 var scene_speed_streak_spawn_accumulator := 0.0
 var scene_speed_streak_seed := 0
 var hair_fx_panel_hotkey_down := false
 
 func _ready() -> void:
+	hover_phase = _hash01(float(Time.get_ticks_msec()) * 0.001 + 17.0) * TAU
 	_load_background_textures()
 	_create_nodes()
 	if USE_GEMINI_8WAY_CRUISE:
@@ -672,8 +744,10 @@ func _process(delta: float) -> void:
 	_advance_clip(step, axis, boosting)
 	_update_camera(step)
 	_update_visual_state(step)
+	_update_hover_vfx(step)
 	_update_reference_vfx(step)
 	_update_scene_speed_streaks(step)
+	_update_yujian_birds(step)
 	_update_adjustment_panel_follow_state()
 	_update_direction_switch_fx(step)
 	_update_boost_shockwaves(step)
@@ -777,6 +851,8 @@ void fragment() {
 """
 
 	_create_level_background_renderer()
+	_setup_yujian_birds()
+	_setup_hover_vfx()
 	trail_halo = _create_trail_line("TrailHalo", 0)
 	trail_ribbon = _create_trail_line("TrailRibbon", 1)
 	trail_core = _create_trail_line("TrailCore", 2)
@@ -1238,6 +1314,309 @@ func _make_airwake_cone_texture(width: int, height: int) -> ImageTexture:
 			var alpha := pow(maxf(y_pressure, 0.0), 2.0) * length_fade * 0.72
 			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
 	return ImageTexture.create_from_image(image)
+
+
+func _setup_hover_vfx() -> void:
+	hover_qi_wisps.clear()
+	hover_vfx_root = get_node_or_null(HOVER_VFX_ROOT_PATH) as Node2D
+	if hover_vfx_root == null:
+		hover_vfx_root = Node2D.new()
+		hover_vfx_root.name = HOVER_VFX_ROOT_PATH
+		add_child(hover_vfx_root)
+	hover_vfx_root.z_index = 4
+	hover_vfx_root.visible = false
+
+	for child in hover_vfx_root.get_children():
+		if child is Line2D and String(child.name).begins_with("HoverQiRing"):
+			child.queue_free()
+
+	hover_qi_particles = get_node_or_null(HOVER_QI_PARTICLES_PATH) as GPUParticles2D
+	if hover_qi_particles == null:
+		hover_qi_particles = GPUParticles2D.new()
+		hover_qi_particles.name = "HoverQiParticles"
+		hover_vfx_root.add_child(hover_qi_particles)
+	hover_qi_particles.z_index = 2
+	hover_qi_particles.material = _make_airwake_canvas_material(CanvasItemMaterial.BLEND_MODE_ADD)
+	hover_qi_particles.texture = _make_hover_qi_particle_texture()
+	hover_qi_particles.process_material = _make_hover_qi_process_material()
+	hover_qi_particles.amount = maxi(int(悬停御气粒子数量), 1)
+	hover_qi_particles.lifetime = maxf(悬停御气粒子寿命, 0.01)
+	hover_qi_particles.preprocess = hover_qi_particles.lifetime * 0.35
+	hover_qi_particles.randomness = 0.64
+	hover_qi_particles.fixed_fps = 60
+	hover_qi_particles.local_coords = true
+	hover_qi_particles.draw_order = GPUParticles2D.DRAW_ORDER_LIFETIME
+	hover_qi_particles.visibility_rect = HOVER_QI_PARTICLE_VISIBILITY_RECT
+	hover_qi_particles.amount_ratio = 0.0
+	hover_qi_particles.emitting = false
+	hover_qi_particles.visible = false
+
+	var line_material := _make_airwake_canvas_material(CanvasItemMaterial.BLEND_MODE_ADD)
+	for index in range(HOVER_QI_WISP_COUNT):
+		hover_qi_wisps.append(_create_hover_qi_wisp(index, line_material))
+
+
+func _create_hover_qi_wisp(index: int, canvas_material: CanvasItemMaterial) -> Line2D:
+	var line_name := "HoverQiWisp%02d" % index
+	var line := hover_vfx_root.get_node_or_null(line_name) as Line2D
+	if line == null:
+		line = Line2D.new()
+		line.name = line_name
+		hover_vfx_root.add_child(line)
+	line.z_index = index
+	line.material = canvas_material
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	line.antialiased = true
+	line.closed = false
+	line.visible = false
+	return line
+
+
+func _make_hover_qi_particle_texture() -> ImageTexture:
+	var size := 14
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := Vector2(float(size - 1), float(size - 1)) * 0.5
+	var inv_radius := 1.0 / maxf(center.x, 1.0)
+	for y in range(size):
+		for x in range(size):
+			var offset := (Vector2(float(x), float(y)) - center) * inv_radius
+			var radius := offset.length()
+			var core := pow(maxf(1.0 - radius, 0.0), 3.2)
+			var glint := pow(maxf(1.0 - radius * 2.7, 0.0), 1.35)
+			var alpha := clampf(core * 0.58 + glint * 0.28, 0.0, 1.0)
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
+
+
+func _make_hover_qi_process_material() -> ParticleProcessMaterial:
+	var material := ParticleProcessMaterial.new()
+	material.particle_flag_disable_z = true
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	material.emission_box_extents = Vector3(悬停御气气丝长度 * 0.36, 悬停御气气丝散开 * 0.12, 1.0)
+	material.direction = Vector3(-0.82, -0.26, 0.0)
+	material.spread = 28.0
+	material.gravity = Vector3(-2.0, -4.0, 0.0)
+	material.initial_velocity_min = 3.0
+	material.initial_velocity_max = 16.0
+	material.damping_min = 8.0
+	material.damping_max = 18.0
+	material.scale_min = 0.030
+	material.scale_max = 0.095
+	material.angle_min = -10.0
+	material.angle_max = 10.0
+	material.angular_velocity_min = -24.0
+	material.angular_velocity_max = 24.0
+	material.color = _color_with_scaled_alpha(悬停御气颜色, 0.20)
+	material.turbulence_enabled = true
+	material.turbulence_noise_strength = 0.08
+	material.turbulence_noise_scale = 5.2
+	material.turbulence_influence_min = 0.01
+	material.turbulence_influence_max = 0.065
+	return material
+
+
+func _update_hover_state(delta: float) -> void:
+	hover_elapsed_time += delta
+	var speed := velocity.length()
+	if speed > 1.0:
+		hover_recent_direction = _safe_velocity_dir()
+		hover_recent_speed = speed
+
+	var was_idle := hover_idle_active
+	var allowed := _is_hover_idle_allowed()
+	if hover_idle_active:
+		if not allowed:
+			hover_idle_active = false
+			hover_idle_candidate_time = 0.0
+	elif allowed and speed <= 悬停进入速度:
+		hover_idle_candidate_time += delta
+		if hover_idle_candidate_time >= 悬停进入延迟:
+			hover_idle_active = true
+	else:
+		hover_idle_candidate_time = 0.0
+
+	if hover_idle_active and not was_idle:
+		var impulse_pixels := minf(hover_recent_speed * 悬停回弹速度系数, 悬停回弹最大像素)
+		if impulse_pixels > 0.001:
+			hover_settle_offset_world += -hover_recent_direction.normalized() * impulse_pixels * maxf(camera_zoom, 0.001)
+			hover_settle_flash = 1.0
+
+	var blend_duration := maxf(悬停淡入时长 if hover_idle_active else 悬停淡出时长, 0.001)
+	hover_idle_blend = move_toward(hover_idle_blend, 1.0 if hover_idle_active else 0.0, delta / blend_duration)
+	hover_settle_flash = move_toward(hover_settle_flash, 0.0, delta / maxf(悬停回弹闪光时长, 0.001))
+
+	var spring_force := -hover_settle_offset_world * 悬停回弹弹性 - hover_settle_velocity_world * 悬停回弹阻尼
+	hover_settle_velocity_world += spring_force * delta
+	hover_settle_offset_world += hover_settle_velocity_world * delta
+	if hover_settle_offset_world.length() < 0.015 and hover_settle_velocity_world.length() < 0.015:
+		hover_settle_offset_world = Vector2.ZERO
+		hover_settle_velocity_world = Vector2.ZERO
+
+	var forward := _get_hover_forward_dir()
+	var side := forward.rotated(PI * 0.5)
+	var float_phase := hover_elapsed_time * TAU * 悬停上下频率 + hover_phase
+	var orbit_phase := hover_elapsed_time * TAU * 悬停环绕频率 + hover_phase * 1.37
+	var screen_offset := Vector2(0.0, -sin(float_phase) * 悬停上下浮动像素)
+	screen_offset += forward * cos(orbit_phase) * 悬停前后浮动像素
+	screen_offset += side * sin(orbit_phase * 0.82 + 0.4) * 悬停侧向浮动像素
+	hover_visual_offset_world = screen_offset * hover_idle_blend * maxf(camera_zoom, 0.001) + hover_settle_offset_world
+	hover_visual_rotation = deg_to_rad(悬停最大倾角) * hover_idle_blend * sin(orbit_phase + 0.35)
+	hover_visual_rotation += deg_to_rad(1.35) * clampf(hover_settle_offset_world.dot(side) / maxf(悬停回弹最大像素 * maxf(camera_zoom, 0.001), 0.001), -1.0, 1.0)
+	var pulse := 0.5 + 0.5 * sin(float_phase + 1.1)
+	hover_visual_scale = 1.0 + 悬停缩放脉冲 * hover_idle_blend * (0.35 + 0.65 * pulse) + hover_settle_flash * 0.006
+
+
+func _is_hover_idle_allowed() -> bool:
+	if not 启用悬停御剑浮动:
+		return false
+	if heading_input_active or throttle_pressed:
+		return false
+	if slip_timer > 0.0 or boost_burst_timer > 0.0:
+		return false
+	if carve_timer > 0.0 or hard_turn_request_timer > 0.0:
+		return false
+	if velocity.length() > maxf(悬停退出速度, 悬停进入速度):
+		return false
+	if boost_energy > 0.10 or throttle_energy > 0.08:
+		return false
+	if carve_energy > 0.04 or turn_energy > 0.12 or direction_switch_energy > 0.08:
+		return false
+	if boundary_energy > 0.10:
+		return false
+	return true
+
+
+func _get_hover_visual_anchor() -> Vector2:
+	return visual_pos + hover_visual_offset_world
+
+
+func _get_hover_visual_screen_offset() -> Vector2:
+	return hover_visual_offset_world / maxf(camera_zoom, 0.001)
+
+
+func _get_hover_sword_plane_origin() -> Vector2:
+	return _get_sword_plane_origin() + hover_visual_offset_world
+
+
+func _get_hover_forward_dir() -> Vector2:
+	var forward := visual_heading
+	if forward.length_squared() <= 0.0001:
+		forward = body_heading
+	if forward.length_squared() <= 0.0001:
+		forward = hover_recent_direction
+	if forward.length_squared() <= 0.0001:
+		return Vector2.RIGHT
+	return forward.normalized()
+
+
+func _update_hover_vfx(delta: float) -> void:
+	if hover_vfx_root == null:
+		return
+	var visibility := _get_hover_vfx_visibility()
+	var forward := _get_hover_forward_dir()
+	_update_hover_qi_particles(delta, visibility, forward)
+	_update_hover_qi_wisps(visibility)
+	if visibility <= 0.01:
+		hover_vfx_root.visible = false
+		return
+	hover_vfx_root.visible = true
+	hover_vfx_root.position = _world_to_screen(_get_hover_sword_plane_origin())
+	hover_vfx_root.rotation = 0.0
+	hover_vfx_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+
+
+func _get_hover_vfx_visibility() -> float:
+	if not 启用悬停御剑浮动:
+		return 0.0
+	return clampf(maxf(hover_idle_blend, hover_settle_flash * 0.28) * 悬停御气粒子强度, 0.0, 1.0)
+
+
+func _update_hover_qi_particles(delta: float, visibility: float, forward: Vector2) -> void:
+	if hover_qi_particles == null:
+		return
+	if hover_qi_particles.process_material == null:
+		hover_qi_particles.process_material = _make_hover_qi_process_material()
+	var process_material := hover_qi_particles.process_material as ParticleProcessMaterial
+	if process_material != null:
+		var camera_scale := maxf(camera_zoom, 0.001)
+		hover_qi_particles.rotation = forward.angle()
+		hover_qi_particles.position = Vector2.DOWN * 悬停御气下沉像素 * camera_scale * 0.35
+		process_material.emission_box_extents = Vector3(悬停御气气丝长度 * 0.34 * camera_scale, 悬停御气气丝散开 * 0.13 * camera_scale, 1.0)
+		process_material.direction = Vector3(-0.82, -0.26, 0.0)
+		process_material.spread = lerpf(22.0, 34.0, visibility)
+		process_material.gravity = Vector3(-2.0, -4.0, 0.0)
+		process_material.initial_velocity_min = lerpf(2.0, 4.0, visibility)
+		process_material.initial_velocity_max = lerpf(10.0, 18.0, visibility + hover_settle_flash * 0.24)
+		process_material.scale_min = 0.026 * camera_scale
+		process_material.scale_max = lerpf(0.070, 0.115, visibility) * camera_scale
+		process_material.color = _color_with_scaled_alpha(悬停御气颜色, 0.16 + visibility * 0.08)
+	var count := maxi(int(悬停御气粒子数量), 0)
+	hover_qi_particles.amount = maxi(count, 1)
+	hover_qi_particles.lifetime = maxf(悬停御气粒子寿命, 0.01)
+	hover_qi_particles.preprocess = hover_qi_particles.lifetime * 0.35
+	var target_ratio := 0.0 if count <= 0 else clampf(visibility * 悬停御气粒子强度 * 0.72, 0.0, 0.68)
+	hover_qi_particles.amount_ratio = _damp_float(hover_qi_particles.amount_ratio, target_ratio, 0.085, delta)
+	hover_qi_particles.speed_scale = lerpf(0.58, 0.92, visibility) * (1.0 + hover_settle_flash * 0.16)
+	hover_qi_particles.modulate = _color_with_scaled_alpha(悬停御气颜色, 悬停御气透明度 * (0.34 + hover_settle_flash * 0.16) * hover_qi_particles.amount_ratio)
+	hover_qi_particles.visible = hover_qi_particles.amount_ratio > 0.01
+	hover_qi_particles.emitting = hover_qi_particles.amount_ratio > 0.015
+
+
+func _update_hover_qi_wisps(visibility: float) -> void:
+	if hover_qi_wisps.is_empty() and hover_vfx_root != null:
+		var line_material := _make_airwake_canvas_material(CanvasItemMaterial.BLEND_MODE_ADD)
+		for index in range(HOVER_QI_WISP_COUNT):
+			hover_qi_wisps.append(_create_hover_qi_wisp(index, line_material))
+	if visibility <= 0.01:
+		for line in hover_qi_wisps:
+			_set_airwake_line(line, PackedVector2Array(), 0.0, Color.TRANSPARENT)
+		return
+	var camera_scale := maxf(camera_zoom, 0.001)
+	var forward := _get_hover_forward_dir()
+	for index in range(hover_qi_wisps.size()):
+		var line := hover_qi_wisps[index]
+		if line == null:
+			continue
+		line.position = Vector2.ZERO
+		line.rotation = 0.0
+		var seed_value := float(index) * 19.37 + 3.4
+		var lane := float(index) / maxf(float(maxi(hover_qi_wisps.size() - 1, 1)), 1.0)
+		var phase := hover_elapsed_time * TAU * 悬停御气流速 + hover_phase + seed_value
+		var pulse := 0.5 + 0.5 * sin(phase)
+		var breathe := 0.76 + 0.24 * sin(phase * 0.67 + seed_value)
+		var length := 悬停御气气丝长度 * camera_scale * lerpf(0.45, 0.82, _hash01(seed_value + 0.7)) * (0.92 + pulse * 0.10 + hover_settle_flash * 0.10)
+		var spread := 悬停御气气丝散开 * camera_scale
+		var points := _make_hover_qi_wisp_points(index, length, spread, phase, camera_scale, forward)
+		var alpha := 悬停御气透明度 * visibility * breathe * lerpf(0.20, 0.10, lane)
+		alpha += hover_settle_flash * 悬停御气透明度 * 0.045 * (1.0 - lane * 0.35)
+		var color := _color_with_scaled_alpha(悬停御气颜色, alpha)
+		var width := (0.72 + 0.34 * (1.0 - lane) + hover_settle_flash * 0.32) * camera_scale
+		_set_airwake_line(line, points, width, color)
+
+
+func _make_hover_qi_wisp_points(index: int, length: float, spread: float, phase: float, camera_scale: float, forward: Vector2) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var seed_value := float(index) * 23.11 + 6.8
+	var lane_random := _hash01(seed_value + 1.3)
+	var lane := float(index) / maxf(float(maxi(HOVER_QI_WISP_COUNT - 1, 1)), 1.0)
+	var forward_axis := forward.normalized() if forward.length_squared() > 0.0001 else Vector2.RIGHT
+	var lower_axis := forward_axis.rotated(PI * 0.5)
+	if lower_axis.y < 0.0:
+		lower_axis = -lower_axis
+	var anchor_x := lerpf(-0.32, 0.42, lane_random) * 悬停御气气丝长度 * camera_scale * 0.62
+	var lane_offset := (lane - 0.5) * spread * 0.62
+	var base_down := 悬停御气下沉像素 * camera_scale + sin(phase + seed_value) * 1.8 * camera_scale
+	var drift := sin(phase * 0.73 + seed_value * 0.31) * 2.6 * camera_scale
+	var lift := sin(phase * 1.17 + seed_value) * 1.4 * camera_scale
+	var anchor := forward_axis * anchor_x + Vector2.DOWN * base_down + lower_axis * lane_offset * 0.24
+	var back := -forward_axis * length
+	points.append(anchor + forward_axis * 4.0 * camera_scale + lower_axis * lift)
+	points.append(anchor + lower_axis * drift * 0.26)
+	points.append(anchor + back * 0.42 + lower_axis * (drift * 0.62 + 1.6 * camera_scale))
+	points.append(anchor + back * (0.82 + 0.10 * _hash01(seed_value + 2.7)) + lower_axis * (drift + 3.0 * camera_scale))
+	return points
 
 
 func _create_reference_vfx_viewport() -> void:
@@ -2378,6 +2757,7 @@ func _update_visual_state(delta: float) -> void:
 	throttle_energy = _damp_float(throttle_energy, 1.0 if throttle_pressed else 0.0, 0.08, delta)
 	slip_energy = _damp_float(slip_energy, clampf(slip_timer / SLIP_DURATION, 0.0, 1.0), 0.05, delta)
 	carve_energy = _damp_float(carve_energy, carve_target, 0.045, delta)
+	_update_hover_state(delta)
 	_apply_sprite_transform(delta)
 
 
@@ -2414,9 +2794,9 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 			_apply_eight_way_texture(visual_heading)
 			use_static_direction_pose = true
 	if use_static_direction_pose:
-		sprite_root.position = _world_to_screen(visual_pos)
-		sprite_root.rotation = 0.0
-		sprite_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+		sprite_root.position = _world_to_screen(_get_hover_visual_anchor())
+		sprite_root.rotation = hover_visual_rotation
+		sprite_root.scale = Vector2.ONE * hover_visual_scale / maxf(camera_zoom, 0.001)
 		var turn_lean := clampf(heading_angle_delta / 1.4, -1.0, 1.0)
 		var target_direction_scale := _get_eight_way_direction_scale(eight_way_character_set, eight_way_index)
 		var target_offset := _get_eight_way_direction_offset(eight_way_character_set, eight_way_index)
@@ -2448,9 +2828,9 @@ func _apply_sprite_transform(delta := 0.0) -> void:
 		character_sprite.rotation = eight_way_local_rotation - turn_lean * 0.035 + carve_direction * carve_energy * 0.045 + direction_switch_direction * direction_switch_energy * 0.055
 		character_sprite.scale = Vector2(scale_x, scale_y)
 		return
-	sprite_root.position = _world_to_screen(visual_pos)
-	sprite_root.rotation = _visual_root_rotation()
-	sprite_root.scale = Vector2.ONE / maxf(camera_zoom, 0.001)
+	sprite_root.position = _world_to_screen(_get_hover_visual_anchor())
+	sprite_root.rotation = _visual_root_rotation() + hover_visual_rotation
+	sprite_root.scale = Vector2.ONE * hover_visual_scale / maxf(camera_zoom, 0.001)
 	var climb_lean := clampf(-body_heading.y, -1.0, 1.0)
 	var turn_lean := clampf(heading_angle_delta / 1.4, -1.0, 1.0)
 	var scale_x := SPRITE_SCALE * (1.0 + 0.04 * boost_energy + 0.055 * carve_energy)
@@ -3298,6 +3678,101 @@ func _load_png_texture(path: String) -> Texture2D:
 	return null
 
 
+func _setup_yujian_birds() -> void:
+	yujian_bird_texture = _load_png_texture(YUJIAN_BIRD_TEXTURE_PATH)
+	yujian_bird_sprites.clear()
+	yujian_birds.clear()
+	yujian_bird_root = Node2D.new()
+	yujian_bird_root.name = "YujianBirdVfxRoot"
+	yujian_bird_root.z_index = YUJIAN_BIRD_LAYER_Z
+	yujian_bird_root.visible = 启用飞鸟环境特效 and yujian_bird_texture != null
+	add_child(yujian_bird_root)
+	if yujian_bird_texture == null:
+		return
+	for index in range(YUJIAN_BIRD_COUNT):
+		var sprite := Sprite2D.new()
+		sprite.name = "Feiniao%02d" % index
+		sprite.texture = yujian_bird_texture
+		sprite.centered = true
+		sprite.region_enabled = true
+		sprite.modulate = _color_with_scaled_alpha(飞鸟颜色, 0.0)
+		yujian_bird_root.add_child(sprite)
+		yujian_bird_sprites.append(sprite)
+		yujian_birds.append(_make_yujian_bird_state(index))
+	_update_yujian_birds(0.0)
+
+
+func _make_yujian_bird_state(index: int) -> Dictionary:
+	var seed := float(index) * 37.17 + 5.0
+	var direction := -1.0 if _hash01(seed + 1.0) < 0.5 else 1.0
+	return {
+		"world_x": FLIGHT_START_POS.x + lerpf(-VIEW_SIZE.x * 8.0, VIEW_SIZE.x * 8.0, _hash01(seed + 2.0)),
+		"height": lerpf(58.0, 210.0, _hash01(seed + 3.0)),
+		"depth": lerpf(0.055, 0.115, _hash01(seed + 4.0)),
+		"speed": direction * lerpf(165.0, 420.0, _hash01(seed + 5.0)),
+		"scale": lerpf(0.14, 0.27, _hash01(seed + 6.0)),
+		"alpha": lerpf(0.42, 0.78, _hash01(seed + 7.0)),
+		"sway": lerpf(4.0, 16.0, _hash01(seed + 8.0)),
+		"sway_rate": lerpf(0.45, 0.85, _hash01(seed + 9.0)),
+		"frame_offset": int(floor(_hash01(seed + 10.0) * float(YUJIAN_BIRD_FRAME_COUNT))),
+		"phase": _hash01(seed + 11.0) * TAU,
+		"flip": direction < 0.0,
+	}
+
+
+func _update_yujian_birds(delta: float) -> void:
+	if yujian_bird_root == null:
+		return
+	var active := 启用飞鸟环境特效 and yujian_bird_texture != null and 飞鸟透明度 > 0.001
+	yujian_bird_root.visible = active
+	if not active:
+		return
+	var horizon_y := _get_sea_horizon_y()
+	var speed_pressure := clampf(velocity.length() / BOOST_SPEED, 0.0, 1.0)
+	var drift_scale := 1.0 + speed_pressure * 飞鸟速度响应
+	for index in range(mini(yujian_birds.size(), yujian_bird_sprites.size())):
+		var bird: Dictionary = yujian_birds[index]
+		var sprite := yujian_bird_sprites[index]
+		var depth := float(bird.get("depth", 0.08))
+		var speed := float(bird.get("speed", 0.0))
+		var world_x := float(bird.get("world_x", FLIGHT_START_POS.x)) + speed * drift_scale * delta
+		var screen_x := _background_screen_x(world_x, depth)
+		var wrap_world_span := VIEW_SIZE.x * _background_zoom() / maxf(depth, 0.001) + 1600.0
+		if speed >= 0.0 and screen_x > VIEW_SIZE.x + 160.0:
+			world_x -= wrap_world_span
+			screen_x = _background_screen_x(world_x, depth)
+		elif speed < 0.0 and screen_x < -160.0:
+			world_x += wrap_world_span
+			screen_x = _background_screen_x(world_x, depth)
+		bird["world_x"] = world_x
+		yujian_birds[index] = bird
+
+		var phase := float(bird.get("phase", 0.0))
+		var screen_y := horizon_y - float(bird.get("height", 120.0)) + sin(time * float(bird.get("sway_rate", 0.6)) + phase) * float(bird.get("sway", 8.0))
+		var frame := (int(floor(time * YUJIAN_BIRD_ANIM_FPS)) + int(bird.get("frame_offset", 0))) % YUJIAN_BIRD_FRAME_COUNT
+		_set_yujian_bird_frame(sprite, frame)
+		sprite.position = Vector2(screen_x, screen_y)
+		sprite.flip_h = bool(bird.get("flip", false))
+		sprite.rotation = sin(time * 0.32 + phase) * 0.025 + clampf(speed / 420.0, -1.0, 1.0) * 0.035
+		var draw_scale := float(bird.get("scale", 0.2)) * 飞鸟整体缩放
+		sprite.scale = Vector2.ONE * draw_scale
+		var cull_fade := clampf(minf(screen_x + 160.0, VIEW_SIZE.x + 160.0 - screen_x) / 240.0, 0.0, 1.0)
+		var height_fade := clampf((horizon_y - screen_y) / 80.0, 0.0, 1.0)
+		var alpha := 飞鸟透明度 * float(bird.get("alpha", 0.55)) * cull_fade * height_fade
+		sprite.modulate = _color_with_scaled_alpha(飞鸟颜色, alpha)
+
+
+func _set_yujian_bird_frame(sprite: Sprite2D, frame: int) -> void:
+	if yujian_bird_texture == null:
+		return
+	var tex_size := yujian_bird_texture.get_size()
+	var frame_size := Vector2(tex_size.x / float(YUJIAN_BIRD_COLUMNS), tex_size.y / float(YUJIAN_BIRD_ROWS))
+	var frame_index := posmod(frame, YUJIAN_BIRD_FRAME_COUNT)
+	var column := frame_index % YUJIAN_BIRD_COLUMNS
+	var row := int(frame_index / YUJIAN_BIRD_COLUMNS)
+	sprite.region_rect = Rect2(Vector2(float(column) * frame_size.x, float(row) * frame_size.y), frame_size)
+
+
 func _setup_boost_shockwave_ring_sprite() -> void:
 	if boost_shockwave_vfx_root == null:
 		return
@@ -3523,12 +3998,12 @@ func _capture_afterimage(pos: Vector2, intensity: float) -> void:
 func _update_trail(delta: float) -> void:
 	for point in trail_points:
 		point["age"] = float(point["age"]) + delta
-	var max_life := 0.70 + 0.16 * clampf(boost_energy + turn_energy, 0.0, 1.0)
-	max_life = maxf(max_life, 0.54 + 0.31 * clampf(破空尾流长度, 0.45, 1.8))
+	var max_life := 0.34 + 0.08 * clampf(boost_energy + turn_energy, 0.0, 1.0)
+	max_life = maxf(max_life, 0.26 + 0.12 * clampf(破空尾流长度, 0.45, 1.8))
 	trail_points = trail_points.filter(func(point: Dictionary) -> bool: return float(point["age"]) <= max_life)
 
 	var anchor := _get_trail_anchor()
-	var distance_threshold := lerpf(15.0, 8.0, clampf(boost_energy + turn_energy, 0.0, 1.0))
+	var distance_threshold := lerpf(26.0, 15.0, clampf(boost_energy + turn_energy, 0.0, 1.0))
 	if trail_points.is_empty() or Vector2(trail_points[-1]["pos"]).distance_to(anchor) > distance_threshold:
 		var clip := _current_clip()
 		trail_points.append({
@@ -4763,7 +5238,7 @@ func _draw_debug() -> void:
 		else:
 			visual_label = "Gemini 4way %s %s" % [_current_eight_way_set_label(), _current_eight_way_name()]
 	draw_string(ThemeDB.fallback_font, Vector2(24.0, 32.0), "Yujian flight V4  |  field %.0fx%.0f  |  WASD intent  Space boost  F3 mode  K key  F2 panel  F4 pose  F5 hair  F6 sword:%s  F9 guides:%s  T demo" % [FLIGHT_TEST_HORIZONTAL_SCALE, FLIGHT_TEST_VERTICAL_SCALE, sword_label, "on" if show_debug_guides else "off"], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16.0, Color(0.91, 0.96, 0.95, 0.84))
-	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "control: %s  clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg visual %.0fdeg local %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [control_label, String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(visual_heading.angle()), rad_to_deg(eight_way_local_rotation), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
+	draw_string(ThemeDB.fallback_font, Vector2(24.0, 56.0), "control: %s  clip: %s  frame: %d/%d  visual: %s  mode: %s  speed: %.1f  hover %.2f  throttle %.2f slip %.2f carve %.2f turn %.0fdeg  body %.0fdeg visual %.0fdeg local %.0fdeg target %.0fdeg  zoom %.2f  pos %.0f,%.0f  %s" % [control_label, String(clip["name"]), frame_index, int(clip["frames"]) - 1, visual_label, speed_label, velocity.length(), hover_idle_blend, throttle_energy, slip_energy, carve_energy, rad_to_deg(heading_angle_delta), rad_to_deg(body_heading.angle()), rad_to_deg(visual_heading.angle()), rad_to_deg(eight_way_local_rotation), rad_to_deg(target_heading.angle()), camera_zoom, flight_pos.x, flight_pos.y, material_label], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13.0, Color(0.72, 0.86, 0.86, 0.76))
 
 
 func _safe_velocity_dir() -> Vector2:
